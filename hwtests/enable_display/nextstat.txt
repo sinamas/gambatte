@@ -1,0 +1,9 @@
+waits for vblank
+disables display
+enables display
+does a bunch of nops
+reads lcdstat
+outputs value of lcdstat in hex
+
+nextstat_1.gb should output 84
+nextstat_2.gb should output 87

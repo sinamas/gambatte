@@ -1,0 +1,14 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+nops til late next ly
+sets lyc to 6
+reads IF
+outputs value of IF&3
+
+late_ff45_enable_1.gb should output 2
+late_ff45_enable_2.gb should output 0

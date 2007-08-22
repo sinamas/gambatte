@@ -1,0 +1,12 @@
+waits for mode3
+enables mode 2 int
+waits for int
+
+on int jumps to 0x1000
+enables mode0 irq
+nops til mode0
+reads IF
+outputs value of IF&3
+
+enable_after_m2_prior_1.gbc should output 2
+enable_after_m2_prior_2.gbc should output 2

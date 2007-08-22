@@ -1,0 +1,24 @@
+waits for ly 150
+enables lyc
+sets lyc to 152
+interrupt enable
+
+on int
+jumps to 0x1000
+nops til somewhere in or before ly153
+sets lyc to 153
+some nops
+reads IF
+outputs value of IF in hex
+
+lyc153_late_ff45_enable_1.gb should output E2
+lyc153_late_ff45_enable_2.gb should output E0
+lyc153_late_ff45_enable_3.gb should output E2
+lyc153_late_ff45_enable_4.gb should output E0
+
+lyc153_late_ff45_enable_ds_1.gb should output E2
+lyc153_late_ff45_enable_ds_2.gb should output E0
+lyc153_late_ff45_enable_ds_3.gb should output E0
+lyc153_late_ff45_enable_ds_4.gb should output E2
+lyc153_late_ff45_enable_ds_5.gb should output E2
+lyc153_late_ff45_enable_ds_6.gb should output E0

@@ -1,0 +1,7 @@
+waits for vblank
+disables display
+enables display
+reads ly
+outputs value of ly in hex
+
+should output 0

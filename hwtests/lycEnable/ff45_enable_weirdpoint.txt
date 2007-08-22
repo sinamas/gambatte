@@ -1,0 +1,21 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+nops til somewhere in or before next ly
+sets lyc to 6
+some nops
+reads IF
+outputs value of IF&3
+
+ff45_enable_weirdpoint_1.gb should output 2
+ff45_enable_weirdpoint_2.gb should output 0
+ff45_enable_weirdpoint_3.gb should output 2
+
+ff45_enable_weirdpoint_ds_1.gb should output 2
+ff45_enable_weirdpoint_ds_2.gb should output 0
+ff45_enable_weirdpoint_ds_3.gb should output 0
+ff45_enable_weirdpoint_ds_4.gb should output 2

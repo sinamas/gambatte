@@ -1,0 +1,12 @@
+waits for ly 151
+enables lycint
+sets lyc to 153
+interrupt enable
+
+on lycint:
+jump to 0x1000
+writes 0x10 to ff41
+reads IF
+outputs value of IF&3
+
+m1irq_enable_after_lyc153.gbc should output 3

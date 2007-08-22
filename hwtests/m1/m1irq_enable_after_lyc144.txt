@@ -1,0 +1,14 @@
+waits for ly 142
+enables lycint
+sets lyc to 144
+interrupt enable
+
+on lycint:
+jump to 0x1000
+does a bunch of nops
+writes 0x10 to ff41
+reads IF
+outputs value of IF&3
+
+m1irq_enable_after_lyc144_1.gbc should output 1
+m1irq_enable_after_lyc144_2.gbc should output 3

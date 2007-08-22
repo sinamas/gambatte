@@ -1,0 +1,11 @@
+waits for mode3
+enables mode 2 int
+waits for int
+
+on int jumps to 0x1000
+writes 0x60 to ff41
+sets lyc to ly
+reads IF
+outputs value of IF&3
+
+late_ff45_enable_after_m2int.gbc should output 2

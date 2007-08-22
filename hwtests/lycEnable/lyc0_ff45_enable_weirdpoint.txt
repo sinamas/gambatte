@@ -1,0 +1,16 @@
+waits for ly 150
+enables lyc
+sets lyc to 152
+interrupt enable
+
+on int
+jumps to 0x1000
+nops til somewhere in or before ly153/ly0
+sets lyc to 0
+some nops
+reads IF
+outputs value of IF in hex
+
+lyc0_ff45_enable_weirdpoint_1.gb should output E2
+lyc0_ff45_enable_weirdpoint_2.gb should output E2
+lyc0_ff45_enable_weirdpoint_3.gb should output E2

@@ -1,0 +1,7 @@
+waits for vblank
+disables display
+enables display
+reads lcdstat
+outputs value of lcdstat in hex
+
+should output 84

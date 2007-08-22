@@ -1,0 +1,12 @@
+waits for mode3
+enables mode 2 int
+waits for int
+
+on int jumps to 0x1000
+nops til late mode0
+disables mode2 irq
+reads IF
+outputs value of IF&3
+
+disable_1.gbc should output 0
+disable_2.gbc should output 2

@@ -1,0 +1,13 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+sets STAT to 0
+sets STAT to 0x40
+reads IF
+outputs value of IF&3
+
+ff41_reenable_1.gb should output 2

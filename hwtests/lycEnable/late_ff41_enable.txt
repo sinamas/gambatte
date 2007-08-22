@@ -1,0 +1,16 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+sets lyc to 6
+sets STAT to 0
+jumps to 0x1000
+nops til late next ly
+sets STAT to 0x40
+reads IF
+outputs value of IF&3
+
+late_ff41_enable_1.gbc should output 2
+late_ff41_enable_2.gbc should output 0

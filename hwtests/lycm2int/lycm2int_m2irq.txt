@@ -1,0 +1,14 @@
+waits until ly=3
+sets lyc to 4
+enables lyc int
+enables mode2 int
+waits for int
+
+on int:
+jumps to 0x1000
+lots of nops
+reads IF
+outputs value of IF&3
+
+lycm2int_m2irq_1.gb should output 0
+lycm2int_m2irq_1.gb should output 2

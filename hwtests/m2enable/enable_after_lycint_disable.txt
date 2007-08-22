@@ -1,0 +1,14 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+writes 0x20 to ff41
+lots of nops
+reads IF
+outputs value of IF&3
+
+enable_after_lycint_disable_1.gb should output 0
+enable_after_lycint_disable_2.gb should output 2

@@ -1,0 +1,14 @@
+waits for ly 150
+enables lyc
+sets lyc to 152
+interrupt enable
+
+on int
+jumps to 0x1000
+does a bunch of nops
+reads ly
+outputs value of ly in hex
+
+lycint152_ly153_1.gb should output 98
+lycint152_ly153_2.gb should output 99
+lycint152_ly153_3.gb should output 00

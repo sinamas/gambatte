@@ -1,0 +1,13 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+nops til mode0
+wites 0x8 to ff41
+reads IF
+outputs value of IF&3
+
+enable_after_lyc_during_1.gbc should output 0

@@ -1,0 +1,17 @@
+waits for ly 150
+enables lyc
+sets lyc to 152
+interrupt enable
+
+on int
+jumps to 0x1000
+sets ff41 to 0
+sets lyc to 153
+nops til somewhere in or before ly153
+sets ff41 to 0x40
+some nops
+reads IF
+outputs value of IF in hex
+
+lyc153_late_ff41_enable_1.gb should output E2
+lyc153_late_ff41_enable_2.gb should output E0

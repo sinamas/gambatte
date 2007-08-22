@@ -1,0 +1,11 @@
+waits for mode3
+enables mode 2 int
+waits for int
+
+on int jumps to 0x1000
+lots of nops
+reads stat
+outputs value of stat&3
+
+m2int_m0stat_1.gb should output 0
+m2int_m0stat_2.gb should output 2

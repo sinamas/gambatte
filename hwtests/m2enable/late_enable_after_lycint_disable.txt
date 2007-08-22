@@ -1,0 +1,15 @@
+waits for mode3
+enables mode 2 int
+sets lyc to ly+1
+enables lyc int
+waits for int
+
+on int jumps to 0x1000
+writes 0x40 to ff41
+nops til somewhere in or before next mode2
+writes 0x20 to ff41
+reads IF
+outputs value of IF&3
+
+late_enable_after_lycint_disable_1.gbc should output 2
+late_enable_after_lycint_disable_2.gbc should output 0

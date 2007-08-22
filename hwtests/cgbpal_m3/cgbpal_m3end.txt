@@ -1,0 +1,17 @@
+go doubleSpeed
+wait for mode3
+enable mode0 int
+write 0 to cgbpal1
+wait for int
+
+on int:
+jump to 0x1000
+bunch of nops
+write 1 to cgbpal1
+read cgbpal1
+output value of cgbpal1&7
+
+cgbpal_m3end_1.gbc should output 7
+cgbpal_m3end_2.gbc should output 0
+cgbpal_m3end_3.gbc should output 0
+cgbpal_m3end_4.gbc should output 1

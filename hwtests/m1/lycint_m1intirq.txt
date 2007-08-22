@@ -1,0 +1,19 @@
+waits for ly 141
+enables lycint
+sets lyc to 143
+enables m1 int
+d=2
+interrupt enable
+
+on lycint:
+dec d
+if nz jr 1
+ret
+jump to 0x1000
+ei
+does a bunch of nops
+reads IF
+outputs value of IF&3
+
+lycint_m1intirq_1.gb should output 3
+lycint_m1intirq_2.gb should output 1

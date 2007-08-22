@@ -1,0 +1,13 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+lots of nops
+reads stat
+outputs value of stat&3
+
+lycint_m0stat_1.gb should output 0
+lycint_m0stat_2.gb should output 2

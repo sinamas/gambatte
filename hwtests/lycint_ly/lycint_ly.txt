@@ -1,0 +1,13 @@
+waits until ly=3
+sets lyc to 5
+enables lyc int
+waits for int
+
+on int:
+jumps to 0x1000
+lots of nops
+reads ly
+outputs value of ly&7
+
+lycint_ly_1.gb should output 5
+lycint_ly_2.gb should output 6

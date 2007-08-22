@@ -1,0 +1,13 @@
+waits for ly 141
+enables lyc
+sets lyc to 143
+interrupt enable
+
+on int
+jumps to 0x1000
+does a bunch of nops
+reads STAT
+outputs value of STAT&3
+
+lycint_m1stat_1.gb should output 0
+lycint_m1stat_2.gb should output 1

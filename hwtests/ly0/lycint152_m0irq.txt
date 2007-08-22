@@ -1,0 +1,15 @@
+waits for ly 150
+enables lyc
+sets lyc to 152
+interrupt enable
+
+on int
+jumps to 0x1000
+writes 0x08 to ff41
+writes 0 to IF
+does a bunch of nops
+reads IF
+outputs value of IF in hex
+
+lycint152_m0irq_1.gb should output E0
+lycint152_m0irq_2.gb should output E2

@@ -1,0 +1,14 @@
+waits for mode2
+enables mode 0 int
+waits for int
+
+on int jumps to 0x1000
+disables mode0 irq
+nops til next mode0
+writes 0x28 to ff41
+sets IF to 0
+writes 0x08 to ff41
+reads IF
+outputs value of IF&3
+
+enable_twice_1.gbc should output 0

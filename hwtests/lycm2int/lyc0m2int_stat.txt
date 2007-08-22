@@ -1,0 +1,12 @@
+waits until ly=151
+sets lyc to 0
+enables lyc int
+enables mode2 int
+waits for int
+
+on int:
+jumps to 0x1000
+reads STAT
+outputs value of STAT&3
+
+lyc0m2int_stat.gb should output 1

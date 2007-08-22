@@ -1,0 +1,15 @@
+waits until ly=91
+sets lyc to 93
+enables lyc int
+waits for int
+
+on int:
+sets lyc to 94
+jumps to 0x1000
+lots of nops
+disables display
+reads IF
+outputs value of IF&3
+
+ff40_disable_1.gb should output 0
+ff40_disable_2.gb should output 2

@@ -1,0 +1,18 @@
+waits for ly 150
+enables lyc
+sets lyc to 152
+interrupt enable
+
+on int
+jumps to 0x1000
+does a bunch of nops
+reads stat
+outputs value of stat in hex
+
+lycint152_ly0stat_1.gb should output C1
+lycint152_ly0stat_2.gb should output C0
+lycint152_ly0stat_3.gb should output C2
+
+lycint152_ly0stat_ds_1.gb should output C1
+lycint152_ly0stat_ds_2.gb should output C1
+lycint152_ly0stat_ds_3.gb should output C2

@@ -1,0 +1,14 @@
+waits until ly=3
+sets lyc to 6
+enables lyc int
+enables mode2 int
+waits for int
+
+on int:
+jumps to 0x1000
+nops til next mode2
+reads IF
+outputs value of IF&3
+
+m2irq_before_lycint_1.gb should output 0
+m2irq_before_lycint_2.gb should output 2

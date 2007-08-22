@@ -1,0 +1,18 @@
+waits for ly 141
+enables lycint
+sets lyc to 143
+enables vblank int
+interrupt enable
+
+on lycint:
+jumps to 0x1000
+ei
+does a bunch of nops
+reads IF
+outputs value of IF&3
+
+on vblankint:
+ret
+
+lycint_vblankintirq_1.gb should output 1
+lycint_vblankintirq_2.gb should output 0

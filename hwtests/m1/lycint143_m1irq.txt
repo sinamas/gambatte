@@ -1,0 +1,14 @@
+waits for ly 141
+enables lyc
+enables m1irq
+sets lyc to 143
+interrupt enable
+
+on int
+jumps to 0x1000
+does a bunch of nops
+reads IF
+outputs value of IF&3
+
+lycint142_m1irq_1.gb should output 0
+lycint142_m1irq_2.gb should output 3

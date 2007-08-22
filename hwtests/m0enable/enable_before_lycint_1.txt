@@ -1,0 +1,17 @@
+waits until ly=3
+writes 0x48 to ff41
+writes 0x2 to ffff
+waits until ly=4
+wais until mode=0
+writes 0 to ff0f
+sets lyc to 5
+ei
+waits for int
+
+on int:
+jumps to 0x1000
+nops til mode0
+reads IF
+outputs value of IF&3
+
+enable_before_lycint_1.gbc should output 0
