@@ -1,0 +1,7 @@
+env = Environment(CPPFLAGS = '-Wall -O2 -fno-exceptions -fno-rtti -fomit-frame-pointer')
+
+sourceFiles = Split('''
+			gambatte_sdl.cpp
+		   ''')
+
+env.Program(sourceFiles, CPPPATH = ['.', '../libgambatte/include'], LIBS = ['gambatte', 'SDL'], LIBPATH = '../libgambatte')
