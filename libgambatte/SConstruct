@@ -1,0 +1,51 @@
+env = Environment(CPPFLAGS = '-Wall -O2 -fno-exceptions -fno-rtti -fomit-frame-pointer')
+
+#sourceFiles = Split('''
+#src/2xsai.cpp
+#src/bspline2x.cpp
+#src/bspline3x.cpp
+#src/hq2x.cpp
+#src/kreedsuper2xsai.cpp
+#src/kreedsupereagle.cpp
+#''')
+
+sourceFiles = Split('''
+			src/gambatte.cpp
+			src/cpu.cpp
+			src/interrupter.cpp
+			src/memory.cpp
+			src/rtc.cpp
+			src/sound.cpp
+			src/video.cpp
+			src/sound/channel1.cpp
+			src/sound/channel2.cpp
+			src/sound/channel3.cpp
+			src/sound/channel4.cpp
+			src/sound/duty_unit.cpp
+			src/sound/envelope_unit.cpp
+			src/sound/length_counter.cpp
+			src/sound/master_disabler.cpp
+			src/video/break_event.cpp
+			src/video/irq_event.cpp
+			src/video/ly_counter.cpp
+			src/video/lyc_irq.cpp
+			src/video/m3_extra_cycles.cpp
+			src/video/mode3_event.cpp
+			src/video/mode0_irq.cpp
+			src/video/mode1_irq.cpp
+			src/video/mode2_irq.cpp
+			src/video/sc_reader.cpp
+			src/video/scx_reader.cpp
+			src/video/sprite_mapper.cpp
+			src/video/sprite_size_reader.cpp
+			src/video/we_master_checker.cpp
+			src/video/we.cpp
+			src/video/wx_reader.cpp
+			src/video/wy.cpp
+			src/video/filters/catrom2x.cpp
+			src/video/filters/catrom3x.cpp
+			src/video/filters/kreed2xsai.cpp
+			src/video/filters/maxsthq2x.cpp
+		   ''')
+
+env.Library('gambatte', sourceFiles, CPPPATH = ['src', 'include'])
