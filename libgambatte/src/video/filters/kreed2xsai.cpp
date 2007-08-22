@@ -2,6 +2,8 @@
  *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
+ *   Copyright (C) 1999 Derek Liauw Kie Fa (Kreed)                         *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
  *   published by the Free Software Foundation.                            *
