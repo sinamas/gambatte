@@ -102,7 +102,7 @@ GambatteQt::GambatteQt() : resetVideoBuffer(gambatte) {
 	createActions();
 	createMenus();
 
-	setWindowTitle("gambatte");
+	setWindowTitle("Gambatte");
 
 	gambatte.setInputStateGetter(&inputGetter);
 	
@@ -135,7 +135,7 @@ GambatteQt::~GambatteQt() {
 void GambatteQt::open() {
 	pause();
 	
-	QString fileName = QFileDialog::getOpenFileName(this, "Open", recentFileActs[0]->data().toString(), "Game Boy ROM Images (*.gb *.gbc *.sgb)");
+	QString fileName = QFileDialog::getOpenFileName(this, "Open", recentFileActs[0]->data().toString(), "Game Boy ROM images (*.gb *.gbc *.sgb);;All files (*)");
 	if (!fileName.isEmpty())
 		loadFile(fileName);
 	
@@ -153,8 +153,8 @@ void GambatteQt::about() {
 	
 	QMessageBox::about(
 	        this,
-	        tr("About gambatte"),
-	        tr("gambatte is a Game Boy / Game Boy Color emulator.")
+	        tr("About Gambatte"),
+	        tr("Gambatte is a Game Boy / Game Boy Color emulator.")
 	);
 	
 	unpause();
@@ -490,9 +490,9 @@ void GambatteQt::unpause() {
 void GambatteQt::setCurrentFile(const QString &fileName) {
 	QString curFile = fileName;
 	if (curFile.isEmpty())
-		setWindowTitle(tr("gambatte"));
+		setWindowTitle(tr("Gambatte"));
 	else
-		setWindowTitle(tr("%1 - %2").arg(strippedName(curFile)) .arg(tr("gambatte")));
+		setWindowTitle(tr("%1 - %2").arg(strippedName(curFile)) .arg(tr("Gambatte")));
 
 	QSettings settings;
 	QStringList files = settings.value("recentFileList").toStringList();
