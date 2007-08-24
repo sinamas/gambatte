@@ -126,8 +126,8 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 				so1 += so1Tmp;
 				so2 += so2Tmp;
 	
-				*stream++ = ((so2 + ratio / 2) / ratio) << 5;
-				*stream++ = ((so1 + ratio / 2) / ratio) << 5;
+				*stream++ = ((so2 + ratio / 2) / ratio) << 6;
+				*stream++ = ((so1 + ratio / 2) / ratio) << 6;
 				
 				so1 = (borderSample & 0xFFFF0000) - so1Tmp;
 				so2 = ((borderSample << 16) & 0xFFFFFFFF) - so2Tmp;
