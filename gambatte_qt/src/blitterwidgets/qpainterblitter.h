@@ -20,6 +20,7 @@
 #define QPAINTERBLITTER_H
 
 #include "../blitterwidget.h"
+#include <stdint.h>
 
 class QPainter;
 class QImage;

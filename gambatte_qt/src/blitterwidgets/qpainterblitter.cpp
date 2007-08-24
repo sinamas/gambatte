@@ -25,6 +25,8 @@
 #include <QImage>
 #include <QPaintEvent>
 
+#include <algorithm>
+
 QPainterBlitter::QPainterBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
 	BlitterWidget("QPainter", true, parent),
 	resetVideoBuffer(resetVideoBuffer_in),

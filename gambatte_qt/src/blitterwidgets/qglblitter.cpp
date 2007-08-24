@@ -23,8 +23,9 @@
 #include <QCheckBox>
 #include <QResizeEvent>
 #include <QSettings>
-
 #include <QGLWidget>
+
+#include <algorithm>
 
 #ifdef PLATFORM_WIN32
 #include <GL/glext.h>

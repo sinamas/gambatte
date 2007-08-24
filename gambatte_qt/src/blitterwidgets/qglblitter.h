@@ -20,6 +20,7 @@
 #define QGLBLITTER_H
 
 #include "../blitterwidget.h"
+#include <stdint.h>
 
 class QGLSubWidget;
 class QCheckBox;
