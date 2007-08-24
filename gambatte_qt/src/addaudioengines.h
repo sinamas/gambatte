@@ -22,7 +22,8 @@
 class AudioEngine;
 
 #include <vector>
+#include <QtGui>
 
-void addAudioEngines(std::vector<AudioEngine*> &audioEngines, unsigned long winId);
+void addAudioEngines(std::vector<AudioEngine*> &audioEngines, WId winId);
 
 #endif

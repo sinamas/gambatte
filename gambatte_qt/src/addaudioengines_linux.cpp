@@ -21,7 +21,7 @@
 #include "audioengines/alsaengine.h"
 #include "audioengines/ossengine.h"
 
-void addAudioEngines(std::vector<AudioEngine*> &audioEngines, const unsigned long /*winId*/) {
+void addAudioEngines(std::vector<AudioEngine*> &audioEngines, WId /*winId*/) {
 	audioEngines.push_back(new OssEngine);
 	audioEngines.push_back(new AlsaEngine);
 }
