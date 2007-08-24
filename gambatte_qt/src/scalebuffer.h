@@ -32,8 +32,8 @@ for (unsigned h = srcH; h--;) { \
 		++s; \
 	} \
 \
-	std::memcpy(d, d - dstW, dstW * (scale - 1) * sizeof(T)); \
-	d += dstW * (scale - 1); \
+	for (unsigned n = scale; --n; d += dstW) \
+		std::memcpy(d, d - dstW, dstW * sizeof(T)); \
 }
 
 
