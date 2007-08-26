@@ -86,8 +86,6 @@ bool CPU::load(const char* romfile) {
 	return cycleCounter;
 }*/
 
-//  void joypad() { halted=0; memory.write(--SP,(PC>>8)); memory.write(--SP,(PC&0xFF)); PC=0x60; memory.CycleCounter+=16; }
-
 
 #define BC() ( (B << 8) | C )
 #define DE() ( (D << 8) | E )
