@@ -138,6 +138,8 @@ static InputGetter inputGetter;
 static const unsigned SND_BUF_SZ = 4096;
 
 int main(int argc, char **argv) {
+	printf("Gambatte SDL svn\n");
+	
 	if (argc < 2) {
 		printf("No rom specified\n");
 		return 1;
