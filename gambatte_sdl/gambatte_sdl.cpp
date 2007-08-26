@@ -88,7 +88,7 @@ void syncFunc() {
 class SdlBlitter : public VideoBlitter {
 	SDL_Surface *screen;
 public:
-	void setBufferDimensions(const unsigned int width, const unsigned int height);
+	void setBufferDimensions(unsigned int width, unsigned int height);
 	const PixelBuffer inBuffer();
 	void blit();
 	void toggleFullScreen();
