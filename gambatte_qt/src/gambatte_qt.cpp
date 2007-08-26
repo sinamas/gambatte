@@ -563,7 +563,13 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 	}
 
 	switch (e->key()) {
-	case Qt::Key_Tab: turbo = true; break;
+	case Qt::Key_Tab:
+		turbo = true;
+		
+		if (ae)
+			ae->pause();
+			
+		break;
 	case Qt::Key_Escape:
 		hideMenuAct->trigger();
 		break;
