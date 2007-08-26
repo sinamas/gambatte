@@ -37,10 +37,7 @@ void CPU::init() {
 	ZF = 0;
 	HF2 = HF1 = 0xF;
 	CF = 0x100;
-	/*ei=0;*/
 	skip = false;
-// 	haltpending = 0; /*debug=0;*/ /*enable_tima=0;*/ /*divCounter=0;*/ /*timeCounter=0;*/ /*CycleCounter=0;*/
-//   doubleSpeed=0;
 
 	if (memory.isCgb()) A_ = 0x11;
 }
