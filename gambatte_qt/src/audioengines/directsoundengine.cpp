@@ -121,7 +121,7 @@ int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
 	}
 	
 	if (!(status & DSBSTATUS_PLAYING)) {
-		std:: cout << "notplaying" << std::endl;
+// 		std:: cout << "notplaying" << std::endl;
 		offset = bufSize >> 1;
 		lpDSB->SetCurrentPosition(0);
 	} else for (DWORD pc, wc;;) {
@@ -130,7 +130,7 @@ int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
 		
 		//std::cout << "wc-pc: " << ((wc < pc ? bufSize : 0) + wc - pc) << std::endl;
 		if (offset > pc && offset < wc) {
-			std::cout << "underrun" << std::endl;
+// 			std::cout << "underrun" << std::endl;
 			offset = wc;
 			break;
 		}

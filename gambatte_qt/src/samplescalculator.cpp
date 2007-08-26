@@ -31,7 +31,7 @@ void SamplesCalculator::setBaseSamples(const unsigned baseSamples) {
 	lastOverflowTime = lastUnderrunTime = updates = samplesOverflowed = 0;
 }
 
-#include <cstdio>
+// #include <cstdio>
 
 void SamplesCalculator::update(const unsigned fromUnderrun, const unsigned fromOverflow) {
 	++updates;
@@ -41,7 +41,7 @@ void SamplesCalculator::update(const unsigned fromUnderrun, const unsigned fromO
 			++samples;
 			lastFromUnderrun = fromUnderrun;
 			lastUnderrunTime = updates;
-			printf("samples: %u\n", samples);
+// 			printf("samples: %u\n", samples);
 			lastOverflowTime = samplesOverflowed = 0;
 		}
 	} else {
@@ -56,7 +56,7 @@ void SamplesCalculator::update(const unsigned fromUnderrun, const unsigned fromO
 				if (samples > baseSamples - maxDiff && samplesOverflowed >= (updates - lastOverflowTime) * 2 + samples && updates - lastOverflowTime >= 300) {
 					--samples;
 					lastFromUnderrun = 0xFFFFFFFF;
-					printf("samples: %u\n", samples);
+// 					printf("samples: %u\n", samples);
 					samplesOverflowed = 0;
 					lastOverflowTime = updates;
 				}
