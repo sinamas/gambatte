@@ -42,7 +42,7 @@ library API should in no way be considered stable).
 Usage
 --------------------------------------------------------------------------------
 You will have to supply Gambatte with a ROM image file of the GB/GBC
-program/game you'd like to run/play, either as a command-line parameter to
+program/game you'd like to run/play, either as a command-line argument to
 gambatte_sdl, or through the File->Open... menu in gambatte_qt.
 
 The TAB key can be used for fast-forward during execution.
