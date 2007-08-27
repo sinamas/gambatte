@@ -27,7 +27,7 @@
 
 #include <QX11Info>
 #include <X11/Xlib.h>
-#include <sys/ipc.h>
+// #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xvlib.h>
