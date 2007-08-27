@@ -77,7 +77,7 @@ Requirements for building gambatte_qt:
   * Linux/BSD/UNIX-like OSes:
     - POSIX/UNIX headers (unistd.h, fcntl.h, sys/ioctl.h, sys/time.h).
     - Open Sound System header (sys/soundcard.h).
-    - X11 Xlib, XVideo and XRandR headers and libraries.
+    - X11 Xlib, XVideo, XRandR and XShm headers and libraries.
     - Alsa headers and library (Linux only).
   * Max OS X:
     - POSIX/UNIX headers (sys/time.h).
