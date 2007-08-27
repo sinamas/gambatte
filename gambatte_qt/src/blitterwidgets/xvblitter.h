@@ -27,8 +27,6 @@
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xvlib.h>
 
-#include <sys/types.h>
-
 class XvSubBlitter;
 
 class XvBlitter : public BlitterWidget {
