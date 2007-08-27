@@ -21,8 +21,6 @@
 
 #include "../blitterwidget.h"
 
-#include <sys/types.h>
-
 class X11SubBlitter;
 class VideoBufferReseter;
 
