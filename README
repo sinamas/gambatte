@@ -69,7 +69,7 @@ Requirements for building gambatte_sdl:
 Requirements for building gambatte_qt:
 - A decent C++ compiler (like g++ in the GNU Compiler Collection).
 - Qt4 (Core, GUI, OpenGL) headers and library.
-- Qmake and make (GNU Automake should work).
+- Qmake and make (GNU Make should work).
 - Platform-specific requirements:
   * MS Windows:
     - Win32 API headers and libraries.
