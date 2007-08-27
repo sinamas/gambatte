@@ -75,7 +75,7 @@ Requirements for building gambatte_qt:
     - Win32 API headers and libraries.
     - DirectSound and DirectDraw7 headers and libraries.
   * Linux/BSD/UNIX-like OSes:
-    - POSIX/UNIX headers (unistd.h, fcntl.h, sys/ioctl.h, sys/time.h).
+    - POSIX/UNIX headers (unistd.h, fcntl.h, sys/ioctl.h, sys/time.h, sys/shm.h).
     - Open Sound System header (sys/soundcard.h).
     - X11 Xlib, XVideo, XRandR and XShm headers and libraries.
     - Alsa headers and library (Linux only).
