@@ -26,7 +26,7 @@ Game Boy / Game Boy Color emulator written in C++. It is based on hundreds of
 corner case hardware tests, as well as previous documentation and reverse
 engineering efforts.
 
-The core emulation code is contained in a seperate library back-end
+The core emulation code is contained in a separate library back-end
 (libgambatte) written in pure platform-independent C++. There is currently a GUI
 front-end (gambatte_qt) using Trolltech's Qt4 toolkit, and a simple command-line
 SDL front-end (gambatte_sdl).
