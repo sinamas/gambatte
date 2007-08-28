@@ -41,7 +41,7 @@
 
 #include "resizesignalingmenubar.h"
 
-GambatteQt::GambatteQt() : resetVideoBuffer(gambatte) {
+GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuffer(gambatte) {
 	blitter = NULL;
 	ae = NULL;
 	timerId = 0;
@@ -118,6 +118,13 @@ GambatteQt::GambatteQt() : resetVideoBuffer(gambatte) {
 	videoSettingsChange();
 	
 	setFocus();
+	
+	for (int i = 1; i < argc; ++i) {
+		if (argv[i][0] != '-') {
+			loadFile(QString(argv[i]));
+			break;
+		}
+	}
 }
 
 GambatteQt::~GambatteQt() {

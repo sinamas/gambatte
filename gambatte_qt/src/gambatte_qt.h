@@ -49,7 +49,7 @@ class GambatteQt : public QMainWindow {
 	Q_OBJECT
 
 public:
-	GambatteQt();
+	GambatteQt(int argc, const char *const argv[]);
 	~GambatteQt();
 
 protected:

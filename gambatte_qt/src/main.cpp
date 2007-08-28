@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 	QApplication app(argc, argv);
 	QCoreApplication::setOrganizationName("gambatte");
 	QCoreApplication::setApplicationName("gambatte_qt");
-	GambatteQt * mw = new GambatteQt();
+	GambatteQt * mw = new GambatteQt(argc, argv);
 	mw->show();
 	return app.exec();
 }
