@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
 	printf("Gambatte SDL svn\n");
 	
 	if (argc < 2) {
-		printf("No rom specified\n");
+		printf("Usage: gambatte_sdl romfile\n");
 		return 1;
 	}
 	
