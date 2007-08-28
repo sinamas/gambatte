@@ -18,84 +18,27 @@
 ***************************************************************************/
 #include <gambatte.h>
 #include <SDL/SDL.h>
+#include <string>
+#include <sstream>
 
-namespace {
-struct timeval {
-	long tv_sec;
-	long tv_usec;
-};
-
-void gettimeofday(timeval *const t, void *) {
-	const unsigned long tv_msec = SDL_GetTicks();
-	
-	t->tv_sec = tv_msec / 1000;
-	t->tv_usec = (tv_msec % 1000) * 1000;
-}
-
-void syncFunc() {
-	timeval t;
-	gettimeofday(&t, NULL);
-	static timeval time = t;
-	static long late = 0;
-	static unsigned noSleep = 60;
-	
-	if (time.tv_sec > t.tv_sec || (time.tv_sec == t.tv_sec && time.tv_usec > t.tv_usec)) {
-		timeval tmp;
-		tmp.tv_sec = 0;
-		tmp.tv_usec = time.tv_usec - t.tv_usec;
-		if (time.tv_sec != t.tv_sec)
-			tmp.tv_usec += 1000000;
-		
-		if (tmp.tv_usec > late) {
-			tmp.tv_usec -= late;
-			
-			if (tmp.tv_usec >= 1000000) {
-				tmp.tv_usec -= 1000000;
-				++tmp.tv_sec;
-			}
-			
-			SDL_Delay(tmp.tv_sec * 1000 + (tmp.tv_usec + 500) / 1000);
-			
-			gettimeofday(&t, NULL);
-			late -= (time.tv_sec - t.tv_sec) * 1000000 + time.tv_usec - t.tv_usec >> 1;
-// 			printf("late: %d\n", late);
-			
-			if (late < 0)
-				late = 0;
-			
-			noSleep = 60;
-		} else if (noSleep-- == 0) {
-			noSleep = 60;
-			late = 0;
-		}
-		
-		while (time.tv_sec > t.tv_sec || (time.tv_sec == t.tv_sec && time.tv_usec > t.tv_usec)) {
-			gettimeofday(&t, NULL);
-		}
-		
-	} else
-		time = t;
-	
-	time.tv_usec += 16743;
-	
-	if (time.tv_usec >= 1000000) {
-		time.tv_usec -= 1000000;
-		++time.tv_sec;
-	}
-}
-}
+#include "syncfunc.h"
+#include "parser.h"
 
 class SdlBlitter : public VideoBlitter {
 	SDL_Surface *screen;
+	unsigned startFlags;
+	
 public:
+	SdlBlitter() : screen(NULL), startFlags(SDL_SWSURFACE) {}
 	void setBufferDimensions(unsigned int width, unsigned int height);
 	const PixelBuffer inBuffer();
 	void blit();
 	void toggleFullScreen();
+	void setStartFull() { startFlags |= SDL_FULLSCREEN; }
 };
 
 void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
-	screen = SDL_SetVideoMode(width, height, SDL_GetVideoInfo()->vfmt->BitsPerPixel == 16 ? 16 : 32, SDL_SWSURFACE/*|SDL_FULLSCREEN*/);
+	screen = SDL_SetVideoMode(width, height, SDL_GetVideoInfo()->vfmt->BitsPerPixel == 16 ? 16 : 32, startFlags);
 }
 
 const PixelBuffer SdlBlitter::inBuffer() {
@@ -118,6 +61,86 @@ static Gambatte gambatte;
 static SdlBlitter blitter;
 static InputState is;
 
+struct FatOption {
+	virtual Parser::Option* getShort() { return NULL; };
+	virtual Parser::Option* getLong() = 0;
+	virtual const char* getDesc() const = 0;
+	virtual ~FatOption() {}
+};
+
+class FsOption : public FatOption {
+	class Main : public Parser::Option {
+	protected:
+		Main(const char *const s) : Option(s) {}
+	public:
+		void exec(const char *const */*argv*/, int /*index*/) {
+			blitter.setStartFull();
+		}
+	};
+	
+	struct Short : Main {
+		Short() : Main("-f") {}
+	};
+	
+	struct Long : Main {
+		Long() : Main("--full-screen") {}
+	};
+	
+	Short sOpt;
+	Long lOpt;
+	static const char *const desc;
+	
+public:
+	Parser::Option* getShort() { return &sOpt; }
+	Parser::Option* getLong() { return &lOpt; }
+	const char* getDesc() const { return desc; }
+};
+
+const char *const FsOption::desc = "\t\tStart in full screen mode\n";
+
+class VfOption : public FatOption {
+	class Main : public Parser::Option {
+	protected:
+		Main(const char *const s) : Option(s, 1) {}
+	public:
+		void exec(const char *const *argv, int index) {
+			gambatte.setVideoFilter(atoi(argv[index + 1]));
+		}
+	};
+	
+	struct Short : Main {
+		Short() : Main("-v") {}
+	};
+	
+	struct Long : Main {
+		Long() : Main("--video-filter") {}
+	};
+	
+	Short sOpt;
+	Long lOpt;
+	std::string s;
+	
+public:
+	VfOption();
+	Parser::Option* getShort() { return &sOpt; }
+	Parser::Option* getLong() { return &lOpt; }
+	const char* getDesc() const { return s.c_str(); }
+};
+
+VfOption::VfOption() {
+	const std::vector<const FilterInfo*> &finfo = gambatte.filterInfo();
+	std::stringstream ss;
+	ss << " N\t\tUse video filter number N\n";
+	
+	for (std::size_t i = 0; i < finfo.size(); ++i) {
+		ss << "\t\t\t\t    " << i << " = " << finfo[i]->handle << "\n";
+	}
+	
+	s = ss.str();
+}
+
+
+
 static void fill_buffer(void *buffer, Uint8 *stream, int len);
 
 // static unsigned bufPos = 0;
@@ -137,17 +160,55 @@ static InputGetter inputGetter;
 
 static const unsigned SND_BUF_SZ = 4096;
 
+static const char *const usage = "Usage: gambatte_sdl romfile\n";
+
+static void printUsage(std::vector<FatOption*> &v) {
+	printf("Usage: gambatte_sdl [OPTION]... romfile\n\n");
+	
+	for (unsigned i = 0; i < v.size(); ++i) {
+		printf("  %s, %s%s\n", v[i]->getShort()->getStr(), v[i]->getLong()->getStr(), v[i]->getDesc());
+	}
+}
+
 int main(int argc, char **argv) {
 	printf("Gambatte SDL svn\n");
 	
-	if (argc < 2) {
-		printf("Usage: gambatte_sdl romfile\n");
-		return 1;
-	}
+	Parser parser;
 	
-	if (gambatte.load(argv[1])) {
-		printf("failed to load rom %s\n", argv[1]);
-		return 1;
+	{
+		static std::vector<FatOption*> v;
+		static FsOption fsOption;
+		v.push_back(&fsOption);
+		static VfOption vfOption;
+		v.push_back(&vfOption);
+		
+		for (unsigned i = 0; i < v.size(); ++i) {
+			parser.add(v[i]->getShort());
+			parser.add(v[i]->getLong());
+		}
+		
+		unsigned loadIndex = 0;
+	
+		for (int i = 1; i < argc; ++i) {
+			if (argv[i][0] == '-') {
+				if (!(i = parser.parse(argc, argv, i))) {
+					printUsage(v);
+					return 1;
+				}
+			} else if (!loadIndex) {
+				loadIndex = i;
+			}
+		}
+		
+		if (!loadIndex) {
+			printUsage(v);
+			return 1;
+		}
+		
+		if (gambatte.load(argv[loadIndex])) {
+			printf("failed to load ROM %s\n", argv[loadIndex]);
+			return 1;
+		}
 	}
 
 	gambatte.setInputStateGetter(&inputGetter);
@@ -165,6 +226,7 @@ int main(int argc, char **argv) {
 	SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO);
 	
 	SDL_ShowCursor(SDL_DISABLE);
+	SDL_WM_SetCaption("Gambatte SDL", NULL);
 
 	SDL_OpenAudio(&spec, NULL);
 	SDL_PauseAudio(0);
@@ -174,7 +236,6 @@ int main(int argc, char **argv) {
 
 	Uint8 *keys = SDL_GetKeyState(NULL);
 
-// 	gambatte.setVideoFilter(4);
 	gambatte.setVideoBlitter(&blitter);
 	
 	for (;;) {
