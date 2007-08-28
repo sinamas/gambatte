@@ -1,13 +1,5 @@
-env = Environment(CPPFLAGS = '-Wall -O2 -fno-exceptions -fno-rtti -fomit-frame-pointer')
-
-#sourceFiles = Split('''
-#src/2xsai.cpp
-#src/bspline2x.cpp
-#src/bspline3x.cpp
-#src/hq2x.cpp
-#src/kreedsuper2xsai.cpp
-#src/kreedsupereagle.cpp
-#''')
+env = Environment(CPPPATH = ['src', 'include'],
+                  CPPFLAGS = ARGUMENTS.get('CPPFLAGS', '-Wall -O2 -fno-exceptions -fno-rtti -fomit-frame-pointer'))
 
 sourceFiles = Split('''
 			src/gambatte.cpp
@@ -48,4 +40,4 @@ sourceFiles = Split('''
 			src/video/filters/maxsthq2x.cpp
 		   ''')
 
-env.Library('gambatte', sourceFiles, CPPPATH = ['src', 'include'])
+env.Library('gambatte', sourceFiles)
