@@ -281,7 +281,7 @@ void LCD::setVideoFilter(const uint32_t n) {
 	if (filter)
 		filter->outit();
 	
-	filter = filters.at(n);
+	filter = filters.at(n < filters.size() ? n : 0);
 
 	if (filter) {
 		filter->init();
