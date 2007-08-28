@@ -213,15 +213,6 @@ void DirectDrawBlitter::init() {
 	if (initPrimarySurface())
 		goto fail;
 	
-	DDPIXELFORMAT ddpf;
-	ddpf.dwSize = sizeof(ddpf);
-
-	if (lpDDSPrimary->GetPixelFormat(&ddpf) == DD_OK && (ddpf.dwFlags & DDPF_RGB) && ddpf.dwRGBBitCount == 16) {
-		pixb.format = PixelBuffer::RGB16;
-	} else {
-		pixb.format = PixelBuffer::RGB32;
-	}
-	
 	return;
 	
 fail:
@@ -251,24 +242,36 @@ bool DirectDrawBlitter::restoreSurfaces() {
 	return false;
 }
 
-static void setDdPf(DDPIXELFORMAT *const ddpf, const PixelBuffer::Format format) {
-	memset(ddpf, 0, sizeof(DDPIXELFORMAT));
+static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer *const pixb, LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
+	bool alpha = false;
+
 	ddpf->dwSize = sizeof(DDPIXELFORMAT);
 	
-	if (format == PixelBuffer::RGB16) {
-		ddpf->dwFlags = DDPF_RGB;
+	if (lpDDSPrimary && lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK && (ddpf->dwFlags & DDPF_RGB) && ddpf->dwRGBBitCount == 16) {
+		pixb->format = PixelBuffer::RGB16;
+	} else {
+		pixb->format = PixelBuffer::RGB32;
+		alpha = ddpf->dwFlags & DDPF_ALPHAPIXELS;
+	}
+	
+	memset(ddpf, 0, sizeof(DDPIXELFORMAT));
+	ddpf->dwFlags = DDPF_RGB;
+	
+	if (pixb->format == PixelBuffer::RGB16) {
 		ddpf->dwRGBBitCount = 16;
-		ddpf->dwRGBAlphaBitMask = 0x0000;
 		ddpf->dwRBitMask = 0xF800;
 		ddpf->dwGBitMask = 0x07E0;
 		ddpf->dwBBitMask = 0x001F;
 	} else {
-		ddpf->dwFlags = DDPF_RGB | DDPF_ALPHAPIXELS;
 		ddpf->dwRGBBitCount = 32;
-		ddpf->dwRGBAlphaBitMask = 0xFF000000;
 		ddpf->dwRBitMask = 0x00FF0000;
 		ddpf->dwGBitMask = 0x0000FF00;
 		ddpf->dwBBitMask = 0x000000FF;
+		
+		if (alpha) {
+			ddpf->dwFlags |= DDPF_ALPHAPIXELS;
+			ddpf->dwRGBAlphaBitMask = 0xFF000000;
+		}
 	}
 }
 
@@ -287,7 +290,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	}
 	
 	DDPIXELFORMAT ddpf;
-	setDdPf(&ddpf, pixb.format);
+	setDdPf(&ddpf, &pixb, lpDDSPrimary);
 	
 	DDSURFACEDESC2 ddsd;
 	memset(&ddsd, 0, sizeof(ddsd));
@@ -396,7 +399,7 @@ int DirectDrawBlitter::sync(const bool turbo) {
 	}
 	
 	if (ddrval != DD_OK && ddrval != DDERR_WASSTILLDRAWING) {
-		//std::cout << "lpDDSPrimary->Blt(&rcRectDest, lpDDSVideo, NULL, DDBLT_WAIT, NULL) failed" << std::endl;
+		std::cout << "final blit failed" << std::endl;
 		return -1;
 	}
 	
