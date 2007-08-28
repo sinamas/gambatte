@@ -35,7 +35,8 @@ public:
 	typedef uint16_t pixel_t;
 	
 	void operator()(pixel_t *const dest, const unsigned rgb32) {
-		const unsigned tmp = (rgb32 & 0xFCFEFC) + 0x040204;
+// 		const unsigned tmp = (rgb32 & 0xFCFEFC) + 0x040204;
+		const unsigned tmp = rgb32;
 		
 		*dest = tmp >> 8 & 0xF800 | tmp >> 5 & 0x07E0 | tmp >> 3 & 0x001F;
 	}
