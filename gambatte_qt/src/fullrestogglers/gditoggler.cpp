@@ -18,7 +18,23 @@
  ***************************************************************************/
 #include "gditoggler.h"
 
+#include <algorithm>
 #include <windows.h>
+
+template<typename T>
+struct greater {
+	bool operator()(const T &l, const T &r) const {
+		return l > r;
+	}
+};
+
+static inline bool operator!=(const ResInfo &l, const ResInfo &r) {
+	return l.w != r.w || l.h != r.h;
+}
+
+static inline bool operator>(const ResInfo &l, const ResInfo &r) {
+	return l.w > r.w || (l.w == r.w && l.h > r.h);
+}
 
 GdiToggler::GdiToggler() :
 isFull(false)
@@ -43,29 +59,33 @@ isFull(false)
 		info.w = devmode.dmPelsWidth;
 		info.h = devmode.dmPelsHeight;
 		
-		if (infoVector.empty() || infoVector.back().w != info.w || infoVector.back().h != info.h) {
-			infoVector.push_back(info);
-		}
+		std::vector<ResInfo>::iterator it = std::lower_bound(infoVector.begin(), infoVector.end(), info, greater<ResInfo>());
 		
-		infoVector.back().rates.push_back(devmode.dmDisplayFrequency);
+		if (it == infoVector.end() || *it != info)
+			it = infoVector.insert(it, info);
+		
+		std::vector<short>::iterator rateIt = std::lower_bound(it->rates.begin(), it->rates.end(), devmode.dmDisplayFrequency, greater<short>());
+		
+		if (rateIt == it->rates.end() || *rateIt != static_cast<short>(devmode.dmDisplayFrequency))
+			it->rates.insert(rateIt, devmode.dmDisplayFrequency);
 	}
 	
 	{
 		unsigned i = 0;
 		
-		while (infoVector[i].w != originalWidth || infoVector[i].h != originalHeight)
+		while (i < infoVector.size() && (infoVector[i].w != originalWidth || infoVector[i].h != originalHeight))
 			++i;
 		
-		fullResIndex = originalResIndex = i;
+		fullResIndex = originalResIndex = i < infoVector.size() ? i : 0;
 	}
 	
 	{
 		unsigned i = 0;
 		
-		while (infoVector[fullResIndex].rates[i] != originalRate)
+		while (i < infoVector[fullResIndex].rates.size() && infoVector[fullResIndex].rates[i] != originalRate)
 			++i;
 		
-		fullRateIndex = originalRateIndex = i;
+		fullRateIndex = originalRateIndex = i < infoVector[fullResIndex].rates.size() ? i : 0;
 	}
 }
 
