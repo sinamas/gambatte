@@ -1,0 +1,28 @@
+-- 0.1.1 -- 2007-08-29 --
+libgambatte:
+    - fix integer overflow in color conversion to rgb16
+    - only accept valid filter indexes
+gambatte_sdl:
+    - print version
+    - print usage
+    - support command line arguments.
+    - add option for starting in full-screen
+    - add option for using video filter
+gambatte_qt:
+    - clean up obsolete includes.
+    - directdraw: only use alpha if primary surface uses it.
+    - add support for loading rom from porgam argument.
+    - s/"a highly accurate"/"an accuracy-focused"/ in about box
+    - gditoggler: fix unordered video mode listing
+build:
+    - Support external CPPFLAGS
+    - Use sdl-config
+doc:
+    - fix silly wording in README about section
+    - s/seperate/separate/
+    - s/Automake/Make/
+    - mention XShm dependency
+    - mention sys/shm.h requirement
+    - document key mapping better
+    - s/"a highly accurate"/"an accuracy-focused"/
+    - add man pages
