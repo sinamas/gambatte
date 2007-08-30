@@ -229,7 +229,7 @@ void VideoDialog::fillFullResSelector(const QSize &minimumRes) {
 		const int vres = resVector[i].h;
 		
 		if (hres >= minimumRes.width() && vres >= minimumRes.height())
-			fullResSelector->addItem(QString::number(hres) + QString("x") + QString::number(vres), i);
+			fullResSelector->addItem(QString::number(hres) + QString("x") + QString::number(vres), (uint)i);
 	}
 }
 

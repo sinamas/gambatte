@@ -98,7 +98,7 @@ class Memory {
 
 	void set_event();
 	void set_irqEvent();
-	void update_irqEvents(uint_fast32_t cc);
+	void update_irqEvents(unsigned cc);
 	void update_tima(unsigned cycleCounter);
 	
 	void rescheduleIrq(unsigned cycleCounter);
