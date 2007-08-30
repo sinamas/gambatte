@@ -1,7 +1,8 @@
 env = Environment(CPPPATH = ['src', '../libgambatte/include'],
                   LIBS = ['gambatte'],
                   LIBPATH = '../libgambatte',
-                  CPPFLAGS = ARGUMENTS.get('CPPFLAGS', '-Wall -O2 -fno-exceptions -fno-rtti -fomit-frame-pointer'))
+                  CFLAGS = ARGUMENTS.get('CFLAGS', '-Wall -O2 -fomit-frame-pointer'),
+                  CXXFLAGS = ARGUMENTS.get('CXXFLAGS', ARGUMENTS.get('CFLAGS', '-Wall -O2 -fomit-frame-pointer') + ' -fno-exceptions -fno-rtti'))
 
 env.ParseConfig('sdl-config --cflags --libs')
 
@@ -10,5 +11,12 @@ sourceFiles = Split('''
 			src/parser.cpp
 			src/syncfunc.cpp
 		   ''')
+
+conf = env.Configure()
+
+if conf.CheckLib('z'):
+	env.Append(LIBS = ['z'])
+
+conf.Finish()
 
 env.Program('gambatte_sdl', sourceFiles)

@@ -21,8 +21,7 @@
 #include "sound.h"
 #include "inputstate.h"
 #include "inputstategetter.h"
-
-#include <fstream>
+#include "file/file.h"
 
 // static const uint32_t timaClock[4]={ 1024, 16, 64, 256 };
 static const uint8_t timaClock[4] = { 10, 4, 6, 8 };
@@ -1518,15 +1517,13 @@ bool Memory::loadROM() {
 	delete[]cgb_wramdata;
 	cgb_wramdata = NULL;
 
-	std::ifstream rom;
-	rom.open(romfile, std::ios::binary | std::ios::in | std::ios::ate);
+	File rom(romfile);
 	
 	if (!rom.is_open()) {
 		return 1;
 	}
 	
 	unsigned size = 32768;
-	rom.seekg(0, std::ios::beg);
 	rom.read(reinterpret_cast<char*>(&memory[0x0]), size);
 
 	if (isCgb()) {
@@ -1604,15 +1601,12 @@ bool Memory::loadROM() {
 		battery = 1;
 		break;
 	case 0x0B: /*cout << "MM01 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0x0C: /*cout << "MM01 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0x0D: /*cout << "MM01 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0x0F: printf("MBC3 ROM+TIMER+BATTERY loaded.\n");
@@ -1636,15 +1630,12 @@ bool Memory::loadROM() {
 		battery = 1;
 		break;
 	case 0x15: /*cout << "MBC4 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0x16: /*cout << "MBC4 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0x17: /*cout << "MBC4 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0x19: printf("MBC5 ROM loaded.\n");
@@ -1668,23 +1659,18 @@ bool Memory::loadROM() {
 		battery = 1;
 		break;
 	case 0xFC: /*cout << "Pocket Camera ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0xFD: /*cout << "Bandai TAMA5 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0xFE: /*cout << "HuC3 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	case 0xFF: /*cout << "HuC1 ROM not supported.\n";*/
-		rom.close();
 		return 1;
 		break;
 	default: /*cout << "Wrong data-format, corrupt or unsupported ROM loaded.\n";*/
-		rom.close();
 		return 1;
 	}
 	
@@ -1726,7 +1712,6 @@ bool Memory::loadROM() {
 		rombanks = 96;
 		break;
 	default:
-		rom.close();
 		return 1;
 	}
 	
@@ -1754,10 +1739,9 @@ bool Memory::loadROM() {
 	
 	printf("rambanks: %u\n", rambanks);
 	
-	rom.seekg(0, std::ios::end);
-	rombanks = rom.tellg() / 0x4000;
+	rombanks = rom.size() / 0x4000;
 	printf("rombanks: %u\n", rombanks);
-	rom.seekg(0, std::ios::beg);
+	rom.rewind();
 	
 	delete []romdata;
 	romdata = new uint8_t[rombanks * 0x4000];

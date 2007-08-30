@@ -35,7 +35,7 @@ CONFIG += warn_on \
 QT += opengl
 TARGET = ../bin/gambatte_qt
 INCLUDEPATH += ../../libgambatte/include
-LIBS += -L../../libgambatte -lgambatte
+LIBS += -L../../libgambatte -lgambatte -lz
 
 unix {
     DEFINES += PLATFORM_UNIX
