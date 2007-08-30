@@ -1072,7 +1072,7 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 	while (xpos < end) {
 		if ((scx + xpos & 7) || xpos + 7 >= end) {
 			const uint8_t *const maptmp = tilemap + (scx + xpos >> 3 & 0x1F);
-			const int tile = maptmp[0];
+			const uintptr_t tile = maptmp[0];
 			const unsigned attributes = maptmp[0x2000];
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
 				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
@@ -1097,7 +1097,7 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 		
 		while (xpos + 7 < end) {
 			const uint8_t *const maptmp = tilemap + (scx + xpos >> 3 & 0x1F);
-			const int tile = maptmp[0];
+			const uintptr_t tile = maptmp[0];
 			const unsigned attributes = maptmp[0x2000];
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
 				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
@@ -1138,7 +1138,7 @@ static unsigned cgb_prioritizedBG_mask(const unsigned spx, const unsigned bgStar
 	{
 		const unsigned pos = scx + (spx - 8) + spStart;
 		const uint8_t *maptmp = tilemap + (pos >> 3 & 0x1F);
-		int tile = maptmp[0];
+		uintptr_t tile = maptmp[0];
 		unsigned attributes = maptmp[0x2000];
 		
 		const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
@@ -1180,7 +1180,7 @@ static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, 
 		unsigned attributes = maptmp[0x2000];
 		
 		if (attributes & 0x80) {
-			const int tile = maptmp[0];
+			const uintptr_t tile = maptmp[0];
 			
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
 				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
@@ -1196,7 +1196,7 @@ static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, 
 			attributes = maptmp[0x2000];
 			
 			if (attributes & 0x80) {
-				const int tile = maptmp[0];
+				const uintptr_t tile = maptmp[0];
 				
 				const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
 					(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
@@ -1328,7 +1328,7 @@ void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end
 
 	while (xpos < end) {
 		if ((scx + xpos & 7) || xpos + 7 >= end) {
-			const int tile = tilemap[scx + xpos >> 3 & 0x1F];
+			const uintptr_t tile = tilemap[scx + xpos >> 3 & 0x1F];
 			const uint8_t *const data = tiledata + (tile - (tile & sign) * 2 << 4);
 			const unsigned byte1 = data[0];
 			const unsigned byte2 = data[1] << 1;
@@ -1340,7 +1340,7 @@ void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end
 		}
 		
 		while (xpos + 7 < end) {
-			const int tile = tilemap[scx + xpos >> 3 & 0x1F];
+			const uintptr_t tile = tilemap[scx + xpos >> 3 & 0x1F];
 			const uint8_t *const data = tiledata + (tile - (tile & sign) * 2 << 4);
 			const unsigned byte1 = data[0];
 			const unsigned byte2 = data[1] << 1;
@@ -1366,7 +1366,7 @@ static unsigned prioritizedBG_mask(const unsigned spx, const unsigned bgStart, c
 	
 	{
 		const unsigned pos = scx + (spx - 8) + spStart;
-		int tile = tilemap[pos >> 3 & 0x1F];
+		uintptr_t tile = tilemap[pos >> 3 & 0x1F];
 		const uint8_t *data = tiledata + (tile - (tile & sign) * 2 << 4);
 		bgbyte = data[0] | data[1];
 		const unsigned offset = pos & 7;
