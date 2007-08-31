@@ -19,7 +19,19 @@
 #include "channel4.h"
 
 void Lfsr::event() {
-	counter += ((nr3 & 7) + 1) << ((nr3 >> 4) + 2);
+	{
+		unsigned s = (nr3 >> 4) + 3;
+		unsigned r = nr3 & 7;
+		
+		if (!r) {
+			r = 1;
+			--s;
+		}
+		
+		counter += r << s; 
+	}
+	
+// 	counter += ((nr3 & 7) + 1) << ((nr3 >> 4) + 2);
 	
 	const unsigned tmp = (nr3 & 0x8) ? reg : (reg >> 8);
 	highState = (tmp & 0x40) == 0;
