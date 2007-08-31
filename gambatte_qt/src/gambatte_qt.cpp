@@ -162,7 +162,7 @@ void GambatteQt::about() {
 	        this,
 	        tr("About Gambatte"),
 	        tr("<h3>Gambatte Qt svn</h3>\
-	            <p><b>Author:</b> Sindre Aamï¿½s (<a href=\"mailto:aamas@stud.ntnu.no\">aamas@stud.ntnu.no</a>).<br>\
+	            <p><b>Author:</b> Sindre Aamås (<a href=\"mailto:aamas@stud.ntnu.no\">aamas@stud.ntnu.no</a>).<br>\
 	            <b>Homepage:</b> <a href=\"http://sourceforge.net/projects/gambatte\">http://sourceforge.net/projects/gambatte</a>.</p>\
 	            <p>Gambatte is an accuracy-focused, open-source, cross-platform Game Boy / Game Boy Color emulator written in C++. It is based on hundreds of corner case hardware tests, as well as previous documentation and reverse engineering efforts.</p>")
 	);
