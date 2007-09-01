@@ -146,8 +146,11 @@ static void fill_buffer(void *buffer, Uint8 *stream, int len);
 // static unsigned bufPos = 0;
 // static unsigned samples = 804;
 
+static const unsigned SAMPLE_RATE = 48000;
+static const unsigned SAMPLES = ((SAMPLE_RATE * 4389) / 262144) + 2;
 static unsigned rPos = 0;
 static unsigned wPos = 0;
+static bool bufAvailable = false;
 
 class InputGetter : public InputStateGetter {
 public:
@@ -158,7 +161,7 @@ public:
 
 static InputGetter inputGetter;
 
-static const unsigned SND_BUF_SZ = 4096;
+static const unsigned SND_BUF_SZ = 4096 * 2;
 
 static const char *const usage = "Usage: gambatte_sdl romfile\n";
 
@@ -216,7 +219,7 @@ int main(int argc, char **argv) {
 	Sint16 *const sndBuffer = new Sint16[SND_BUF_SZ];
 	memset(sndBuffer, 0, SND_BUF_SZ * sizeof(Sint16));
 	SDL_AudioSpec spec;
-	spec.freq = 48000;
+	spec.freq = SAMPLE_RATE;
 	spec.format = AUDIO_S16SYS;
 	spec.channels = 2;
 	spec.samples = 1024;
@@ -231,8 +234,7 @@ int main(int argc, char **argv) {
 	SDL_OpenAudio(&spec, NULL);
 	SDL_PauseAudio(0);
 
-	const unsigned samples = ((spec.freq * 4389) / 262144) + 2;
-	uint16_t *const tmpBuf = new uint16_t[samples * 2];
+	uint16_t *const tmpBuf = new uint16_t[SAMPLES * 2];
 
 	Uint8 *keys = SDL_GetKeyState(NULL);
 
@@ -267,24 +269,26 @@ int main(int argc, char **argv) {
 		gambatte.runFor(70224);
 		
 		if (!keys[SDLK_TAB]) {
-			gambatte.fill_buffer(tmpBuf, samples);
+			gambatte.fill_buffer(tmpBuf, SAMPLES);
 			
-			while (rPos - wPos + (wPos > rPos ? SND_BUF_SZ : 0) >> 1 < samples)
+			while (!bufAvailable)
 				SDL_Delay(1);
 			
 			SDL_LockAudio();
 			
 			{
-				const unsigned samples1 = std::min(SND_BUF_SZ - wPos >> 1, samples);
-				const unsigned samples2 = samples - samples1;
+				const unsigned samples1 = std::min(SND_BUF_SZ - wPos >> 1, SAMPLES);
+				const unsigned samples2 = SAMPLES - samples1;
 				
 				memcpy(sndBuffer + wPos, tmpBuf, samples1 * 4);
 				
 				if (samples2)
 					memcpy(sndBuffer, tmpBuf + samples1 * 2, samples2 * 4);
 				
-				if ((wPos += samples * 2) >= SND_BUF_SZ)
+				if ((wPos += SAMPLES * 2) >= SND_BUF_SZ)
 					wPos -= SND_BUF_SZ;
+				
+				bufAvailable = rPos - wPos + (wPos > rPos ? SND_BUF_SZ : 0) >> 1 >= SAMPLES;
 			}
 			
 			SDL_UnlockAudio();
@@ -311,4 +315,6 @@ static void fill_buffer(void *const buffer, Uint8 *const stream, const int len) 
 	
 	if ((rPos += len >> 1) >= SND_BUF_SZ)
 		rPos -= SND_BUF_SZ;
+	
+	bufAvailable = rPos - wPos + (wPos > rPos ? SND_BUF_SZ : 0) >> 1 >= SAMPLES;
 }
