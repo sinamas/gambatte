@@ -27,10 +27,8 @@ template<typename T, class Comparer> class event_queue;
 #include "ly_counter.h"
 
 class ScxReader : public VideoEvent {
-	typedef void (event_queue<VideoEvent*,VideoEventComparer>::*event_queue_modifier)(VideoEvent*, VideoEvent*);
-	
 	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
-	VideoEvent &wyReader3;
+// 	VideoEvent &wyReader3;
 	VideoEvent &wxReader;
 	VideoEvent &weEnableChecker;
 	VideoEvent &weDisableChecker;
@@ -39,16 +37,20 @@ class ScxReader : public VideoEvent {
 	uint8_t src;
 	bool dS;
 	
-	void rescheduleEvent(VideoEvent& event, const unsigned diff, const event_queue_modifier modify);
+	void rescheduleEvent(VideoEvent& event, unsigned diff);
 	
 public:
 	ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
-	          VideoEvent &wyReader3_in,
+// 	          VideoEvent &wyReader3_in,
 	          VideoEvent &wxReader_in,
 	          VideoEvent &weEnableChecker_in,
 	          VideoEvent &weDisableChecker_in);
 	
 	void doEvent();
+	
+	unsigned getSource() const {
+		return src;
+	}
 	
 	void reset() {
 		scxAnd7_ = src;
@@ -56,7 +58,7 @@ public:
 	}
 	
 	void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
-		setTime(lyCounter.nextLineCycle(84 + dS * 2, cycleCounter));
+		setTime(lyCounter.nextLineCycle(82 + dS * 3, cycleCounter));
 	}
 	
 	unsigned scxAnd7() const {

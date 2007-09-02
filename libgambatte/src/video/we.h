@@ -32,8 +32,8 @@ class We {
 		
 		void doEvent();
 		
-		void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned cycleCounter) {
-			setTime(lyCounter.nextLineCycle(scxAnd7 + 89 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
+		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned cycleCounter) {
+			setTime(lyCounter.nextLineCycle(scxAnd7 + 82 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 		}
 	};
 	
@@ -46,8 +46,8 @@ class We {
 		
 		void doEvent();
 		
-		void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned cycleCounter) {
-			setTime(lyCounter.nextLineCycle(scxAnd7 + 95 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
+		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned cycleCounter) {
+			setTime(lyCounter.nextLineCycle(scxAnd7 + 88 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 		}
 	};
 	

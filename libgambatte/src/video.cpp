@@ -95,8 +95,9 @@ LCD::LCD(const uint8_t *const oamram, const uint8_t *const vram_in) :
 	m3ExtraCycles(spriteMapper, scxReader, weMasterChecker, wyReg, we, wxReader),
 	wyReg(lyCounter, weMasterChecker),
 	weMasterChecker(m3EventQueue, wyReg, lyCounter),
+	wxReader(m3EventQueue, we.enableChecker(), we.disableChecker()),
 	spriteSizeReader(m3EventQueue, spriteMapper, lyCounter),
-	scxReader(m3EventQueue, wyReg.reader3(), wxReader, we.enableChecker(), we.disableChecker()),
+	scxReader(m3EventQueue, /*wyReg.reader3(),*/ wxReader, we.enableChecker(), we.disableChecker()),
 	spriteMapper(spriteSizeReader, scxReader, oamram),
 	breakEvent(drawStartCycle, scReadOffset),
 	mode3Event(m3EventQueue, vEventQueue, mode0Irq, irqEvent),
@@ -151,9 +152,9 @@ void LCD::reset(const bool cgb_in) {
 	we = false;*/
 	
 	scxReader.setSource(0);
+	wxReader.setSource(0);
 	wyReg.setSource(0);
 	spriteSizeReader.setSource(false);
-	wxReader.setSource(0);
 	we.setSource(false);
 // 	weMasterChecker.setSource(false);
 	scReader.setScxSource(0);
@@ -171,6 +172,7 @@ void LCD::setDoubleSpeed(const bool ds) {
 	doubleSpeed = ds;
 	lyCounter.setDoubleSpeed(doubleSpeed);
 	scxReader.setDoubleSpeed(doubleSpeed);
+	wxReader.setDoubleSpeed(doubleSpeed);
 	spriteMapper.setDoubleSpeed(doubleSpeed);
 	scReader.setDoubleSpeed(doubleSpeed);
 	breakEvent.setDoubleSpeed(doubleSpeed);
@@ -194,6 +196,14 @@ static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, cons
 	}
 }
 
+template<class T>
+static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const WxReader &wxReader, const LyCounter &lyCounter, const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
+	if (event.time() != uint32_t(-1)) {
+		event.schedule(scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter);
+		queue.push(&event);
+	}
+}
+
 void LCD::resetVideoState(const unsigned statReg, const unsigned cycleCounter) {
 	videoCycles = 0;
 	lastUpdate = cycleCounter;
@@ -209,10 +219,10 @@ void LCD::resetVideoState(const unsigned statReg, const unsigned cycleCounter) {
 	vEventQueue.push(&lyCounter);
 	
 	scxReader.reset();
+	wxReader.reset();
 	wyReg.reset();
 	spriteSizeReader.reset();
 	spriteMapper.reset();
-	wxReader.reset();
 	we.reset();
 	scReader.reset();
 	breakEvent.reset();
@@ -388,13 +398,18 @@ void LCD::rescheduleEvents(const unsigned cycleCounter) {
 	rescheduleIfActive(scxReader, lyCounter, cycleCounter, m3EventQueue);
 	rescheduleIfActive(spriteSizeReader, lyCounter, cycleCounter, m3EventQueue);
 	rescheduleIfActive(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(wxReader, scxReader, lyCounter, cycleCounter, m3EventQueue);
 	rescheduleIfActive(wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
 	rescheduleIfActive(wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(wyReg.reader3(), scxReader, lyCounter, cycleCounter, m3EventQueue);
+// 	rescheduleIfActive(wyReg.reader3(), scxReader, lyCounter, cycleCounter, m3EventQueue);
 	rescheduleIfActive(wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(wxReader, scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(we.disableChecker(), scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(we.enableChecker(), scxReader, lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(we.disableChecker(), scxReader, wxReader, lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(we.enableChecker(), scxReader, wxReader, lyCounter, cycleCounter, m3EventQueue);
+	
+	if (wyReg.reader3().time() != uint32_t(-1)) {
+		wyReg.reader3().schedule(wxReader.getSource(), scxReader, cycleCounter);
+		m3EventQueue.push(&wyReg.reader3());
+	}
 	
 	if (weMasterChecker.time() != uint32_t(-1)) {
 		weMasterChecker.schedule(wyReg.getSource(), we.getSource(), cycleCounter);
@@ -571,8 +586,8 @@ void LCD::weChange(const bool newValue, const unsigned cycleCounter) {
 // 	addEvent(weMasterChecker, lyCounter, cycleCounter, m3EventQueue);
 	
 	we.setSource(newValue);
-	addEvent(we.disableChecker(), scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(we.enableChecker(), scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(we.disableChecker(), scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(we.enableChecker(), scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 }
@@ -584,6 +599,9 @@ void LCD::wxChange(const unsigned newValue, const unsigned cycleCounter) {
 	wxReader.setSource(newValue);
 	addEvent(wxReader, scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
 	
+	if (wyReg.reader3().time() != uint32_t(-1))
+		addEvent(wyReg.reader3(), wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
+	
 	addEvent(mode3Event, vEventQueue);
 }
 
@@ -594,7 +612,7 @@ void LCD::wyChange(const unsigned newValue, const unsigned cycleCounter) {
 	wyReg.setSource(newValue);
 	addEvent(wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
 	addEvent(wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(wyReg.reader3(), scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(wyReg.reader3(), wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
 	addEvent(wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
 	
 	addEvent(weMasterChecker, newValue, we.getSource(), cycleCounter, m3EventQueue);
@@ -610,6 +628,9 @@ void LCD::scxChange(const unsigned newScx, const unsigned cycleCounter) {
 	addEvent(scxReader, lyCounter, cycleCounter, m3EventQueue);
 	
 	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
+	
+	if (wyReg.reader3().time() != uint32_t(-1))
+		addEvent(wyReg.reader3(), wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 	

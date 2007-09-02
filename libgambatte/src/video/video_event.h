@@ -47,6 +47,7 @@ public:
 	}
 	
 	friend class ScxReader;
+	friend class WxReader;
 };
 
 #endif

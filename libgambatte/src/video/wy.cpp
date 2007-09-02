@@ -19,6 +19,8 @@
 #include "wy.h"
 
 #include "we_master_checker.h"
+#include "scx_reader.h"
+#include "../event_queue.h"
 
 #include <cstdio>
 
@@ -66,6 +68,19 @@ void Wy::WyReader3::doEvent() {
 	setTime(uint32_t(-1));
 }
 
+void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const unsigned cycleCounter) {
+	const unsigned curLineCycle = 456 - (lyCounter.time() - cycleCounter >> lyCounter.isDoubleSpeed());
+	const unsigned baseTime = 78 + lyCounter.isDoubleSpeed() * 6 + wxSrc;
+	
+	if (curLineCycle >= 82U + lyCounter.isDoubleSpeed() * 3) {
+		if (baseTime + scxReader.scxAnd7() > curLineCycle)
+			setTime(lyCounter.time() + (baseTime + scxReader.scxAnd7() << lyCounter.isDoubleSpeed()) - lyCounter.lineTime());
+		else
+			setTime(lyCounter.time() + (baseTime + scxReader.getSource() << lyCounter.isDoubleSpeed()));
+	} else
+		setTime(lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter));
+}
+
 Wy::WyReader4::WyReader4(uint8_t &wy_in, const uint8_t &src_in) :
 	VideoEvent(6),
 	wy(wy_in),
@@ -93,4 +108,20 @@ void Wy::reset() {
 	reader2_.doEvent();
 	reader3_.doEvent();
 	reader4_.doEvent();
+}
+
+void addEvent(Wy::WyReader3 &event, const unsigned wxSrc, const ScxReader &scxReader,
+		const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
+{
+	const unsigned oldTime = event.time();
+	event.schedule(wxSrc, scxReader, cycleCounter);
+	
+	if (oldTime == uint32_t(-1))
+		queue.push(&event);
+	else if (oldTime != event.time()) {
+		if (event.time() > oldTime)
+			queue.inc(&event, &event);
+		else
+			queue.dec(&event, &event);
+	}
 }

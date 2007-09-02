@@ -39,4 +39,12 @@ static inline void addEvent(T &event, const unsigned data, const LyCounter &lyCo
 	}
 }
 
+template<class T>
+static inline void addEvent(T &event, const unsigned data1, const unsigned data2, const LyCounter &lyCounter, const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
+	if (event.time() == uint32_t(-1)) {
+		event.schedule(data1, data2, lyCounter, cycleCounter);
+		queue.push(&event);
+	}
+}
+
 #endif

@@ -87,10 +87,10 @@ class LCD {
 	const M3ExtraCycles m3ExtraCycles;
 	
 	LyCounter lyCounter;
-	WxReader wxReader;
 	Wy wyReg;
 	We we;
 	WeMasterChecker weMasterChecker;
+	WxReader wxReader;
 	SpriteSizeReader spriteSizeReader;
 	ScxReader scxReader;
 	SpriteMapper spriteMapper;

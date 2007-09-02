@@ -19,17 +19,33 @@
 #ifndef WX_READER_H
 #define WX_READER_H
 
+template<typename T, class Comparer> class event_queue;
+
 #include "video_event.h"
+#include "video_event_comparer.h"
 #include "ly_counter.h"
 
 class WxReader : public VideoEvent {
+	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
+	VideoEvent &weEnableChecker;
+	VideoEvent &weDisableChecker;
+
 	uint8_t wx_;
 	uint8_t src_;
+	bool dS;
+	
+	void rescheduleEvent(VideoEvent& event, unsigned diff);
 	
 public:
-	WxReader();
+	WxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
+	         VideoEvent &weEnableChecker_in,
+	         VideoEvent &weDisableChecker_in);
 	
 	void doEvent();
+	
+	unsigned getSource() const {
+		return src_;
+	}
 	
 	uint8_t wx() const {
 		return wx_;
@@ -39,13 +55,21 @@ public:
 		doEvent();
 	}
 	
+	void setDoubleSpeed(const bool dS_in) {
+		dS = dS_in;
+	}
+	
 	void setSource(const unsigned src) {
 		src_ = src;
 	}
 	
 	void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned cycleCounter) {
-		setTime(lyCounter.nextLineCycle(scxAnd7 + 89 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
+		setTime(lyCounter.nextLineCycle(scxAnd7 + 82 + lyCounter.isDoubleSpeed() * 3 + (src_ < wx_ ? src_ : wx_), cycleCounter));
+		//setTime(lyCounter.nextLineCycle(scxAnd7 + 89 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 	}
 };
+
+void addEvent(WxReader &event, unsigned scxAnd7, const LyCounter &lyCounter,
+		unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif
