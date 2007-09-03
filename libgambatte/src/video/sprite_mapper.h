@@ -54,7 +54,8 @@ public:
 	void reset();
 	
 	void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
-		setTime(lyCounter.nextLineCycle(84 + lyCounter.isDoubleSpeed() * 2, cycleCounter));
+		// synced to scxReader.
+		setTime(lyCounter.nextLineCycle(82 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 	}
 	
 	void setCgb(const bool cgb_in) {
@@ -62,7 +63,7 @@ public:
 	}
 	
 	void setDoubleSpeed(const bool dS) {
-		timeDiff = dS ? 86 * 2 - 40 : (84 - 16);
+		timeDiff = dS ? 85 * 2 - 40 : (82 - 16);
 	}
 	
 	const uint16_t * spriteMap() const {
