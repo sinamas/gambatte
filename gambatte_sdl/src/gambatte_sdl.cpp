@@ -17,7 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 #include <gambatte.h>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #include <string>
 #include <sstream>
 
@@ -302,6 +302,8 @@ int main(int argc, char **argv) {
 	SDL_Quit();
 	delete []sndBuffer;
 	delete []tmpBuf;
+	
+	return 0;
 }
 
 static void fill_buffer(void *const buffer, Uint8 *const stream, const int len) {

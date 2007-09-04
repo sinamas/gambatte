@@ -18,7 +18,7 @@
 ***************************************************************************/
 #include "syncfunc.h"
 
-#include <SDL/SDL.h>
+#include <SDL.h>
 
 namespace SyncFunc {
 struct timeval {
