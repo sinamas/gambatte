@@ -20,6 +20,12 @@
 #define INPUTDIALOG_H
 
 #include <QDialog>
+#include "SDL_Joystick/include/SDL_event.h"
+
+static const int KBD_VALUE = 0;
+static const int JSBUTTON_VALUE = 1;
+static const int JSPAXIS_VALUE = 8192;
+static const int JSNAXIS_VALUE = -JSPAXIS_VALUE;
 
 class InputBox;
 
@@ -35,14 +41,14 @@ class InputDialog : public QDialog {
 	InputBox *startBox;
 	InputBox *selectBox;
 	
-	int upKey;
-	int downKey;
-	int leftKey;
-	int rightKey;
-	int aKey;
-	int bKey;
-	int startKey;
-	int selectKey;
+	SDL_Event upData;
+	SDL_Event downData;
+	SDL_Event leftData;
+	SDL_Event rightData;
+	SDL_Event aData;
+	SDL_Event bData;
+	SDL_Event startData;
+	SDL_Event selectData;
 	
 	void store();
 	void restore();
@@ -51,14 +57,14 @@ public:
 	InputDialog(QWidget *parent = 0);
 	~InputDialog();
 	
-	int getUpKey() const { return upKey; }
-	int getDownKey() const { return downKey; }
-	int getLeftKey() const { return leftKey; }
-	int getRightKey() const { return rightKey; }
-	int getAKey() const { return aKey; }
-	int getBKey() const { return bKey; }
-	int getStartKey() const { return startKey; }
-	int getSelectKey() const { return selectKey; }
+	const SDL_Event& getUpData() const { return upData; }
+	const SDL_Event& getDownData() const { return downData; }
+	const SDL_Event& getLeftData() const { return leftData; }
+	const SDL_Event& getRightData() const { return rightData; }
+	const SDL_Event& getAData() const { return aData; }
+	const SDL_Event& getBData() const { return bData; }
+	const SDL_Event& getStartData() const { return startData; }
+	const SDL_Event& getSelectData() const { return selectData; }
 	
 public slots:
 	void accept();

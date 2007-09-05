@@ -16,13 +16,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "gambatte_qt.h"
 
 #include <iostream>
 
 #include <QtGui>
 #include <QVBoxLayout>
 
-#include "gambatte_qt.h"
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
 #include "videodialog.h"
@@ -40,6 +40,70 @@
 #endif
 
 #include "resizesignalingmenubar.h"
+#include "SDL_Joystick/include/SDL_joystick.h"
+
+class GbKeyHandler {
+	bool &gbButton;
+	bool *const negGbButton;
+	const unsigned id;
+public:
+	GbKeyHandler(unsigned id, bool &gbButton, bool *negGbButton = NULL) : gbButton(gbButton), negGbButton(negGbButton), id(id) {}
+	unsigned getId() const { return id; }
+	
+	void handleValue(const bool keyPressed) {
+		if ((gbButton = keyPressed) && negGbButton)
+			*negGbButton = false;
+	}
+};
+
+class GbJoyHandler {
+	bool &gbButton;
+	bool *const negGbButton;
+	const unsigned id;
+	const int threshold;
+public:
+	GbJoyHandler(unsigned id, int threshold, bool &gbButton, bool *negGbButton = NULL) :
+		gbButton(gbButton), negGbButton(negGbButton), id(id), threshold(threshold) {}
+		
+	unsigned getId() const { return id; }
+	
+	void handleValue(const int value) {
+		if ((gbButton = (value - threshold ^ threshold) >= 0) && negGbButton)
+			*negGbButton = false;
+	}
+};
+
+template<typename T>
+struct InputHandlerPtrLess {
+	bool operator()(const T *const lhs, const T *const rhs) const {
+		return lhs->getId() < rhs->getId();
+	}
+};
+
+JoystickIniter::JoystickIniter() {
+	SDL_JoystickInit();
+	
+	SDL_SetEventFilter(SDL_JOYAXISMOTION | SDL_JOYBUTTONCHANGE);
+	
+	const int numJs = SDL_NumJoysticks();
+	
+	for (int i = 0; i < numJs; ++i) {
+		SDL_Joystick *joy = SDL_JoystickOpen(i);
+		
+		if (joy)
+			joysticks.push_back(joy);
+	}
+	
+	SDL_JoystickUpdate();
+	SDL_ClearEvents();
+}
+
+JoystickIniter::~JoystickIniter() {
+	for (size_t i = 0; i < joysticks.size(); ++i)
+		SDL_JoystickClose(joysticks[i]);
+	
+	SDL_JoystickQuit();
+}
 
 GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuffer(gambatte) {
 	blitter = NULL;
@@ -71,6 +135,7 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 	addAudioEngines(audioEngines, winId());
 	
 	inputDialog = new InputDialog(this);
+	connect(inputDialog, SIGNAL(accepted()), this, SLOT(inputSettingsChange()));
 
 	fullResToggler = getFullResToggler();
 
@@ -88,12 +153,6 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 
 	videoDialog = new VideoDialog(blitters, gambatte.filterInfo(), *fullResToggler, this);
 	connect(videoDialog, SIGNAL(accepted()), this, SLOT(videoSettingsChange()));
-
-	/*QPalette pal = palette();
-	pal.setColor(QPalette::AlternateBase, QColor(0, 0, 0));
-	setPalette(pal);
-	setBackgroundRole(QPalette::AlternateBase);
-	setAutoFillBackground(true);*/
 	
 	blitterContainer = new BlitterContainer(*fullResToggler);
 	blitterContainer->setMinimumSize(160, 144);
@@ -116,6 +175,7 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 	}
 	
 	videoSettingsChange();
+	inputSettingsChange();
 	
 	setFocus();
 	
@@ -128,6 +188,8 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 }
 
 GambatteQt::~GambatteQt() {
+	clearInputVectors();
+
 	delete fullResToggler;
 	
 	for (uint i = 0; i < blitters.size(); ++i)
@@ -204,6 +266,41 @@ void GambatteQt::toggleMenuHidden() {
 		centralWidget()->setCursor(Qt::BlankCursor);
 	
 	resetWindowSize();
+}
+
+void GambatteQt::clearInputVectors() {
+	for (std::size_t i = 0; i < keyInputs.size(); ++i)
+		delete keyInputs[i];
+		
+	keyInputs.clear();
+	
+	for (std::size_t i = 0; i < joyInputs.size(); ++i)
+		delete joyInputs[i];
+		
+	joyInputs.clear();
+}
+
+void GambatteQt::pushGbInputHandler(const SDL_Event &data, bool &gbButton, bool *gbNegButton) {
+	if (data.value)
+		joyInputs.push_back(new GbJoyHandler(data.id, data.value, gbButton, gbNegButton));
+	else
+		keyInputs.push_back(new GbKeyHandler(data.id, gbButton, gbNegButton));
+}
+
+void GambatteQt::inputSettingsChange() {
+	clearInputVectors();
+	
+	pushGbInputHandler(inputDialog->getUpData(), inputGetter.is.dpadUp, &inputGetter.is.dpadDown);
+	pushGbInputHandler(inputDialog->getDownData(), inputGetter.is.dpadDown, &inputGetter.is.dpadUp);
+	pushGbInputHandler(inputDialog->getLeftData(), inputGetter.is.dpadLeft, &inputGetter.is.dpadRight);
+	pushGbInputHandler(inputDialog->getRightData(), inputGetter.is.dpadRight, &inputGetter.is.dpadLeft);
+	pushGbInputHandler(inputDialog->getAData(), inputGetter.is.aButton);
+	pushGbInputHandler(inputDialog->getBData(), inputGetter.is.bButton);
+	pushGbInputHandler(inputDialog->getStartData(), inputGetter.is.startButton);
+	pushGbInputHandler(inputDialog->getSelectData(), inputGetter.is.selectButton);
+	
+	std::sort(joyInputs.begin(), joyInputs.end(), InputHandlerPtrLess<GbJoyHandler>());
+	std::sort(keyInputs.begin(), keyInputs.end(), InputHandlerPtrLess<GbKeyHandler>());
 }
 
 void GambatteQt::videoSettingsChange() {
@@ -403,6 +500,7 @@ AudioEngine* GambatteQt::initAudio() {
 }
 
 void GambatteQt::timerEvent(QTimerEvent */*event*/) {
+	updateJoysticks();
 	gambatte.runFor(70224);
 	
 	if (!turbo)
@@ -542,31 +640,18 @@ QString GambatteQt::strippedName(const QString &fullFileName) {
 	return QFileInfo(fullFileName).fileName();
 }
 
+static bool unusedBool;
+
 void GambatteQt::keyPressEvent(QKeyEvent *e) {
-// 	memset(&is, 0, sizeof(is));
-	
 	e->accept();
 	
-	if (e->key() == inputDialog->getStartKey())
-		inputGetter.is.startButton = 1;
-	else if (e->key() == inputDialog->getSelectKey())
-		inputGetter.is.selectButton = 1;
-	else if (e->key() == inputDialog->getBKey())
-		inputGetter.is.bButton = 1;
-	else if (e->key() == inputDialog->getAKey())
-		inputGetter.is.aButton = 1;
-	else if (e->key() == inputDialog->getDownKey()) {
-		inputGetter.is.dpadDown = 1;
-		inputGetter.is.dpadUp = 0;
-	} else if (e->key() == inputDialog->getUpKey()) {
-		inputGetter.is.dpadUp = 1;
-		inputGetter.is.dpadDown = 0;
-	} else if (e->key() == inputDialog->getLeftKey()) {
-		inputGetter.is.dpadLeft = 1;
-		inputGetter.is.dpadRight = 0;
-	} else if (e->key() == inputDialog->getRightKey()) {
-		inputGetter.is.dpadRight = 1;
-		inputGetter.is.dpadLeft = 0;
+	{
+		GbKeyHandler k(e->key(), unusedBool);
+
+		std::vector<GbKeyHandler*>::iterator it = lower_bound(keyInputs.begin(), keyInputs.end(), &k, InputHandlerPtrLess<GbKeyHandler>());
+		
+		while (it != keyInputs.end() && (*it)->getId() == k.getId())
+			(*it++)->handleValue(true);
 	}
 
 	switch (e->key()) {
@@ -595,31 +680,34 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 }
 
 void GambatteQt::keyReleaseEvent(QKeyEvent *e) {
-// 	memset(&is, 0, sizeof(is));
-	
-	if (e->key() == inputDialog->getStartKey())
-		inputGetter.is.startButton = 0;
-	else if (e->key() == inputDialog->getSelectKey())
-		inputGetter.is.selectButton = 0;
-	else if (e->key() == inputDialog->getBKey())
-		inputGetter.is.bButton = 0;
-	else if (e->key() == inputDialog->getAKey())
-		inputGetter.is.aButton = 0;
-	else if (e->key() == inputDialog->getDownKey())
-		inputGetter.is.dpadDown = 0;
-	else if (e->key() == inputDialog->getUpKey())
-		inputGetter.is.dpadUp = 0;
-	else if (e->key() == inputDialog->getLeftKey())
-		inputGetter.is.dpadLeft = 0;
-	else if (e->key() == inputDialog->getRightKey())
-		inputGetter.is.dpadRight = 0;
+	{
+		GbKeyHandler k(e->key(), unusedBool);
+
+		std::vector<GbKeyHandler*>::iterator it = lower_bound(keyInputs.begin(), keyInputs.end(), &k, InputHandlerPtrLess<GbKeyHandler>());
+		
+		while (it != keyInputs.end() && (*it)->getId() == k.getId())
+			(*it++)->handleValue(false);
+	}
 
 	switch (e->key()) {
 	case Qt::Key_Tab: turbo = false; break;
 	default: e->ignore(); return;
 	}
+}
 
-// 	e->accept();
+void GambatteQt::updateJoysticks() {
+	SDL_ClearEvents();
+	SDL_JoystickUpdate();
+	
+	SDL_Event ev;
+	
+	while (SDL_PollEvent(&ev)) {
+		GbJoyHandler j(ev.id, 0, unusedBool);
+		std::vector<GbJoyHandler*>::iterator it = lower_bound(joyInputs.begin(), joyInputs.end(), &j, InputHandlerPtrLess<GbJoyHandler>());
+		
+		while (it != joyInputs.end() && (*it)->getId() == j.getId())
+			(*it++)->handleValue(ev.value);
+	}
 }
 
 void GambatteQt::closeEvent(QCloseEvent *e) {

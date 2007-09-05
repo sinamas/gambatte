@@ -28,6 +28,8 @@
 #include <gambatte.h>
 #include "videobufferreseter.h"
 #include "samplescalculator.h"
+#include "SDL_Joystick/include/SDL_joystick.h"
+#include "SDL_Joystick/include/SDL_event.h"
 
 class QAction;
 class QMenu;
@@ -38,6 +40,8 @@ class VideoDialog;
 class InputDialog;
 class FullResToggler;
 class BlitterContainer;
+class GbKeyHandler;
+class GbJoyHandler;
 
 class InputGetter : public InputStateGetter {
 public:
@@ -45,57 +49,22 @@ public:
 	const InputState& operator()() { return is; }
 };
 
+class JoystickIniter {
+	std::vector<SDL_Joystick*> joysticks;
+public:
+	JoystickIniter();
+	~JoystickIniter();
+};
+
 class GambatteQt : public QMainWindow {
 	Q_OBJECT
-
-public:
-	GambatteQt(int argc, const char *const argv[]);
-	~GambatteQt();
-
-protected:
-	void timerEvent(QTimerEvent *event);
-	void keyPressEvent(QKeyEvent *e);
-	void keyReleaseEvent(QKeyEvent *e);
-	void closeEvent(QCloseEvent *e);
-// 	void showEvent(QShowEvent *event);
-
-private slots:
-	void open();
-	void openRecentFile();
-	void about();
-	void resetWindowSize();
-	void toggleFullScreen();
-	void toggleMenuHidden();
-// 	void gl();
-// 	void xv();
-	void videoSettingsChange();
-	void execVideoDialog();
-	void execInputDialog();
-
-private:
-	void createActions();
-	void createMenus();
-	void loadFile(const QString &fileName);
-	AudioEngine* initAudio();
-	void run();
-	void stop();
-	void pause();
-	void unpause();
-	void setSamplesPrFrame();
-// 	void calculateSamples(unsigned bufPos, unsigned bufSize);
-	void setCurrentFile(const QString &fileName);
-	void updateRecentFileActions();
-	QString strippedName(const QString &fullFileName);
-// 	void toggleFullScreen();
-// 	void pauseAudio();
-	void execDialog(QDialog *dialog);
-
+	
 	Gambatte gambatte;
-// 	QString curFile;
-//	QSize fixedSize;
 
 	std::vector<AudioEngine*> audioEngines;
 	std::vector<BlitterWidget*> blitters;
+	std::vector<GbKeyHandler*> keyInputs;
+	std::vector<GbJoyHandler*> joyInputs;
 	
 	InputGetter inputGetter;
 	VideoBufferReseter resetVideoBuffer;
@@ -123,10 +92,50 @@ private:
 	int timerId;
 	
 	SamplesCalculator samplesCalc;
+	JoystickIniter joyIniter;
 
 	bool running;
 	bool turbo;
-	//bool esc;
+	
+	
+	void createActions();
+	void createMenus();
+	void loadFile(const QString &fileName);
+	AudioEngine* initAudio();
+	void run();
+	void stop();
+	void pause();
+	void unpause();
+	void setSamplesPrFrame();
+	void setCurrentFile(const QString &fileName);
+	void updateRecentFileActions();
+	QString strippedName(const QString &fullFileName);
+	void execDialog(QDialog *dialog);
+	void clearInputVectors();
+	void pushGbInputHandler(const SDL_Event &data, bool &gbButton, bool *gbNegButton = NULL);
+	void updateJoysticks();
+	
+private slots:
+	void open();
+	void openRecentFile();
+	void about();
+	void resetWindowSize();
+	void toggleFullScreen();
+	void toggleMenuHidden();
+	void inputSettingsChange();
+	void videoSettingsChange();
+	void execVideoDialog();
+	void execInputDialog();
+	
+protected:
+	void timerEvent(QTimerEvent *event);
+	void keyPressEvent(QKeyEvent *e);
+	void keyReleaseEvent(QKeyEvent *e);
+	void closeEvent(QCloseEvent *e);
+
+public:
+	GambatteQt(int argc, const char *const argv[]);
+	~GambatteQt();
 };
 
 #endif

@@ -26,6 +26,8 @@
 #include <QPushButton>
 #include <QSettings>
 
+#include "SDL_Joystick/include/SDL_joystick.h"
+
 static QString keyToString(int key) {
 	switch (key) {
 	case Qt::Key_Escape: return QString("Escape");
@@ -349,28 +351,97 @@ static QString keyToString(int key) {
 }
 
 class InputBox : public QLineEdit {
-	int key;
+	SDL_Event data;
+	int timerId;
 	
 protected:
-	void keyPressEvent(QKeyEvent *e) {
-		setKey(e->key());;
-	}
+	void focusInEvent(QFocusEvent *event);
+	void focusOutEvent(QFocusEvent *event);
+	void keyPressEvent(QKeyEvent *e) { setData(e->key()); }
+	void timerEvent(QTimerEvent */*event*/);
 	
 public:
-	InputBox(int key = 0) {
-		setKey(key);;
-		setReadOnly(true);
-	}
-	
-	int getKey() const {
-		return key;
-	}
-	
-	void setKey(int key) {
-		this->key = key;
-		setText(keyToString(key));
-	}
+	InputBox();
+	void setData(const SDL_Event &data) { setData(data.id, data.value); }
+	void setData(unsigned id,  unsigned value = KBD_VALUE);
+	const SDL_Event& getData() const { return data; }
 };
+
+InputBox::InputBox() : timerId(0) {
+	setReadOnly(true);
+	setData(0);
+}
+
+void InputBox::focusInEvent(QFocusEvent *event) {
+	if (!timerId)
+		timerId = startTimer(20);
+	
+	QLineEdit::focusInEvent(event);
+}
+
+void InputBox::focusOutEvent(QFocusEvent *event) {
+	killTimer(timerId);
+	timerId = 0;
+	
+	QLineEdit::focusOutEvent(event);
+}
+
+void InputBox::timerEvent(QTimerEvent */*event*/) {
+	SDL_ClearEvents();
+	SDL_JoystickUpdate();
+	
+	SDL_Event ev;
+	int value = 0;
+	unsigned id = 0;
+	
+	while (SDL_PollEvent(&ev)) {
+		switch (ev.type) {
+		case SDL_JOYAXISMOTION:
+			if (ev.value > JSPAXIS_VALUE) {
+				value = JSPAXIS_VALUE;
+			} else if (ev.value < JSNAXIS_VALUE) {
+				value = JSNAXIS_VALUE;
+			} else
+				continue;
+			break;
+		case SDL_JOYBUTTONCHANGE:
+			value = JSBUTTON_VALUE;
+			break;
+		default: continue;
+		}
+		
+		id = ev.id;
+	}
+	
+	if (id)
+		setData(id, value);
+}
+
+void InputBox::setData(const unsigned id, const unsigned value) {
+	data.id = id;
+	data.value = value;
+	
+	if (value) {
+		QString str(SDL_JoystickName(data.dev_num));
+		str.append(' ');
+		
+		switch (data.type) {
+		case SDL_JOYAXISMOTION:
+			str.append("Axis ");
+			str.append(QString::number(data.num));
+			str.append(' ');
+			str.append(data.value < 0 ? '-' : '+');
+			break;
+		case SDL_JOYBUTTONCHANGE:
+			str.append("Button ");
+			str.append(QString::number(data.num));
+			break;
+		}
+		
+		setText(str);
+	} else
+		setText(keyToString(id));
+}
 
 InputDialog::InputDialog(QWidget *parent)
  : QDialog(parent)
@@ -443,14 +514,22 @@ InputDialog::InputDialog(QWidget *parent)
 	
 	QSettings settings;
 	settings.beginGroup("input");
-	upKey = settings.value("upKey", Qt::Key_Up).toInt();
-	downKey = settings.value("downKey", Qt::Key_Down).toInt();
-	leftKey = settings.value("leftKey", Qt::Key_Left).toInt();
-	rightKey = settings.value("rightKey", Qt::Key_Right).toInt();
-	aKey = settings.value("aKey", Qt::Key_D).toInt();
-	bKey = settings.value("bKey", Qt::Key_C).toInt();
-	startKey = settings.value("startKey", Qt::Key_Return).toInt();
-	selectKey = settings.value("selectKey", Qt::Key_Shift).toInt();
+	upData.id = settings.value("upKey", Qt::Key_Up).toInt();
+	upData.value = settings.value("upValue", KBD_VALUE).toInt();
+	downData.id = settings.value("downKey", Qt::Key_Down).toInt();
+	downData.value = settings.value("downValue", KBD_VALUE).toInt();
+	leftData.id = settings.value("leftKey", Qt::Key_Left).toInt();
+	leftData.value = settings.value("leftValue", KBD_VALUE).toInt();
+	rightData.id = settings.value("rightKey", Qt::Key_Right).toInt();
+	rightData.value = settings.value("rightValue", KBD_VALUE).toInt();
+	aData.id = settings.value("aKey", Qt::Key_D).toInt();
+	aData.value = settings.value("aValue", KBD_VALUE).toInt();
+	bData.id = settings.value("bKey", Qt::Key_C).toInt();
+	bData.value = settings.value("bValue", KBD_VALUE).toInt();
+	startData.id = settings.value("startKey", Qt::Key_Return).toInt();
+	startData.value = settings.value("startValue", KBD_VALUE).toInt();
+	selectData.id = settings.value("selectKey", Qt::Key_Shift).toInt();
+	selectData.value = settings.value("selectValue", KBD_VALUE).toInt();
 	settings.endGroup();
 	
 	restore();
@@ -459,37 +538,45 @@ InputDialog::InputDialog(QWidget *parent)
 InputDialog::~InputDialog() {
 	QSettings settings;
 	settings.beginGroup("input");
-	settings.setValue("upKey", upKey);
-	settings.setValue("downKey", downKey);
-	settings.setValue("leftKey", leftKey);
-	settings.setValue("rightKey", rightKey);
-	settings.setValue("aKey", aKey);
-	settings.setValue("bKey", bKey);
-	settings.setValue("startKey", startKey);
-	settings.setValue("selectKey", selectKey);
+	settings.setValue("upKey", upData.id);
+	settings.setValue("upValue", upData.value);
+	settings.setValue("downKey", downData.id);
+	settings.setValue("downValue", downData.value);
+	settings.setValue("leftKey", leftData.id);
+	settings.setValue("leftValue", leftData.value);
+	settings.setValue("rightKey", rightData.id);
+	settings.setValue("rightValue", rightData.value);
+	settings.setValue("aKey", aData.id);
+	settings.setValue("aValue", aData.value);
+	settings.setValue("bKey", bData.id);
+	settings.setValue("bValue", bData.value);
+	settings.setValue("startKey", startData.id);
+	settings.setValue("startValue", startData.value);
+	settings.setValue("selectKey", selectData.id);
+	settings.setValue("selectValue", selectData.value);
 	settings.endGroup();
 }
 
 void InputDialog::store() {
-	upKey = upBox->getKey();
-	downKey = downBox->getKey();
-	leftKey = leftBox->getKey();
-	rightKey = rightBox->getKey();
-	aKey = aBox->getKey();
-	bKey = bBox->getKey();
-	startKey = startBox->getKey();
-	selectKey = selectBox->getKey();
+	upData = upBox->getData();
+	downData = downBox->getData();
+	leftData = leftBox->getData();
+	rightData = rightBox->getData();
+	aData = aBox->getData();
+	bData = bBox->getData();
+	startData = startBox->getData();
+	selectData = selectBox->getData();
 }
 
 void InputDialog::restore() {
-	upBox->setKey(upKey);
-	downBox->setKey(downKey);
-	leftBox->setKey(leftKey);
-	rightBox->setKey(rightKey);
-	aBox->setKey(aKey);
-	bBox->setKey(bKey);
-	startBox->setKey(startKey);
-	selectBox->setKey(selectKey);
+	upBox->setData(upData);
+	downBox->setData(downData);
+	leftBox->setData(leftData);
+	rightBox->setData(rightData);
+	aBox->setData(aData);
+	bBox->setData(bData);
+	startBox->setData(startData);
+	selectBox->setData(selectData);
 }
 
 void InputDialog::accept() {
