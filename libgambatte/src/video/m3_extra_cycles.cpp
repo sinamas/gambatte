@@ -39,7 +39,7 @@ M3ExtraCycles::M3ExtraCycles(const SpriteMapper &spriteMapper_in,
 	wxReader(wxReader_in)
 {}
 
-unsigned M3ExtraCycles::operator()(const unsigned ly, const bool doubleSpeed) const {
+unsigned M3ExtraCycles::operator()(const unsigned ly) const {
 	unsigned cycles = spriteMapper.spriteMap()[ly * 12 + 11];
 	
 	cycles += scxReader.scxAnd7();

@@ -40,10 +40,10 @@ void Mode0Irq::doEvent() {
 	unsigned m3ec;
 	
 	if (lyCounter.ly() == 143) {
-		m3ec = m3ExtraCycles(0, lyCounter.isDoubleSpeed());
+		m3ec = m3ExtraCycles(0);
 		setTime(time() + lyCounter.lineTime() * 11);
 	} else {
-		m3ec = m3ExtraCycles(lyCounter.ly() + 1, lyCounter.isDoubleSpeed());
+		m3ec = m3ExtraCycles(lyCounter.ly() + 1);
 		setTime(time() + lyCounter.lineTime());
 	}
 	
@@ -60,7 +60,7 @@ void Mode0Irq::mode3CyclesChange() {
 			ly = 0;
 	}
 	
-	const unsigned m3ec = m3ExtraCycles(ly, lyCounter.isDoubleSpeed()) << lyCounter.isDoubleSpeed();
+	const unsigned m3ec = m3ExtraCycles(ly) << lyCounter.isDoubleSpeed();
 	
 	setTime(time() + m3ec - lastM3ExtraCycles);
 	lastM3ExtraCycles = m3ec;
@@ -73,20 +73,20 @@ void Mode0Irq::schedule(const LyCounter &lyCounter, const unsigned cycleCounter)
 	unsigned m3ExCs;
 	
 	if (line < 144) {
-		m3ExCs = m3ExtraCycles(line, lyCounter.isDoubleSpeed()) * 2;
+		m3ExCs = m3ExtraCycles(line) * 2;
 		next += m3ExCs;
 		if (next <= 0) {
 			next += 456 * 2 - m3ExCs;
 			++line;
 			if (line < 144) {
-				m3ExCs = m3ExtraCycles(line, lyCounter.isDoubleSpeed()) * 2;
+				m3ExCs = m3ExtraCycles(line) * 2;
 				next += m3ExCs;
 			}
 		}
 	}
 	
 	if (line > 143) {
-		m3ExCs = m3ExtraCycles(0, lyCounter.isDoubleSpeed()) * 2;
+		m3ExCs = m3ExtraCycles(0) * 2;
 		next += (154 - line) * 456 * 2 + m3ExCs;
 	}
 	

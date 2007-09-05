@@ -42,7 +42,7 @@ public:
 	              const We &we_in,
 	              const WxReader &wxReader_in);
 	
-	unsigned operator()(unsigned ly, bool doubleSpeed) const;
+	unsigned operator()(unsigned ly) const;
 };
 
 #endif

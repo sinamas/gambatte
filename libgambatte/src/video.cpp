@@ -450,7 +450,7 @@ bool LCD::isMode0IrqPeriod(const unsigned cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly(), doubleSpeed) + 1 - doubleSpeed) << doubleSpeed) + doubleSpeed && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed) << doubleSpeed) + doubleSpeed && timeToNextLy > 4;
 }
 
 bool LCD::isMode2IrqPeriod(const unsigned cycleCounter) {
@@ -490,7 +490,7 @@ bool LCD::isHdmaPeriod(const unsigned cycleCounter) {
 	
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 	
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169U + doubleSpeed * 3 + 80U + m3ExtraCycles(lyCounter.ly(), doubleSpeed) + 2 - doubleSpeed) << doubleSpeed) && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169U + doubleSpeed * 3 + 80U + m3ExtraCycles(lyCounter.ly()) + 2 - doubleSpeed) << doubleSpeed) && timeToNextLy > 4;
 }
 
 unsigned LCD::nextHdmaTime(const unsigned cycleCounter) {
@@ -503,20 +503,20 @@ unsigned LCD::nextHdmaTime(const unsigned cycleCounter) {
 	unsigned m3ExCs;
 	
 	if (line < 144) {
-		m3ExCs = m3ExtraCycles(line, doubleSpeed) * 2;
+		m3ExCs = m3ExtraCycles(line) * 2;
 		next += m3ExCs;
 		if (next <= 0) {
 			next += 456 * 2 - m3ExCs;
 			++line;
 			if (line < 144) {
-				m3ExCs = m3ExtraCycles(line, doubleSpeed) * 2;
+				m3ExCs = m3ExtraCycles(line) * 2;
 				next += m3ExCs;
 			}
 		}
 	}
 	
 	if (line > 143) {
-		m3ExCs = m3ExtraCycles(0, doubleSpeed) * 2;
+		m3ExCs = m3ExtraCycles(0) * 2;
 		next += (154 - line) * 456 * 2 + m3ExCs;
 	}
 	
@@ -531,7 +531,7 @@ bool LCD::vramAccessible(const unsigned cycleCounter) {
 
 	if (enabled && lyCounter.ly() < 144) {
 		const unsigned lineCycles = 456 - ((lyCounter.time() - cycleCounter) >> doubleSpeed);
-		if (lineCycles > 79 && lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly(), doubleSpeed))
+		if (lineCycles > 79 && lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()))
 			accessible = false;
 	}
 
@@ -546,7 +546,7 @@ bool LCD::cgbpAccessible(const unsigned cycleCounter) {
 
 	if (enabled && lyCounter.ly() < 144) {
 		const unsigned lineCycles = 456 - ((lyCounter.time() - cycleCounter/* + 4*/) >> doubleSpeed);
-		if (lineCycles > 79U + doubleSpeed && lineCycles < 80U + 169U + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly(), doubleSpeed) + 4U - doubleSpeed * 2)
+		if (lineCycles > 79U + doubleSpeed && lineCycles < 80U + 169U + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()) + 4U - doubleSpeed * 2)
 			accessible = false;
 	}
 
@@ -568,7 +568,7 @@ bool LCD::oamAccessible(const unsigned cycleCounter) {
 				if (cycleCounter > enableDisplayM0Time)
 					accessible = false;
 			} else {
-				const unsigned m0start = 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly(), doubleSpeed);
+				const unsigned m0start = 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly());
 				if (lineCycles < m0start || (!doubleSpeed && lineCycles >= 452))
 					accessible = false;
 			}
@@ -875,7 +875,7 @@ unsigned LCD::get_stat(const unsigned lycReg, const unsigned cycleCounter) {
 				if (cycleCounter > enableDisplayM0Time)
 					stat = 2;
 			} else {
-				if (lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly(), doubleSpeed))
+				if (lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()))
 					stat = 3;
 			}
 		}
@@ -983,7 +983,7 @@ void LCD::setDBuffer() {
 		draw = &LCD::null_draw;
 }
 
-void LCD::null_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
+void LCD::null_draw(unsigned /*xpos*/, const unsigned ypos, const unsigned endX) {
 	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
 	
 	if (enableWindow && winYPos == 0xFF)
