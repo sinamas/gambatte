@@ -70,6 +70,8 @@ int Parser::parseLong(const int argc, const char *const *const argv, const int i
 			(*it)->exec(argv, index);
 			return index + (*it)->neededArgs();
 		}
+		
+		++it;
 	}
 	
 	return 0;
