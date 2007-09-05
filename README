@@ -71,6 +71,7 @@ binaries).
 Requirements for building libgambatte:
 - A decent C++ compiler (like g++ in the GNU Compiler Collection).
 - SCons.
+- optionally zlib
 
 Requirements for building gambatte_sdl:
 - A decent C++ compiler (like g++ in the GNU Compiler Collection).
@@ -113,6 +114,7 @@ Nach
 Pan of Anthrox
 Pascal Felber
 Paul Robson
+SDL
 The OpenGL Extension Wrangler Library
 
 --------------------------------------------------------------------------------
