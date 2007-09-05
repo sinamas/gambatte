@@ -1,6 +1,6 @@
 env = Environment(CPPPATH = ['src', 'include'],
-                  CFLAGS = ARGUMENTS.get('CFLAGS', '-Wall -O2 -fomit-frame-pointer'),
-                  CXXFLAGS = ARGUMENTS.get('CXXFLAGS', ARGUMENTS.get('CFLAGS', '-Wall -O2 -fomit-frame-pointer') + ' -fno-exceptions -fno-rtti'))
+                  CFLAGS = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer'),
+                  CXXFLAGS = ARGUMENTS.get('CXXFLAGS', ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer') + ' -fno-exceptions -fno-rtti'))
 
 sourceFiles = Split('''
 			src/cpu.cpp
