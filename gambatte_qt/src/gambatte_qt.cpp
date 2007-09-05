@@ -114,6 +114,7 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 	turbo = false;
 	//samplesPrFrame = ((sampleFormat.rate * 4389) / 262144) + 1;
 	samplesPrFrame = 0;
+	sampleRate = 0;
 	sndBuffer = NULL;
 	
 	setAttribute(Qt::WA_DeleteOnClose);

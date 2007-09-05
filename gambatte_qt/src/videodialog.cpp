@@ -34,7 +34,18 @@
 
 #include "fullrestoggler.h"
 
-VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters, std::vector<const FilterInfo*> filterInfo, const FullResToggler& resHandler, QWidget *parent) : QDialog(parent), engines(blitters), resVector(resHandler.resVector()) {
+VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters, std::vector<const FilterInfo*> filterInfo, const FullResToggler& resHandler, QWidget *parent) :
+QDialog(parent),
+engines(blitters),
+resVector(resHandler.resVector()),
+engineIndex(0),
+winIndex(0),
+fullIndex(0),
+hzIndex(0),
+filterIndexStore(0),
+keepRatio(true),
+integerScaling(false)
+{
 	ResInfo currentRes;
 	if (resVector.empty()) {
 		currentRes.w = 1600;

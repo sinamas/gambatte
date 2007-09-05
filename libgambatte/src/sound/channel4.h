@@ -29,6 +29,7 @@ class Lfsr : public SoundUnit {
 	uint8_t nr3;
 	
 public:
+	Lfsr() : highState(false) {}
 	void event();
 	bool isHighState() const { return highState; }
 	void nr3Change(unsigned newNr3) { nr3 = newNr3; }
