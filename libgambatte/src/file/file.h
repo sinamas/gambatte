@@ -23,7 +23,7 @@ class File {
   private:
   std::ifstream stream;
   bool is_zip; //Change this to an enum later
-  size_t fsize, count;
+  std::size_t fsize, count;
   void *zipfile;
   bool zip_sub_open;
 
@@ -35,7 +35,7 @@ class File {
   void rewind();
   bool is_open();
   void close();
-  size_t size();
-  void read(char *buffer, size_t amount);
-  size_t gcount();
+  std::size_t size();
+  void read(char *buffer, std::size_t amount);
+  std::size_t gcount();
 };

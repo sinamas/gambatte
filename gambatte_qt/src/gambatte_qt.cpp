@@ -22,6 +22,7 @@
 
 #include <QtGui>
 #include <QVBoxLayout>
+#include <cstring>
 
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
@@ -99,7 +100,7 @@ JoystickIniter::JoystickIniter() {
 }
 
 JoystickIniter::~JoystickIniter() {
-	for (size_t i = 0; i < joysticks.size(); ++i)
+	for (std::size_t i = 0; i < joysticks.size(); ++i)
 		SDL_JoystickClose(joysticks[i]);
 	
 	SDL_JoystickQuit();
@@ -543,7 +544,7 @@ void GambatteQt::run() {
 	
 	running = true;
 	
-	memset(&inputGetter.is, 0, sizeof(inputGetter.is));
+	std::memset(&inputGetter.is, 0, sizeof(inputGetter.is));
 	
 	ae = initAudio();
 	

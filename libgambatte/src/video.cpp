@@ -129,7 +129,7 @@ LCD::LCD(const uint8_t *const oamram, const uint8_t *const vram_in) :
 
 LCD::~LCD() {
 // 	delete []filter_buffer;
-	for (size_t i = 0; i < filters.size(); ++i)
+	for (std::size_t i = 0; i < filters.size(); ++i)
 		delete filters[i];
 }
 
@@ -311,7 +311,7 @@ std::vector<const FilterInfo*> LCD::filterInfo() const {
 	static FilterInfo noInfo = { "None", 160, 144 };
 	v.push_back(&noInfo);
 	
-	for (size_t i = 1; i < filters.size(); ++i)
+	for (std::size_t i = 1; i < filters.size(); ++i)
 		v.push_back(&filters[i]->info());
 
 	return v;

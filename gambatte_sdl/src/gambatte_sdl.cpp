@@ -18,6 +18,7 @@
 ***************************************************************************/
 #include <gambatte.h>
 #include <SDL.h>
+#include <cstring>
 #include <string>
 #include <sstream>
 
@@ -217,7 +218,7 @@ int main(int argc, char **argv) {
 	gambatte.setInputStateGetter(&inputGetter);
 
 	Sint16 *const sndBuffer = new Sint16[SND_BUF_SZ];
-	memset(sndBuffer, 0, SND_BUF_SZ * sizeof(Sint16));
+	std::memset(sndBuffer, 0, SND_BUF_SZ * sizeof(Sint16));
 	SDL_AudioSpec spec;
 	spec.freq = SAMPLE_RATE;
 	spec.format = AUDIO_S16SYS;
@@ -280,10 +281,10 @@ int main(int argc, char **argv) {
 				const unsigned samples1 = std::min(SND_BUF_SZ - wPos >> 1, SAMPLES);
 				const unsigned samples2 = SAMPLES - samples1;
 				
-				memcpy(sndBuffer + wPos, tmpBuf, samples1 * 4);
+				std::memcpy(sndBuffer + wPos, tmpBuf, samples1 * 4);
 				
 				if (samples2)
-					memcpy(sndBuffer, tmpBuf + samples1 * 2, samples2 * 4);
+					std::memcpy(sndBuffer, tmpBuf + samples1 * 2, samples2 * 4);
 				
 				if ((wPos += SAMPLES * 2) >= SND_BUF_SZ)
 					wPos -= SND_BUF_SZ;
@@ -310,10 +311,10 @@ static void fill_buffer(void *const buffer, Uint8 *const stream, const int len) 
 	const unsigned bytes1 = std::min(static_cast<unsigned>(len), (SND_BUF_SZ - rPos) * 2);
 	const unsigned bytes2 = len - bytes1;
 	
-	memcpy(stream, reinterpret_cast<Sint16*>(buffer) + rPos, bytes1);
+	std::memcpy(stream, reinterpret_cast<Sint16*>(buffer) + rPos, bytes1);
 	
 	if (bytes2)
-		memcpy(stream + bytes1, buffer, bytes2);
+		std::memcpy(stream + bytes1, buffer, bytes2);
 	
 	if ((rPos += len >> 1) >= SND_BUF_SZ)
 		rPos -= SND_BUF_SZ;

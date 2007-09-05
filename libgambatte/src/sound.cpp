@@ -24,7 +24,7 @@
 static const unsigned bufferSize = 35112 + 16 + 2048; //FIXME: DMA can prevent process from returning for up to 4096 cycles.
 
 void PSG::init(const uint8_t *const ioram) {
-	memset(buffer, 0, bufferSize*sizeof(uint32_t));
+	std::memset(buffer, 0, bufferSize*sizeof(uint32_t));
 	bufferPos = 0;
 	snd_lastUpdate = 0x102A0;
 	enabled = true;
@@ -141,8 +141,8 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 	}
 
 	bufferPos -= endPos;
-	memmove(buffer, buffer + endPos, bufferPos * sizeof(uint32_t));
-	memset(buffer + bufferPos, 0, (bufferSize - bufferPos) * sizeof(uint32_t));
+	std::memmove(buffer, buffer + endPos, bufferPos * sizeof(uint32_t));
+	std::memset(buffer + bufferPos, 0, (bufferSize - bufferPos) * sizeof(uint32_t));
 }
 
 void PSG::set_so_volume(const unsigned nr50) {
@@ -163,5 +163,5 @@ unsigned PSG::getStatus() const {
 }
 
 void PSG::clear_buffer() {
-	memset(buffer, 0, bufferSize*sizeof(uint32_t));
+	std::memset(buffer, 0, bufferSize*sizeof(uint32_t));
 }

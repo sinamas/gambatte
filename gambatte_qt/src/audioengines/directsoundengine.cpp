@@ -19,6 +19,7 @@
 #include "directsoundengine.h"
 
 #include <iostream>
+#include <cstring>
 
 DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) : lpDS(NULL), lpDSB(NULL), hwnd(hwnd_in) {}
 
@@ -39,7 +40,7 @@ int DirectSoundEngine::init() {
 	
 	{
 		DSBUFFERDESC dsbd;
-		memset(&dsbd, 0, sizeof(dsbd));
+		std::memset(&dsbd, 0, sizeof(dsbd));
 		dsbd.dwSize = sizeof(dsbd);
 		
 		{
@@ -62,7 +63,7 @@ int DirectSoundEngine::init() {
 		}
 		
 		WAVEFORMATEX wfe;
-		memset(&wfe, 0, sizeof(wfe));
+		std::memset(&wfe, 0, sizeof(wfe));
 		wfe.wFormatTag = WAVE_FORMAT_PCM;
 		wfe.nChannels = 2;
 		wfe.nSamplesPerSec = rate;
@@ -74,7 +75,7 @@ int DirectSoundEngine::init() {
 		
 		{
 			GUID guidNULL;
-			memset(&guidNULL,0,sizeof(GUID));
+			std::memset(&guidNULL,0,sizeof(GUID));
 			dsbd.guid3DAlgorithm = guidNULL;
 		}
 		
@@ -150,10 +151,10 @@ int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
 		if (lpDSB->Lock(offset, frames * 4, &ptr1, &bytes1, &ptr2, &bytes2, 0) != DS_OK)
 			return 0;
 		
-		memcpy(ptr1, buffer, bytes1);
+		std::memcpy(ptr1, buffer, bytes1);
 		
 		if (ptr2) {
-			memcpy(ptr2, static_cast<char*>(buffer) + bytes1, bytes2);
+			std::memcpy(ptr2, static_cast<char*>(buffer) + bytes1, bytes2);
 		}
 		
 		lpDSB->Unlock(ptr1, bytes1, ptr2, bytes2);

@@ -19,6 +19,7 @@
 #include "parser.h"
 
 #include <algorithm>
+#include <cstring>
 
 struct OptionLess {
 	bool operator()(const Parser::Option *const l, const Parser::Option *const r) const {
@@ -45,7 +46,7 @@ static unsigned computeHash(const char *s) {
 Parser::Option::Option(const char *const s, int nArgs) : s(s), hash(computeHash(s)), nArgs(nArgs) {}
 
 Parser::Parser() : sorted(false) {
-	memset(t, 0, sizeof(t));
+	std::memset(t, 0, sizeof(t));
 }
 
 void Parser::addLong(Option *const o) {
@@ -63,7 +64,7 @@ int Parser::parseLong(const int argc, const char *const *const argv, const int i
 	std::vector<Option*>::iterator it = lower_bound(v.begin(), v.end(), &o, OptionLess());
 	
 	while (it != v.end() && (*it)->getHash() == o.getHash()) {
-		if (!strcmp((*it)->getStr(), o.getStr())) {
+		if (!std::strcmp((*it)->getStr(), o.getStr())) {
 			if ((*it)->neededArgs() >= argc - index)
 				return 0;
 				

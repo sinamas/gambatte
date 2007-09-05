@@ -22,6 +22,7 @@
 #include "inputstate.h"
 #include "inputstategetter.h"
 #include "file/file.h"
+#include <cstring>
 
 // static const uint32_t timaClock[4]={ 1024, 16, 64, 256 };
 static const uint8_t timaClock[4] = { 10, 4, 6, 8 };
@@ -124,7 +125,7 @@ void Memory::init() {
 	hdma_transfer = 0;
 	dmaSource = 0;
 	dmaDestination = 0;
-	memset(cgb_bgp_data, 0xFF, sizeof(cgb_bgp_data));
+	std::memset(cgb_bgp_data, 0xFF, sizeof(cgb_bgp_data));
 	battery = false;
 	rtcRom = false;
 	enable_ram = false;
@@ -138,18 +139,18 @@ void Memory::init() {
 	set_event();
 	rtc.reset();
 
-	memset(memory, 0x00, sizeof(memory));
-	memset(disabled_ram, 0xFF, 0x1000);
-	memset(vram, 0, 0x4000);
+	std::memset(memory, 0x00, sizeof(memory));
+	std::memset(disabled_ram, 0xFF, 0x1000);
+	std::memset(vram, 0, 0x4000);
 	
 	for (unsigned addr = 0xC000; addr < 0xC800; addr += 0x10) {
-		memset(memory + addr + 0x00, 0xFF, 0x08);
-		memset(memory + addr + 0x08, 0x00, 0x08);
+		std::memset(memory + addr + 0x00, 0xFF, 0x08);
+		std::memset(memory + addr + 0x08, 0x00, 0x08);
 	}
 	
 	for (unsigned addr = 0xC800; addr < 0xD000; addr += 0x10) {
-		memset(memory + addr + 0x00, 0x00, 0x08);
-		memset(memory + addr + 0x08, 0xFF, 0x08);
+		std::memset(memory + addr + 0x00, 0x00, 0x08);
+		std::memset(memory + addr + 0x08, 0xFF, 0x08);
 	}
 	
 	for (unsigned addr = 0xCE00; addr < 0xD000; addr += 0x10) {
@@ -157,10 +158,10 @@ void Memory::init() {
 		memory[addr + 0x0A] = 0x00;
 	}
 	
-	memcpy(memory + 0xD000, memory + 0xC000, 0x1000);
+	std::memcpy(memory + 0xD000, memory + 0xC000, 0x1000);
 	
-	memcpy(memory + 0xFEA0, feaxDump, sizeof(feaxDump));
-	memcpy(memory + 0xFF00, ffxxDump, sizeof(ffxxDump));
+	std::memcpy(memory + 0xFEA0, feaxDump, sizeof(feaxDump));
+	std::memcpy(memory + 0xFF00, ffxxDump, sizeof(ffxxDump));
 	
 	memory[0xFF04] = 0x1C;
 	memory[0xFF0F] = 0xE0;
@@ -190,7 +191,7 @@ void Memory::init() {
 		cgb_bgp_data[i + 1] = 0x7F;
 	}
 	
-	memcpy(cgb_objp_data, cgbObjpDump, sizeof(cgbObjpDump));
+	std::memcpy(cgb_objp_data, cgbObjpDump, sizeof(cgbObjpDump));
 }
 
 void Memory::reset() {
@@ -1024,7 +1025,7 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 		if ((memory[P] ^ data)&0x80) {
 			sound.generate_samples(cycleCounter, isDoubleSpeed());
 			if (!(data&0x80)) {
-				memcpy(memory + 0xFF10, soundRegInitValues, sizeof(soundRegInitValues));
+				std::memcpy(memory + 0xFF10, soundRegInitValues, sizeof(soundRegInitValues));
 				sound.reset(memory + 0xFF00);
 				sound.setEnabled(false);
 			} else
@@ -1315,7 +1316,7 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 				bank = 1;
 			
 			mem[0xD] = cgb_wramdata + bank * 0x1000;
-			memcpy(mem[0xF], mem[0xD], 0xE00); //sync wram-mirror.
+			std::memcpy(mem[0xF], mem[0xD], 0xE00); //sync wram-mirror.
 		}
 		break;
 
@@ -1508,8 +1509,8 @@ bool Memory::loadROM(const char* file) {
 		delete []romfile;
 		romfile = NULL;
 	}
-	romfile = new char[strlen(file)+1];
-	strcpy(romfile, file);
+	romfile = new char[std::strlen(file)+1];
+	std::strcpy(romfile, file);
 	return loadROM();
 }
 
@@ -1530,8 +1531,8 @@ bool Memory::loadROM() {
 // 		cgb = 1;
 		cgb_wramdata = new uint8_t[0x8000];
 		
-		memcpy(cgb_wramdata, memory + 0xC000, 0x2000);
-		memcpy(cgb_wramdata + 0x2000, cgb_wramdata, 0x6000);
+		std::memcpy(cgb_wramdata, memory + 0xC000, 0x2000);
+		std::memcpy(cgb_wramdata + 0x2000, cgb_wramdata, 0x6000);
 		
 		mem[0xC] = &cgb_wramdata[0];
 		mem[0xD] = &cgb_wramdata[0x1000];
@@ -1572,7 +1573,7 @@ bool Memory::loadROM() {
 		memory[0xFF3F] = 0x48;
 	}
 
-	memcpy(mem[0xF], mem[0xD], 0xE00); //Make sure the wram-mirror is synced.
+	std::memcpy(mem[0xF], mem[0xD], 0xE00); //Make sure the wram-mirror is synced.
 
 	switch (memory[0x0147]) {
 	case 0x00: printf("Plain ROM loaded.\n");
@@ -1755,7 +1756,7 @@ bool Memory::loadROM() {
 
 	delete []rambankdata;
 	rambankdata = new uint8_t[rambanks*0x2000];
-	memset(rambankdata, 0xFF, rambanks*0x2000);
+	std::memset(rambankdata, 0xFF, rambanks*0x2000);
 
 	{
 		char *tmp = strrchr(romfile, '/');
@@ -1765,7 +1766,7 @@ bool Memory::loadROM() {
 		else
 			++tmp;
 		
-		const unsigned int namelen = strrchr(tmp, '.') == NULL ? strlen(tmp) : strrchr(tmp, '.') - tmp;
+		const unsigned int namelen = strrchr(tmp, '.') == NULL ? std::strlen(tmp) : strrchr(tmp, '.') - tmp;
 		delete []savename;
 		savename = new char[namelen+1];
 		strncpy(savename, tmp, namelen);
@@ -1776,10 +1777,10 @@ bool Memory::loadROM() {
 		char *savefile;
 		
 		if (savedir != NULL) {
-			savefile = new char[5+strlen(savedir)+strlen(savename)];
+			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
 			sprintf(savefile, "%s%s.sav", savedir, savename);
 		} else {
-			savefile = new char[5+strlen(savename)];
+			savefile = new char[5 + std::strlen(savename)];
 			sprintf(savefile, "%s.sav", savename);
 		}
 
@@ -1815,16 +1816,16 @@ bool Memory::loadROM() {
 		char *savefile;
 		
 		if (savedir != NULL) {
-			savefile = new char[5+strlen(savedir)+strlen(savename)];
+			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
 			sprintf(savefile, "%s%s.rtc", savedir, savename);
 		} else {
-			savefile = new char[5+strlen(savename)];
+			savefile = new char[5 + std::strlen(savename)];
 			sprintf(savefile, "%s.rtc", savename);
 		}
 
 		std::ifstream load(savefile, std::ios::binary | std::ios::in);
 		
-		time_t basetime;
+		std::time_t basetime;
 		
 		if (load.is_open()) {
 			load.read(reinterpret_cast<char*>(&basetime), sizeof(basetime));
@@ -1850,12 +1851,12 @@ void Memory::set_savedir(const char *dir) {
 	savedir = NULL;
 
 	if (dir != NULL) {
-		savedir = new char[strlen(dir)+2];
-		strcpy(savedir, dir);
+		savedir = new char[std::strlen(dir) + 2];
+		std::strcpy(savedir, dir);
 		
-		if (savedir[strlen(dir)-1] != '/') {
-			savedir[strlen(dir)] = '/';
-			savedir[strlen(dir)+1] = '\0';
+		if (savedir[std::strlen(dir) - 1] != '/') {
+			savedir[std::strlen(dir)] = '/';
+			savedir[std::strlen(dir) + 1] = '\0';
 		}
 	}
 }
@@ -1864,10 +1865,10 @@ void Memory::saveram() {
 	char *savefile;
 	
 	if (savedir != NULL) {
-		savefile = new char[5+strlen(savedir)+strlen(savename)];
+		savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
 		sprintf(savefile, "%s%s.sav", savedir, savename);
 	} else {
-		savefile = new char[5+strlen(savename)];
+		savefile = new char[5 + std::strlen(savename)];
 		sprintf(savefile, "%s.sav", savename);
 	}
 
@@ -1905,17 +1906,17 @@ void Memory::save_rtc() {
 	char *savefile;
 	
 	if (savedir != NULL) {
-		savefile = new char[5+strlen(savedir)+strlen(savename)];
+		savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
 		sprintf(savefile, "%s%s.rtc", savedir, savename);
 	} else {
-		savefile = new char[5+strlen(savename)];
+		savefile = new char[5 + std::strlen(savename)];
 		sprintf(savefile, "%s.rtc", savename);
 	}
 
 	std::ofstream save(savefile, std::ios::binary | std::ios::out);
 	
 	if (save.is_open()) {
-		time_t basetime = rtc.getBaseTime();
+		std::time_t basetime = rtc.getBaseTime();
 		save.write(reinterpret_cast<char*>(&basetime), sizeof(basetime));
 		save.close();
 	}  /*else cout << "Saving rtcdata failed\n";*/

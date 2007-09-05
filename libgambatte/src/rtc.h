@@ -26,8 +26,8 @@ class Rtc {
 private:
 	uint8_t *activeData;
 	void (Rtc::*activeSet)(uint8_t);
-	time_t baseTime;
-	time_t haltTime;
+	std::time_t baseTime;
+	std::time_t haltTime;
 	uint8_t index;
 	uint8_t dataDh;
 	uint8_t dataDl;
@@ -52,11 +52,11 @@ public:
 		return activeData;
 	}
 	
-	time_t getBaseTime() const {
+	std::time_t getBaseTime() const {
 		return baseTime;
 	}
 	
-	void setBaseTime(const time_t baseTime) {
+	void setBaseTime(const std::time_t baseTime) {
 		this->baseTime = baseTime;
 		doLatch();
 	}

@@ -24,6 +24,7 @@
 #include <QSettings>
 #include <QVBoxLayout>
 #include <iostream>
+#include <cstring>
 
 DirectDrawBlitter::DirectDrawBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
 	BlitterWidget("DirectDraw", parent),
@@ -136,7 +137,7 @@ const PixelBuffer DirectDrawBlitter::inBuffer() {
 bool DirectDrawBlitter::initPrimarySurface() {
 	{
 		DDSURFACEDESC2 ddsd;
-		memset(&ddsd, 0, sizeof(ddsd));
+		std::memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd); 
 		ddsd.dwFlags = DDSD_CAPS; 
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
@@ -172,7 +173,7 @@ bool DirectDrawBlitter::initPrimarySurface() {
 
 bool DirectDrawBlitter::initVideoSurface() {
 	DDSURFACEDESC2 ddsd;
-	memset(&ddsd, 0, sizeof(ddsd));
+	std::memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd); 
 	lpDDSSystem->GetSurfaceDesc(&ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT; 
@@ -254,7 +255,7 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer *const pixb, LPDIRECT
 		alpha = ddpf->dwFlags & DDPF_ALPHAPIXELS;
 	}
 	
-	memset(ddpf, 0, sizeof(DDPIXELFORMAT));
+	std::memset(ddpf, 0, sizeof(DDPIXELFORMAT));
 	ddpf->dwFlags = DDPF_RGB;
 	
 	if (pixb->format == PixelBuffer::RGB16) {
@@ -293,7 +294,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	setDdPf(&ddpf, &pixb, lpDDSPrimary);
 	
 	DDSURFACEDESC2 ddsd;
-	memset(&ddsd, 0, sizeof(ddsd));
+	std::memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd); 
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT; 
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
@@ -465,7 +466,7 @@ void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {
 		return;
 	
 	DDSURFACEDESC2 ddsd;
-	memset(&ddsd, 0, sizeof(ddsd));
+	std::memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd); 
 	lpDD->GetDisplayMode(&ddsd);
 	
@@ -502,7 +503,7 @@ void DirectDrawBlitter::setExclusive(const bool exclusive) {
 void DirectDrawBlitter::reinit() {
 	if (lpDDSSystem) {
 		DDSURFACEDESC2 ddsd;
-		memset(&ddsd, 0, sizeof(ddsd));
+		std::memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd); 
 		lpDDSSystem->GetSurfaceDesc(&ddsd);
 		
