@@ -21,7 +21,7 @@
 #include <deque>
 
 static std::deque<SDL_Event> queue;
-unsigned int filter = 0;
+static unsigned int filter = 0;
 
 void SDL_ResetEvents() {
 	filter = 0;
