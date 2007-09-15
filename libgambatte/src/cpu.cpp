@@ -87,6 +87,9 @@ bool CPU::load(const char* romfile) {
 }*/
 
 // (HF2 & 0x200) == true means HF is set.
+// (HF2 & 0x400) marks the subtract flag.
+// (HF2 & 0x800) is set for inc/dec.
+// (HF2 & 0x100) is set if there's a carry to add.
 static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 	unsigned arg1 = HF1 & 0xF;
 	unsigned arg2 = (HF2 & 0xF) + (HF2 >> 8 & 1);
@@ -97,9 +100,9 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 	}
 
 	if (HF2 & 0x400)
-			arg1 -= arg2;
+		arg1 -= arg2;
 	else
-			arg1 = arg1 + arg2 << 5;
+		arg1 = arg1 + arg2 << 5;
 	
 	HF2 |= arg1 & 0x200;
 }
