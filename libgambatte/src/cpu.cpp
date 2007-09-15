@@ -86,6 +86,23 @@ bool CPU::load(const char* romfile) {
 	return cycleCounter;
 }*/
 
+// (HF2 & 0x200) == true means HF is set.
+static inline void calcHF(const unsigned HF1, unsigned& HF2) {
+	unsigned arg1 = HF1 & 0xF;
+	unsigned arg2 = (HF2 & 0xF) + (HF2 >> 8 & 1);
+	
+	if (HF2 & 0x800) {
+		arg1 = arg2;
+		arg2 = 1;
+	}
+
+	if (HF2 & 0x400)
+			arg1 -= arg2;
+	else
+			arg1 = arg1 + arg2 << 5;
+	
+	HF2 |= arg1 & 0x200;
+}
 
 #define BC() ( (B << 8) | C )
 #define DE() ( (D << 8) | E )
@@ -272,8 +289,8 @@ bool CPU::load(const char* romfile) {
 //Add 8-bit value+CF to A, check flags:
 #define adc_a_u8(u8) do { \
 	HF1 = A; \
-	HF2 = ((CF >> 8) & 1) + (u8); \
-	A = ZF = CF = HF2 + A; \
+	HF2 = (CF & 0x100) | (u8); \
+	A = ZF = CF = ((CF >> 8) & 1) + (u8) + A; \
 } while (0)
 
 //sub a,r (4 cycles):
@@ -291,9 +308,8 @@ bool CPU::load(const char* romfile) {
 //Subtract CF and 8-bit value from A, check flags:
 #define sbc_a_u8(u8) do { \
 	HF1 = A; \
-	HF2 = ((CF >> 8) & 1) + (u8); \
-	A = ZF = CF = A - HF2; \
-	HF2 |= 0x400; \
+	HF2 = 0x400 | (CF & 0x100) | (u8); \
+	A = ZF = CF = A - ((CF >> 8) & 1) - (u8); \
 } while (0)
 
 //and a,r (4 cycles):
@@ -351,12 +367,20 @@ bool CPU::load(const char* romfile) {
 //16-BIT ARITHMETIC
 //add hl,rr (8 cycles):
 //add 16-bit register to HL, check flags except ZF:
-#define add_hl_rr(rh, rl) do { \
+/*#define add_hl_rr(rh, rl) do { \
 	L = HF1 = L + (rl); \
 	HF1 >>= 8; \
 	HF1 += H; \
 	HF2 = (rh); \
 	H = CF = HF1 + (rh); \
+	cycleCounter += 4; \
+} while (0)*/
+
+#define add_hl_rr(rh, rl) do { \
+	L = CF = L + (rl); \
+	HF1 = H; \
+	HF2 = (CF & 0x100) | (rh); \
+	H = CF = H + (CF >> 8) + (rh); \
 	cycleCounter += 4; \
 } while (0)
 
@@ -376,6 +400,16 @@ bool CPU::load(const char* romfile) {
 	(rl) = dec_rr_var_tmp; \
 	(rh) -= (dec_rr_var_tmp >> 8) & 1; \
 	cycleCounter += 4; \
+} while (0)
+
+#define sp_plus_n(sumout) do { \
+	const unsigned sp_plus_n_var_n = int8_t(memory.pc_read(PC++, cycleCounter)); \
+	const unsigned sp_plus_n_var_sum = SP + sp_plus_n_var_n; \
+	CF = SP ^ sp_plus_n_var_n ^ sp_plus_n_var_sum; \
+	HF2 = CF << 5 & 0x200; \
+	ZF = 1; \
+	cycleCounter += 8; \
+	(sumout) = sp_plus_n_var_sum; \
 } while (0)
 
 //JUMPS:
@@ -652,30 +686,43 @@ void CPU::process(const unsigned cycles) {
 				//daa (4 cycles):
 				//Adjust register A to correctly represent a BCD. Check ZF, HF and CF:
 			case 0x27:
-			{
-				unsigned correction = ((A > 0x99) || (CF & 0x100)) ? 0x60 : 0x00;
+				/*{
+					unsigned correction = ((A > 0x99) || (CF & 0x100)) ? 0x60 : 0x00;
+					
+					calcHF(HF1, HF2);
+					
+					if ((A & 0x0F) > 0x09 || (HF2 & 0x200))
+						correction |= 0x06;
+					
+					HF1 = A;
+					HF2 = (HF2 & 0x400) | correction;
+					CF = (correction & 0x40) << 2;
+					A = (HF2 & 0x400) ? A - correction : (A + correction);
+					ZF = A;
+				}*/
 				
-				if (HF2 & 0x400) {
-					if (HF2 & 0x800)
-						HF2 |= ((HF2 & 0xF) - 1) & 0x200;
-					else
-						HF2 |= ((HF1 & 0xF) - (HF2 & 0xF)) & 0x200;
-				} else {
-					if (HF2 & 0x800)
-						HF2 |= (((HF2 & 0xF) + 1) & 0x10) << 5;
-					else
-						HF2 |= (((HF1 & 0xF) + (HF2 & 0xF)) & 0x10) << 5;
+				calcHF(HF1, HF2);
+				
+				{
+					unsigned correction = (CF & 0x100) ? 0x60 : 0x00;
+					
+					if (HF2 & 0x200)
+						correction |= 0x06;
+					
+					if (!(HF2 &= 0x400)) {
+						if ((A & 0x0F) > 0x09)
+							correction |= 0x06;
+						
+						if (A > 0x99)
+							correction |= 0x60;
+						
+						A += correction;
+					} else
+						A -= correction;
+					
+					CF = correction << 2 & 0x100;
+					ZF = A;
 				}
-				
-				if ((A & 0x0F) > 0x09 || (HF2 & 0x200))
-					correction |= 0x06;
-				
-				HF1 = A;
-				HF2 = (HF2 & 0x400) | correction;
-				CF = (correction & 0x40) << 2;
-				A = (HF2 & 0x400) ? A - correction : (A + correction);
-				ZF = A;
-			}
 				break;
 
 			//jr z,disp (12;8 cycles):
@@ -2548,15 +2595,18 @@ void CPU::process(const unsigned cycles) {
 
 				//add sp,n (16 cycles):
 				//Add next (signed) byte in memory to SP, reset ZF and SF, check HCF and CF:
-			case 0xE8: {
-				int8_t tmp = int8_t(memory.pc_read(PC++, cycleCounter));
-				HF2 = (((SP & 0xFFF) + tmp) >> 3) & 0x200;
-				CF = SP + tmp;
-				SP = CF;
-				CF >>= 8;
-				ZF = 1;
-				cycleCounter += 12;
-			}
+			case 0xE8:
+				/*{
+					int8_t tmp = int8_t(memory.pc_read(PC++, cycleCounter));
+					HF2 = (((SP & 0xFFF) + tmp) >> 3) & 0x200;
+					CF = SP + tmp;
+					SP = CF;
+					CF >>= 8;
+					ZF = 1;
+					cycleCounter += 12;
+				}*/
+				sp_plus_n(SP);
+				cycleCounter += 4;
 			break;
 
 			//jp hl (4 cycles):
@@ -2639,17 +2689,8 @@ void CPU::process(const unsigned cycles) {
 			case 0xF4: /*doesn't exist*/
 				break;
 			case 0xF5: /*push_rr(A, F); Cycles(16); break;*/
-				if (HF2&0x400) {
-					if (HF2&0x800)
-						HF2 |= ((HF2 & 0xF) - 1) & 0x200;
-					else
-						HF2 |= ((HF1 & 0xF) - (HF2 & 0xF)) & 0x200;
-				} else {
-					if (HF2&0x800)
-						HF2 |= (((HF2 & 0xF) + 1) & 0x10) << 5;
-					else
-						HF2 |= (((HF1 & 0xF) + (HF2 & 0xF)) & 0x10) << 5;
-				}
+				calcHF(HF1, HF2);
+				
 				{
 					unsigned F = HF2 & 0x600;
 					F |= CF & 0x100;
@@ -2676,7 +2717,7 @@ void CPU::process(const unsigned cycles) {
 				//ldhl sp,n (12 cycles):
 				//Put (sp+next (signed) byte in memory) into hl (unsets ZF and SF, may enable HF and CF):
 			case 0xF8:
-				{
+				/*{
 					int8_t tmp = int8_t(memory.pc_read(PC++, cycleCounter));
 					HF2 = (((SP & 0xFFF) + tmp) >> 3) & 0x200;
 					CF = SP + tmp;
@@ -2685,6 +2726,12 @@ void CPU::process(const unsigned cycles) {
 					H = CF;
 					ZF = 1;
 					cycleCounter += 8;
+				}*/
+				{
+					unsigned sum;
+					sp_plus_n(sum);
+					L = sum;
+					H = sum >> 8;
 				}
 				break;
 
