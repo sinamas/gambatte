@@ -38,20 +38,20 @@ static unsigned computeHash(const char *s) {
 	return hash;
 }
 
-Parser::Option::Option(const char *const s, int nArgs) : s(s), hash(computeHash(s)), nArgs(nArgs) {}
+Parser::Option::Option(const char *const s, int nArgs) : s(s), nArgs(nArgs) {}
 
 void Parser::addLong(Option *const o) {
-	lMap.insert(pair<unsigned,Option*>(o->getHash(), o));
+	lMap.insert(pair<unsigned,Option*>(computeHash(o->getStr()), o));
 }
 
 int Parser::parseLong(const int argc, const char *const *const argv, const int index) {
-	Option o(argv[index] + 2);
-	pair<multimap<unsigned,Option*>::iterator,multimap<unsigned,Option*>::iterator> range = lMap.equal_range(o.getHash());
+	const char *const str = argv[index] + 2;
+	pair<multimap<unsigned,Option*>::iterator,multimap<unsigned,Option*>::iterator> range = lMap.equal_range(computeHash(str));
 	
 	for (multimap<unsigned,Option*>::iterator it = range.first; it != range.second; ++it) {
 		Option &e = *(it->second);
 		
-		if (!strcmp(e.getStr(), o.getStr())) {
+		if (!strcmp(e.getStr(), str)) {
 			if (e.neededArgs() >= argc - index)
 				return 0;
 				

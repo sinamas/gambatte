@@ -25,13 +25,11 @@ class Parser {
 public:
 	class Option {
 		const char *const s;
-		const unsigned hash;
 		const int nArgs;
 		
 	public:
 		Option(const char *s, int nArgs = 0);
 		virtual ~Option() {}
-		unsigned getHash() const { return hash; }
 		const char* getStr() const { return s; }
 		int neededArgs() const { return nArgs; }
 		virtual void exec(const char *const */*argv*/, int /*index*/) {}
