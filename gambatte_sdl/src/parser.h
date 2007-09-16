@@ -19,7 +19,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <vector>
+#include <map>
 
 class Parser {
 public:
@@ -38,9 +38,8 @@ public:
 	};
 	
 private:
-	Option *t[256];
-	std::vector<Option*> v;
-	bool sorted;
+	std::map<char,Option*> sMap;
+	std::multimap<unsigned,Option*> lMap;
 
 	void addLong(Option *o);
 	void addShort(Option *o);
@@ -48,7 +47,6 @@ private:
 	int parseShort(int argc, const char *const *argv, int index);
 	
 public:
-	Parser();
 	void add(Option *o);
 	int parse(int argc,const char *const *argv, int index);
 };

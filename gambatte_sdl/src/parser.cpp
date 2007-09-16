@@ -18,14 +18,9 @@
 ***************************************************************************/
 #include "parser.h"
 
-#include <algorithm>
 #include <cstring>
 
-struct OptionLess {
-	bool operator()(const Parser::Option *const l, const Parser::Option *const r) const {
-		return l->getHash() < r->getHash();
-	}
-};
+using namespace std;
 
 static unsigned computeHash(const char *s) {
 	unsigned hash = 0;
@@ -45,41 +40,31 @@ static unsigned computeHash(const char *s) {
 
 Parser::Option::Option(const char *const s, int nArgs) : s(s), hash(computeHash(s)), nArgs(nArgs) {}
 
-Parser::Parser() : sorted(false) {
-	std::memset(t, 0, sizeof(t));
-}
-
 void Parser::addLong(Option *const o) {
-	v.push_back(o);
-	sorted = false;
+	lMap.insert(pair<unsigned,Option*>(o->getHash(), o));
 }
 
 int Parser::parseLong(const int argc, const char *const *const argv, const int index) {
-	if (!sorted)
-		std::sort(v.begin(), v.end(), OptionLess());
+	Option o(argv[index] + 2);
+	pair<multimap<unsigned,Option*>::iterator,multimap<unsigned,Option*>::iterator> range = lMap.equal_range(o.getHash());
 	
-	sorted = true;
-	
-	Option o(argv[index]);
-	std::vector<Option*>::iterator it = lower_bound(v.begin(), v.end(), &o, OptionLess());
-	
-	while (it != v.end() && (*it)->getHash() == o.getHash()) {
-		if (!std::strcmp((*it)->getStr(), o.getStr())) {
-			if ((*it)->neededArgs() >= argc - index)
+	for (multimap<unsigned,Option*>::iterator it = range.first; it != range.second; ++it) {
+		Option &e = *(it->second);
+		
+		if (!strcmp(e.getStr(), o.getStr())) {
+			if (e.neededArgs() >= argc - index)
 				return 0;
 				
-			(*it)->exec(argv, index);
-			return index + (*it)->neededArgs();
+			e.exec(argv, index);
+			return index + e.neededArgs();
 		}
-		
-		++it;
 	}
 	
 	return 0;
 }
 
 void Parser::addShort(Option *const o) {
-	t[static_cast<unsigned char>(o->getStr()[1])] = o;
+	sMap.insert(pair<char,Option*>(o->getStr()[0], o));
 }
 
 int Parser::parseShort(const int argc, const char *const *const argv, const int index) {
@@ -90,27 +75,29 @@ int Parser::parseShort(const int argc, const char *const *const argv, const int 
 		return 0;
 
 	do {
-		Option *const o = t[static_cast<unsigned char>(*s)];
+		const map<char,Option*>::iterator it = sMap.find(*s);
 		
-		if (!o)
+		if (it == sMap.end())
 			return 0;
+		
+		Option &e = *(it->second);
 			
-		if (o->neededArgs()) {
-			if (s[1] || o->neededArgs() >= argc - index)
+		if (e.neededArgs()) {
+			if (s[1] || e.neededArgs() >= argc - index)
 				return 0;
 				
-			o->exec(argv, index);
-			return index + o->neededArgs();
+			e.exec(argv, index);
+			return index + e.neededArgs();
 		}
 		
-		o->exec(argv, index);
+		e.exec(argv, index);
 	} while (*++s);
 	
 	return index;
 }
 
 void Parser::add(Option *const o) {
-	(o->getStr()[1] == '-') ? addLong(o) : addShort(o);
+	(o->getStr()[1]) ? addLong(o) : addShort(o);
 }
 
 int Parser::parse(const int argc, const char *const *const argv, const int index) {

@@ -80,11 +80,11 @@ class FsOption : public FatOption {
 	};
 	
 	struct Short : Main {
-		Short() : Main("-f") {}
+		Short() : Main("f") {}
 	};
 	
 	struct Long : Main {
-		Long() : Main("--full-screen") {}
+		Long() : Main("full-screen") {}
 	};
 	
 	Short sOpt;
@@ -110,11 +110,11 @@ class VfOption : public FatOption {
 	};
 	
 	struct Short : Main {
-		Short() : Main("-v") {}
+		Short() : Main("v") {}
 	};
 	
 	struct Long : Main {
-		Long() : Main("--video-filter") {}
+		Long() : Main("video-filter") {}
 	};
 	
 	Short sOpt;
@@ -170,7 +170,7 @@ static void printUsage(std::vector<FatOption*> &v) {
 	printf("Usage: gambatte_sdl [OPTION]... romfile\n\n");
 	
 	for (unsigned i = 0; i < v.size(); ++i) {
-		printf("  %s, %s%s\n", v[i]->getShort()->getStr(), v[i]->getLong()->getStr(), v[i]->getDesc());
+		printf("  -%s, --%s%s\n", v[i]->getShort()->getStr(), v[i]->getLong()->getStr(), v[i]->getDesc());
 	}
 }
 
