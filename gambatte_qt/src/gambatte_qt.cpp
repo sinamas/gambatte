@@ -627,8 +627,6 @@ QString GambatteQt::strippedName(const QString &fullFileName) {
 	return QFileInfo(fullFileName).fileName();
 }
 
-static bool unusedBool;
-
 void GambatteQt::keyPressEvent(QKeyEvent *e) {
 	e->accept();
 	
