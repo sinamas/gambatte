@@ -46,10 +46,8 @@
 class GbKeyHandler {
 	bool &gbButton;
 	bool *const negGbButton;
-	const unsigned id;
 public:
-	GbKeyHandler(unsigned id, bool &gbButton, bool *negGbButton = NULL) : gbButton(gbButton), negGbButton(negGbButton), id(id) {}
-	unsigned getId() const { return id; }
+	GbKeyHandler(bool &gbButton, bool *negGbButton = NULL) : gbButton(gbButton), negGbButton(negGbButton) {}
 	
 	void handleValue(const bool keyPressed) {
 		if ((gbButton = keyPressed) && negGbButton)
@@ -60,24 +58,14 @@ public:
 class GbJoyHandler {
 	bool &gbButton;
 	bool *const negGbButton;
-	const unsigned id;
 	const int threshold;
 public:
-	GbJoyHandler(unsigned id, int threshold, bool &gbButton, bool *negGbButton = NULL) :
-		gbButton(gbButton), negGbButton(negGbButton), id(id), threshold(threshold) {}
-		
-	unsigned getId() const { return id; }
+	GbJoyHandler(int threshold, bool &gbButton, bool *negGbButton = NULL) :
+		gbButton(gbButton), negGbButton(negGbButton), threshold(threshold) {}
 	
 	void handleValue(const int value) {
 		if ((gbButton = (value - threshold ^ threshold) >= 0) && negGbButton)
 			*negGbButton = false;
-	}
-};
-
-template<typename T>
-struct InputHandlerPtrLess {
-	bool operator()(const T *const lhs, const T *const rhs) const {
-		return lhs->getId() < rhs->getId();
 	}
 };
 
@@ -271,22 +259,22 @@ void GambatteQt::toggleMenuHidden() {
 }
 
 void GambatteQt::clearInputVectors() {
-	for (std::size_t i = 0; i < keyInputs.size(); ++i)
-		delete keyInputs[i];
+	for (std::multimap<unsigned,GbKeyHandler*>::iterator it = keyInputs.begin(); it != keyInputs.end(); ++it)
+		delete it->second;
 		
 	keyInputs.clear();
 	
-	for (std::size_t i = 0; i < joyInputs.size(); ++i)
-		delete joyInputs[i];
+	for (std::multimap<unsigned,GbJoyHandler*>::iterator it = joyInputs.begin(); it != joyInputs.end(); ++it)
+		delete it->second;
 		
 	joyInputs.clear();
 }
 
 void GambatteQt::pushGbInputHandler(const SDL_Event &data, bool &gbButton, bool *gbNegButton) {
 	if (data.value)
-		joyInputs.push_back(new GbJoyHandler(data.id, data.value, gbButton, gbNegButton));
+		joyInputs.insert(std::pair<unsigned,GbJoyHandler*>(data.id, new GbJoyHandler(data.value, gbButton, gbNegButton)));
 	else
-		keyInputs.push_back(new GbKeyHandler(data.id, gbButton, gbNegButton));
+		keyInputs.insert(std::pair<unsigned,GbKeyHandler*>(data.id, new GbKeyHandler(gbButton, gbNegButton)));
 }
 
 void GambatteQt::inputSettingsChange() {
@@ -300,9 +288,6 @@ void GambatteQt::inputSettingsChange() {
 	pushGbInputHandler(inputDialog->getBData(), inputGetter.is.bButton);
 	pushGbInputHandler(inputDialog->getStartData(), inputGetter.is.startButton);
 	pushGbInputHandler(inputDialog->getSelectData(), inputGetter.is.selectButton);
-	
-	std::sort(joyInputs.begin(), joyInputs.end(), InputHandlerPtrLess<GbJoyHandler>());
-	std::sort(keyInputs.begin(), keyInputs.end(), InputHandlerPtrLess<GbKeyHandler>());
 }
 
 void GambatteQt::videoSettingsChange() {
@@ -648,12 +633,12 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 	e->accept();
 	
 	{
-		GbKeyHandler k(e->key(), unusedBool);
-
-		std::vector<GbKeyHandler*>::iterator it = lower_bound(keyInputs.begin(), keyInputs.end(), &k, InputHandlerPtrLess<GbKeyHandler>());
+		using namespace std;
 		
-		while (it != keyInputs.end() && (*it)->getId() == k.getId())
-			(*it++)->handleValue(true);
+		pair<multimap<unsigned,GbKeyHandler*>::iterator,multimap<unsigned,GbKeyHandler*>::iterator> range = keyInputs.equal_range(e->key());
+		
+		for (multimap<unsigned,GbKeyHandler*>::iterator it = range.first; it != range.second; ++it)
+			(it->second)->handleValue(true);
 	}
 
 	switch (e->key()) {
@@ -683,12 +668,12 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 
 void GambatteQt::keyReleaseEvent(QKeyEvent *e) {
 	{
-		GbKeyHandler k(e->key(), unusedBool);
-
-		std::vector<GbKeyHandler*>::iterator it = lower_bound(keyInputs.begin(), keyInputs.end(), &k, InputHandlerPtrLess<GbKeyHandler>());
+		using namespace std;
 		
-		while (it != keyInputs.end() && (*it)->getId() == k.getId())
-			(*it++)->handleValue(false);
+		pair<multimap<unsigned,GbKeyHandler*>::iterator,multimap<unsigned,GbKeyHandler*>::iterator> range = keyInputs.equal_range(e->key());
+		
+		for (multimap<unsigned,GbKeyHandler*>::iterator it = range.first; it != range.second; ++it)
+			(it->second)->handleValue(false);
 	}
 
 	switch (e->key()) {
@@ -698,17 +683,18 @@ void GambatteQt::keyReleaseEvent(QKeyEvent *e) {
 }
 
 void GambatteQt::updateJoysticks() {
+	using namespace std;
+	
 	SDL_ClearEvents();
 	SDL_JoystickUpdate();
 	
 	SDL_Event ev;
 	
 	while (SDL_PollEvent(&ev)) {
-		GbJoyHandler j(ev.id, 0, unusedBool);
-		std::vector<GbJoyHandler*>::iterator it = lower_bound(joyInputs.begin(), joyInputs.end(), &j, InputHandlerPtrLess<GbJoyHandler>());
+		pair<multimap<unsigned,GbJoyHandler*>::iterator,multimap<unsigned,GbJoyHandler*>::iterator> range = joyInputs.equal_range(ev.id);
 		
-		while (it != joyInputs.end() && (*it)->getId() == j.getId())
-			(*it++)->handleValue(ev.value);
+		for (multimap<unsigned,GbJoyHandler*>::iterator it = range.first; it != range.second; ++it)
+			(it->second)->handleValue(ev.value);
 	}
 }
 

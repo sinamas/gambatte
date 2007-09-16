@@ -25,6 +25,7 @@
 #include <QMainWindow>
 #include <QSize>
 #include <vector>
+#include <map>
 #include <gambatte.h>
 #include "videobufferreseter.h"
 #include "samplescalculator.h"
@@ -63,8 +64,8 @@ class GambatteQt : public QMainWindow {
 
 	std::vector<AudioEngine*> audioEngines;
 	std::vector<BlitterWidget*> blitters;
-	std::vector<GbKeyHandler*> keyInputs;
-	std::vector<GbJoyHandler*> joyInputs;
+	std::multimap<unsigned,GbKeyHandler*> keyInputs;
+	std::multimap<unsigned,GbJoyHandler*> joyInputs;
 	
 	InputGetter inputGetter;
 	VideoBufferReseter resetVideoBuffer;
