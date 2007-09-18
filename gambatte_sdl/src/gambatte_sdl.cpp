@@ -544,7 +544,8 @@ int main(int argc, char **argv) {
 			SDL_UnlockAudio();
 			
 			syncFunc();
-		}
+		} else
+			gambatte.fill_buffer(0, 0);
 	}
 
 done:

@@ -492,6 +492,8 @@ void GambatteQt::timerEvent(QTimerEvent */*event*/) {
 	
 	if (!turbo)
 		gambatte.fill_buffer(reinterpret_cast<uint16_t*>(sndBuffer), samplesCalc.getSamples());
+	else
+		gambatte.fill_buffer(0, 0);
 	
 	if (blitter->sync(turbo)) {
 		QMessageBox::critical(this, tr("Error"), tr("Video engine failure."));
@@ -506,20 +508,18 @@ void GambatteQt::timerEvent(QTimerEvent */*event*/) {
 		return;
 	}
 	
-	if (!turbo) {
-		if (ae) {
-			unsigned lastSamples = samplesCalc.getSamples();
-			
-			const AudioEngine::BufferState bufState = ae->bufferState();
-			
-			if (bufState.fromUnderrun != 0xFFFFFFFF)
-				samplesCalc.update(bufState.fromUnderrun, bufState.fromOverflow);
-			
-			if (ae->write(sndBuffer, lastSamples) < 0) {
-				delete ae;
-				audioEngines.pop_back();
-				ae = initAudio();
-			}
+	if (!turbo && ae) {
+		unsigned lastSamples = samplesCalc.getSamples();
+		
+		const AudioEngine::BufferState bufState = ae->bufferState();
+		
+		if (bufState.fromUnderrun != 0xFFFFFFFF)
+			samplesCalc.update(bufState.fromUnderrun, bufState.fromOverflow);
+		
+		if (ae->write(sndBuffer, lastSamples) < 0) {
+			delete ae;
+			audioEngines.pop_back();
+			ae = initAudio();
 		}
 	}
 }
