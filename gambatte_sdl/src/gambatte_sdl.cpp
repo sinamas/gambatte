@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include <gambatte.h>
 #include <SDL.h>
 #include <cstring>
@@ -24,6 +24,7 @@
 
 #include "syncfunc.h"
 #include "parser.h"
+#include "str_to_sdlkey.h"
 
 class SdlBlitter : public VideoBlitter {
 	SDL_Surface *screen;
@@ -36,6 +37,7 @@ public:
 	void blit();
 	void toggleFullScreen();
 	void setStartFull() { startFlags |= SDL_FULLSCREEN; }
+// 	bool failed() const { return screen == NULL; }
 };
 
 void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
@@ -43,19 +45,25 @@ void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned in
 }
 
 const PixelBuffer SdlBlitter::inBuffer() {
-	PixelBuffer pb;
-	pb.pixels = (Uint8*)(screen->pixels) + screen->offset;
-	pb.format = screen->format->BitsPerPixel == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
-	pb.pitch = screen->pitch / screen->format->BytesPerPixel;
+	PixelBuffer pb = { NULL, PixelBuffer::RGB32, 0 };
+	
+	if (screen) {
+		pb.pixels = (Uint8*)(screen->pixels) + screen->offset;
+		pb.format = screen->format->BitsPerPixel == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
+		pb.pitch = screen->pitch / screen->format->BytesPerPixel;
+	}
+	
 	return pb;
 }
 
 void SdlBlitter::blit() {
-	SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
+	if (screen)
+		SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
 }
 
 void SdlBlitter::toggleFullScreen() {
-	screen = SDL_SetVideoMode(screen->w, screen->h, screen->format->BitsPerPixel, screen->flags ^ SDL_FULLSCREEN);
+	if (screen)
+		screen = SDL_SetVideoMode(screen->w, screen->h, screen->format->BitsPerPixel, screen->flags ^ SDL_FULLSCREEN);
 }
 
 static Gambatte gambatte;
@@ -89,15 +97,12 @@ class FsOption : public FatOption {
 	
 	Short sOpt;
 	Long lOpt;
-	static const char *const desc;
 	
 public:
 	Parser::Option* getShort() { return &sOpt; }
 	Parser::Option* getLong() { return &lOpt; }
-	const char* getDesc() const { return desc; }
+	const char* getDesc() const { return "\t\tStart in full screen mode\n"; }
 };
-
-const char *const FsOption::desc = "\t\tStart in full screen mode\n";
 
 class VfOption : public FatOption {
 	class Main : public Parser::Option {
@@ -105,7 +110,7 @@ class VfOption : public FatOption {
 		Main(const char *const s) : Option(s, 1) {}
 	public:
 		void exec(const char *const *argv, int index) {
-			gambatte.setVideoFilter(atoi(argv[index + 1]));
+			gambatte.setVideoFilter(std::atoi(argv[index + 1]));
 		}
 	};
 	
@@ -138,6 +143,163 @@ VfOption::VfOption() {
 	}
 	
 	s = ss.str();
+}
+
+struct JoyData {
+	enum { CENTERED = SDL_HAT_CENTERED, LEFT = SDL_HAT_LEFT, RIGHT = SDL_HAT_RIGHT, UP = SDL_HAT_UP, DOWN = SDL_HAT_DOWN };
+	
+	union {
+		struct {
+			Uint8 dev_num;
+			Uint8 num;
+		};
+		
+		Uint16 id;
+	};
+	
+	Sint16 dir;
+};
+
+static inline bool operator<(const JoyData &l, const JoyData &r) {
+	return l.id < r.id; 
+}
+
+class InputOption : public FatOption {
+public:
+	struct InputId {
+		enum { KEY, JOYBUT, JOYAX, JOYHAT } type;
+		
+		union {
+			JoyData jdata;
+			SDLKey key;
+		};
+		
+		InputId() : type(KEY) {}
+	};
+	
+private:
+	class Main : public Parser::Option {
+		InputId *const keys;
+		StrToSdlkey strToKey;
+		
+	protected:
+		Main(const char *const s, InputId keys[]) : Option(s, 8), keys(keys) {}
+	public:
+		void exec(const char *const *argv, int index);
+	};
+	
+	struct Short : Main {
+		Short(InputId keys[]) : Main("i", keys) {}
+	};
+	
+	struct Long : Main {
+		Long(InputId keys[]) : Main("input", keys) {}
+	};
+	
+	Short sOpt;
+	Long lOpt;
+	InputId keys[8];
+	
+public:
+	InputOption();
+	Parser::Option* getShort() { return &sOpt; }
+	Parser::Option* getLong() { return &lOpt; }
+	const char* getDesc() const { return " KEYS\t\tUse the 8 given input KEYS for respectively\n\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n"; }
+	const InputId* getKeys() const { return keys; }
+};
+
+InputOption::InputOption() : sOpt(keys), lOpt(keys) {
+	keys[0].key = SDLK_RETURN;
+	keys[1].key  = SDLK_RSHIFT;
+	keys[2].key  = SDLK_d;
+	keys[3].key  = SDLK_c;
+	keys[4].key  = SDLK_UP;
+	keys[5].key  = SDLK_DOWN;
+	keys[6].key  = SDLK_LEFT;
+	keys[7].key  = SDLK_RIGHT;
+}
+
+void InputOption::Main::exec(const char *const *argv, int index) {
+	++index;
+	
+	for (unsigned i = 0; i < 8; ++i) {
+		const char *s = argv[index + i];
+	
+		if (s[0] == 'j' && s[1] == 's') {
+			s += 2;
+			const char *const send = s + std::strlen(s);
+			
+			if (send - s < 3)
+				continue;
+			
+			const int dev_num = std::atoi(s++);
+			
+			if (dev_num < 0 || dev_num > 255)
+				continue;
+			
+			s += (dev_num > 9) + (dev_num > 99);
+			
+			if (send - s < 2)
+				continue;
+			
+			const char type = *s++;
+			const int num = std::atoi(s++);
+			
+			if (num < 0 || num > 255)
+				continue;
+			
+			s += (dev_num > 9) + (dev_num > 99);
+			
+			InputId id;
+			id.jdata.dev_num = dev_num;
+			id.jdata.num = num;
+			
+			if (type == 'b') {
+				if (send - s != 0)
+					continue;
+					
+				id.type = InputId::JOYBUT;
+			} else {
+				if (send - s != 1)
+					continue;
+				
+				const char dir = *s;
+				
+				switch (type) {
+				case 'a':
+					switch (dir) {
+					case '+': id.jdata.dir = JoyData::UP; break;
+					case '-': id.jdata.dir = JoyData::DOWN; break;
+					default: continue;
+					}
+					
+					id.type = InputId::JOYAX;
+					break;
+				case 'h':
+					switch (dir) {
+					case 'u': id.jdata.dir = JoyData::UP;
+					case 'd': id.jdata.dir = JoyData::DOWN;
+					case 'l': id.jdata.dir = JoyData::LEFT;
+					case 'r': id.jdata.dir = JoyData::RIGHT;
+					default: continue;
+					}
+					
+					id.type = InputId::JOYHAT;
+					break;
+				default: continue;
+				}
+			}
+			
+			keys[i] = id;
+		} else {
+			const SDLKey *const k = strToKey(s);
+			
+			if (k) {
+				keys[i].type = InputId::KEY;
+				keys[i].key = *k;
+			}
+		}
+	}
 }
 
 
@@ -177,13 +339,22 @@ static void printUsage(std::vector<FatOption*> &v) {
 int main(int argc, char **argv) {
 	printf("Gambatte SDL svn\n");
 	
-	Parser parser;
+	std::multimap<SDLKey,bool*> keyMap;
+	std::multimap<JoyData,bool*> jbMap;
+	std::multimap<JoyData,bool*> jaMap;
+	std::multimap<JoyData,bool*> jhMap;
+	std::vector<SDL_Joystick*> joysticks;
+	std::vector<Uint8> jdevnums;
 	
 	{
-		static std::vector<FatOption*> v;
-		static FsOption fsOption;
+		Parser parser;
+		
+		std::vector<FatOption*> v;
+		FsOption fsOption;
 		v.push_back(&fsOption);
-		static VfOption vfOption;
+		InputOption inputOption;
+		v.push_back(&inputOption);
+		VfOption vfOption;
 		v.push_back(&vfOption);
 		
 		for (unsigned i = 0; i < v.size(); ++i) {
@@ -213,12 +384,40 @@ int main(int argc, char **argv) {
 			printf("failed to load ROM %s\n", argv[loadIndex]);
 			return 1;
 		}
+		
+		bool* gbbuts[8] = {
+			&is.startButton, &is.selectButton,
+			&is.aButton, &is.bButton,
+			&is.dpadUp, &is.dpadDown,
+			&is.dpadLeft, &is.dpadRight
+		};
+		
+		for (unsigned i = 0; i < 8; ++i) {
+			const InputOption::InputId &id = inputOption.getKeys()[i];
+			
+			if (id.type == InputOption::InputId::KEY)
+				keyMap.insert(std::pair<SDLKey,bool*>(id.key, gbbuts[i]));
+			else {
+				std::pair<JoyData,bool*> pair(id.jdata, gbbuts[i]);
+				jdevnums.push_back(id.jdata.dev_num);
+				
+				switch (id.type) {
+				case InputOption::InputId::JOYBUT: jbMap.insert(pair); break;
+				case InputOption::InputId::JOYAX: jaMap.insert(pair); break;
+				case InputOption::InputId::JOYHAT: jhMap.insert(pair); break;
+				default: break;
+				}
+			}
+		}
 	}
 
 	gambatte.setInputStateGetter(&inputGetter);
 
 	Sint16 *const sndBuffer = new Sint16[SND_BUF_SZ];
 	std::memset(sndBuffer, 0, SND_BUF_SZ * sizeof(Sint16));
+	uint16_t *const tmpBuf = new uint16_t[SAMPLES * 2];
+	Uint8 *keys;
+	
 	SDL_AudioSpec spec;
 	spec.freq = SAMPLE_RATE;
 	spec.format = AUDIO_S16SYS;
@@ -227,45 +426,95 @@ int main(int argc, char **argv) {
 	spec.callback = fill_buffer;
 	spec.userdata = sndBuffer;
 
-	SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO);
+	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | (jdevnums.empty() ? 0 : SDL_INIT_JOYSTICK)) < 0) {
+		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+		goto done;
+	}
 	
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_WM_SetCaption("Gambatte SDL", NULL);
+	
+	for (std::size_t i = 0; i < jdevnums.size(); ++i) {
+		SDL_Joystick *const j = SDL_JoystickOpen(i);
+		
+		if (j)
+			joysticks.push_back(j);
+	}
+	
+	jdevnums.clear();
+	SDL_JoystickEventState(SDL_ENABLE);
 
 	SDL_OpenAudio(&spec, NULL);
 	SDL_PauseAudio(0);
 
-	uint16_t *const tmpBuf = new uint16_t[SAMPLES * 2];
-
-	Uint8 *keys = SDL_GetKeyState(NULL);
+	keys = SDL_GetKeyState(NULL);
 
 	gambatte.setVideoBlitter(&blitter);
 	
 	for (;;) {
-		SDL_PumpEvents();
-		
-		if (keys[SDLK_ESCAPE])
-			break;
-		
-		if (keys[SDLK_LCTRL] | keys[SDLK_RCTRL]) {
-			if (keys[SDLK_f]) {
-				blitter.toggleFullScreen();
-				gambatte.videoBufferChange();
-			}
+		{
+			JoyData jd;
+			SDL_Event e;
 			
-			if (keys[SDLK_r]) {
-				gambatte.reset();
+			while (SDL_PollEvent(&e)) {
+				switch (e.type) {
+				case SDL_JOYAXISMOTION:
+					jd.dev_num = e.jaxis.which;
+					jd.num = e.jaxis.axis;
+					jd.dir = e.jaxis.value < -8192 ? JoyData::DOWN : (e.jaxis.value > 8192 ? JoyData::UP : JoyData::CENTERED);
+					
+					for (std::pair<std::multimap<JoyData,bool*>::iterator,std::multimap<JoyData,bool*>::iterator> range(jaMap.equal_range(jd));
+							range.first != range.second; ++range.first) {
+						*range.first->second = jd.dir == range.first->first.dir;
+					}
+					break;
+				case SDL_JOYBUTTONDOWN:
+				case SDL_JOYBUTTONUP:
+					jd.dev_num = e.jbutton.which;
+					jd.num = e.jbutton.button;
+					
+					for (std::pair<std::multimap<JoyData,bool*>::iterator,std::multimap<JoyData,bool*>::iterator> range(jbMap.equal_range(jd));
+							range.first != range.second; ++range.first) {
+						*range.first->second = e.jbutton.state;
+					}
+					break;
+				case SDL_JOYHATMOTION:
+					jd.dev_num = e.jhat.which;
+					jd.num = e.jhat.hat;
+					
+					for (std::pair<std::multimap<JoyData,bool*>::iterator,std::multimap<JoyData,bool*>::iterator> range(jaMap.equal_range(jd));
+							range.first != range.second; ++range.first) {
+						*range.first->second = e.jhat.value & range.first->first.dir;
+					}
+					break;
+				case SDL_KEYDOWN:
+					if (e.key.keysym.sym == SDLK_ESCAPE)
+						goto done;
+					
+					if (e.key.keysym.mod & KMOD_CTRL) {
+						switch (e.key.keysym.sym) {
+						case SDLK_f:
+							blitter.toggleFullScreen();
+							gambatte.videoBufferChange();
+							break;
+						case SDLK_r:
+							gambatte.reset();
+							break;
+						default: break;
+						}
+					}
+				case SDL_KEYUP:
+					for (std::pair<std::multimap<SDLKey,bool*>::iterator,std::multimap<SDLKey,bool*>::iterator> range(keyMap.equal_range(e.key.keysym.sym));
+							range.first != range.second; ++range.first) {
+						*range.first->second = e.key.state;
+					}
+					
+					break;
+				case SDL_QUIT:
+					goto done;
+				}
 			}
 		}
-		
-		is.startButton = keys[SDLK_RETURN];
-		is.selectButton = keys[SDLK_RSHIFT];
-		is.bButton = keys[SDLK_c];
-		is.aButton = keys[SDLK_d];
-		is.dpadDown = keys[SDLK_DOWN];
-		is.dpadUp = keys[SDLK_UP];
-		is.dpadLeft = keys[SDLK_LEFT];
-		is.dpadRight = keys[SDLK_RIGHT];
 		
 		gambatte.runFor(70224);
 		
@@ -298,8 +547,13 @@ int main(int argc, char **argv) {
 		}
 	}
 
+done:
 	SDL_PauseAudio(1);
 	SDL_CloseAudio();
+	
+	for (std::size_t i = 0; i < joysticks.size(); ++i)
+		SDL_JoystickClose(joysticks[i]);
+	
 	SDL_Quit();
 	delete []sndBuffer;
 	delete []tmpBuf;

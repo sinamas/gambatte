@@ -15,45 +15,28 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
-#ifndef PARSER_H
-#define PARSER_H
+ ***************************************************************************/
+
+#ifndef STR_TO_SDLKEY_H
+#define STR_TO_SDLKEY_H
 
 #include <map>
 #include <cstring>
+#include <SDL.h>
 
-class Parser {
-public:
-	class Option {
-		const char *const s;
-		const int nArgs;
-		
-	public:
-		Option(const char *s, int nArgs = 0);
-		virtual ~Option() {}
-		const char* getStr() const { return s; }
-		int neededArgs() const { return nArgs; }
-		virtual void exec(const char *const */*argv*/, int /*index*/) {}
-	};
-	
-private:
+class StrToSdlkey {
 	struct StrLess {
 		bool operator()(const char *const l, const char *const r) const {
 			return std::strcmp(l, r) < 0;
 		}
 	};
 
-	std::map<char,Option*> sMap;
-	std::map<const char*,Option*,StrLess> lMap;
-
-	void addLong(Option *o);
-	void addShort(Option *o);
-	int parseLong(int argc, const char *const *argv, int index);
-	int parseShort(int argc, const char *const *argv, int index);
+	std::map<const char*,SDLKey,StrLess> m;
+	
+	void init();
 	
 public:
-	void add(Option *o);
-	int parse(int argc,const char *const *argv, int index);
+	const SDLKey* operator()(const char *str);
 };
 
 #endif

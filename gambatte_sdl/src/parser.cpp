@@ -15,52 +15,33 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "parser.h"
 
 #include <cstring>
 
 using namespace std;
 
-static unsigned computeHash(const char *s) {
-	unsigned hash = 0;
-	
-	while (*s) {
-		hash += *s++;
-		hash += hash << 10;
-		hash ^= hash >> 6;
-	}
-	
-	hash += hash << 3;
-	hash ^= hash >> 11;
-	hash += hash << 15;
-	
-	return hash;
-}
-
 Parser::Option::Option(const char *const s, int nArgs) : s(s), nArgs(nArgs) {}
 
 void Parser::addLong(Option *const o) {
-	lMap.insert(pair<unsigned,Option*>(computeHash(o->getStr()), o));
+	lMap.insert(pair<const char*,Option*>(o->getStr(), o));
 }
 
 int Parser::parseLong(const int argc, const char *const *const argv, const int index) {
-	const char *const str = argv[index] + 2;
-	pair<multimap<unsigned,Option*>::iterator,multimap<unsigned,Option*>::iterator> range = lMap.equal_range(computeHash(str));
+	map<const char*,Option*,StrLess>::iterator it = lMap.find(argv[index] + 2);
 	
-	for (multimap<unsigned,Option*>::iterator it = range.first; it != range.second; ++it) {
-		Option &e = *(it->second);
+	if (it == lMap.end())
+		return 0;
+	
+	Option &e = *(it->second);
+	
+	if (e.neededArgs() >= argc - index)
+		return 0;
 		
-		if (!strcmp(e.getStr(), str)) {
-			if (e.neededArgs() >= argc - index)
-				return 0;
-				
-			e.exec(argv, index);
-			return index + e.neededArgs();
-		}
-	}
+	e.exec(argv, index);
 	
-	return 0;
+	return index + e.neededArgs();
 }
 
 void Parser::addShort(Option *const o) {
