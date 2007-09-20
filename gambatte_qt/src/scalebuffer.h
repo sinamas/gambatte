@@ -21,44 +21,33 @@
 
 #include <cstring>
 
-#define SCALE_BUFFER \
-const unsigned dstW = srcW * scale; \
-\
-for (unsigned h = srcH; h--;) { \
-	for (unsigned w = srcW; w--;) { \
-		for (unsigned n = scale; n--;) \
-			*d++ = *s; \
-\
-		++s; \
-	} \
-\
-	for (unsigned n = scale; --n; d += dstW) \
-		std::memcpy(d, d - dstW, dstW * sizeof(T)); \
-}
-
-
-template<typename T, const unsigned scale>
-static void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH) {
-	SCALE_BUFFER
-}
-
 template<typename T>
-static void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH, const unsigned scale) {
-	SCALE_BUFFER
+static inline void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH, const unsigned scale) {
+	const unsigned dstW = srcW * scale;
+	
+	for (unsigned h = srcH; h--;) {
+		for (unsigned w = srcW; w--;) {
+			for (unsigned n = scale; n--;)
+				*d++ = *s;
+	
+			++s;
+		}
+	
+		for (unsigned n = scale; --n; d += dstW)
+			std::memcpy(d, d - dstW, dstW * sizeof(T));
+	}
 }
-
-#undef SCALE_BUFFER
 
 template<typename T>
 void scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH, const unsigned scale) {
 	switch (scale) {
-	case 2: do_scaleBuffer<T, 2>(s, d, srcW, srcH); break;
-	case 3: do_scaleBuffer<T, 3>(s, d, srcW, srcH); break;
-	case 4: do_scaleBuffer<T, 4>(s, d, srcW, srcH); break;
-	case 5: do_scaleBuffer<T, 5>(s, d, srcW, srcH); break;
-	case 6: do_scaleBuffer<T, 6>(s, d, srcW, srcH); break;
-	case 7: do_scaleBuffer<T, 7>(s, d, srcW, srcH); break;
-	case 8: do_scaleBuffer<T, 8>(s, d, srcW, srcH); break;
+	case 2: do_scaleBuffer(s, d, srcW, srcH, 2); break;
+	case 3: do_scaleBuffer(s, d, srcW, srcH, 3); break;
+	case 4: do_scaleBuffer(s, d, srcW, srcH, 4); break;
+	case 5: do_scaleBuffer(s, d, srcW, srcH, 5); break;
+	case 6: do_scaleBuffer(s, d, srcW, srcH, 6); break;
+	case 7: do_scaleBuffer(s, d, srcW, srcH, 7); break;
+	case 8: do_scaleBuffer(s, d, srcW, srcH, 8); break;
 	default: do_scaleBuffer(s, d, srcW, srcH, scale); break;
 	}
 }
