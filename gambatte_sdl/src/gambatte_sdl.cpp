@@ -25,50 +25,9 @@
 #include "syncfunc.h"
 #include "parser.h"
 #include "str_to_sdlkey.h"
-
-class SdlBlitter : public VideoBlitter {
-	SDL_Surface *screen;
-	unsigned startFlags;
-	
-public:
-	SdlBlitter() : screen(NULL), startFlags(SDL_SWSURFACE) {}
-	void setBufferDimensions(unsigned int width, unsigned int height);
-	const PixelBuffer inBuffer();
-	void blit();
-	void toggleFullScreen();
-	void setStartFull() { startFlags |= SDL_FULLSCREEN; }
-// 	bool failed() const { return screen == NULL; }
-};
-
-void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
-	screen = SDL_SetVideoMode(width, height, SDL_GetVideoInfo()->vfmt->BitsPerPixel == 16 ? 16 : 32, startFlags);
-}
-
-const PixelBuffer SdlBlitter::inBuffer() {
-	PixelBuffer pb = { NULL, PixelBuffer::RGB32, 0 };
-	
-	if (screen) {
-		pb.pixels = (Uint8*)(screen->pixels) + screen->offset;
-		pb.format = screen->format->BitsPerPixel == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
-		pb.pitch = screen->pitch / screen->format->BytesPerPixel;
-	}
-	
-	return pb;
-}
-
-void SdlBlitter::blit() {
-	if (screen)
-		SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
-}
-
-void SdlBlitter::toggleFullScreen() {
-	if (screen)
-		screen = SDL_SetVideoMode(screen->w, screen->h, screen->format->BitsPerPixel, screen->flags ^ SDL_FULLSCREEN);
-}
+#include "sdlblitter.h"
 
 static Gambatte gambatte;
-static SdlBlitter blitter;
-static InputState is;
 
 struct FatOption {
 	virtual Parser::Option* getShort() { return NULL; };
@@ -79,29 +38,67 @@ struct FatOption {
 
 class FsOption : public FatOption {
 	class Main : public Parser::Option {
+		bool &full;
 	protected:
-		Main(const char *const s) : Option(s) {}
+		Main(const char *const s, bool &full) : Option(s), full(full) {}
 	public:
-		void exec(const char *const */*argv*/, int /*index*/) {
-			blitter.setStartFull();
-		}
+		void exec(const char *const */*argv*/, int /*index*/) { full = true; }
 	};
 	
 	struct Short : Main {
-		Short() : Main("f") {}
+		Short(bool &full) : Main("f", full) {}
 	};
 	
 	struct Long : Main {
-		Long() : Main("full-screen") {}
+		Long(bool &full) : Main("full-screen", full) {}
 	};
 	
 	Short sOpt;
 	Long lOpt;
+	bool full;
 	
 public:
+	FsOption() : sOpt(full), lOpt(full), full(false) {}
 	Parser::Option* getShort() { return &sOpt; }
 	Parser::Option* getLong() { return &lOpt; }
 	const char* getDesc() const { return "\t\tStart in full screen mode\n"; }
+	bool startFull() const { return full; }
+};
+
+class ScaleOption : public FatOption {
+	class Main : public Parser::Option {
+		Uint8 &scale;
+	protected:
+		Main(const char *const s, Uint8 &scale) : Option(s, 1), scale(scale) {}
+	public:
+		void exec(const char *const *argv, int index) {
+			int tmp = std::atoi(argv[index + 1]);
+			
+			if (tmp < 1 || tmp > 40)
+				return;
+			
+			scale = tmp;
+		}
+	};
+	
+	struct Short : Main {
+		Short(Uint8 &scale) : Main("s", scale) {}
+	};
+	
+	struct Long : Main {
+		Long(Uint8 &scale) : Main("scale", scale) {}
+	};
+	
+	Short sOpt;
+	Long lOpt;
+	Uint8 scale;
+	
+public:
+	ScaleOption() : sOpt(scale), lOpt(scale), scale(1) {}
+	Parser::Option* getShort() { return &sOpt; }
+	Parser::Option* getLong() { return &lOpt; }
+	const char* getDesc() const { return " N\t\t\tScale video output by an integer factor of N\n"; }
+	Uint8 getScale() const { return scale; }
 };
 
 class VfOption : public FatOption {
@@ -144,6 +141,35 @@ VfOption::VfOption() {
 	
 	s = ss.str();
 }
+
+class YuvOption : public FatOption {
+	class Main : public Parser::Option {
+		bool &yuv;
+	protected:
+		Main(const char *const s, bool &yuv) : Option(s), yuv(yuv) {}
+	public:
+		void exec(const char *const */*argv*/, int /*index*/) { yuv = true; }
+	};
+	
+	struct Short : Main {
+		Short(bool &yuv) : Main("y", yuv) {}
+	};
+	
+	struct Long : Main {
+		Long(bool &yuv) : Main("yuv-overlay", yuv) {}
+	};
+	
+	Short sOpt;
+	Long lOpt;
+	bool yuv;
+	
+public:
+	YuvOption() : sOpt(yuv), lOpt(yuv), yuv(false) {}
+	Parser::Option* getShort() { return &sOpt; }
+	Parser::Option* getLong() { return &lOpt; }
+	const char* getDesc() const { return "\t\tUse YUV Overlay for (usually faster) scaling\n"; }
+	bool useYuv() const { return yuv; }
+};
 
 struct JoyData {
 	enum { CENTERED = SDL_HAT_CENTERED, LEFT = SDL_HAT_LEFT, RIGHT = SDL_HAT_RIGHT, UP = SDL_HAT_UP, DOWN = SDL_HAT_DOWN };
@@ -302,27 +328,24 @@ void InputOption::Main::exec(const char *const *argv, int index) {
 	}
 }
 
-
+class InputGetter : public InputStateGetter {
+public:
+	InputState is;
+	
+	InputGetter() { memset(&is, 0, sizeof(is)); }
+	
+	const InputState& operator()() {
+		return is;
+	}
+};
 
 static void fill_buffer(void *buffer, Uint8 *stream, int len);
-
-// static unsigned bufPos = 0;
-// static unsigned samples = 804;
 
 static const unsigned SAMPLE_RATE = 48000;
 static const unsigned SAMPLES = ((SAMPLE_RATE * 4389) / 262144) + 2;
 static unsigned rPos = 0;
 static unsigned wPos = 0;
 static bool bufAvailable = false;
-
-class InputGetter : public InputStateGetter {
-public:
-	const InputState& operator()() {
-		return is;
-	}
-};
-
-static InputGetter inputGetter;
 
 static const unsigned SND_BUF_SZ = 4096 * 2;
 
@@ -339,6 +362,9 @@ static void printUsage(std::vector<FatOption*> &v) {
 int main(int argc, char **argv) {
 	printf("Gambatte SDL svn\n");
 	
+	SdlBlitter blitter;
+	InputGetter inputGetter;
+	
 	std::multimap<SDLKey,bool*> keyMap;
 	std::multimap<JoyData,bool*> jbMap;
 	std::multimap<JoyData,bool*> jaMap;
@@ -354,8 +380,12 @@ int main(int argc, char **argv) {
 		v.push_back(&fsOption);
 		InputOption inputOption;
 		v.push_back(&inputOption);
+		ScaleOption scaleOption;
+		v.push_back(&scaleOption);
 		VfOption vfOption;
 		v.push_back(&vfOption);
+		YuvOption yuvOption;
+		v.push_back(&yuvOption);
 		
 		for (unsigned i = 0; i < v.size(); ++i) {
 			parser.add(v[i]->getShort());
@@ -385,11 +415,17 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 		
+		if (fsOption.startFull())
+			blitter.setStartFull();
+		
+		blitter.setScale(scaleOption.getScale());
+		blitter.setYuv(yuvOption.useYuv());
+		
 		bool* gbbuts[8] = {
-			&is.startButton, &is.selectButton,
-			&is.aButton, &is.bButton,
-			&is.dpadUp, &is.dpadDown,
-			&is.dpadLeft, &is.dpadRight
+			&inputGetter.is.startButton, &inputGetter.is.selectButton,
+			&inputGetter.is.aButton, &inputGetter.is.bButton,
+			&inputGetter.is.dpadUp, &inputGetter.is.dpadDown,
+			&inputGetter.is.dpadLeft, &inputGetter.is.dpadRight
 		};
 		
 		for (unsigned i = 0; i < 8; ++i) {
@@ -417,14 +453,6 @@ int main(int argc, char **argv) {
 	std::memset(sndBuffer, 0, SND_BUF_SZ * sizeof(Sint16));
 	uint16_t *const tmpBuf = new uint16_t[SAMPLES * 2];
 	Uint8 *keys;
-	
-	SDL_AudioSpec spec;
-	spec.freq = SAMPLE_RATE;
-	spec.format = AUDIO_S16SYS;
-	spec.channels = 2;
-	spec.samples = 1024;
-	spec.callback = fill_buffer;
-	spec.userdata = sndBuffer;
 
 	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | (jdevnums.empty() ? 0 : SDL_INIT_JOYSTICK)) < 0) {
 		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
@@ -444,7 +472,17 @@ int main(int argc, char **argv) {
 	jdevnums.clear();
 	SDL_JoystickEventState(SDL_ENABLE);
 
-	SDL_OpenAudio(&spec, NULL);
+	{
+		SDL_AudioSpec spec;
+		spec.freq = SAMPLE_RATE;
+		spec.format = AUDIO_S16SYS;
+		spec.channels = 2;
+		spec.samples = 1024;
+		spec.callback = fill_buffer;
+		spec.userdata = sndBuffer;
+		SDL_OpenAudio(&spec, NULL);
+	}
+	
 	SDL_PauseAudio(0);
 
 	keys = SDL_GetKeyState(NULL);
@@ -554,6 +592,8 @@ done:
 	
 	for (std::size_t i = 0; i < joysticks.size(); ++i)
 		SDL_JoystickClose(joysticks[i]);
+	
+	blitter.uninit();
 	
 	SDL_Quit();
 	delete []sndBuffer;

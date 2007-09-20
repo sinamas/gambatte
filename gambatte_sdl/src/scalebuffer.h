@@ -1,0 +1,1 @@
+../../gambatte_qt/src/scalebuffer.h

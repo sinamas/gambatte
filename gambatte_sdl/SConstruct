@@ -9,6 +9,7 @@ env.ParseConfig('sdl-config --cflags --libs')
 sourceFiles = Split('''
 			src/gambatte_sdl.cpp
 			src/parser.cpp
+			src/sdlblitter.cpp
 			src/str_to_sdlkey.cpp
 			src/syncfunc.cpp
 		   ''')
