@@ -82,8 +82,6 @@ void PSG::accumulate_channels(const unsigned next_update) {
 	ch4.update(buf, soVol, next_update);
 }
 
-#include <iostream>
-
 void PSG::generate_samples(const unsigned cycleCounter, const unsigned doubleSpeed) {
 	const unsigned cycles = cycleCounter - lastUpdate >> (1 + doubleSpeed);
 	lastUpdate += cycles << (1 + doubleSpeed);
