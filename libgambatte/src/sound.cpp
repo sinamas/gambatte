@@ -21,46 +21,57 @@
 #include <cstring>
 #include <algorithm>
 
+/*
+	Frame Sequencer
+
+	Step    Length Ctr  Vol Env     Sweep
+	- - - - - - - - - - - - - - - - - - - -
+	0       Clock       -           Clock
+S	1       -           Clock       -
+	2       Clock       -           -
+	3       -           -           -
+	4       Clock       -           Clock
+	5       -           -           -
+	6       Clock       -           -
+	7       -           -           -
+	- - - - - - - - - - - - - - - - - - - -
+	Rate    256 Hz      64 Hz       128 Hz
+
+S) start step on sound power on.
+*/
+
 static const unsigned bufferSize = 35112 + 16 + 2048; //FIXME: DMA can prevent process from returning for up to 4096 cycles.
 
-void PSG::init(const uint8_t *const ioram) {
-	std::memset(buffer, 0, bufferSize*sizeof(uint32_t));
+void PSG::init(const uint8_t *const ioram, const bool cgb) {
 	bufferPos = 0;
-	snd_lastUpdate = 0x102A0;
+	lastUpdate = 0x102A0;
 	enabled = true;
-	reset(ioram);
-}
-
-void PSG::reset(const uint8_t *const ioram) {
 	map_so(ioram[0x25]);
 	set_so_volume(ioram[0x24]);
-	ch1.reset(ioram[0x10], ioram[0x11], ioram[0x12], ioram[0x13], ioram[0x14]);
-	ch2.reset(ioram[0x16], ioram[0x17], ioram[0x18], ioram[0x19]);
-	ch3.reset(ioram[0x1A], ioram[0x1B], ioram[0x1C], ioram[0x1D], ioram[0x1E]);
+	ch1.init(lastUpdate >> 1, cgb);
+	ch2.init(lastUpdate >> 1, cgb);
+	ch3.init(lastUpdate >> 1, cgb);
 	for (unsigned i = 0; i < 0x10; ++i)
 		ch3.waveRamWrite(i, ioram[0x30 | i]);
-	ch4.reset(ioram[0x20], ioram[0x21], ioram[0x22], ioram[0x23]);
-// 	sound_master = (ioram[0x26] & 0x80) != 0;
+	ch4.init(lastUpdate >> 1, cgb);
+}
+
+void PSG::reset() {
+	ch1.reset();
+	ch2.reset();
+	ch3.reset();
+	ch4.reset();
 }
 
 PSG::PSG() {
 	buffer = new uint32_t[bufferSize];
-// 	snd_lastUpdate = 0;
-// 	init();
 }
 
 PSG::~PSG() {
 	delete[] buffer;
 }
 
-/*void PSG::all_off() {
-	ch1.deactivate();
-	ch2.deactivate();
-	ch3.deactivate();
-	ch4.deactivate();
-}*/
-
-void PSG::accumulate_channels(const uint32_t next_update) {
+void PSG::accumulate_channels(const unsigned next_update) {
 	uint32_t *const buf = buffer + bufferPos;
 
 	const unsigned soVol = (so1_volume << 16) | so2_volume;
@@ -71,22 +82,24 @@ void PSG::accumulate_channels(const uint32_t next_update) {
 	ch4.update(buf, soVol, next_update);
 }
 
+#include <iostream>
+
 void PSG::generate_samples(const unsigned cycleCounter, const unsigned doubleSpeed) {
-	const uint32_t cycles = (cycleCounter - snd_lastUpdate) >> (1 + doubleSpeed);
-	snd_lastUpdate += cycles << (1 + doubleSpeed);
+	const unsigned cycles = cycleCounter - lastUpdate >> (1 + doubleSpeed);
+	lastUpdate += cycles << (1 + doubleSpeed);
 
-	const uint_fast32_t c = std::min(cycles, bufferSize - bufferPos);
-// 	if (c < cycles)
-// 		printf("oh fuck! %u\n", cycles - c);
+	if (bufferSize - bufferPos < cycles)
+		bufferPos = bufferSize - cycles;
 
-	if (enabled && c)
-		accumulate_channels(c);
-	bufferPos += c;
+	if (cycles)
+		accumulate_channels(cycles);
+	
+	bufferPos += cycles;
 }
 
 void PSG::resetCounter(const unsigned newCc, const unsigned oldCc, const unsigned doubleSpeed) {
 	generate_samples(oldCc, doubleSpeed);
-	snd_lastUpdate = newCc - (oldCc - snd_lastUpdate);
+	lastUpdate = newCc - (oldCc - lastUpdate);
 }
 
 void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
@@ -94,8 +107,6 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 	const unsigned endPos = std::min(bufferPos, 35112U);
 	
 	if (stream && samples) {
-// 	generate_samples();
-
 	uint16_t *const streamEnd = stream + samples * 2;
 	const uint32_t *buf = buffer;
 
@@ -111,11 +122,11 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 			{
 				unsigned soTmp = 0;
 				
-				for (unsigned n = whole; n--;)
+				for (const uint32_t *const end = buf + whole; buf != end;)
 					soTmp += *buf++;
 					
 				so1 += soTmp & 0xFFFF0000;
-				so2 += (soTmp << 16) & 0xFFFFFFFF;
+				so2 += soTmp << 16 & 0xFFFFFFFF;
 			}
 
 			{
@@ -126,11 +137,11 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 				so1 += so1Tmp;
 				so2 += so2Tmp;
 	
-				*stream++ = ((so2 + ratio / 2) / ratio) << 5;
-				*stream++ = ((so1 + ratio / 2) / ratio) << 5;
+				*stream++ = (so2 / 4389) * samples + 8192 >> 14;
+				*stream++ = (so1 / 4389) * samples + 8192 >> 14;
 				
 				so1 = (borderSample & 0xFFFF0000) - so1Tmp;
-				so2 = ((borderSample << 16) & 0xFFFFFFFF) - so2Tmp;
+				so2 = (borderSample << 16 & 0xFFFFFFFF) - so2Tmp;
 			}
 
 			const unsigned nextTotal = ratio - ((1 << 16) - frac);
@@ -142,7 +153,6 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 
 	bufferPos -= endPos;
 	std::memmove(buffer, buffer + endPos, bufferPos * sizeof(uint32_t));
-	std::memset(buffer + bufferPos, 0, (bufferSize - bufferPos) * sizeof(uint32_t));
 }
 
 void PSG::set_so_volume(const unsigned nr50) {
@@ -160,8 +170,4 @@ void PSG::map_so(const unsigned nr51) {
 
 unsigned PSG::getStatus() const {
 	return ch1.isActive() | (ch2.isActive() << 1) | (ch3.isActive() << 2) | (ch4.isActive() << 3);
-}
-
-void PSG::clear_buffer() {
-	std::memset(buffer, 0, bufferSize*sizeof(uint32_t));
 }

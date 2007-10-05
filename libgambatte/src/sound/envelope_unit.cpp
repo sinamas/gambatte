@@ -15,67 +15,74 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "envelope_unit.h"
 
 void EnvelopeUnit::event() {
-	counter += (nr2 & 7) * 32768;
-
-	unsigned newVol = volume;
+	const unsigned period = nr2 & 7;
 	
-	if(nr2 & 8)
-		++newVol;
-	else
-		--newVol;
-			
-	if (newVol > 0xFU)
-		counter = 0xFFFFFFFF;
-	else
-		volume = newVol;
+	if (period) {
+		unsigned newVol = volume;
+		
+		if (nr2 & 8)
+			++newVol;
+		else
+			--newVol;
+		
+		if (newVol < 0x10U) {
+			volume = newVol;
+			counter += period << 15;
+		} else
+			counter = 0xFFFFFFFF;
+	} else
+		counter += 8 << 15;
 }
 
-bool EnvelopeUnit::nr2Change(const unsigned newNr2, const unsigned cycleCounter) {
-	switch (zombie) {
-	case 0:
-		if ((nr2 ^ newNr2) & 0x7) {
-			const unsigned envFreq = (newNr2 & 7) * 32768;
-			counter = envFreq ? cycleCounter + envFreq : 0xFFFFFFFF;
-			zombie = 1;
-		}
-		if ((nr2 ^ newNr2) & 0x8)
-			volume = 15 - volume;
-		else
-			++volume;
-		break;
-	case 1:
-		if ((nr2 ^ newNr2) & 0x8)
-			volume = 15 - volume;
-		/*else*/ if ((newNr2 & 0x8) == 0)
-			volume += 2;
-		break;
-	}
+bool EnvelopeUnit::nr2Change(const unsigned newNr2) {
+	if (!(nr2 & 7) && counter != 0xFFFFFFFF)
+		++volume;
+	else if (!(nr2 & 8))
+		volume += 2;
+	
+	if ((nr2 ^ newNr2) & 8)
+		volume = 0x10 - volume;
+	
 	volume &= 0xF;
 	
 	nr2 = newNr2;
-
-	return (newNr2 & 0xF8) == 0;
+	
+	return !(newNr2 & 0xF8);
 }
 
-bool EnvelopeUnit::nr4Init(const unsigned nr2_in, const unsigned cycleCounter) {
-	const unsigned envFreq = (nr2_in & 7) * 32768;
-	counter = envFreq ? cycleCounter + envFreq : 0xFFFFFFFF;
-	zombie = envFreq != 0;
+bool EnvelopeUnit::nr4Init(const unsigned cc) {
+	{
+		unsigned period = nr2 & 7;
+		
+		if (!period)
+			period = 8;
+		
+		if (!(cc & 0x7000))
+			++period;
+		
+		counter = cc - (cc - 0x1000 & 0x7FFF) + period * 0x8000;
+	}
 	
-	volume = nr2_in >> 4;
+	volume = nr2 >> 4;
 	
-	nr2 = nr2_in;
-	
-	return (nr2_in & 0xF8) == 0;
+	return !(nr2 & 0xF8);
 }
 
-void EnvelopeUnit::reset(const unsigned nr2_in) {
+void EnvelopeUnit::reset() {
 	counter = 0xFFFFFFFF;
+}
+
+void EnvelopeUnit::init(const bool ch1, const unsigned cc) {
 	volume = 0;
-	zombie = (nr2_in & 7) != 0;
-	nr2 = nr2_in;
+	counter = cc - (cc - 0x1000 & 0x7FFF) + 8 * 0x8000;
+	nr2 = 0;
+	
+	if (ch1) {
+		nr2 = 0xF3;
+		counter = 0xFFFFFFFF;
+	}
 }

@@ -17,7 +17,6 @@ sourceFiles = Split('''
 			src/sound/duty_unit.cpp
 			src/sound/envelope_unit.cpp
 			src/sound/length_counter.cpp
-			src/sound/master_disabler.cpp
 			src/video/break_event.cpp
 			src/video/irq_event.cpp
 			src/video/ly_counter.cpp

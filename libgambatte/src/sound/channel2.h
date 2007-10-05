@@ -37,9 +37,6 @@ class Channel2 {
 	
 	bool master;
 	
-// 	uint8_t nr1;
-	uint8_t nr2;
-	uint8_t nr3;
 	uint8_t nr4;
 	
 	void setEvent();
@@ -48,7 +45,7 @@ public:
 	Channel2();
 	void setNr1(unsigned data);
 	void setNr2(unsigned data);
-	void setNr3(unsigned data) { nr3 = data; dutyUnit.nr3Change(data, nr4); }
+	void setNr3(unsigned data);
 	void setNr4(unsigned data);
 	
 	void setSo(bool so1, bool so2);
@@ -57,7 +54,8 @@ public:
 	
 	void update(uint32_t *buf, unsigned soBaseVol, unsigned cycles);
 	
-	void reset(unsigned nr1, unsigned nr2, unsigned nr3, unsigned nr4);
+	void reset();
+	void init(unsigned cc, bool cgb);
 };
 
 #endif

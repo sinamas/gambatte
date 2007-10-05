@@ -19,17 +19,12 @@
 #ifndef MASTER_DISABLER_H
 #define MASTER_DISABLER_H
 
-#include <stdint.h>
-
 class MasterDisabler {
 	bool &master;
-	uint32_t &slave1Timer;
-	uint32_t &slave2Timer;
-	uint32_t &slave3Timer;
-
+	
 public:
-	MasterDisabler(bool &m, uint32_t &s1T, uint32_t &s2T, uint32_t &s3T);
-	void operator()();
+	MasterDisabler(bool &m) : master(m) {}
+	virtual void operator()() { master = false; }
 };
 
 #endif

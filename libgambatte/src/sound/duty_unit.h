@@ -15,29 +15,36 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef DUTY_UNIT_H
 #define DUTY_UNIT_H
 
 #include "sound_unit.h"
 
 class DutyUnit : public SoundUnit {
-public:
 	uint32_t period;
-
-private:
-	bool highState;
+	uint32_t nextPosUpdate;
+	uint8_t pos;
 	uint8_t duty;
+	bool high;
 
-	void frequencyChange(unsigned nr3, unsigned nr4);
+	void setCounter();
+	void setDuty(unsigned nr1);
+	void updatePos(unsigned cc);
 
 public:
 	void event();
-	bool isHighState() const { return highState; }
-	void nr1Change(unsigned newNr1) { duty = newNr1 >> 6; };
-	void nr3Change(unsigned newNr3, unsigned nr4) { frequencyChange(newNr3, nr4); }
-	void nr4Change(unsigned nr3, unsigned newNr4, unsigned cycleCounter);
-	void reset(unsigned nr1, unsigned nr3, unsigned nr4);
+	bool isHighState() const { return high; }
+	void nr1Change(unsigned newNr1, unsigned cc);
+	void nr3Change(unsigned newNr3, unsigned cc);
+	void nr4Change(unsigned newNr4, unsigned cc);
+	void init(unsigned cc);
+	void reset();
+	void resetCounters(unsigned oldCc);
+	
+	//intended for use by SweepUnit only.
+	unsigned getFreq() const { return 2048 - (period >> 1); }
+	void setFreq(unsigned newFreq, unsigned cc);
 };
 
 #endif

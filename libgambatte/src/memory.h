@@ -105,8 +105,6 @@ class Memory {
 	void rescheduleHdmaReschedule();
 	
 	void refreshPalettes(unsigned cycleCounter);
-	void set_doubleSpeed(unsigned cycleCounter);
-	void set_singleSpeed(unsigned cycleCounter);
 
 public:
 	Memory(const Interrupter &interrupter);

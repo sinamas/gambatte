@@ -43,7 +43,7 @@ void CPU::init() {
 }
 
 void CPU::runFor(const unsigned int cycles) {
-	process(cycles << memory.isDoubleSpeed());
+	process(cycles/* << memory.isDoubleSpeed()*/);
 	
 	if (cycleCounter_ & 0x80000000)
 		cycleCounter_ = memory.resetCounters(cycleCounter_);
@@ -880,11 +880,11 @@ void CPU::process(const unsigned cycles) {
 				//add hl,sp (8 cycles):
 				//add SP to HL, check flags except ZF:
 			case 0x39: /*add_hl_rr(SP>>8, SP); break;*/
-				HF1 = L + SP;
-				L = HF1;
-				HF1 >>= 8;
-				HF2 = H;
-				CF = HF1 + H;
+				L = CF = L + SP;
+				HF1 = H;
+				HF2 = (CF ^ SP) & 0x100 | SP >> 8;
+				CF >>= 8;
+				CF += H;
 				H = CF;
 				cycleCounter += 4;
 				break;

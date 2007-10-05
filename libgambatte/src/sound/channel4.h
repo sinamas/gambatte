@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef SOUND_CHANNEL4_H
 #define SOUND_CHANNEL4_H
 
@@ -23,22 +23,30 @@
 #include "length_counter.h"
 #include "envelope_unit.h"
 
-class Lfsr : public SoundUnit {
-	uint32_t reg;
-	bool highState;
-	uint8_t nr3;
-	
-public:
-	Lfsr() : highState(false) {}
-	void event();
-	bool isHighState() const { return highState; }
-	void nr3Change(unsigned newNr3) { nr3 = newNr3; }
-	void nr4Init(unsigned cycleCounter) { reg = 0xFF; counter = cycleCounter; }
-	void reset(unsigned nr3_data) { nr3 = nr3_data; }
-};
-
 class Channel4 {
-	MasterDisabler disableMaster;
+	class Lfsr : public SoundUnit {
+		uint16_t reg;
+		uint8_t nr3;
+		
+	public:
+		Lfsr() {}
+		void event();
+		bool isHighState() const { return reg & 1; }
+		void nr3Change(unsigned newNr3) { nr3 = newNr3; }
+		void nr4Init(unsigned cycleCounter);
+		void init();
+		void killCounter() { counter = 0xFFFFFFFF; }
+	};
+	
+	class Ch4MasterDisabler : public MasterDisabler {
+		Lfsr &lfsr;
+		
+	public:
+		Ch4MasterDisabler(bool &m, Lfsr &lfsr) : MasterDisabler(m), lfsr(lfsr) {}
+		void operator()() { MasterDisabler::operator()(); lfsr.killCounter(); }
+	};
+	
+	Ch4MasterDisabler disableMaster;
 	LengthCounter lengthCounter;
 	EnvelopeUnit envelopeUnit;
 	Lfsr lfsr;
@@ -48,12 +56,8 @@ class Channel4 {
 	uint32_t cycleCounter;
 	uint32_t soMask;
 	
-	bool master;
-	
-// 	uint8_t nr1;
-	uint8_t nr2;
-// 	uint8_t nr3;
 	uint8_t nr4;
+	bool master;
 	
 	void setEvent();
 	
@@ -65,12 +69,12 @@ public:
 	void setNr4(unsigned data);
 	
 	void setSo(bool so1, bool so2);
-	// void deactivate() { disableMaster(); setEvent(); }
 	bool isActive() const { return master; }
 	
 	void update(uint32_t *buf, unsigned soBaseVol, unsigned cycles);
 	
-	void reset(unsigned nr1, unsigned nr2, unsigned nr3, unsigned nr4);
+	void reset();
+	void init(unsigned cc, bool cgb);
 };
 
 #endif

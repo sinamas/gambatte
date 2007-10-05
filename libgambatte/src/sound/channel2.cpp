@@ -19,36 +19,33 @@
 #include "channel2.h"
 
 Channel2::Channel2() :
-	disableMaster(master, dutyUnit.counter, envelopeUnit.counter, envelopeUnit.counter),
+	disableMaster(master),
 	lengthCounter(disableMaster, 0x3F)
 {}
 
 void Channel2::setEvent() {
 	nextEventUnit = &dutyUnit;
-	if (envelopeUnit.counter < nextEventUnit->counter)
+	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &envelopeUnit;
-	if (lengthCounter.counter < nextEventUnit->counter)
+	if (lengthCounter.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &lengthCounter;
 }
 
 void Channel2::setNr1(const unsigned data) {
-// 	nr1 = data;
-	
 	lengthCounter.nr1Change(data, nr4, cycleCounter);
-	dutyUnit.nr1Change(data);
+	dutyUnit.nr1Change(data, cycleCounter);
 	
 	setEvent();
 }
 
 void Channel2::setNr2(const unsigned data) {
-	nr2 = data;
-	
-	if (master) {
-		if (envelopeUnit.nr2Change(data, cycleCounter))
-			disableMaster();
-			
-		setEvent();
-	}
+	if (envelopeUnit.nr2Change(data))
+		disableMaster();
+}
+
+void Channel2::setNr3(const unsigned data) {
+	dutyUnit.nr3Change(data, cycleCounter);
+	setEvent();
 }
 
 void Channel2::setNr4(const unsigned data) {
@@ -58,11 +55,10 @@ void Channel2::setNr4(const unsigned data) {
 	
 	if (data & 0x80) { //init-bit
 		nr4 &= 0x7F;
-		master = envelopeUnit.nr4Init(nr2, cycleCounter) == false;
+		master = !envelopeUnit.nr4Init(cycleCounter);
 	}
 	
-	if (master)
-		dutyUnit.nr4Change(nr3, data, cycleCounter);
+	dutyUnit.nr4Change(data, cycleCounter);
 	
 	setEvent();
 }
@@ -71,56 +67,62 @@ void Channel2::setSo(const bool so1, const bool so2) {
 	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
 }
 
-void Channel2::reset(const unsigned nr1_data, const unsigned nr2_data, const unsigned nr3_data, const unsigned nr4_data) {
-// 	nr1 = nr1_data;
-	nr2 = nr2_data;
-	nr3 = nr3_data;
-	nr4 = nr4_data;
+void Channel2::reset() {
+	cycleCounter = 0x1000 | cycleCounter & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
 	
-	cycleCounter = 0;
+// 	lengthCounter.reset();
+	dutyUnit.reset();
+	envelopeUnit.reset();
+	
+	setEvent();
+}
 
-	lengthCounter.reset(nr1_data);
-	dutyUnit.reset(nr1_data, nr3_data, nr4_data);
-	envelopeUnit.reset(nr2_data);
+void Channel2::init(const unsigned cc, const bool cgb) {
+	nr4 = 0;
+	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	master = false;
 	
-	disableMaster();
+	dutyUnit.init(cycleCounter);
+	lengthCounter.init(cgb);
+	envelopeUnit.init(false, cycleCounter);
 	
 	setEvent();
 }
 
 void Channel2::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) {
-	const unsigned outBase = soBaseVol & soMask;
+	const unsigned outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
 	
 	const unsigned endCycles = cycleCounter + cycles;
+	
 	while (cycleCounter < endCycles) {
-		const unsigned out = (master && dutyUnit.isHighState()) ? outBase * envelopeUnit.getVolume() : 0;
+		const unsigned out = outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : -15);
 		
-		unsigned multiplier = nextEventUnit->counter;
+		unsigned multiplier = nextEventUnit->getCounter();
+		
 		if (multiplier <= endCycles) {
 			nextEventUnit->event();
 			setEvent();
 		} else
 			multiplier = endCycles;
+		
 		multiplier -= cycleCounter;
+		cycleCounter += multiplier;
+		
+		uint32_t *const bufend = buf + multiplier;
 		
 		if (out) {
-			const uint32_t *const bufEnd = buf + multiplier;
-			while (buf < bufEnd)
+			while (buf != bufend)
 				(*buf++) += out;
-		} else
-			buf += multiplier;
-			
-		cycleCounter += multiplier;
+		}
+		
+		buf = bufend;
 	}
 	
 	if (cycleCounter & 0x80000000) {
-		if (lengthCounter.counter != 0xFFFFFFFF)
-			lengthCounter.counter -= cycleCounter;
-		if (dutyUnit.counter != 0xFFFFFFFF)
-			dutyUnit.counter -= cycleCounter;
-		if (envelopeUnit.counter != 0xFFFFFFFF)
-			envelopeUnit.counter -= cycleCounter;
+		dutyUnit.resetCounters(cycleCounter);
+		lengthCounter.resetCounters(cycleCounter);
+		envelopeUnit.resetCounters(cycleCounter);
 		
-		cycleCounter = 0;
+		cycleCounter -= 0x80000000;
 	}
 }

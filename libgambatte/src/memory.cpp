@@ -27,9 +27,13 @@
 // static const uint32_t timaClock[4]={ 1024, 16, 64, 256 };
 static const uint8_t timaClock[4] = { 10, 4, 6, 8 };
 
-static const uint8_t soundRegInitValues[0x16] = { 0x80, 0x3F, 0x00, 0xFF, 0xBF, 0xFF, 0x3F, 0x00,
-						  0xFF, 0xBF, 0x7F, 0xFF, 0x9F, 0xFF, 0xBF, 0xFF,
-						  0xFF, 0x00, 0x00, 0xBF, 0x00, 0x00 };
+/*
+static const uint8_t soundRegInitValues[0x17] = { 0x80, 0x3F, 0x00, 0xFF, 0xBF,
+						  0xFF, 0x3F, 0x00, 0xFF, 0xBF,
+						  0x7F, 0xFF, 0x9F, 0xFF, 0xBF,
+						  0xFF, 0xFF, 0x00, 0x00, 0xBF,
+						  0x00, 0x00, 0x70 };
+*/
 
 static const uint8_t feaxDump[0x60] = {
 	0x18, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD, 
@@ -262,7 +266,7 @@ void Memory::ei(const unsigned cycleCounter) {
 
 void Memory::inc_endtime(const unsigned inc) {
 	active = true;
-	next_endtime += inc;
+	next_endtime += inc << isDoubleSpeed();
 	set_event();
 }
 
@@ -562,48 +566,28 @@ unsigned Memory::event(unsigned cycleCounter) {
 	return cycleCounter;
 }
 
-void Memory::set_doubleSpeed(const unsigned cycleCounter) {
-	printf("go doubleSpeed\n");
-	update_irqEvents(cycleCounter);
-	display.preSpeedChange(cycleCounter);
-	memory[0xFF4D] = 0x80;
-	display.postSpeedChange(cycleCounter);
-	
-	if (hdma_transfer) {
-		next_dmatime = display.nextHdmaTime(cycleCounter);
-		next_hdmaReschedule = display.nextHdmaTimeInvalid();
-	}
-	
-	next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);
-	set_irqEvent();
-	rescheduleIrq(cycleCounter);
-	set_event();
-}
-
-void Memory::set_singleSpeed(const unsigned cycleCounter) {
-	printf("go singleSpeed\n");
-	update_irqEvents(cycleCounter);
-	display.preSpeedChange(cycleCounter);
-	memory[0xFF4D] = 0x00;
-	display.postSpeedChange(cycleCounter);
-	
-	if (hdma_transfer) {
-		next_dmatime = display.nextHdmaTime(cycleCounter);
-		next_hdmaReschedule = display.nextHdmaTimeInvalid();
-	}
-	
-	next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);
-	set_irqEvent();
-	rescheduleIrq(cycleCounter);
-	set_event();
-}
-
 void Memory::speedChange(const unsigned cycleCounter) {
 	if (isCgb() && (memory[0xFF4D] & 0x1)) {
-		if (isDoubleSpeed())
-			set_singleSpeed(cycleCounter);
-		else
-			set_doubleSpeed(cycleCounter);
+		printf("speedChange\n");
+		
+		update_irqEvents(cycleCounter);
+		sound.generate_samples(cycleCounter, isDoubleSpeed());
+		display.preSpeedChange(cycleCounter);
+		
+		memory[0xFF4D] = ~memory[0xFF4D] & 0x80;
+		
+		display.postSpeedChange(cycleCounter);
+		
+		if (hdma_transfer) {
+			next_dmatime = display.nextHdmaTime(cycleCounter);
+			next_hdmaReschedule = display.nextHdmaTimeInvalid();
+		}
+		
+		next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);
+		next_endtime = cycleCounter + (isDoubleSpeed() ? next_endtime - cycleCounter << 1 : (next_endtime - cycleCounter >> 1));
+		set_irqEvent();
+		rescheduleIrq(cycleCounter);
+		set_event();
 	}
 }
 
@@ -778,6 +762,24 @@ uint8_t Memory::ff_read(const unsigned P, const unsigned cycleCounter) {
 		} else
 			memory[P] = 0x70;
 		break;
+	case 0x30:
+	case 0x31:
+	case 0x32:
+	case 0x33:
+	case 0x34:
+	case 0x35:
+	case 0x36:
+	case 0x37:
+	case 0x38:
+	case 0x39:
+	case 0x3A:
+	case 0x3B:
+	case 0x3C:
+	case 0x3D:
+	case 0x3E:
+	case 0x3F:
+		sound.generate_samples(cycleCounter, isDoubleSpeed());
+		return sound.waveRamRead(P & 0xF);
 	case 0x41:
 		return memory[P] | display.get_stat(memory[0xFF45], cycleCounter);
 	case 0x44:
@@ -823,7 +825,7 @@ uint8_t Memory::read(const unsigned P, const unsigned cycleCounter) {
 	return mem[P >> 12][P & 0xFFF];
 }
 
-void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycleCounter) {
+void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned cycleCounter) {
 // 	printf("mem[0x%X] = 0x%X\n", P, data);
 	switch (P & 0xFF) {
 	case 0x00:
@@ -917,11 +919,19 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr10(data);
+		data |= 0x80;
 		break;
 	case 0x11:
-		if(!sound.isEnabled()) return;
+		if(!sound.isEnabled()) {
+			if (isCgb())
+				return;
+			
+			data &= 0x3F;
+		}
+		
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr11(data);
+		data |= 0x3F;
 		break;
 	case 0x12:
 		if(!sound.isEnabled()) return;
@@ -932,17 +942,25 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr13(data);
-		break;
+		return;
 	case 0x14:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr14(data);
-		memory[P] = data & 0x7F;
-		return;
+		data |= 0xBF;
+		break;
+	case 0x15: return;
 	case 0x16:
-		if(!sound.isEnabled()) return;
+		if(!sound.isEnabled()) {
+			if (isCgb())
+				return;
+			
+			data &= 0x3F;
+		}
+		
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr21(data);
+		data |= 0x3F;
 		break;
 	case 0x17:
 		if(!sound.isEnabled()) return;
@@ -953,48 +971,53 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr23(data);
-		break;
+		return;
 	case 0x19:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr24(data);
-		memory[P] = data & 0x7F;
-		return;
+		data |= 0xBF;
+		break;
 	case 0x1A:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr30(data);
+		data |= 0x7F;
 		break;
 	case 0x1B:
-		if(!sound.isEnabled()) return;
+		if(!sound.isEnabled() && isCgb()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr31(data);
-		break;
+		return;
 	case 0x1C:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr32(data);
+		data |= 0x9F;
 		break;
 	case 0x1D:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr33(data);
-		break;
+		return;
 	case 0x1E:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr34(data);
-		if (data & 0x80) {
-			for (unsigned i = 0; i < 16; ++i)
-				memory[0xFF30 | i] ^= 0x80 | 0x20 | 0x8 | 0x2;
-		}
-		memory[P] = data & 0x7F;
-		return;
+		
+// 		if (data & 0x80) {
+// 			for (unsigned i = 0; i < 16; ++i)
+// 				memory[0xFF30 | i] ^= 0x80 | 0x20 | 0x8 | 0x2;
+// 		}
+		
+		data |= 0xBF;
+		break;
+	case 0x1F: return;
 	case 0x20:
-		if(!sound.isEnabled()) return;
+		if(!sound.isEnabled() && isCgb()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr41(data);
-		break;
+		return;
 	case 0x21:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
@@ -1009,8 +1032,8 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		sound.set_nr44(data);
-		memory[P] = data & 0x7F;
-		return;
+		data |= 0xBF;
+		break;
 	case 0x24:
 		if(!sound.isEnabled()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
@@ -1022,17 +1045,30 @@ void Memory::ff_write(const uint16_t P, const uint8_t data, const unsigned cycle
 		sound.map_so(data);
 		break;
 	case 0x26:
-		if ((memory[P] ^ data)&0x80) {
+		if ((memory[P] ^ data) & 0x80) {
 			sound.generate_samples(cycleCounter, isDoubleSpeed());
-			if (!(data&0x80)) {
-				std::memcpy(memory + 0xFF10, soundRegInitValues, sizeof(soundRegInitValues));
-				sound.reset(memory + 0xFF00);
+			if (!(data & 0x80)) {
+				for (unsigned i = 0xFF10; i < 0xFF26; ++i)
+					ff_write(i, 0, cycleCounter);
+				
+// 				std::memcpy(memory + 0xFF10, soundRegInitValues, sizeof(soundRegInitValues));
 				sound.setEnabled(false);
-			} else
+			} else {
+				sound.reset(/*memory + 0xFF00, isDoubleSpeed()*/);
 				sound.setEnabled(true);
+			}
 		}
-		memory[P] = (data & 0x80) | (memory[P] & 0x7F);
-		return;
+		data = data & 0x80 | memory[P] & 0x7F;
+		break;
+	case 0x27:
+	case 0x28:
+	case 0x29:
+	case 0x2A:
+	case 0x2B:
+	case 0x2C:
+	case 0x2D:
+	case 0x2E:
+	case 0x2F: return;
 	case 0x30:
 	case 0x31:
 	case 0x32:
@@ -1838,7 +1874,7 @@ bool Memory::loadROM() {
 		rtc.setBaseTime(basetime);
 	}
 
-	sound.init(memory + 0xFF00);
+	sound.init(memory + 0xFF00, isCgb());
 	display.reset(isCgb());
 	refreshPalettes(0x102A0);
 	next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);

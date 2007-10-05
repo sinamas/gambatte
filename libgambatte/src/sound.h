@@ -26,9 +26,6 @@
 #include "sound/channel3.h"
 #include "sound/channel4.h"
 
-
-// extern uint32_t sound_master;
-
 class PSG {
 	Channel1 ch1;
 	Channel2 ch2;
@@ -37,7 +34,7 @@ class PSG {
 		
 	uint32_t *buffer;
 	
-	uint32_t snd_lastUpdate;
+	uint32_t lastUpdate;
 	uint32_t bufferPos;
 	uint32_t so1_volume;
 	uint32_t so2_volume;
@@ -47,12 +44,10 @@ class PSG {
 	void accumulate_channels(unsigned next_update);
 
 public:
-	void init(const uint8_t *ioram);
-	void reset(const uint8_t *ioram);
+	void init(const uint8_t *ioram, bool cgb);
+	void reset();
 	PSG();
 	~PSG();
-
-	// void all_off();
 
 	void generate_samples(unsigned cycleCounter, unsigned doubleSpeed);
 	void resetCounter(unsigned newCc, unsigned oldCc, unsigned doubleSpeed);
@@ -77,6 +72,7 @@ public:
 	void set_nr32(unsigned data) { ch3.setNr2(data); }
 	void set_nr33(unsigned data) { ch3.setNr3(data); }
 	void set_nr34(unsigned data) { ch3.setNr4(data); }
+	uint8_t waveRamRead(unsigned index) const { return ch3.waveRamRead(index); }
 	void waveRamWrite(unsigned index, unsigned data) { ch3.waveRamWrite(index, data); }
 
 	void set_nr41(unsigned data) { ch4.setNr1(data); }
@@ -87,7 +83,6 @@ public:
 	void set_so_volume(unsigned nr50);
 	void map_so(unsigned nr51);
 	unsigned getStatus() const;
-	void clear_buffer();
 };
 
 #endif

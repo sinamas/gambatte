@@ -22,11 +22,13 @@
 #include <stdint.h>
 
 class SoundUnit {
-public:
+protected:
 	uint32_t counter;
-
-	virtual ~SoundUnit() {};
+public:
+	virtual ~SoundUnit() {}
 	virtual void event() = 0;
+	uint32_t getCounter() const { return counter; }
+	virtual void resetCounters(unsigned /*oldCc*/) { if (counter != 0xFFFFFFFF) counter -= 0x80000000; }
 };
 
 #endif

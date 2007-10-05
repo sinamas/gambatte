@@ -15,41 +15,48 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "channel3.h"
 
+#include <cstring>
+
 Channel3::Channel3() :
-	disableMaster(master, waveCounter, waveCounter, waveCounter),
+	disableMaster(master, waveCounter),
 	lengthCounter(disableMaster, 0xFF)
 {}
 
 void Channel3::setNr0(const unsigned data) {
-	nr0 = data;
+	nr0 = data & 0x80;
 	
-	if (master && !(data & 0x80))
+	if (!(data & 0x80))
 		disableMaster();
 }
 
 void Channel3::setNr2(const unsigned data) {
-	rShift = ((data >> 5) & 3U) - 1;
+	rShift = (data >> 5 & 3U) - 1;
 	
-	if (rShift > 4)
+	if (rShift > 3)
 		rShift = 4;
 }
 
 void Channel3::setNr4(const unsigned data) {
 	lengthCounter.nr4Change(nr4, data, cycleCounter);
 		
-	nr4 = data;
+	nr4 = data & 0x7F;
 	
-	if (data & 0x80) { //init-bit
-		nr4 &= 0x7F;
-		
-		if (!master && (nr0 & 0x80)) {
-			master = true;
-			wavePos = 0x1F;
-			waveCounter = cycleCounter;
+	if (data & nr0/* & 0x80*/) {
+		if (!cgb && waveCounter == cycleCounter + 1) {
+			const unsigned pos = (wavePos + 1 & 0x1F) >> 1;
+			
+			if (pos < 4)
+				waveRam[0] = waveRam[pos];
+			else
+				std::memcpy(waveRam, waveRam + (pos & ~3), 4);
 		}
+		
+		master = true;
+		wavePos = 0;
+		lastReadTime = waveCounter = cycleCounter + 2048 - (data << 8 & 0x700 | nr3) + 3;
 	}
 }
 
@@ -57,62 +64,74 @@ void Channel3::setSo(const bool so1, const bool so2) {
 	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
 }
 
-void Channel3::reset(const unsigned nr0_data, const unsigned nr1_data, const unsigned nr2_data, const unsigned nr3_data, const unsigned nr4_data) {
-	nr0 = nr0_data;
-// 	nr1 = nr1_data;
-// 	nr2 = nr2_data;
-	nr3 = nr3_data;
-	nr4 = nr4_data;
-	
-	cycleCounter = 0;
+void Channel3::reset() {
+	cycleCounter = 0x1000 | cycleCounter & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
 
-	lengthCounter.reset(nr1_data);
-	setNr2(nr2_data);
+// 	lengthCounter.reset();
+	sampleBuf = 0;
+}
+
+void Channel3::init(const unsigned cc, const bool cgb) {
+	this->cgb = cgb;
+
+	nr0 = 0;
+	nr3 = 0;
+	nr4 = 0;
+	
+	sampleBuf = 0;
+	
+	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	
+	setNr2(0);
+	
+	lengthCounter.init(cgb);
 	
 	disableMaster();
 }
 
 void Channel3::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) {
-	const unsigned outBase = soBaseVol & soMask;
+	const unsigned outBase = (nr0/* & 0x80*/) ? soBaseVol & soMask : 0;
 	
 	const unsigned endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned out = master ? outBase * (((waveRam[wavePos / 2] >> ((~wavePos & 1) * 4)) & 0xF) >> rShift) : 0;
+		const unsigned out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15 : -15);
 		
 		unsigned multiplier = endCycles;
 		
-		if (waveCounter <= multiplier || lengthCounter.counter <= multiplier) {
-			if (lengthCounter.counter < waveCounter) {
-				multiplier = lengthCounter.counter;
+		if (waveCounter <= multiplier || lengthCounter.getCounter() <= multiplier) {
+			if (lengthCounter.getCounter() < waveCounter) {
+				multiplier = lengthCounter.getCounter();
 				lengthCounter.event();
 			} else {
-				multiplier = waveCounter;
-				waveCounter += 2048 - (nr3 | ((nr4 & 0x7) << 8));
+				lastReadTime = multiplier = waveCounter;
+				waveCounter += 2048 - (nr4 << 8 & 0x700 | nr3);
 				++wavePos;
 				wavePos &= 0x1F;
+				sampleBuf = waveRam[wavePos >> 1];
 			}
 		}
 		
 		multiplier -= cycleCounter;
+		cycleCounter += multiplier;
+		
+		uint32_t *const bufend = buf + multiplier;
 		
 		if (out) {
-			unsigned n = multiplier;
-			
-			while (n--)
+			while (buf != bufend)
 				(*buf++) += out;
-		} else
-			buf += multiplier;
-			
-		cycleCounter += multiplier;
+		}
+		
+		buf = bufend;
 	}
 	
 	if (cycleCounter & 0x80000000) {
-		if (lengthCounter.counter != 0xFFFFFFFF)
-			lengthCounter.counter -= cycleCounter;
-		if (waveCounter != 0xFFFFFFFF)
-			waveCounter -= cycleCounter;
+		lengthCounter.resetCounters(cycleCounter);
 		
-		cycleCounter = 0;
+		if (waveCounter != 0xFFFFFFFF)
+			waveCounter -= 0x80000000;
+		
+		lastReadTime -= 0x80000000;
+		cycleCounter -= 0x80000000;
 	}
 }

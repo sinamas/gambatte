@@ -15,23 +15,25 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef ENVELOPE_UNIT_H
 #define ENVELOPE_UNIT_H
 
 #include "sound_unit.h"
 
 class EnvelopeUnit : public SoundUnit {
-	bool zombie;
+// 	bool zombie;
 	uint8_t nr2;
 	uint8_t volume;
 	
 public:
 	void event();
+	bool dacIsOn() const { return nr2 & 0xF8; }
 	unsigned getVolume() const { return volume; }
-	bool nr2Change(unsigned newNr2, unsigned cycleCounter);
-	bool nr4Init(unsigned nr2, unsigned cycleCounter);
-	void reset(unsigned nr2);
+	bool nr2Change(unsigned newNr2);
+	bool nr4Init(unsigned cycleCounter);
+	void reset();
+	void init(bool ch1, unsigned cc);
 };
 
 #endif

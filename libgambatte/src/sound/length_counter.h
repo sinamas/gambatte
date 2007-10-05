@@ -25,15 +25,17 @@ class MasterDisabler;
 
 class LengthCounter : public SoundUnit {
 	MasterDisabler &disableMaster;
-	uint32_t lengthCounter;
+	uint16_t lengthCounter;
 	const uint8_t lengthMask;
+	bool cgb;
 
 public:
 	LengthCounter(MasterDisabler &disabler, unsigned lengthMask);
 	void event();
 	void nr1Change(unsigned newNr1, unsigned nr4, unsigned cycleCounter);
 	void nr4Change(unsigned oldNr4, unsigned newNr4, unsigned cycleCounter);
-	void reset(unsigned nr1);
+// 	void reset();
+	void init(bool cgb);
 };
 
 #endif
