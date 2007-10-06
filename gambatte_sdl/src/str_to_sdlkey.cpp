@@ -19,7 +19,18 @@
 
 #include "str_to_sdlkey.h"
 
-void StrToSdlkey::init() {
+#include <map>
+#include <cstring>
+
+struct StrLess {
+	bool operator()(const char *const l, const char *const r) const {
+		return std::strcmp(l, r) < 0;
+	}
+};
+
+static std::map<const char*,SDLKey,StrLess> m;
+
+static void init() {
 	m.insert(std::pair<const char*,SDLKey>("backspace", SDLK_BACKSPACE));
 	m.insert(std::pair<const char*,SDLKey>("tab", SDLK_TAB));
 	m.insert(std::pair<const char*,SDLKey>("clear", SDLK_CLEAR));
@@ -253,7 +264,7 @@ void StrToSdlkey::init() {
 	m.insert(std::pair<const char*,SDLKey>("undo", SDLK_UNDO));
 }
 
-const SDLKey* StrToSdlkey::operator()(const char *const str) {
+const SDLKey* strToSdlkey(const char *const str) {
 	if (m.empty())
 		init();
 	

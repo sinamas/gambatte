@@ -20,23 +20,8 @@
 #ifndef STR_TO_SDLKEY_H
 #define STR_TO_SDLKEY_H
 
-#include <map>
-#include <cstring>
 #include <SDL.h>
 
-class StrToSdlkey {
-	struct StrLess {
-		bool operator()(const char *const l, const char *const r) const {
-			return std::strcmp(l, r) < 0;
-		}
-	};
-
-	std::map<const char*,SDLKey,StrLess> m;
-	
-	void init();
-	
-public:
-	const SDLKey* operator()(const char *str);
-};
+const SDLKey* strToSdlkey(const char *str);
 
 #endif

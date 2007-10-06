@@ -30,10 +30,6 @@ yuv(yuv)
 {}
 
 SdlBlitter::~SdlBlitter() {
-	uninit();
-}
-
-void SdlBlitter::uninit() {
 	if (overlay) {
 		SDL_UnlockYUVOverlay(overlay);
 		SDL_FreeYUVOverlay(overlay);
@@ -41,9 +37,6 @@ void SdlBlitter::uninit() {
 	
 	if (surface != screen)
 		SDL_FreeSurface(surface);
-		
-	overlay = NULL;
-	surface = NULL;
 }
 
 void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {

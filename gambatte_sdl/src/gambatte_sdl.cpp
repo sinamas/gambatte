@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include <gambatte.h>
 #include <SDL.h>
+#include <SDL_thread.h>
 #include <cstring>
 #include <string>
 #include <sstream>
@@ -27,111 +28,53 @@
 #include "str_to_sdlkey.h"
 #include "sdlblitter.h"
 
-static Gambatte gambatte;
-
-struct FatOption {
-	virtual Parser::Option* getShort() { return NULL; };
-	virtual Parser::Option* getLong() = 0;
+struct DescOption : Parser::Option {
+	DescOption(const char *s, char c = 0, int nArgs = 0) : Option(s, c, nArgs) {}
+	virtual ~DescOption() {}
 	virtual const char* getDesc() const = 0;
-	virtual ~FatOption() {}
 };
 
-class FsOption : public FatOption {
-	class Main : public Parser::Option {
-		bool &full;
-	protected:
-		Main(const char *const s, bool &full) : Option(s), full(full) {}
-	public:
-		void exec(const char *const */*argv*/, int /*index*/) { full = true; }
-	};
-	
-	struct Short : Main {
-		Short(bool &full) : Main("f", full) {}
-	};
-	
-	struct Long : Main {
-		Long(bool &full) : Main("full-screen", full) {}
-	};
-	
-	Short sOpt;
-	Long lOpt;
+class FsOption : public DescOption {
 	bool full;
 	
 public:
-	FsOption() : sOpt(full), lOpt(full), full(false) {}
-	Parser::Option* getShort() { return &sOpt; }
-	Parser::Option* getLong() { return &lOpt; }
+	FsOption() : DescOption("full-screen", 'f'), full(false) {}
+	void exec(const char *const */*argv*/, int /*index*/) { full = true; }
 	const char* getDesc() const { return "\t\tStart in full screen mode\n"; }
 	bool startFull() const { return full; }
 };
 
-class ScaleOption : public FatOption {
-	class Main : public Parser::Option {
-		Uint8 &scale;
-	protected:
-		Main(const char *const s, Uint8 &scale) : Option(s, 1), scale(scale) {}
-	public:
-		void exec(const char *const *argv, int index) {
-			int tmp = std::atoi(argv[index + 1]);
-			
-			if (tmp < 1 || tmp > 40)
-				return;
-			
-			scale = tmp;
-		}
-	};
-	
-	struct Short : Main {
-		Short(Uint8 &scale) : Main("s", scale) {}
-	};
-	
-	struct Long : Main {
-		Long(Uint8 &scale) : Main("scale", scale) {}
-	};
-	
-	Short sOpt;
-	Long lOpt;
+class ScaleOption : public DescOption {
 	Uint8 scale;
 	
 public:
-	ScaleOption() : sOpt(scale), lOpt(scale), scale(1) {}
-	Parser::Option* getShort() { return &sOpt; }
-	Parser::Option* getLong() { return &lOpt; }
+	ScaleOption() : DescOption("scale", 's', 1), scale(1) {}
+	
+	void exec(const char *const *argv, int index) {
+		int tmp = std::atoi(argv[index + 1]);
+		
+		if (tmp < 1 || tmp > 40)
+			return;
+		
+		scale = tmp;
+	}
+	
 	const char* getDesc() const { return " N\t\t\tScale video output by an integer factor of N\n"; }
 	Uint8 getScale() const { return scale; }
 };
 
-class VfOption : public FatOption {
-	class Main : public Parser::Option {
-	protected:
-		Main(const char *const s) : Option(s, 1) {}
-	public:
-		void exec(const char *const *argv, int index) {
-			gambatte.setVideoFilter(std::atoi(argv[index + 1]));
-		}
-	};
-	
-	struct Short : Main {
-		Short() : Main("v") {}
-	};
-	
-	struct Long : Main {
-		Long() : Main("video-filter") {}
-	};
-	
-	Short sOpt;
-	Long lOpt;
+class VfOption : public DescOption {
 	std::string s;
+	unsigned filterNr;
 	
 public:
-	VfOption();
-	Parser::Option* getShort() { return &sOpt; }
-	Parser::Option* getLong() { return &lOpt; }
+	VfOption(const std::vector<const FilterInfo*> &finfo);
+	void exec(const char *const *argv, int index) { filterNr = std::atoi(argv[index + 1]); }
 	const char* getDesc() const { return s.c_str(); }
+	unsigned filterNumber() const { return filterNr; }
 };
 
-VfOption::VfOption() {
-	const std::vector<const FilterInfo*> &finfo = gambatte.filterInfo();
+VfOption::VfOption(const std::vector<const FilterInfo*> &finfo) : DescOption("video-filter", 'v', 1), filterNr(0) {
 	std::stringstream ss;
 	ss << " N\t\tUse video filter number N\n";
 	
@@ -142,31 +85,12 @@ VfOption::VfOption() {
 	s = ss.str();
 }
 
-class YuvOption : public FatOption {
-	class Main : public Parser::Option {
-		bool &yuv;
-	protected:
-		Main(const char *const s, bool &yuv) : Option(s), yuv(yuv) {}
-	public:
-		void exec(const char *const */*argv*/, int /*index*/) { yuv = true; }
-	};
-	
-	struct Short : Main {
-		Short(bool &yuv) : Main("y", yuv) {}
-	};
-	
-	struct Long : Main {
-		Long(bool &yuv) : Main("yuv-overlay", yuv) {}
-	};
-	
-	Short sOpt;
-	Long lOpt;
+class YuvOption : public DescOption {
 	bool yuv;
 	
 public:
-	YuvOption() : sOpt(yuv), lOpt(yuv), yuv(false) {}
-	Parser::Option* getShort() { return &sOpt; }
-	Parser::Option* getLong() { return &lOpt; }
+	YuvOption() : DescOption("yuv-overlay", 'y'), yuv(false) {}
+	void exec(const char *const */*argv*/, int /*index*/) { yuv = true; }
 	const char* getDesc() const { return "\t\tUse YUV Overlay for (usually faster) scaling\n"; }
 	bool useYuv() const { return yuv; }
 };
@@ -190,7 +114,7 @@ static inline bool operator<(const JoyData &l, const JoyData &r) {
 	return l.id < r.id; 
 }
 
-class InputOption : public FatOption {
+class InputOption : public DescOption {
 public:
 	struct InputId {
 		enum { KEY, JOYBUT, JOYAX, JOYHAT } type;
@@ -204,37 +128,16 @@ public:
 	};
 	
 private:
-	class Main : public Parser::Option {
-		InputId *const keys;
-		StrToSdlkey strToKey;
-		
-	protected:
-		Main(const char *const s, InputId keys[]) : Option(s, 8), keys(keys) {}
-	public:
-		void exec(const char *const *argv, int index);
-	};
-	
-	struct Short : Main {
-		Short(InputId keys[]) : Main("i", keys) {}
-	};
-	
-	struct Long : Main {
-		Long(InputId keys[]) : Main("input", keys) {}
-	};
-	
-	Short sOpt;
-	Long lOpt;
 	InputId keys[8];
 	
 public:
 	InputOption();
-	Parser::Option* getShort() { return &sOpt; }
-	Parser::Option* getLong() { return &lOpt; }
+	void exec(const char *const *argv, int index);
 	const char* getDesc() const { return " KEYS\t\tUse the 8 given input KEYS for respectively\n\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n"; }
 	const InputId* getKeys() const { return keys; }
 };
 
-InputOption::InputOption() : sOpt(keys), lOpt(keys) {
+InputOption::InputOption() : DescOption("input", 'i', 8) {
 	keys[0].key = SDLK_RETURN;
 	keys[1].key  = SDLK_RSHIFT;
 	keys[2].key  = SDLK_d;
@@ -245,7 +148,7 @@ InputOption::InputOption() : sOpt(keys), lOpt(keys) {
 	keys[7].key  = SDLK_RIGHT;
 }
 
-void InputOption::Main::exec(const char *const *argv, int index) {
+void InputOption::exec(const char *const *argv, int index) {
 	++index;
 	
 	for (unsigned i = 0; i < 8; ++i) {
@@ -318,7 +221,7 @@ void InputOption::Main::exec(const char *const *argv, int index) {
 			
 			keys[i] = id;
 		} else {
-			const SDLKey *const k = strToKey(s);
+			const SDLKey *const k = strToSdlkey(s);
 			
 			if (k) {
 				keys[i].type = InputId::KEY;
@@ -339,61 +242,206 @@ public:
 	}
 };
 
+static unsigned ceiledPowerOf2(unsigned t) {
+	--t;
+	t |= t >> 1;
+	t |= t >> 2;
+	t |= t >> 4;
+	t |= t >> 8;
+	t |= t >> 16;
+	++t;
+	
+	return t;
+}
+
 static void fill_buffer(void *buffer, Uint8 *stream, int len);
 
-static const unsigned SAMPLE_RATE = 48000;
-static const unsigned SAMPLES = ((SAMPLE_RATE * 4389) / 262144) + 2;
-static unsigned rPos = 0;
-static unsigned wPos = 0;
-static bool bufAvailable = false;
-
-static const unsigned SND_BUF_SZ = 4096 * 2;
-
-static const char *const usage = "Usage: gambatte_sdl romfile\n";
-
-static void printUsage(std::vector<FatOption*> &v) {
-	printf("Usage: gambatte_sdl [OPTION]... romfile\n\n");
+struct AudioData {
+	const unsigned samplesPrFrame;
 	
-	for (unsigned i = 0; i < v.size(); ++i) {
-		printf("  -%s, --%s%s\n", v[i]->getShort()->getStr(), v[i]->getLong()->getStr(), v[i]->getDesc());
+	AudioData(unsigned sampleRate);
+	~AudioData();
+	void write(const Uint16 *inBuf);
+	void read(Uint8 *stream, int len);
+	
+private:
+	const unsigned bufSz;
+	SDL_mutex *const mut;
+	SDL_cond *const bufReadyCond;
+	Sint16 *const buffer;
+	unsigned rPos;
+	unsigned wPos;
+};
+
+AudioData::AudioData(const unsigned srate) :
+samplesPrFrame(((srate * 4389) / 262144) + 2),
+bufSz(ceiledPowerOf2(samplesPrFrame) * 8),
+mut(SDL_CreateMutex()),
+bufReadyCond(SDL_CreateCond()),
+buffer(new Sint16[bufSz]),
+rPos(0),
+wPos(0) {
+	std::memset(buffer, 0, bufSz * sizeof(Sint16));
+	
+	SDL_AudioSpec spec;
+	spec.freq = srate;
+	spec.format = AUDIO_S16SYS;
+	spec.channels = 2;
+	spec.samples = bufSz >> 3;
+	spec.callback = fill_buffer;
+	spec.userdata = this;
+	SDL_OpenAudio(&spec, NULL);
+}
+
+AudioData::~AudioData() {
+	SDL_PauseAudio(1);
+	SDL_CloseAudio();
+	delete []buffer;
+	SDL_DestroyCond(bufReadyCond);
+	SDL_DestroyMutex(mut);
+}
+
+void AudioData::write(const Uint16 *const inBuf) {
+	SDL_mutexP(mut);
+	
+	if (rPos - wPos + (wPos > rPos ? bufSz : 0) >> 1 < samplesPrFrame)
+		SDL_CondWait(bufReadyCond, mut);
+	
+	{
+		const unsigned samples1 = std::min(bufSz - wPos >> 1, samplesPrFrame);
+		const unsigned samples2 = samplesPrFrame - samples1;
+		
+		std::memcpy(buffer + wPos, inBuf, samples1 * 4);
+		
+		if (samples2)
+			std::memcpy(buffer, inBuf + samples1 * 2, samples2 * 4);
+		
+		if ((wPos += samplesPrFrame * 2) >= bufSz)
+			wPos -= bufSz;
+	}
+	
+	SDL_mutexV(mut);
+}
+
+void AudioData::read(Uint8 *const stream, const int len) {
+	SDL_mutexP(mut);
+	
+	const unsigned bytes1 = std::min(static_cast<unsigned>(len), (bufSz - rPos) * 2);
+	const unsigned bytes2 = len - bytes1;
+	
+	std::memcpy(stream, buffer + rPos, bytes1);
+	
+	if (bytes2)
+		std::memcpy(stream + bytes1, buffer, bytes2);
+	
+	if ((rPos += len >> 1) >= bufSz)
+		rPos -= bufSz;
+	
+	if (rPos - wPos + (wPos > rPos ? bufSz : 0) >> 1 >= samplesPrFrame)
+		SDL_CondSignal(bufReadyCond);
+	
+	SDL_mutexV(mut);
+}
+
+class SdlIniter {
+	bool failed;
+public:
+	SdlIniter();
+	~SdlIniter();
+	bool isFailed() const { return failed; }
+};
+
+SdlIniter::SdlIniter() : failed(false) {
+	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0) {
+		std::fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+		failed = true;
 	}
 }
 
-int main(int argc, char **argv) {
-	printf("Gambatte SDL svn\n");
+SdlIniter::~SdlIniter() {
+	SDL_Quit();
+}
+
+class GambatteSdl {
+	typedef std::multimap<SDLKey,bool*> keymap_t;
+	typedef std::multimap<JoyData,bool*> jmap_t;
 	
+	Uint16 *tmpBuf;
+	Gambatte gambatte;
+	SdlIniter sdlIniter;
 	SdlBlitter blitter;
 	InputGetter inputGetter;
-	
-	std::multimap<SDLKey,bool*> keyMap;
-	std::multimap<JoyData,bool*> jbMap;
-	std::multimap<JoyData,bool*> jaMap;
-	std::multimap<JoyData,bool*> jhMap;
+	keymap_t keyMap;
+	jmap_t jbMap;
+	jmap_t jaMap;
+	jmap_t jhMap;
 	std::vector<SDL_Joystick*> joysticks;
+	unsigned sampleRate;
+	bool failed;
+	
+	bool init(int argc, char **argv);
+	
+public:
+	GambatteSdl(int argc, char **argv);
+	~GambatteSdl();
+	int exec();
+};
+
+GambatteSdl::GambatteSdl(int argc, char **argv) : tmpBuf(NULL), sampleRate(48000) {
+	failed = init(argc, argv);
+}
+
+GambatteSdl::~GambatteSdl() {
+	delete []tmpBuf;
+	
+	for (std::size_t i = 0; i < joysticks.size(); ++i)
+		SDL_JoystickClose(joysticks[i]);
+}
+
+static void printUsage(std::vector<DescOption*> &v) {
+	std::printf("Usage: gambatte_sdl [OPTION]... romfile\n\n");
+	
+	for (std::size_t i = 0; i < v.size(); ++i) {
+		std::printf("  ");
+		
+		if (v[i]->getChar())
+			std::printf("-%c, ", v[i]->getChar());
+		else
+			std::printf("     ");
+		
+		std::printf("--%s%s\n", v[i]->getStr(), v[i]->getDesc());
+	}
+}
+
+bool GambatteSdl::init(int argc, char **argv) {
+	std::printf("Gambatte SDL svn\n");
+	
+	if (sdlIniter.isFailed())
+		return 1;
+	
 	std::vector<Uint8> jdevnums;
 	
 	{
 		Parser parser;
 		
-		std::vector<FatOption*> v;
+		std::vector<DescOption*> v;
 		FsOption fsOption;
 		v.push_back(&fsOption);
 		InputOption inputOption;
 		v.push_back(&inputOption);
 		ScaleOption scaleOption;
 		v.push_back(&scaleOption);
-		VfOption vfOption;
+		VfOption vfOption(gambatte.filterInfo());
 		v.push_back(&vfOption);
 		YuvOption yuvOption;
 		v.push_back(&yuvOption);
 		
-		for (unsigned i = 0; i < v.size(); ++i) {
-			parser.add(v[i]->getShort());
-			parser.add(v[i]->getLong());
+		for (std::size_t i = 0; i < v.size(); ++i) {
+			parser.add(v[i]);
 		}
 		
 		unsigned loadIndex = 0;
-	
+		
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '-') {
 				if (!(i = parser.parse(argc, argv, i))) {
@@ -411,7 +459,7 @@ int main(int argc, char **argv) {
 		}
 		
 		if (gambatte.load(argv[loadIndex])) {
-			printf("failed to load ROM %s\n", argv[loadIndex]);
+			std::printf("failed to load ROM %s\n", argv[loadIndex]);
 			return 1;
 		}
 		
@@ -420,6 +468,7 @@ int main(int argc, char **argv) {
 		
 		blitter.setScale(scaleOption.getScale());
 		blitter.setYuv(yuvOption.useYuv());
+		gambatte.setVideoFilter(vfOption.filterNumber());
 		
 		bool* gbbuts[8] = {
 			&inputGetter.is.startButton, &inputGetter.is.selectButton,
@@ -446,17 +495,14 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
-
+	
 	gambatte.setInputStateGetter(&inputGetter);
-
-	Sint16 *const sndBuffer = new Sint16[SND_BUF_SZ];
-	std::memset(sndBuffer, 0, SND_BUF_SZ * sizeof(Sint16));
-	uint16_t *const tmpBuf = new uint16_t[SAMPLES * 2];
-	Uint8 *keys;
-
-	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | (jdevnums.empty() ? 0 : SDL_INIT_JOYSTICK)) < 0) {
-		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
-		goto done;
+	
+	if (!jdevnums.empty()) {
+		if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
+			std::fprintf(stderr, "Unable to init joysticks: %s\n", SDL_GetError());
+			return 1;
+		}
 	}
 	
 	SDL_ShowCursor(SDL_DISABLE);
@@ -469,25 +515,23 @@ int main(int argc, char **argv) {
 			joysticks.push_back(j);
 	}
 	
-	jdevnums.clear();
 	SDL_JoystickEventState(SDL_ENABLE);
+	
+	return 0;
+}
 
-	{
-		SDL_AudioSpec spec;
-		spec.freq = SAMPLE_RATE;
-		spec.format = AUDIO_S16SYS;
-		spec.channels = 2;
-		spec.samples = 1024;
-		spec.callback = fill_buffer;
-		spec.userdata = sndBuffer;
-		SDL_OpenAudio(&spec, NULL);
-	}
+int GambatteSdl::exec() {
+	if (failed)
+		return 1;
+	
+	AudioData adata(sampleRate);
+	tmpBuf = new Uint16[adata.samplesPrFrame * 2];
+	
+	gambatte.setVideoBlitter(&blitter);
+	
+	Uint8 *keys = SDL_GetKeyState(NULL);
 	
 	SDL_PauseAudio(0);
-
-	keys = SDL_GetKeyState(NULL);
-
-	gambatte.setVideoBlitter(&blitter);
 	
 	for (;;) {
 		{
@@ -501,33 +545,33 @@ int main(int argc, char **argv) {
 					jd.num = e.jaxis.axis;
 					jd.dir = e.jaxis.value < -8192 ? JoyData::DOWN : (e.jaxis.value > 8192 ? JoyData::UP : JoyData::CENTERED);
 					
-					for (std::pair<std::multimap<JoyData,bool*>::iterator,std::multimap<JoyData,bool*>::iterator> range(jaMap.equal_range(jd));
-							range.first != range.second; ++range.first) {
-						*range.first->second = jd.dir == range.first->first.dir;
-					}
+					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
+					     range.first != range.second; ++range.first) {
+						     *range.first->second = jd.dir == range.first->first.dir;
+					     }
 					break;
 				case SDL_JOYBUTTONDOWN:
 				case SDL_JOYBUTTONUP:
 					jd.dev_num = e.jbutton.which;
 					jd.num = e.jbutton.button;
 					
-					for (std::pair<std::multimap<JoyData,bool*>::iterator,std::multimap<JoyData,bool*>::iterator> range(jbMap.equal_range(jd));
-							range.first != range.second; ++range.first) {
-						*range.first->second = e.jbutton.state;
-					}
+					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jbMap.equal_range(jd));
+					     range.first != range.second; ++range.first) {
+						     *range.first->second = e.jbutton.state;
+					     }
 					break;
 				case SDL_JOYHATMOTION:
 					jd.dev_num = e.jhat.which;
 					jd.num = e.jhat.hat;
 					
-					for (std::pair<std::multimap<JoyData,bool*>::iterator,std::multimap<JoyData,bool*>::iterator> range(jaMap.equal_range(jd));
-							range.first != range.second; ++range.first) {
-						*range.first->second = e.jhat.value & range.first->first.dir;
-					}
+					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
+					     range.first != range.second; ++range.first) {
+						     *range.first->second = e.jhat.value & range.first->first.dir;
+					     }
 					break;
 				case SDL_KEYDOWN:
 					if (e.key.keysym.sym == SDLK_ESCAPE)
-						goto done;
+						return 0;
 					
 					if (e.key.keysym.mod & KMOD_CTRL) {
 						switch (e.key.keysym.sym) {
@@ -542,14 +586,14 @@ int main(int argc, char **argv) {
 						}
 					}
 				case SDL_KEYUP:
-					for (std::pair<std::multimap<SDLKey,bool*>::iterator,std::multimap<SDLKey,bool*>::iterator> range(keyMap.equal_range(e.key.keysym.sym));
-							range.first != range.second; ++range.first) {
-						*range.first->second = e.key.state;
-					}
+					for (std::pair<keymap_t::iterator,keymap_t::iterator> range(keyMap.equal_range(e.key.keysym.sym));
+					     range.first != range.second; ++range.first) {
+						     *range.first->second = e.key.state;
+					     }
 					
 					break;
 				case SDL_QUIT:
-					goto done;
+					return 0;
 				}
 			}
 		}
@@ -557,62 +601,24 @@ int main(int argc, char **argv) {
 		gambatte.runFor(70224);
 		
 		if (!keys[SDLK_TAB]) {
-			gambatte.fill_buffer(tmpBuf, SAMPLES);
+			gambatte.fill_buffer(tmpBuf, adata.samplesPrFrame);
 			
-			while (!bufAvailable)
-				SDL_Delay(1);
-			
-			SDL_LockAudio();
-			
-			{
-				const unsigned samples1 = std::min(SND_BUF_SZ - wPos >> 1, SAMPLES);
-				const unsigned samples2 = SAMPLES - samples1;
-				
-				std::memcpy(sndBuffer + wPos, tmpBuf, samples1 * 4);
-				
-				if (samples2)
-					std::memcpy(sndBuffer, tmpBuf + samples1 * 2, samples2 * 4);
-				
-				if ((wPos += SAMPLES * 2) >= SND_BUF_SZ)
-					wPos -= SND_BUF_SZ;
-				
-				bufAvailable = rPos - wPos + (wPos > rPos ? SND_BUF_SZ : 0) >> 1 >= SAMPLES;
-			}
-			
-			SDL_UnlockAudio();
+			adata.write(tmpBuf);
 			
 			syncFunc();
 		} else
 			gambatte.fill_buffer(0, 0);
 	}
-
-done:
-	SDL_PauseAudio(1);
-	SDL_CloseAudio();
-	
-	for (std::size_t i = 0; i < joysticks.size(); ++i)
-		SDL_JoystickClose(joysticks[i]);
-	
-	blitter.uninit();
-	
-	SDL_Quit();
-	delete []sndBuffer;
-	delete []tmpBuf;
 	
 	return 0;
 }
 
-static void fill_buffer(void *const buffer, Uint8 *const stream, const int len) {
-	const unsigned bytes1 = std::min(static_cast<unsigned>(len), (SND_BUF_SZ - rPos) * 2);
-	const unsigned bytes2 = len - bytes1;
+int main(int argc, char **argv) {
+	GambatteSdl gambatteSdl(argc, argv);
 	
-	std::memcpy(stream, reinterpret_cast<Sint16*>(buffer) + rPos, bytes1);
-	
-	if (bytes2)
-		std::memcpy(stream + bytes1, buffer, bytes2);
-	
-	if ((rPos += len >> 1) >= SND_BUF_SZ)
-		rPos -= SND_BUF_SZ;
-	
-	bufAvailable = rPos - wPos + (wPos > rPos ? SND_BUF_SZ : 0) >> 1 >= SAMPLES;
+	return gambatteSdl.exec();
+}
+
+static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
+	reinterpret_cast<AudioData*>(data)->read(stream, len);
 }

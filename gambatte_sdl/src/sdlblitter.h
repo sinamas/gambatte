@@ -42,7 +42,6 @@ public:
 	void setScale(const Uint8 scale) { if (!screen) this->scale = scale; }
 	void setStartFull() { startFlags |= SDL_FULLSCREEN; }
 	void setYuv(const bool yuv) { if (!screen) this->yuv = yuv; }
-	void uninit();
 // 	bool failed() const { return screen == NULL; }
 };
 

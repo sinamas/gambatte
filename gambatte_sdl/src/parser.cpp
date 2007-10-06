@@ -18,18 +18,14 @@
  ***************************************************************************/
 #include "parser.h"
 
-#include <cstring>
-
-using namespace std;
-
-Parser::Option::Option(const char *const s, int nArgs) : s(s), nArgs(nArgs) {}
+Parser::Option::Option(const char *const s, const char c, const int nArgs) : s(s), nArgs(nArgs), c(c) {}
 
 void Parser::addLong(Option *const o) {
-	lMap.insert(pair<const char*,Option*>(o->getStr(), o));
+	lMap.insert(std::pair<const char*,Option*>(o->getStr(), o));
 }
 
 int Parser::parseLong(const int argc, const char *const *const argv, const int index) {
-	map<const char*,Option*,StrLess>::iterator it = lMap.find(argv[index] + 2);
+	lmap_t::iterator it = lMap.find(argv[index] + 2);
 	
 	if (it == lMap.end())
 		return 0;
@@ -45,7 +41,7 @@ int Parser::parseLong(const int argc, const char *const *const argv, const int i
 }
 
 void Parser::addShort(Option *const o) {
-	sMap.insert(pair<char,Option*>(o->getStr()[0], o));
+	sMap.insert(std::pair<char,Option*>(o->getChar(), o));
 }
 
 int Parser::parseShort(const int argc, const char *const *const argv, const int index) {
@@ -56,7 +52,7 @@ int Parser::parseShort(const int argc, const char *const *const argv, const int 
 		return 0;
 
 	do {
-		const map<char,Option*>::iterator it = sMap.find(*s);
+		const smap_t::iterator it = sMap.find(*s);
 		
 		if (it == sMap.end())
 			return 0;
@@ -78,7 +74,10 @@ int Parser::parseShort(const int argc, const char *const *const argv, const int 
 }
 
 void Parser::add(Option *const o) {
-	(o->getStr()[1]) ? addLong(o) : addShort(o);
+	addLong(o);
+	
+	if (o->getChar())
+		addShort(o);
 }
 
 int Parser::parse(const int argc, const char *const *const argv, const int index) {

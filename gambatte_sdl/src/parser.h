@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef PARSER_H
 #define PARSER_H
 
@@ -27,10 +27,12 @@ public:
 	class Option {
 		const char *const s;
 		const int nArgs;
+		const char c;
 		
 	public:
-		Option(const char *s, int nArgs = 0);
+		Option(const char *s, char c = 0, int nArgs = 0);
 		virtual ~Option() {}
+		char getChar() const { return c; }
 		const char* getStr() const { return s; }
 		int neededArgs() const { return nArgs; }
 		virtual void exec(const char *const */*argv*/, int /*index*/) {}
@@ -42,9 +44,12 @@ private:
 			return std::strcmp(l, r) < 0;
 		}
 	};
+	
+	typedef std::map<char,Option*> smap_t;
+	typedef std::map<const char*,Option*,StrLess> lmap_t;
 
-	std::map<char,Option*> sMap;
-	std::map<const char*,Option*,StrLess> lMap;
+	smap_t sMap;
+	lmap_t lMap;
 
 	void addLong(Option *o);
 	void addShort(Option *o);
@@ -53,7 +58,7 @@ private:
 	
 public:
 	void add(Option *o);
-	int parse(int argc,const char *const *argv, int index);
+	int parse(int argc, const char *const *argv, int index);
 };
 
 #endif
