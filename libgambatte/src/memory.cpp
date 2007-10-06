@@ -119,7 +119,7 @@ void Memory::init() {
 	next_timatime = uint32_t(-1);
 	tmatime = uint32_t(-1);
 	next_unhalttime = uint32_t(-1);
-	next_endtime = 0;
+	next_endtime = 0x102A0;
 	next_dmatime = uint32_t(-1);
 	next_hdmaReschedule = uint32_t(-1);
 	next_blittime = 0x102A0 + 144 * 456 - 1;
@@ -1568,7 +1568,8 @@ bool Memory::loadROM() {
 		cgb_wramdata = new uint8_t[0x8000];
 		
 		std::memcpy(cgb_wramdata, memory + 0xC000, 0x2000);
-		std::memcpy(cgb_wramdata + 0x2000, cgb_wramdata, 0x6000);
+		std::memcpy(cgb_wramdata + 0x2000, cgb_wramdata, 0x2000);
+		std::memcpy(cgb_wramdata + 0x4000, cgb_wramdata, 0x4000);
 		
 		mem[0xC] = &cgb_wramdata[0];
 		mem[0xD] = &cgb_wramdata[0x1000];
