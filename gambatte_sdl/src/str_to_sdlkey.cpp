@@ -28,7 +28,9 @@ struct StrLess {
 	}
 };
 
-static std::map<const char*,SDLKey,StrLess> m;
+typedef std::map<const char*,SDLKey,StrLess> map_t;
+
+static map_t m;
 
 static void init() {
 	m.insert(std::pair<const char*,SDLKey>("backspace", SDLK_BACKSPACE));
@@ -39,19 +41,19 @@ static void init() {
 	m.insert(std::pair<const char*,SDLKey>("escape", SDLK_ESCAPE));
 	m.insert(std::pair<const char*,SDLKey>("space", SDLK_SPACE));
 	m.insert(std::pair<const char*,SDLKey>("!", SDLK_EXCLAIM));
-	m.insert(std::pair<const char*,SDLKey>("\"", SDLK_QUOTEDBL));
-	m.insert(std::pair<const char*,SDLKey>("#", SDLK_HASH));
+	m.insert(std::pair<const char*,SDLKey>("quotedbl", SDLK_QUOTEDBL));
+	m.insert(std::pair<const char*,SDLKey>("hash", SDLK_HASH));
 	m.insert(std::pair<const char*,SDLKey>("$", SDLK_DOLLAR));
-	m.insert(std::pair<const char*,SDLKey>("&", SDLK_AMPERSAND));
-	m.insert(std::pair<const char*,SDLKey>("'", SDLK_QUOTE));
-	m.insert(std::pair<const char*,SDLKey>("(", SDLK_LEFTPAREN));
-	m.insert(std::pair<const char*,SDLKey>(")", SDLK_RIGHTPAREN));
-	m.insert(std::pair<const char*,SDLKey>("*", SDLK_ASTERISK));
+	m.insert(std::pair<const char*,SDLKey>("ampersand", SDLK_AMPERSAND));
+	m.insert(std::pair<const char*,SDLKey>("quote", SDLK_QUOTE));
+	m.insert(std::pair<const char*,SDLKey>("leftparen", SDLK_LEFTPAREN));
+	m.insert(std::pair<const char*,SDLKey>("rightparen", SDLK_RIGHTPAREN));
+	m.insert(std::pair<const char*,SDLKey>("asterisk", SDLK_ASTERISK));
 	m.insert(std::pair<const char*,SDLKey>("+", SDLK_PLUS));
 	m.insert(std::pair<const char*,SDLKey>(",", SDLK_COMMA));
 	m.insert(std::pair<const char*,SDLKey>("-", SDLK_MINUS));
-	m.insert(std::pair<const char*,SDLKey>(".", SDLK_PERIOD));
-	m.insert(std::pair<const char*,SDLKey>("/", SDLK_SLASH));
+	m.insert(std::pair<const char*,SDLKey>("period", SDLK_PERIOD));
+	m.insert(std::pair<const char*,SDLKey>("slash", SDLK_SLASH));
 	m.insert(std::pair<const char*,SDLKey>("0", SDLK_0));
 	m.insert(std::pair<const char*,SDLKey>("1", SDLK_1));
 	m.insert(std::pair<const char*,SDLKey>("2", SDLK_2));
@@ -63,18 +65,18 @@ static void init() {
 	m.insert(std::pair<const char*,SDLKey>("8", SDLK_8));
 	m.insert(std::pair<const char*,SDLKey>("9", SDLK_9));
 	m.insert(std::pair<const char*,SDLKey>(":", SDLK_COLON));
-	m.insert(std::pair<const char*,SDLKey>(";", SDLK_SEMICOLON));
-	m.insert(std::pair<const char*,SDLKey>("<", SDLK_LESS));
+	m.insert(std::pair<const char*,SDLKey>("semicolon", SDLK_SEMICOLON));
+	m.insert(std::pair<const char*,SDLKey>("less", SDLK_LESS));
 	m.insert(std::pair<const char*,SDLKey>("=", SDLK_EQUALS));
-	m.insert(std::pair<const char*,SDLKey>(">", SDLK_GREATER));
-	m.insert(std::pair<const char*,SDLKey>("?", SDLK_QUESTION));
+	m.insert(std::pair<const char*,SDLKey>("greater", SDLK_GREATER));
+	m.insert(std::pair<const char*,SDLKey>("question", SDLK_QUESTION));
 	m.insert(std::pair<const char*,SDLKey>("@", SDLK_AT));
 	m.insert(std::pair<const char*,SDLKey>("[", SDLK_LEFTBRACKET));
-	m.insert(std::pair<const char*,SDLKey>("\\", SDLK_BACKSLASH));
+	m.insert(std::pair<const char*,SDLKey>("backslash", SDLK_BACKSLASH));
 	m.insert(std::pair<const char*,SDLKey>("]", SDLK_RIGHTBRACKET));
 	m.insert(std::pair<const char*,SDLKey>("^", SDLK_CARET));
 	m.insert(std::pair<const char*,SDLKey>("_", SDLK_UNDERSCORE));
-	m.insert(std::pair<const char*,SDLKey>("`", SDLK_BACKQUOTE));
+	m.insert(std::pair<const char*,SDLKey>("backquote", SDLK_BACKQUOTE));
 	m.insert(std::pair<const char*,SDLKey>("a", SDLK_a));
 	m.insert(std::pair<const char*,SDLKey>("b", SDLK_b));
 	m.insert(std::pair<const char*,SDLKey>("c", SDLK_c));
@@ -208,9 +210,9 @@ static void init() {
 	m.insert(std::pair<const char*,SDLKey>("kp_7", SDLK_KP7));
 	m.insert(std::pair<const char*,SDLKey>("kp_8", SDLK_KP8));
 	m.insert(std::pair<const char*,SDLKey>("kp_9", SDLK_KP9));
-	m.insert(std::pair<const char*,SDLKey>("kp_.", SDLK_KP_PERIOD));
-	m.insert(std::pair<const char*,SDLKey>("kp_/", SDLK_KP_DIVIDE));
-	m.insert(std::pair<const char*,SDLKey>("kp_*", SDLK_KP_MULTIPLY));
+	m.insert(std::pair<const char*,SDLKey>("kp_period", SDLK_KP_PERIOD));
+	m.insert(std::pair<const char*,SDLKey>("kp_divide", SDLK_KP_DIVIDE));
+	m.insert(std::pair<const char*,SDLKey>("kp_multiply", SDLK_KP_MULTIPLY));
 	m.insert(std::pair<const char*,SDLKey>("kp_-", SDLK_KP_MINUS));
 	m.insert(std::pair<const char*,SDLKey>("kp_+", SDLK_KP_PLUS));
 	m.insert(std::pair<const char*,SDLKey>("kp_enter", SDLK_KP_ENTER));
@@ -264,11 +266,20 @@ static void init() {
 	m.insert(std::pair<const char*,SDLKey>("undo", SDLK_UNDO));
 }
 
+void printStrSdlkeys() {
+	if (m.empty())
+		init();
+	
+	for (map_t::iterator it = m.begin(); it != m.end(); ++it) {
+		printf("%s\n", it->first);
+	}
+}
+
 const SDLKey* strToSdlkey(const char *const str) {
 	if (m.empty())
 		init();
 	
-	std::map<const char*,SDLKey,StrLess>::iterator it = m.find(str);
+	map_t::iterator it = m.find(str);
 	
 	return it == m.end() ? 0 : &it->second;
 }

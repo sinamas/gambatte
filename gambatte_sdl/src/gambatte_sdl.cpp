@@ -44,6 +44,15 @@ public:
 	bool startFull() const { return full; }
 };
 
+class ListKeysOption : public DescOption {
+	bool execed;
+public:
+	ListKeysOption() : DescOption("list-keys"), execed(false) {}
+	void exec(const char *const */*argv*/, int /*index*/) { execed = true; }
+	const char* getDesc() const { return "\t\tList valid input KEYS\n"; }
+	bool isExeced() const { return execed; }
+};
+
 class RateOption : public DescOption {
 	unsigned rate;
 	
@@ -426,7 +435,7 @@ static void printUsage(std::vector<DescOption*> &v) {
 		if (v[i]->getChar())
 			std::printf("-%c, ", v[i]->getChar());
 		else
-			std::printf("     ");
+			std::printf("    ");
 		
 		std::printf("--%s%s\n", v[i]->getStr(), v[i]->getDesc());
 	}
@@ -448,6 +457,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&fsOption);
 		InputOption inputOption;
 		v.push_back(&inputOption);
+		ListKeysOption lkOption;
+		v.push_back(&lkOption);
 		RateOption rateOption;
 		v.push_back(&rateOption);
 		ScaleOption scaleOption;
@@ -472,6 +483,24 @@ bool GambatteSdl::init(int argc, char **argv) {
 			} else if (!loadIndex) {
 				loadIndex = i;
 			}
+		}
+		
+		if (lkOption.isExeced()) {
+			std::printf("Valid input KEYS:\n");
+			printStrSdlkeys();
+			static const char *const jsnam = "jsNaM";
+			static const char *const jsnhm = "jsNhM";
+			static const char *const joystick_n = "Joystick N";
+			static const char *const axis_m = "axis M";
+			static const char *const hat_m = "hat M";
+			std::printf("%s+\t(%s %s +)\n", jsnam, joystick_n, axis_m);
+			std::printf("%s-\t(%s %s -)\n", jsnam, joystick_n, axis_m);
+			std::printf("jsNbM\t(%s button M)\n", joystick_n);
+			std::printf("%sd\t(%s %s down)\n", jsnhm, joystick_n, hat_m);
+			std::printf("%sl\t(%s %s left)\n", jsnhm, joystick_n, hat_m);
+			std::printf("%sr\t(%s %s right)\n", jsnhm, joystick_n, hat_m);
+			std::printf("%su\t(%s %s up)\n", jsnhm, joystick_n, hat_m);
+			return 1;
 		}
 		
 		if (!loadIndex) {

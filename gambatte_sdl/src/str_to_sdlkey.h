@@ -23,5 +23,6 @@
 #include <SDL.h>
 
 const SDLKey* strToSdlkey(const char *str);
+void printStrSdlkeys();
 
 #endif
