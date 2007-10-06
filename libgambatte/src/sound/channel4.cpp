@@ -30,28 +30,51 @@ static unsigned toPeriod(const unsigned nr3) {
 	return r << s;
 }
 
+void Channel4::Lfsr::updateBackupCounter(const unsigned cc) {
+	if (backupCounter <= cc) {
+		const unsigned period = toPeriod(nr3);
+		backupCounter = cc - (cc - backupCounter) % period + period;
+	}
+}
+
 void Channel4::Lfsr::event() {
 	if (nr3 < 0xE0) {
 		const unsigned shifted = reg >> 1;
-		const unsigned xored = reg ^ shifted;
-		const unsigned sa = 14 - (nr3 & 8);
-		const unsigned mask = 1 << sa;
+		const unsigned xored = (reg ^ shifted) & 1;
 		
-		reg = shifted & ~mask | xored << sa & mask;
+		reg = shifted | xored << 14;
+		
+		if (nr3 & 8)
+			reg = reg & ~0x40 | xored << 6;
 	}
 	
 	counter += toPeriod(nr3);
+	backupCounter = counter;
 }
 
-void Channel4::Lfsr::nr4Init(unsigned cycleCounter) {
+void Channel4::Lfsr::nr3Change(const unsigned newNr3, const unsigned cc) {
+	updateBackupCounter(cc);
+	nr3 = newNr3;
+}
+
+void Channel4::Lfsr::nr4Init(unsigned cc) {
 	reg = 0xFF;
-	counter = cycleCounter + toPeriod(nr3);
+	updateBackupCounter(cc);
+	backupCounter += 4;
+	counter = backupCounter;
 }
 
-void Channel4::Lfsr::init() {
+void Channel4::Lfsr::init(const unsigned cc) {
 	nr3 = 0;
 	reg = 0xFF;
+	backupCounter = cc + toPeriod(nr3);
 	counter = 0xFFFFFFFF;
+}
+
+void Channel4::Lfsr::resetCounters(const unsigned oldCc) {
+	updateBackupCounter(oldCc);
+	backupCounter -= 0x80000000;
+	SoundUnit::resetCounters(oldCc);
 }
 
 Channel4::Channel4() :
@@ -105,7 +128,7 @@ void Channel4::reset() {
 	cycleCounter = 0x1000 | cycleCounter & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
 
 // 	lengthCounter.reset();
-// 	lfsr.reset();
+	lfsr.reset(cycleCounter);
 	envelopeUnit.reset();
 	
 	setEvent();
@@ -116,7 +139,7 @@ void Channel4::init(const unsigned cc, const bool cgb) {
 	
 	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
 	
-	lfsr.init();
+	lfsr.init(cycleCounter);
 	lengthCounter.init(cgb);
 	envelopeUnit.init(false, cycleCounter);
 	

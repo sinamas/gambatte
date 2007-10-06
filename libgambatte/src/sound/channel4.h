@@ -25,22 +25,26 @@
 
 class Channel4 {
 	class Lfsr : public SoundUnit {
+		uint32_t backupCounter;
 		uint16_t reg;
 		uint8_t nr3;
+		
+		void updateBackupCounter(unsigned cc);
 		
 	public:
 		Lfsr() {}
 		void event();
-		bool isHighState() const { return reg & 1; }
-		void nr3Change(unsigned newNr3) { nr3 = newNr3; }
-		void nr4Init(unsigned cycleCounter);
-		void init();
+		bool isHighState() const { return ~reg & 1; }
+		void nr3Change(unsigned newNr3, unsigned cc);
+		void nr4Init(unsigned cc);
+		void init(unsigned cc);
+		void reset(unsigned cc) { init(cc); }
+		void resetCounters(unsigned oldCc);
 		void killCounter() { counter = 0xFFFFFFFF; }
 	};
 	
 	class Ch4MasterDisabler : public MasterDisabler {
 		Lfsr &lfsr;
-		
 	public:
 		Ch4MasterDisabler(bool &m, Lfsr &lfsr) : MasterDisabler(m), lfsr(lfsr) {}
 		void operator()() { MasterDisabler::operator()(); lfsr.killCounter(); }
@@ -65,7 +69,7 @@ public:
 	Channel4();
 	void setNr1(unsigned data);
 	void setNr2(unsigned data);
-	void setNr3(unsigned data) { lfsr.nr3Change(data); }
+	void setNr3(unsigned data) { lfsr.nr3Change(data, cycleCounter); }
 	void setNr4(unsigned data);
 	
 	void setSo(bool so1, bool so2);
