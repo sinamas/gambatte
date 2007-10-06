@@ -36,7 +36,7 @@ struct DescOption : Parser::Option {
 
 class FsOption : public DescOption {
 	bool full;
-	
+
 public:
 	FsOption() : DescOption("full-screen", 'f'), full(false) {}
 	void exec(const char *const */*argv*/, int /*index*/) { full = true; }
