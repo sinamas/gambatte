@@ -101,16 +101,14 @@ void PSG::resetCounter(const unsigned newCc, const unsigned oldCc, const unsigne
 }
 
 void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
-// 	printf("bufPos: %u\n", bufferPos);
 	const unsigned endPos = std::min(bufferPos, 35112U);
 	
-	if (stream && samples) {
-	uint16_t *const streamEnd = stream + samples * 2;
-	const uint32_t *buf = buffer;
-
-	const unsigned ratio = (endPos << 16) / samples;
+	if (stream && samples && endPos >= samples) {
+		uint16_t *const streamEnd = stream + samples * 2;
+		const uint32_t *buf = buffer;
 	
-	if (ratio) {
+		const unsigned ratio = (endPos << 16) / samples;
+		
 		unsigned whole = ratio >> 16;
 		unsigned frac = ratio & 0xFFFF;
 		unsigned so1 = 0;
@@ -122,11 +120,11 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 				
 				for (const uint32_t *const end = buf + whole; buf != end;)
 					soTmp += *buf++;
-					
+				
 				so1 += soTmp & 0xFFFF0000;
 				so2 += soTmp << 16 & 0xFFFFFFFF;
 			}
-
+			
 			{
 				const unsigned borderSample = *buf++;
 				const unsigned so1Tmp = (borderSample >> 16) * frac;
@@ -134,19 +132,18 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 				
 				so1 += so1Tmp;
 				so2 += so2Tmp;
-	
+				
 				*stream++ = (so2 / 4389) * samples + 8192 >> 14;
 				*stream++ = (so1 / 4389) * samples + 8192 >> 14;
 				
 				so1 = (borderSample & 0xFFFF0000) - so1Tmp;
 				so2 = (borderSample << 16 & 0xFFFFFFFF) - so2Tmp;
 			}
-
+			
 			const unsigned nextTotal = ratio - ((1 << 16) - frac);
 			whole = nextTotal >> 16;
 			frac = nextTotal & 0xFFFF;
 		}
-	}
 	}
 
 	bufferPos -= endPos;
