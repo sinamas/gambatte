@@ -44,6 +44,25 @@ public:
 	bool startFull() const { return full; }
 };
 
+class RateOption : public DescOption {
+	unsigned rate;
+	
+public:
+	RateOption() : DescOption("sample-rate", 'r', 1), rate(48000) {}
+	
+	void exec(const char *const *argv, int index) {
+		int tmp = std::atoi(argv[index + 1]);
+		
+		if (tmp < 32000 || tmp > 192000)
+			return;
+		
+		rate = tmp;
+	}
+	
+	const char* getDesc() const { return " N\t\tUse audio sample rate of N Hz\n\t\t\t\t    32000 <= N <= 192000, default: 48000\n"; }
+	unsigned getRate() const { return rate; }
+};
+
 class ScaleOption : public DescOption {
 	Uint8 scale;
 	
@@ -429,6 +448,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&fsOption);
 		InputOption inputOption;
 		v.push_back(&inputOption);
+		RateOption rateOption;
+		v.push_back(&rateOption);
 		ScaleOption scaleOption;
 		v.push_back(&scaleOption);
 		VfOption vfOption(gambatte.filterInfo());
@@ -466,6 +487,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 		if (fsOption.startFull())
 			blitter.setStartFull();
 		
+		sampleRate = rateOption.getRate();
 		blitter.setScale(scaleOption.getScale());
 		blitter.setYuv(yuvOption.useYuv());
 		gambatte.setVideoFilter(vfOption.filterNumber());
