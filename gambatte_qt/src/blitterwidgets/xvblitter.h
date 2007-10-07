@@ -20,6 +20,7 @@
 #define XVBLITTER_H
 
 #include <QComboBox>
+#include <memory>
 
 #include "../blitterwidget.h"
 
@@ -31,12 +32,12 @@ class XvSubBlitter;
 
 class XvBlitter : public BlitterWidget {
 // 	XShmSegmentInfo shminfo;
-	XvSubBlitter *subBlitter;
+	std::auto_ptr<XvSubBlitter> subBlitter;
 	XvPortID xvport;
 // 	u_int16_t *xvbuffer;
 // 	u_int32_t *yuv_table;
 // 	XvImage *xvimage;
-	QWidget *confWidget;
+	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *portSelector;
 	unsigned int inWidth, inHeight;
 	int old_w, old_h;
@@ -72,7 +73,7 @@ public:
 	const PixelBuffer inBuffer();
 	void blit();
 	
-	QWidget* settingsWidget() { return confWidget; }
+	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
 };

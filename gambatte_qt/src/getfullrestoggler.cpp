@@ -20,6 +20,6 @@
 
 #include "fullrestogglers/nulltoggler.h"
 
-FullResToggler* getFullResToggler() {
-	return new NullToggler;
+std::auto_ptr<FullResToggler> getFullResToggler() {
+	return std::auto_ptr<FullResToggler>(new NullToggler);
 }

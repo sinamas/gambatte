@@ -26,6 +26,7 @@
 #include <QSize>
 #include <vector>
 #include <map>
+#include <memory>
 #include <gambatte.h>
 #include "videobufferreseter.h"
 #include "samplescalculator.h"
@@ -41,11 +42,29 @@ class VideoDialog;
 class InputDialog;
 class FullResToggler;
 class BlitterContainer;
-class GbKeyHandler;
-class GbJoyHandler;
+class JoyObserver;
 
-class InputGetter : public InputStateGetter {
+struct InputObserver {
+	virtual ~InputObserver() {}
+	virtual void valueChanged(bool value) = 0;
+};
+
+class GbDirHandler : public InputObserver {
+	bool &gbButton;
+	bool &negGbButton;
 public:
+	GbDirHandler(bool &gbButton, bool &negGbButton) : gbButton(gbButton), negGbButton(negGbButton) {}
+	void valueChanged(const bool value) { if ((gbButton = value)) negGbButton = false; }
+};
+
+class GbButHandler : public InputObserver {
+	bool &gbButton;
+public:
+	GbButHandler(bool &gbButton) : gbButton(gbButton) {}
+	void valueChanged(const bool value) { gbButton = value; }
+};
+
+struct InputGetter : public InputStateGetter {
 	InputState is;
 	const InputState& operator()() { return is; }
 };
@@ -59,15 +78,26 @@ public:
 
 class GambatteQt : public QMainWindow {
 	Q_OBJECT
+		
+	typedef std::multimap<unsigned,InputObserver*> keymap_t;
+	typedef std::multimap<unsigned,JoyObserver*> joymap_t;
 	
 	Gambatte gambatte;
 
 	std::vector<AudioEngine*> audioEngines;
 	std::vector<BlitterWidget*> blitters;
-	std::multimap<unsigned,GbKeyHandler*> keyInputs;
-	std::multimap<unsigned,GbJoyHandler*> joyInputs;
+	keymap_t keyInputs;
+	joymap_t joyInputs;
 	
 	InputGetter inputGetter;
+	GbDirHandler gbUpHandler;
+	GbDirHandler gbDownHandler;
+	GbDirHandler gbLeftHandler;
+	GbDirHandler gbRightHandler;
+	GbButHandler gbAHandler;
+	GbButHandler gbBHandler;
+	GbButHandler gbStartHandler;
+	GbButHandler gbSelectHandler;
 	VideoBufferReseter resetVideoBuffer;
 	
 	int16_t *sndBuffer;
@@ -80,7 +110,7 @@ class GambatteQt : public QMainWindow {
 	InputDialog *inputDialog;
 	VideoDialog* videoDialog;
 	BlitterWidget *blitter;
-	FullResToggler *fullResToggler;
+	const std::auto_ptr<FullResToggler> fullResToggler;
 
 	enum { MaxRecentFiles = 8 };
 	QAction *recentFileActs[MaxRecentFiles];
@@ -113,7 +143,7 @@ class GambatteQt : public QMainWindow {
 	QString strippedName(const QString &fullFileName);
 	void execDialog(QDialog *dialog);
 	void clearInputVectors();
-	void pushGbInputHandler(const SDL_Event &data, bool &gbButton, bool *gbNegButton = NULL);
+	void pushInputObserver(const SDL_Event &data, InputObserver &observer);
 	void updateJoysticks();
 	
 private slots:

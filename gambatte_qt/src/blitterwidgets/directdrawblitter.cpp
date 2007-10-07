@@ -73,8 +73,6 @@ DirectDrawBlitter::~DirectDrawBlitter() {
 	settings.setValue("flipping", flipping);
 	settings.setValue("videoSurface", videoSurface);
 	settings.endGroup();
-	
-	delete confWidget;
 }
 
 void DirectDrawBlitter::videoSurfaceBlit() {

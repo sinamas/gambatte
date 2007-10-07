@@ -311,7 +311,6 @@ QGLBlitter::~QGLBlitter() {
 	uninit();
 	
 // 	delete subWidget;
-	delete confWidget;
 	
 	QSettings settings;
 	settings.beginGroup("qglblitter");
@@ -327,7 +326,7 @@ void QGLBlitter::resizeEvent(QResizeEvent *const event) {
 void QGLBlitter::uninit() {
 	subWidget->uninit();
 	
-	delete[] buffer;
+	delete []buffer;
 	buffer = NULL;
 }
 

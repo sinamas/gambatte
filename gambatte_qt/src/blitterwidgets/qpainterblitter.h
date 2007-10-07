@@ -21,6 +21,7 @@
 
 #include "../blitterwidget.h"
 #include <stdint.h>
+#include <memory>
 
 class QPainter;
 class QImage;
@@ -28,7 +29,7 @@ class VideoBufferReseter;
 
 class QPainterBlitter : public BlitterWidget {
 	VideoBufferReseter &resetVideoBuffer;
-	QImage *image;
+	std::auto_ptr<QImage> image;
 	uint32_t *buffer;
 	unsigned int inWidth, inHeight;
 	unsigned int scale;

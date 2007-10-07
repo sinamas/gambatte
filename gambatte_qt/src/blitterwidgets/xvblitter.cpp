@@ -184,10 +184,10 @@ static void addPorts(QComboBox *portSelector) {
 
 XvBlitter::XvBlitter(QWidget *parent) :
 		BlitterWidget(QString("Xv"), parent),
-		subBlitter(NULL),
 // 		xvbuffer(NULL),
 // 		yuv_table(NULL),
 // 		xvimage(NULL),
+		confWidget(new QWidget()),
 		inWidth(160),
 		inHeight(144),
 		old_w(0),
@@ -214,7 +214,6 @@ XvBlitter::XvBlitter(QWidget *parent) :
 		gc = XCreateGC(QX11Info::display(), QX11Info::appRootWindow(), GCForeground | GCBackground, &gcValues);
 	}
 	
-	confWidget = new QWidget();
 	QHBoxLayout *layout = new QHBoxLayout;
 	layout->setMargin(0);
 	layout->addWidget(new QLabel(QString(tr("Xv Port:"))));
@@ -294,10 +293,7 @@ void XvBlitter::uninit() {
 // 	delete []yuv_table;
 // 	yuv_table = NULL;
 
-	if (subBlitter) {
-		delete subBlitter;
-		subBlitter = NULL;
-	}
+	subBlitter.reset();
 	
 	if (portGrabbed) {
 		XvUngrabPort(QX11Info::display(), xvport, CurrentTime);
@@ -311,7 +307,6 @@ void XvBlitter::uninit() {
 XvBlitter::~XvBlitter() {
 	uninit();
 	XFreeGC(QX11Info::display(), gc);
-	delete confWidget;
 	
 	QSettings settings;
 	settings.beginGroup("xvblitter");
@@ -355,22 +350,15 @@ void XvBlitter::setBufferDimensions(const unsigned int width, const unsigned int
 	inWidth = width;
 	inHeight = height;
 	
-	if (subBlitter) {
-		delete subBlitter;
-		subBlitter = NULL;
-	}
-	
 	if (shm) {
-		subBlitter = new XvShmBlitter(xvport, width, height);
+		subBlitter.reset(new XvShmBlitter(xvport, width, height));
 		
-		if (subBlitter->failed()) {
+		if (subBlitter->failed())
 			shm = false;
-			delete subBlitter;
-		}
 	}
 	
 	if (!shm)
-		subBlitter = new XvPlainBlitter(xvport, width, height);
+		subBlitter.reset(new XvPlainBlitter(xvport, width, height));
 
 // 	delete []xvbuffer;
 // 	xvbuffer = new u_int16_t[width*height];

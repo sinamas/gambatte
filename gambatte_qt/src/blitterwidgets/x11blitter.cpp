@@ -152,7 +152,6 @@ const PixelBuffer X11PlainBlitter::inBuffer() {
 X11Blitter::X11Blitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
 BlitterWidget(QString("X11"), true, parent),
 resetVideoBuffer(resetVideoBuffer_in),
-subBlitter(NULL),
 buffer(NULL),
 inWidth(160),
 inHeight(144),
@@ -181,8 +180,7 @@ void X11Blitter::init() {
 }
 
 void X11Blitter::uninit() {
-	delete subBlitter;
-	subBlitter = NULL;
+	subBlitter.reset();
 	
 	delete[] buffer;
 	buffer = NULL;
@@ -228,7 +226,7 @@ void X11Blitter::paintEvent(QPaintEvent *event) {
 */
 
 void X11Blitter::paintEvent(QPaintEvent *event) {
-	if (subBlitter) {
+	if (subBlitter.get()) {
 		event->accept();
 		const QRect &rect = event->rect();
 		subBlitter->blit(winId(), rect.x(), rect.y(), rect.width(), rect.height());
@@ -247,16 +245,14 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 		buffer = new char[w * h * (QX11Info::appDepth() == 16 ? 2 : 4)];
 	
 	if (shm) {
-		subBlitter = new X11ShmBlitter(w * scale, h * scale);
+		subBlitter.reset(new X11ShmBlitter(w * scale, h * scale));
 		
-		if (subBlitter->failed()) {
+		if (subBlitter->failed())
 			shm = false;
-			delete subBlitter;
-		}
 	}
 	
 	if (!shm)
-		subBlitter = new X11PlainBlitter (w * scale, h * scale);
+		subBlitter.reset(new X11PlainBlitter (w * scale, h * scale));
 }
 
 const PixelBuffer X11Blitter::inBuffer() {
@@ -293,7 +289,7 @@ void X11Blitter::resizeEvent(QResizeEvent */*event*/) {
 	if (newScale != scale) {
 		scale = newScale;
 		
-		if (subBlitter) {
+		if (subBlitter.get()) {
 			setBufferDimensions(inWidth, inHeight);
 			resetVideoBuffer();
 		}

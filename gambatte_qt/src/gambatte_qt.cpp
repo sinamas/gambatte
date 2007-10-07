@@ -43,30 +43,32 @@
 #include "resizesignalingmenubar.h"
 #include "SDL_Joystick/include/SDL_joystick.h"
 
-class GbKeyHandler {
-	bool &gbButton;
-	bool *const negGbButton;
-public:
-	GbKeyHandler(bool &gbButton, bool *negGbButton = NULL) : gbButton(gbButton), negGbButton(negGbButton) {}
-	
-	void handleValue(const bool keyPressed) {
-		if ((gbButton = keyPressed) && negGbButton)
-			*negGbButton = false;
-	}
+struct JoyObserver {
+	virtual ~JoyObserver() {}
+	virtual void valueChanged(int value) = 0;
 };
 
-class GbJoyHandler {
-	bool &gbButton;
-	bool *const negGbButton;
+class JoyAxisHandler : public JoyObserver {
+	InputObserver &observer;
 	const int threshold;
 public:
-	GbJoyHandler(int threshold, bool &gbButton, bool *negGbButton = NULL) :
-		gbButton(gbButton), negGbButton(negGbButton), threshold(threshold) {}
-	
-	void handleValue(const int value) {
-		if ((gbButton = (value - threshold ^ threshold) >= 0) && negGbButton)
-			*negGbButton = false;
-	}
+	JoyAxisHandler(InputObserver &observer, const int threshold) : observer(observer), threshold(threshold) {}
+	void valueChanged(const int value) { observer.valueChanged((value - threshold ^ threshold) >= 0); }
+};
+
+class JoyButHandler : public JoyObserver {
+	InputObserver &observer;
+public:
+	JoyButHandler(InputObserver &observer) : observer(observer) {}
+	void valueChanged(const int value) { observer.valueChanged(value); }
+};
+
+class JoyHatHandler : public JoyObserver {
+	InputObserver &observer;
+	const int mask;
+public:
+	JoyHatHandler(InputObserver &observer, const int mask) : observer(observer), mask(mask) {}
+	void valueChanged(const int value) { observer.valueChanged((value & mask) == mask); }
 };
 
 JoystickIniter::JoystickIniter() {
@@ -94,16 +96,26 @@ JoystickIniter::~JoystickIniter() {
 	SDL_JoystickQuit();
 }
 
-GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuffer(gambatte) {
+GambatteQt::GambatteQt(const int argc, const char *const argv[]) :
+gbUpHandler(inputGetter.is.dpadUp, inputGetter.is.dpadDown),
+gbDownHandler(inputGetter.is.dpadDown, inputGetter.is.dpadUp),
+gbLeftHandler(inputGetter.is.dpadLeft, inputGetter.is.dpadRight),
+gbRightHandler(inputGetter.is.dpadRight, inputGetter.is.dpadLeft),
+gbAHandler(inputGetter.is.aButton),
+gbBHandler(inputGetter.is.bButton),
+gbStartHandler(inputGetter.is.startButton),
+gbSelectHandler(inputGetter.is.selectButton),
+resetVideoBuffer(gambatte),
+fullResToggler(getFullResToggler()) {
 	blitter = NULL;
 	ae = NULL;
+	sndBuffer = NULL;
 	timerId = 0;
 	running = false;
 	turbo = false;
 	//samplesPrFrame = ((sampleFormat.rate * 4389) / 262144) + 1;
 	samplesPrFrame = 0;
 	sampleRate = 0;
-	sndBuffer = NULL;
 	
 	setAttribute(Qt::WA_DeleteOnClose);
 
@@ -126,8 +138,6 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 	
 	inputDialog = new InputDialog(this);
 	connect(inputDialog, SIGNAL(accepted()), this, SLOT(inputSettingsChange()));
-
-	fullResToggler = getFullResToggler();
 
 	addBlitterWidgets(blitters, resetVideoBuffer);
 	blitters.push_back(new QGLBlitter);
@@ -179,8 +189,6 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) : resetVideoBuf
 
 GambatteQt::~GambatteQt() {
 	clearInputVectors();
-
-	delete fullResToggler;
 	
 	for (uint i = 0; i < blitters.size(); ++i)
 		delete blitters[i];
@@ -259,35 +267,42 @@ void GambatteQt::toggleMenuHidden() {
 }
 
 void GambatteQt::clearInputVectors() {
-	for (std::multimap<unsigned,GbKeyHandler*>::iterator it = keyInputs.begin(); it != keyInputs.end(); ++it)
-		delete it->second;
-		
 	keyInputs.clear();
 	
-	for (std::multimap<unsigned,GbJoyHandler*>::iterator it = joyInputs.begin(); it != joyInputs.end(); ++it)
+	for (joymap_t::iterator it = joyInputs.begin(); it != joyInputs.end(); ++it)
 		delete it->second;
 		
 	joyInputs.clear();
 }
 
-void GambatteQt::pushGbInputHandler(const SDL_Event &data, bool &gbButton, bool *gbNegButton) {
-	if (data.value)
-		joyInputs.insert(std::pair<unsigned,GbJoyHandler*>(data.id, new GbJoyHandler(data.value, gbButton, gbNegButton)));
-	else
-		keyInputs.insert(std::pair<unsigned,GbKeyHandler*>(data.id, new GbKeyHandler(gbButton, gbNegButton)));
+void GambatteQt::pushInputObserver(const SDL_Event &data, InputObserver &observer) {
+	if (data.value == KBD_VALUE) {
+		keyInputs.insert(std::pair<unsigned,InputObserver*>(data.id, &observer));
+	} else {
+		JoyObserver *jhandler = NULL;
+		
+		switch (data.type) {
+		case SDL_JOYAXISMOTION: jhandler = new JoyAxisHandler(observer, data.value); break;
+		case SDL_JOYHATMOTION: jhandler = new JoyHatHandler(observer, data.value); break;
+		case SDL_JOYBUTTONCHANGE: jhandler = new JoyButHandler(observer); break;
+		default: return;
+		}
+		
+		joyInputs.insert(std::pair<unsigned,JoyObserver*>(data.id, jhandler));
+	}
 }
 
 void GambatteQt::inputSettingsChange() {
 	clearInputVectors();
 	
-	pushGbInputHandler(inputDialog->getUpData(), inputGetter.is.dpadUp, &inputGetter.is.dpadDown);
-	pushGbInputHandler(inputDialog->getDownData(), inputGetter.is.dpadDown, &inputGetter.is.dpadUp);
-	pushGbInputHandler(inputDialog->getLeftData(), inputGetter.is.dpadLeft, &inputGetter.is.dpadRight);
-	pushGbInputHandler(inputDialog->getRightData(), inputGetter.is.dpadRight, &inputGetter.is.dpadLeft);
-	pushGbInputHandler(inputDialog->getAData(), inputGetter.is.aButton);
-	pushGbInputHandler(inputDialog->getBData(), inputGetter.is.bButton);
-	pushGbInputHandler(inputDialog->getStartData(), inputGetter.is.startButton);
-	pushGbInputHandler(inputDialog->getSelectData(), inputGetter.is.selectButton);
+	pushInputObserver(inputDialog->getUpData(), gbUpHandler);
+	pushInputObserver(inputDialog->getDownData(), gbDownHandler);
+	pushInputObserver(inputDialog->getLeftData(), gbLeftHandler);
+	pushInputObserver(inputDialog->getRightData(), gbRightHandler);
+	pushInputObserver(inputDialog->getAData(), gbAHandler);
+	pushInputObserver(inputDialog->getBData(), gbBHandler);
+	pushInputObserver(inputDialog->getStartData(), gbStartHandler);
+	pushInputObserver(inputDialog->getSelectData(), gbSelectHandler);
 }
 
 void GambatteQt::videoSettingsChange() {
@@ -301,7 +316,7 @@ void GambatteQt::videoSettingsChange() {
 			if (blitter) {
 				updatesEnabled = blitter->updatesEnabled();
 				visible = blitter->isVisible();
-				disconnect(fullResToggler, SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
+				disconnect(fullResToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
 				
 				if (running)
 					blitter->uninit();
@@ -313,13 +328,12 @@ void GambatteQt::videoSettingsChange() {
 			blitter->setVisible(false);
 			blitter->setUpdatesEnabled(updatesEnabled);
 			//connect(fullResToggler, SIGNAL(modeChange()), blitter, SLOT(modeChange()));
-			connect(fullResToggler, SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
+			connect(fullResToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
 			fullResToggler->emitRate();
 			blitterContainer->setBlitter(blitter);
 			blitter->setVisible(visible);
 			
 			if (running) {
-// 				XSync(QX11Info::display(), 0);
 				blitter->init();
 				gambatte.setVideoBlitter(blitter);
 			}
@@ -631,12 +645,10 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 	e->accept();
 	
 	{
-		using namespace std;
+		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
-		pair<multimap<unsigned,GbKeyHandler*>::iterator,multimap<unsigned,GbKeyHandler*>::iterator> range = keyInputs.equal_range(e->key());
-		
-		for (multimap<unsigned,GbKeyHandler*>::iterator it = range.first; it != range.second; ++it)
-			(it->second)->handleValue(true);
+		for (keymap_t::iterator it = range.first; it != range.second; ++it)
+			(it->second)->valueChanged(true);
 	}
 
 	switch (e->key()) {
@@ -666,12 +678,10 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 
 void GambatteQt::keyReleaseEvent(QKeyEvent *e) {
 	{
-		using namespace std;
+		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
-		pair<multimap<unsigned,GbKeyHandler*>::iterator,multimap<unsigned,GbKeyHandler*>::iterator> range = keyInputs.equal_range(e->key());
-		
-		for (multimap<unsigned,GbKeyHandler*>::iterator it = range.first; it != range.second; ++it)
-			(it->second)->handleValue(false);
+		for (keymap_t::iterator it = range.first; it != range.second; ++it)
+			(it->second)->valueChanged(false);
 	}
 
 	switch (e->key()) {
@@ -681,18 +691,16 @@ void GambatteQt::keyReleaseEvent(QKeyEvent *e) {
 }
 
 void GambatteQt::updateJoysticks() {
-	using namespace std;
-	
 	SDL_ClearEvents();
 	SDL_JoystickUpdate();
 	
 	SDL_Event ev;
 	
 	while (SDL_PollEvent(&ev)) {
-		pair<multimap<unsigned,GbJoyHandler*>::iterator,multimap<unsigned,GbJoyHandler*>::iterator> range = joyInputs.equal_range(ev.id);
+		std::pair<joymap_t::iterator,joymap_t::iterator> range = joyInputs.equal_range(ev.id);
 		
-		for (multimap<unsigned,GbJoyHandler*>::iterator it = range.first; it != range.second; ++it)
-			(it->second)->handleValue(ev.value);
+		for (joymap_t::iterator it = range.first; it != range.second; ++it)
+			(it->second)->valueChanged(ev.value);
 	}
 }
 

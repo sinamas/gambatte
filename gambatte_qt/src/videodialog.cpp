@@ -38,6 +38,15 @@ VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters, std::vecto
 QDialog(parent),
 engines(blitters),
 resVector(resHandler.resVector()),
+topLayout(new QVBoxLayout),
+engineSelector(new QComboBox),
+winResSelector(new QComboBox),
+winResSelectorBackup(new QComboBox),
+fullResSelector(new QComboBox),
+hzSelector(new QComboBox),
+keepRatioBox(new QCheckBox(QString("Keep aspect ratio"))),
+integerScalingBox(new QCheckBox(QString("Only scale by integer factors"))),
+filterSelector(new QComboBox),
 engineIndex(0),
 winIndex(0),
 fullIndex(0),
@@ -58,11 +67,6 @@ integerScaling(false)
 
 	QVBoxLayout *mainLayout = new QVBoxLayout;
 	setLayout(mainLayout);
-
-	QLabel *winResLabel = new QLabel(QString(tr("Windowed resolution:")));
-
-	winResSelector = new QComboBox;
-	winResSelectorBackup = new QComboBox;
 	
 	{
 		unsigned hres = 160;
@@ -78,11 +82,6 @@ integerScaling(false)
 	
 	winResSelector->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
 // 	winResSelectorBackup->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
-
-	QLabel *fullResLabel = new QLabel(QString(tr("Full screen resolution:")));
-	fullResSelector = new QComboBox;
-// 	fullResSelectorBackup = new QComboBox;
-	hzSelector = new QComboBox;
 	
 	fillFullResSelector(QSize(160, 144));
 	
@@ -91,14 +90,8 @@ integerScaling(false)
 	for (unsigned int i = 0; i < currentRes.rates.size(); ++i)
 		hzSelector->addItem(QString::number(currentRes.rates[i]) + QString(" Hz"), i);
 
-	QPushButton *okButton = new QPushButton(tr("OK"));
-	QPushButton *cancelButton = new QPushButton(tr("Cancel"));
-
-	topLayout = new QVBoxLayout;
-
 	QHBoxLayout *hLayout = new QHBoxLayout;
 	hLayout->addWidget(new QLabel(tr("Video engine:")));
-	engineSelector = new QComboBox;
 	
 	for (unsigned int i = 0; i < engines.size(); ++i) {
 		engineSelector->addItem(engines[i]->nameString);
@@ -112,27 +105,23 @@ integerScaling(false)
 		topLayout->addWidget(engineWidget);
 
 	hLayout = new QHBoxLayout;
-	hLayout->addWidget(winResLabel);
+	hLayout->addWidget(new QLabel(QString(tr("Windowed resolution:"))));
 	hLayout->addWidget(winResSelector);
 	topLayout->addLayout(hLayout);
 
 	hLayout = new QHBoxLayout;
-	hLayout->addWidget(fullResLabel);
+	hLayout->addWidget(new QLabel(QString(tr("Full screen resolution:"))));
 	QHBoxLayout *hhLayout = new QHBoxLayout;
 	hhLayout->addWidget(fullResSelector);
 	hhLayout->addWidget(hzSelector);
 	hLayout->addLayout(hhLayout);
 	topLayout->addLayout(hLayout);
 
-	keepRatioBox = new QCheckBox(QString("Keep aspect ratio"));
 	topLayout->addWidget(keepRatioBox);
-
-	integerScalingBox = new QCheckBox(QString("Only scale by integer factors"));
 	topLayout->addWidget(integerScalingBox);
 
 	hLayout = new QHBoxLayout;
 	hLayout->addWidget(new QLabel(tr("Video filter:")));
-	filterSelector = new QComboBox;
 	
 	{
 		unsigned maxW = 0;
@@ -166,7 +155,9 @@ integerScaling(false)
 	mainLayout->setAlignment(topLayout, Qt::AlignTop);
 
 	hLayout = new QHBoxLayout;
+	QPushButton *okButton = new QPushButton(tr("OK"));
 	hLayout->addWidget(okButton);
+	QPushButton *cancelButton = new QPushButton(tr("Cancel"));
 	hLayout->addWidget(cancelButton);
 	mainLayout->addLayout(hLayout);
 	mainLayout->setAlignment(hLayout, Qt::AlignBottom | Qt::AlignRight);
@@ -216,7 +207,6 @@ integerScaling(false)
 }
 
 VideoDialog::~VideoDialog() {
-	delete winResSelectorBackup;
 // 	delete fullResSelectorBackup;
 	
 	QSettings settings;

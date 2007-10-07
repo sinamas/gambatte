@@ -21,13 +21,14 @@
 
 #include "../blitterwidget.h"
 #include <stdint.h>
+#include <memory>
 
 class QGLSubWidget;
 class QCheckBox;
 
 class QGLBlitter : public BlitterWidget {
 	QGLSubWidget *subWidget;
-	QWidget *const confWidget;
+	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vsyncBox;
 	QCheckBox *const bfBox;
 	uint32_t *buffer;
@@ -55,7 +56,7 @@ public:
 	void blit();
 	const Rational frameTime() const;
 	int sync(bool turbo);
-	QWidget* settingsWidget() { return confWidget; }
+	QWidget* settingsWidget() { return confWidget.get(); }
 	
 // // 	public slots:
 	void acceptSettings();

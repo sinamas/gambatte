@@ -404,6 +404,11 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 			} else
 				continue;
 			break;
+		case SDL_JOYHATMOTION:
+			if (ev.value == SDL_HAT_CENTERED)
+				continue;
+			value = ev.value;
+			break;
 		case SDL_JOYBUTTONCHANGE:
 			value = JSBUTTON_VALUE;
 			break;
@@ -431,6 +436,19 @@ void InputBox::setData(const unsigned id, const unsigned value) {
 			str.append(QString::number(data.num));
 			str.append(' ');
 			str.append(data.value < 0 ? '-' : '+');
+			break;
+		case SDL_JOYHATMOTION:
+			str.append("Hat ");
+			str.append(QString::number(data.num));
+			str.append(' ');
+			if (data.value & SDL_HAT_UP)
+				str.append("Up");
+			if (data.value & SDL_HAT_DOWN)
+				str.append("Down");
+			if (data.value & SDL_HAT_LEFT)
+				str.append("Left");
+			if (data.value & SDL_HAT_RIGHT)
+				str.append("Right");
 			break;
 		case SDL_JOYBUTTONCHANGE:
 			str.append("Button ");

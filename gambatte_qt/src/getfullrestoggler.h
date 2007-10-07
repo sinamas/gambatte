@@ -19,8 +19,10 @@
 #ifndef GET_FULL_RES_TOGGLER_H
 #define GET_FULL_RES_TOGGLER_H
 
+#include <memory>
+
 class FullResToggler;
 
-FullResToggler* getFullResToggler();
+std::auto_ptr<FullResToggler> getFullResToggler();
 
 #endif

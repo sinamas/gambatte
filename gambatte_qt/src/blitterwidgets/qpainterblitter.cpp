@@ -30,7 +30,6 @@
 QPainterBlitter::QPainterBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
 	BlitterWidget("QPainter", true, parent),
 	resetVideoBuffer(resetVideoBuffer_in),
-	image(NULL),
 	buffer(NULL),
 	inWidth(160),
 	inHeight(144),
@@ -77,7 +76,7 @@ void QPainterBlitter::resizeEvent(QResizeEvent */*event*/) {
 	if (newScale != scale) {
 		scale = newScale;
 		
-		if (image) {
+		if (image.get()) {
 			setBufferDimensions(inWidth, inHeight);
 			resetVideoBuffer();
 		}
@@ -95,14 +94,13 @@ void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned i
 	if (scale > 1)
 		buffer = new uint32_t[w * h];
 	
-	image = new QImage(w * scale, h * scale, QImage::Format_RGB32);
+	image.reset(new QImage(w * scale, h * scale, QImage::Format_RGB32));
 }
 
 void QPainterBlitter::uninit() {
-	delete image;
-	image = NULL;
+	image.reset();
 	
-	delete[] buffer;
+	delete []buffer;
 	buffer = NULL;
 }
 

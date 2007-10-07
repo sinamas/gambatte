@@ -20,6 +20,6 @@
 
 #include "fullrestogglers/gditoggler.h"
 
-FullResToggler* getFullResToggler() {
-	return new GdiToggler;
+std::auto_ptr<FullResToggler> getFullResToggler() {
+	return std::auto_ptr<FullResToggler>(new GdiToggler);
 }

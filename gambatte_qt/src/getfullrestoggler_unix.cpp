@@ -21,9 +21,9 @@
 #include "fullrestogglers/nulltoggler.h"
 #include "fullrestogglers/xrandrtoggler.h"
 
-FullResToggler* getFullResToggler() {
+std::auto_ptr<FullResToggler> getFullResToggler() {
 	if (XRandRToggler::isUsable())
-		return new XRandRToggler;
+		return std::auto_ptr<FullResToggler>(new XRandRToggler);
 	
-	return new NullToggler;
+	return std::auto_ptr<FullResToggler>(new NullToggler);
 }

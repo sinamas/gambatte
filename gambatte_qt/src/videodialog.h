@@ -21,6 +21,7 @@
 
 #include <QDialog>
 #include <vector>
+#include <memory>
 
 class QVBoxLayout;
 class QHBoxLayout;
@@ -37,17 +38,17 @@ class VideoDialog : public QDialog {
 
 	const std::vector<BlitterWidget*> &engines;
 	const std::vector<ResInfo>& resVector;
-	QVBoxLayout *topLayout;
+	QVBoxLayout *const topLayout;
 	QWidget *engineWidget;
-	QComboBox *engineSelector;
-	QComboBox *winResSelector;
-	QComboBox *winResSelectorBackup;
-	QComboBox *fullResSelector;
+	QComboBox *const engineSelector;
+	QComboBox *const winResSelector;
+	const std::auto_ptr<QComboBox> winResSelectorBackup;
+	QComboBox *const fullResSelector;
 // 	QComboBox *fullResSelectorBackup;
-	QComboBox *hzSelector;
-	QCheckBox *keepRatioBox;
-	QCheckBox *integerScalingBox;
-	QComboBox *filterSelector;
+	QComboBox *const hzSelector;
+	QCheckBox *const keepRatioBox;
+	QCheckBox *const integerScalingBox;
+	QComboBox *const filterSelector;
 	int engineIndex;
 	int winIndex;
 	int fullIndex;

@@ -22,13 +22,14 @@
 #include "../blitterwidget.h"
 
 #include <ddraw.h>
+#include <memory>
 
 class QCheckBox;
 class VideoBufferReseter;
 
 class DirectDrawBlitter : public BlitterWidget {
 	VideoBufferReseter &resetVideoBuffer;
-	QWidget *const confWidget;
+	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
 	QCheckBox *const videoSurfaceBox;
@@ -77,7 +78,7 @@ public:
 	void uninit();
 	void setExclusive(bool exclusive);
 	
-	QWidget* settingsWidget() { return confWidget; }
+	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
 	
