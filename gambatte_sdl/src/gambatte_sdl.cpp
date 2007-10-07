@@ -36,7 +36,6 @@ struct DescOption : Parser::Option {
 
 class FsOption : public DescOption {
 	bool full;
-
 public:
 	FsOption() : DescOption("full-screen", 'f'), full(false) {}
 	void exec(const char *const */*argv*/, int /*index*/) { full = true; }
@@ -55,7 +54,6 @@ public:
 
 class RateOption : public DescOption {
 	unsigned rate;
-	
 public:
 	RateOption() : DescOption("sample-rate", 'r', 1), rate(48000) {}
 	
@@ -74,7 +72,6 @@ public:
 
 class ScaleOption : public DescOption {
 	Uint8 scale;
-	
 public:
 	ScaleOption() : DescOption("scale", 's', 1), scale(1) {}
 	
@@ -94,7 +91,6 @@ public:
 class VfOption : public DescOption {
 	std::string s;
 	unsigned filterNr;
-	
 public:
 	VfOption(const std::vector<const FilterInfo*> &finfo);
 	void exec(const char *const *argv, int index) { filterNr = std::atoi(argv[index + 1]); }
@@ -115,11 +111,10 @@ VfOption::VfOption(const std::vector<const FilterInfo*> &finfo) : DescOption("vi
 
 class YuvOption : public DescOption {
 	bool yuv;
-	
 public:
 	YuvOption() : DescOption("yuv-overlay", 'y'), yuv(false) {}
 	void exec(const char *const */*argv*/, int /*index*/) { yuv = true; }
-	const char* getDesc() const { return "\t\tUse YUV Overlay for (usually faster) scaling\n"; }
+	const char* getDesc() const { return "\t\tUse YUV overlay for (usually faster) scaling\n"; }
 	bool useYuv() const { return yuv; }
 };
 
@@ -299,6 +294,7 @@ private:
 	Sint16 *const buffer;
 	unsigned rPos;
 	unsigned wPos;
+	bool failed;
 };
 
 AudioData::AudioData(const unsigned srate) :
@@ -308,7 +304,8 @@ mut(SDL_CreateMutex()),
 bufReadyCond(SDL_CreateCond()),
 buffer(new Sint16[bufSz]),
 rPos(0),
-wPos(0) {
+wPos(0),
+failed(false) {
 	std::memset(buffer, 0, bufSz * sizeof(Sint16));
 	
 	SDL_AudioSpec spec;
@@ -318,7 +315,11 @@ wPos(0) {
 	spec.samples = bufSz >> 3;
 	spec.callback = fill_buffer;
 	spec.userdata = this;
-	SDL_OpenAudio(&spec, NULL);
+	
+	if (SDL_OpenAudio(&spec, NULL) < 0) {
+		fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+		failed = true;
+	}
 }
 
 AudioData::~AudioData() {
@@ -330,6 +331,9 @@ AudioData::~AudioData() {
 }
 
 void AudioData::write(const Uint16 *const inBuf) {
+	if (failed)
+		return;
+	
 	SDL_mutexP(mut);
 	
 	if (rPos - wPos + (wPos > rPos ? bufSz : 0) >> 1 < samplesPrFrame)
@@ -352,6 +356,9 @@ void AudioData::write(const Uint16 *const inBuf) {
 }
 
 void AudioData::read(Uint8 *const stream, const int len) {
+	if (failed)
+		return;
+	
 	SDL_mutexP(mut);
 	
 	const unsigned bytes1 = std::min(static_cast<unsigned>(len), (bufSz - rPos) * 2);
