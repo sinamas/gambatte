@@ -405,6 +405,11 @@ void GambatteQt::createMenus() {
 		connect(recentFileActs[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
 	}
 	
+	resetAct = new QAction(tr("&Reset"), this);
+	resetAct->setShortcut(tr("Ctrl+R"));
+	resetAct->setEnabled(false);
+	connect(resetAct, SIGNAL(triggered()), recentFileActs[0], SLOT(trigger()));
+	
 	QAction *aboutAct = new QAction(tr("&About"), this);
 	aboutAct->setStatusTip(tr("Show the application's About box"));
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -414,6 +419,8 @@ void GambatteQt::createMenus() {
 	separatorAct = fileMenu->addSeparator();
 	for (int i = 0; i < MaxRecentFiles; ++i)
 		fileMenu->addAction(recentFileActs[i]);
+	fileMenu->addSeparator();
+	fileMenu->addAction(resetAct);
 	fileMenu->addSeparator();
 	fileMenu->addAction(exitAct);
 	updateRecentFileActions();
@@ -560,6 +567,8 @@ void GambatteQt::run() {
 	
 	running = true;
 	
+	resetAct->setEnabled(true);
+	
 	std::memset(&inputGetter.is, 0, sizeof(inputGetter.is));
 	
 #ifdef PLATFORM_WIN32
@@ -580,6 +589,8 @@ void GambatteQt::stop() {
 		return;
 	
 	running = false;
+	
+	resetAct->setEnabled(false);
 	
 	killTimer(timerId);
 	
@@ -675,20 +686,18 @@ void GambatteQt::keyPressEvent(QKeyEvent *e) {
 			ae->pause();
 			
 		break;
-	case Qt::Key_Escape:
-		hideMenuAct->trigger();
-		break;
-	case Qt::Key_F:
-		if (e->modifiers()&Qt::ControlModifier) {
-			fsAct->trigger();
-		}
-		break;
-	case Qt::Key_Q:
-		if (e->modifiers()&Qt::ControlModifier) {
-			exitAct->trigger();
-		}
-		break;
+	case Qt::Key_Escape: hideMenuAct->trigger(); break;
 	default: e->ignore(); break;
+	}
+	
+	if (menuBar()->isHidden() && (e->modifiers()&Qt::ControlModifier)) {
+		e->accept();
+		switch (e->key()) {
+		case Qt::Key_F: fsAct->trigger(); break;
+		case Qt::Key_Q: exitAct->trigger(); break;
+		case Qt::Key_R: if (resetAct->isEnabled()) { resetAct->trigger(); } break;
+		default: break;
+		}
 	}
 }
 

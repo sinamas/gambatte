@@ -108,6 +108,7 @@ class GambatteQt : public QMainWindow {
 	QAction *separatorAct;
 	QAction *fsAct;
 	QAction *hideMenuAct;
+	QAction *resetAct;
 	InputDialog *inputDialog;
 	SoundDialog *soundDialog;
 	VideoDialog *videoDialog;
