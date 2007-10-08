@@ -18,19 +18,22 @@
  ***************************************************************************/
 #include "alsaengine.h"
 
-#include <algorithm>
-
-AlsaEngine::AlsaEngine() : pcm_handle(NULL) {}
+AlsaEngine::AlsaEngine() :
+	AudioEngine("ALSA"),
+	conf("Custom PCM device:", "hw:0,0", "alsaengine"),
+	pcm_handle(NULL),
+	bufSize(0)
+{}
 
 AlsaEngine::~AlsaEngine() {
 	uninit();
 }
 
-int AlsaEngine::init() {
-	unsigned rate = 48000;
+int AlsaEngine::init(const int inrate) {
+	unsigned rate = inrate;
 	
-	if (snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0) {
-		fprintf(stderr, "Error opening PCM device %s\n", "default");
+	if (snd_pcm_open(&pcm_handle, conf.device(), SND_PCM_STREAM_PLAYBACK, 0) < 0) {
+		fprintf(stderr, "Error opening PCM device %s\n", conf.device());
 		pcm_handle = NULL;
 		goto fail;
 	}

@@ -20,19 +20,24 @@
 #define ALSAENGINE_H
 
 #include "../audioengine.h"
+#include "customdevconf.h"
 #include <alsa/asoundlib.h>
 
 class AlsaEngine : public AudioEngine {
+	CustomDevConf conf;
 	snd_pcm_t *pcm_handle;
 	unsigned bufSize;
 	
 public:
 	AlsaEngine();
 	~AlsaEngine();
-	int init();
+	int init(int rate);
 	void uninit();
 	int write(void *buffer, unsigned samples);
 	const BufferState bufferState() const;
+	QWidget* settingsWidget() { return conf.settingsWidget(); }
+	void acceptSettings() { conf.acceptSettings(); }
+	void rejectSettings() { conf.rejectSettings(); }
 };
 
 #endif

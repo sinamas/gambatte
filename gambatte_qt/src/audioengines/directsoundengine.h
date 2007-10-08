@@ -33,7 +33,7 @@ class DirectSoundEngine : public AudioEngine {
 public:
 	DirectSoundEngine(HWND hwnd);
 	~DirectSoundEngine();
-	int init();
+	int init(int rate);
 	void uninit();
 	int write(void *buffer, unsigned frames);
 	const BufferState bufferState() const;

@@ -11,7 +11,9 @@ SOURCES += gambatte_qt.cpp \
            SDL_Joystick/src/SDL_event.cpp \
            SDL_Joystick/src/SDL_error.c \
            SDL_Joystick/src/SDL_joystick.c \
-           SDL_Joystick/src/SDL_string.c
+           SDL_Joystick/src/SDL_string.c \
+ sounddialog.cpp \
+ audioengines/customdevconf.cpp
 
 HEADERS += gambatte_qt.h \
 blitterwidget.h \
@@ -37,7 +39,10 @@ SDL_Joystick/include/SDL_joystick.h \
 SDL_Joystick/include/SDL_stdinc.h \
 SDL_Joystick/src/SDL_error_c.h \
 SDL_Joystick/src/SDL_joystick_c.h \
-SDL_Joystick/src/SDL_sysjoystick.h
+SDL_Joystick/src/SDL_sysjoystick.h \
+ sounddialog.h \
+ audioengines/nullaudioengine.h \
+ audioengines/customdevconf.h
 
 TEMPLATE = app
 CONFIG += warn_on \
@@ -73,25 +78,25 @@ unix {
         SOURCES += addaudioengines_linux.cpp audioengines/alsaengine.cpp SDL_Joystick/src/linux/SDL_sysjoystick.c
         HEADERS += audioengines/alsaengine.h
         LIBS += -lasound
-    } else {
+    }    else {
         SOURCES += addaudioengines_unix.cpp
 
         freebsd-g++|netbsd-g++|openbsd-g++ {
-            exists( /usr/include/usb.h ):DEFINES += HAVE_USB_H
-            exists( /usr/include/usbhid.h ):DEFINES += HAVE_USBHID_H
-            exists( /usr/include/libusb.h ):DEFINES += HAVE_LIBUSB_H
-            exists( /usr/include/libusbhid.h ):DEFINES += HAVE_LIBUSBHID_H
+            exists( /usr/include/usb.h ): DEFINES += HAVE_USB_H
+            exists( /usr/include/usbhid.h ): DEFINES += HAVE_USBHID_H
+            exists( /usr/include/libusb.h ): DEFINES += HAVE_LIBUSB_H
+            exists( /usr/include/libusbhid.h ): DEFINES += HAVE_LIBUSBHID_H
             SOURCES += SDL_Joystick/src/bsd/SDL_sysjoystick.c
-        } else:darwin-g++ {
-            SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
-        } else {
+        }        else : darwin-g++ {
+                SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
+            }        else {
             SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
         }
     }
-} else:win32 {
-    DEFINES += PLATFORM_WIN32
+}else : win32 {
+        DEFINES += PLATFORM_WIN32
 
-    SOURCES += getfullrestoggler_win32.cpp \
+        SOURCES += getfullrestoggler_win32.cpp \
                blitterwidget_win32.cpp \
                addaudioengines_win32.cpp \
                addblitterwidgets_win32.cpp \
@@ -100,19 +105,19 @@ unix {
                fullrestogglers/gditoggler.cpp \
                SDL_Joystick/src/win32/SDL_mmjoystick.c
 
-    HEADERS += audioengines/directsoundengine.h \
+        HEADERS += audioengines/directsoundengine.h \
                blitterwidgets/directdrawblitter.h \
                fullrestogglers/gditoggler.h
 
-    LIBS += -lwinmm -lddraw -ldxguid -ldsound
-} else {
+        LIBS += -lwinmm -lddraw -ldxguid -ldsound
+    }else {
     SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp audioengines/aoengine.cpp
     HEADERS += audioengines/aoengine.h
     LIBS += -lao
 
     macx {
         SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
-    } else {
+    }    else {
         SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
     }
 }

@@ -26,17 +26,20 @@
 #include <algorithm>
 #include <cmath>
 
-OssEngine::OssEngine() : audio_fd(-1) {}
+OssEngine::OssEngine() :
+AudioEngine("OSS"),
+conf("Custom DSP device:", "/dev/dsp", "ossengine"),
+audio_fd(-1),
+bufSize(0)
+{}
 
 OssEngine::~OssEngine() {
 	uninit();
 }
 
-int OssEngine::init() {
-	int speed = 48000;
-	
-	if ((audio_fd = open("/dev/dsp", O_WRONLY, 0)) == -1) {
-		perror("/dev/dsp");
+int OssEngine::init(int speed) {
+	if ((audio_fd = open(conf.device(), O_WRONLY, 0)) == -1) {
+		perror(conf.device());
 		goto fail;
 	}
 	
@@ -49,7 +52,7 @@ int OssEngine::init() {
 		}
 		
 		if (format != AFMT_S16_NE) {
-			printf("oss-sound: unsupported format\n");
+			printf("oss: unsupported format\n");
 			goto fail;
 		}
 	}
@@ -63,7 +66,7 @@ int OssEngine::init() {
 		}
 		
 		if (channels != 2) {
-			printf("oss-sound: unsupported number of channels\n");
+			printf("oss: unsupported number of channels\n");
 			goto fail;
 		}
 	}

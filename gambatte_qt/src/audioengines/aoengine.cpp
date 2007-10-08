@@ -18,26 +18,23 @@
  ***************************************************************************/
 #include "aoengine.h"
 
-AoEngine::AoEngine() : aoDevice(NULL) {}
+AoEngine::AoEngine() : AudioEngine("Libao"), aoDevice(NULL) {}
 
 AoEngine::~AoEngine() {
 	uninit();
 }
 
-int AoEngine::init() {
+int AoEngine::init(const int rate) {
 	ao_initialize();
 	
 	aoDevice = NULL;
 	
-	ao_sample_format sampleFormat = { 16, 48000, 2, AO_FMT_NATIVE };
+	ao_sample_format sampleFormat = { 16, rate, 2, AO_FMT_NATIVE };
 	
 	int aoDriverId = ao_default_driver_id();
 	
 	if (aoDriverId != -1) {
-		if ((aoDevice = ao_open_live(aoDriverId, &sampleFormat, NULL)) == NULL) {
-			sampleFormat.rate = 44100;
-			aoDevice = ao_open_live(aoDriverId, &sampleFormat, NULL);
-		}
+		aoDevice = ao_open_live(aoDriverId, &sampleFormat, NULL);
 	}
 	
 	if (aoDevice == NULL) {

@@ -28,12 +28,14 @@
 #include "blitterwidgets/qglblitter.h"
 #include "videodialog.h"
 #include "inputdialog.h"
+#include "sounddialog.h"
 #include "blittercontainer.h"
 
 #include "addaudioengines.h"
 #include "addblitterwidgets.h"
 #include "getfullrestoggler.h"
 #include "audioengine.h"
+#include "audioengines/nullaudioengine.h"
 #include "fullrestoggler.h"
 
 #ifdef PLATFORM_WIN32
@@ -97,26 +99,25 @@ JoystickIniter::~JoystickIniter() {
 }
 
 GambatteQt::GambatteQt(const int argc, const char *const argv[]) :
-gbUpHandler(inputGetter.is.dpadUp, inputGetter.is.dpadDown),
-gbDownHandler(inputGetter.is.dpadDown, inputGetter.is.dpadUp),
-gbLeftHandler(inputGetter.is.dpadLeft, inputGetter.is.dpadRight),
-gbRightHandler(inputGetter.is.dpadRight, inputGetter.is.dpadLeft),
-gbAHandler(inputGetter.is.aButton),
-gbBHandler(inputGetter.is.bButton),
-gbStartHandler(inputGetter.is.startButton),
-gbSelectHandler(inputGetter.is.selectButton),
-resetVideoBuffer(gambatte),
-fullResToggler(getFullResToggler()) {
-	blitter = NULL;
-	ae = NULL;
-	sndBuffer = NULL;
-	timerId = 0;
-	running = false;
-	turbo = false;
-	//samplesPrFrame = ((sampleFormat.rate * 4389) / 262144) + 1;
-	samplesPrFrame = 0;
-	sampleRate = 0;
-	
+	gbUpHandler(inputGetter.is.dpadUp, inputGetter.is.dpadDown),
+	gbDownHandler(inputGetter.is.dpadDown, inputGetter.is.dpadUp),
+	gbLeftHandler(inputGetter.is.dpadLeft, inputGetter.is.dpadRight),
+	gbRightHandler(inputGetter.is.dpadRight, inputGetter.is.dpadLeft),
+	gbAHandler(inputGetter.is.aButton),
+	gbBHandler(inputGetter.is.bButton),
+	gbStartHandler(inputGetter.is.startButton),
+	gbSelectHandler(inputGetter.is.selectButton),
+	resetVideoBuffer(gambatte),
+	sndBuffer(NULL),
+	blitter(NULL),
+	fullResToggler(getFullResToggler()),
+	ae(NULL),
+	sampleRate(0),
+	samplesPrFrame(0),
+	timerId(0),
+	running(false),
+	turbo(false)
+{
 	setAttribute(Qt::WA_DeleteOnClose);
 
 	setFocusPolicy(Qt::StrongFocus);
@@ -135,6 +136,9 @@ fullResToggler(getFullResToggler()) {
 	}
 	
 	addAudioEngines(audioEngines, winId());
+	audioEngines.push_back(new NullAudioEngine);
+	soundDialog = new SoundDialog(audioEngines, this);
+	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundSettingsChange()));
 	
 	inputDialog = new InputDialog(this);
 	connect(inputDialog, SIGNAL(accepted()), this, SLOT(inputSettingsChange()));
@@ -176,6 +180,7 @@ fullResToggler(getFullResToggler()) {
 	
 	videoSettingsChange();
 	inputSettingsChange();
+	soundSettingsChange();
 	
 	setFocus();
 	
@@ -305,6 +310,11 @@ void GambatteQt::inputSettingsChange() {
 	pushInputObserver(inputDialog->getSelectData(), gbSelectHandler);
 }
 
+void GambatteQt::soundSettingsChange() {
+	if (running)
+		initAudio();
+}
+
 void GambatteQt::videoSettingsChange() {
 	{
 		const int engineIndex = videoDialog->engine();
@@ -363,6 +373,7 @@ void GambatteQt::videoSettingsChange() {
 	blitter->scaleByInteger(videoDialog->scalesByInteger());
 	
 	blitterContainer->updateLayout();
+	resetVideoBuffer();
 }
 
 void GambatteQt::createActions() {
@@ -407,22 +418,28 @@ void GambatteQt::createMenus() {
 	fileMenu->addAction(exitAct);
 	updateRecentFileActions();
 
-	QMenu *videom = menuBar()->addMenu(tr("&Settings"));
+	QMenu *settingsm = menuBar()->addMenu(tr("&Settings"));
 	
 	{
-		QAction *inputDialogAct = new QAction(tr("&Input..."), this);
-		connect(inputDialogAct, SIGNAL(triggered()), this, SLOT(execInputDialog()));
-		videom->addAction(inputDialogAct);
+		QAction *act = new QAction(tr("&Input..."), this);
+		connect(act, SIGNAL(triggered()), this, SLOT(execInputDialog()));
+		settingsm->addAction(act);
 	}
 	
 	{
-		QAction *videoDialogAct = new QAction(tr("&Video..."), this);
-		connect(videoDialogAct, SIGNAL(triggered()), this, SLOT(execVideoDialog()));
-		videom->addAction(videoDialogAct);
+		QAction *act = new QAction(tr("&Sound..."), this);
+		connect(act, SIGNAL(triggered()), this, SLOT(execSoundDialog()));
+		settingsm->addAction(act);
 	}
 	
-	videom->addAction(fsAct);
-	videom->addAction(hideMenuAct);
+	{
+		QAction *act = new QAction(tr("&Video..."), this);
+		connect(act, SIGNAL(triggered()), this, SLOT(execVideoDialog()));
+		settingsm->addAction(act);
+	}
+	
+	settingsm->addAction(fsAct);
+	settingsm->addAction(hideMenuAct);
 
 	menuBar()->addSeparator();
 
@@ -460,6 +477,10 @@ void GambatteQt::execInputDialog() {
 	execDialog(inputDialog);
 }
 
+void GambatteQt::execSoundDialog() {
+	execDialog(soundDialog);
+}
+
 void GambatteQt::setSamplesPrFrame() {
 	const BlitterWidget::Rational r = blitter->frameTime();
 	const unsigned old = samplesPrFrame;
@@ -473,34 +494,31 @@ void GambatteQt::setSamplesPrFrame() {
 	}
 }
 
-AudioEngine* GambatteQt::initAudio() {
-	AudioEngine *ae;
-	int rate = -1;
+void GambatteQt::initAudio() {
+	if (ae)
+		ae->uninit();
 	
-	while (!audioEngines.empty()) {
-		ae = audioEngines.back();
-		rate = ae->init();
-		
-		if (rate >= 0)
-			break;
-		
-		delete ae;
-		audioEngines.pop_back();
-	}
+	ae = audioEngines[soundDialog->getEngineIndex()];
 	
-	if (rate < 0) {
+	if ((sampleRate = ae->init(soundDialog->getRate())) < 0) {
 		ae = NULL;
-		rate = 0;
+		sampleRate = 0;
 	}
-	
-	sampleRate = rate;
 	
 	setSamplesPrFrame();
-	
-	return ae;
+}
+
+void GambatteQt::soundEngineFailure() {
+	QMessageBox::critical(this, tr("Error"), tr("Sound engine failure."));
+	soundDialog->exec();
 }
 
 void GambatteQt::timerEvent(QTimerEvent */*event*/) {
+	if (!ae) { // avoid stupid recursive call detection by checking here rather than on init.
+		soundEngineFailure();
+		return;
+	}
+	
 	updateJoysticks();
 	gambatte.runFor(70224);
 	
@@ -515,14 +533,13 @@ void GambatteQt::timerEvent(QTimerEvent */*event*/) {
 		blitter->init();
 		gambatte.setVideoBlitter(blitter);
 		
-		if (ae)
-			ae->pause();
+		ae->pause();
 		
 		videoDialog->exec();
 		return;
 	}
 	
-	if (!turbo && ae) {
+	if (!turbo) {
 		unsigned lastSamples = samplesCalc.getSamples();
 		
 		const AudioEngine::BufferState bufState = ae->bufferState();
@@ -531,9 +548,8 @@ void GambatteQt::timerEvent(QTimerEvent */*event*/) {
 			samplesCalc.update(bufState.fromUnderrun, bufState.fromOverflow);
 		
 		if (ae->write(sndBuffer, lastSamples) < 0) {
-			delete ae;
-			audioEngines.pop_back();
-			ae = initAudio();
+			ae->pause();
+			soundEngineFailure();
 		}
 	}
 }
@@ -546,11 +562,11 @@ void GambatteQt::run() {
 	
 	std::memset(&inputGetter.is, 0, sizeof(inputGetter.is));
 	
-	ae = initAudio();
-	
 #ifdef PLATFORM_WIN32
 	timeBeginPeriod(1);
 #endif
+	
+	initAudio();
 
 	blitter->setVisible(true);
 	blitter->init();
@@ -570,8 +586,8 @@ void GambatteQt::stop() {
 	blitter->uninit();
 	blitter->setVisible(false);
 
-	ae->uninit();
-	ae = NULL;
+	if (ae)
+		ae->uninit();
 	
 #ifdef PLATFORM_WIN32
 	timeEndPeriod(1);

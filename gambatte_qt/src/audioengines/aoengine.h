@@ -29,7 +29,7 @@ class AoEngine : public AudioEngine {
 public:
 	AoEngine();
 	~AoEngine();
-	int init();
+	int init(int rate);
 	void uninit();
 	int write(void *buffer, unsigned samples);
 };

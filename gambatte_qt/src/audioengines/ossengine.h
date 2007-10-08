@@ -20,18 +20,23 @@
 #define OSSENGINE_H
 
 #include "../audioengine.h"
+#include "customdevconf.h"
 
 class OssEngine : public AudioEngine {
+	CustomDevConf conf;
 	int audio_fd;
 	unsigned bufSize;
 	
 public:
 	OssEngine();
 	~OssEngine();
-	int init();
+	int init(int rate);
 	void uninit();
 	int write(void *buffer, unsigned samples);
 	const BufferState bufferState() const;
+	QWidget* settingsWidget() { return conf.settingsWidget(); }
+	void acceptSettings() { conf.acceptSettings(); }
+	void rejectSettings() { conf.rejectSettings(); }
 };
 
 #endif

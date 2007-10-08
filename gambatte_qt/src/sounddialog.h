@@ -16,66 +16,43 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef XVBLITTER_H
-#define XVBLITTER_H
 
-#include <QComboBox>
-#include <memory>
+#ifndef SOUNDDIALOG_H
+#define SOUNDDIALOG_H
 
-#include "../blitterwidget.h"
+class AudioEngine;
+class QVBoxLayout;
+class QComboBox;
 
-#include <X11/Xlib.h>
-#include <X11/extensions/XShm.h>
-#include <X11/extensions/Xvlib.h>
+#include <QDialog>
+#include <vector>
 
-class XvSubBlitter;
-
-class XvBlitter : public BlitterWidget {
-// 	XShmSegmentInfo shminfo;
-	std::auto_ptr<XvSubBlitter> subBlitter;
-	XvPortID xvport;
-// 	u_int16_t *xvbuffer;
-// 	u_int32_t *yuv_table;
-// 	XvImage *xvimage;
-	const std::auto_ptr<QWidget> confWidget;
-	QComboBox *const portSelector;
-	unsigned int inWidth, inHeight;
-	int old_w, old_h;
-	unsigned portIndex;
-	GC gc;
-// 	bool init;
-	bool keepRatio;
-	bool integerScaling;
-	bool shm;
-	bool portGrabbed;
-	bool failed;
-	bool initialized;
+class SoundDialog : public QDialog {
+	Q_OBJECT
 	
-	void initPort();
-
-protected:
-	void paintEvent(QPaintEvent *event);
-// 	void resizeEvent(QResizeEvent *event);
-
+	const std::vector<AudioEngine*> &engines;
+	QVBoxLayout *const topLayout;
+	QComboBox *const engineSelector;
+	QComboBox *const rateSelector;
+	QWidget *engineWidget;
+	int engineIndex;
+	int rateIndex;
+	
+	void store();
+	void restore();
+	
+private slots:
+	void engineChange(int index);
+	
 public:
-	XvBlitter(QWidget *parent = 0);
-	~XvBlitter();
-	void init();
-	void uninit();
-// 	void init(const unsigned int srcW, const unsigned int srcH);
-	bool isUnusable();
-	void keepAspectRatio(const bool enable);
-	bool keepsAspectRatio();
-	void scaleByInteger(const bool enable);
-	bool scalesByInteger();
-	int sync(bool turbo);
-	void setBufferDimensions(const unsigned int width, const unsigned int height);
-	const PixelBuffer inBuffer();
-	void blit();
+	SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *parent = 0);
+	~SoundDialog();
+	int getEngineIndex() const { return engineIndex; }
+	int getRate() const;
 	
-	QWidget* settingsWidget() { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings();
+public slots:
+	void accept();
+	void reject();
 };
 
 #endif

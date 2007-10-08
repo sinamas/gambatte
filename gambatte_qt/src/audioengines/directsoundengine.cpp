@@ -21,15 +21,13 @@
 #include <iostream>
 #include <cstring>
 
-DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) : lpDS(NULL), lpDSB(NULL), hwnd(hwnd_in) {}
+DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) : AudioEngine("DirectSound"), lpDS(NULL), lpDSB(NULL), hwnd(hwnd_in) {}
 
 DirectSoundEngine::~DirectSoundEngine() {
 	uninit();
 }
 
-int DirectSoundEngine::init() {
-	unsigned rate = 48000;
-	
+int DirectSoundEngine::init(const int rate) {
 	if (DirectSoundCreate(NULL, &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
 		goto fail;
@@ -80,14 +78,8 @@ int DirectSoundEngine::init() {
 		}
 		
 		if (lpDS->CreateSoundBuffer(&dsbd, &lpDSB, NULL) != DS_OK) {
-			rate = 44100;
-			wfe.nSamplesPerSec = rate;
-			wfe.nAvgBytesPerSec = rate * wfe.nBlockAlign;
-			
-			if (lpDS->CreateSoundBuffer(&dsbd, &lpDSB, NULL) != DS_OK) {
-				lpDSB = NULL;
-				goto fail;
-			}
+			lpDSB = NULL;
+			goto fail;
 		}
 	}
 	

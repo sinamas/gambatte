@@ -247,8 +247,10 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 	if (shm) {
 		subBlitter.reset(new X11ShmBlitter(w * scale, h * scale));
 		
-		if (subBlitter->failed())
+		if (subBlitter->failed()) {
 			shm = false;
+			subBlitter.reset(); // predestruct previous object to ensure resource availability.
+		}
 	}
 	
 	if (!shm)

@@ -40,6 +40,7 @@ class AudioEngine;
 class BlitterWidget;
 class VideoDialog;
 class InputDialog;
+class SoundDialog;
 class FullResToggler;
 class BlitterContainer;
 class JoyObserver;
@@ -108,7 +109,8 @@ class GambatteQt : public QMainWindow {
 	QAction *fsAct;
 	QAction *hideMenuAct;
 	InputDialog *inputDialog;
-	VideoDialog* videoDialog;
+	SoundDialog *soundDialog;
+	VideoDialog *videoDialog;
 	BlitterWidget *blitter;
 	const std::auto_ptr<FullResToggler> fullResToggler;
 
@@ -117,7 +119,7 @@ class GambatteQt : public QMainWindow {
 	
 	AudioEngine *ae;
 	
-	unsigned sampleRate;
+	int sampleRate;
 	unsigned samplesPrFrame;
 	
 	int timerId;
@@ -132,13 +134,14 @@ class GambatteQt : public QMainWindow {
 	void createActions();
 	void createMenus();
 	void loadFile(const QString &fileName);
-	AudioEngine* initAudio();
+	void initAudio();
 	void run();
 	void stop();
 	void pause();
 	void unpause();
 	void setSamplesPrFrame();
 	void setCurrentFile(const QString &fileName);
+	void soundEngineFailure();
 	void updateRecentFileActions();
 	QString strippedName(const QString &fullFileName);
 	void execDialog(QDialog *dialog);
@@ -154,9 +157,11 @@ private slots:
 	void toggleFullScreen();
 	void toggleMenuHidden();
 	void inputSettingsChange();
+	void soundSettingsChange();
 	void videoSettingsChange();
 	void execVideoDialog();
 	void execInputDialog();
+	void execSoundDialog();
 	
 protected:
 	void timerEvent(QTimerEvent *event);

@@ -16,66 +16,38 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef XVBLITTER_H
-#define XVBLITTER_H
+#ifndef CUSTOMDEVCONF_H
+#define CUSTOMDEVCONF_H
 
-#include <QComboBox>
+class QCheckBox;
+class QLineEdit;
+class QWidget;
+
+#include <QObject>
+#include <QByteArray>
 #include <memory>
 
-#include "../blitterwidget.h"
-
-#include <X11/Xlib.h>
-#include <X11/extensions/XShm.h>
-#include <X11/extensions/Xvlib.h>
-
-class XvSubBlitter;
-
-class XvBlitter : public BlitterWidget {
-// 	XShmSegmentInfo shminfo;
-	std::auto_ptr<XvSubBlitter> subBlitter;
-	XvPortID xvport;
-// 	u_int16_t *xvbuffer;
-// 	u_int32_t *yuv_table;
-// 	XvImage *xvimage;
+class CustomDevConf : public QObject {
+	Q_OBJECT
+	
+	const char *const defaultstr;
+	const char *const confgroup;
 	const std::auto_ptr<QWidget> confWidget;
-	QComboBox *const portSelector;
-	unsigned int inWidth, inHeight;
-	int old_w, old_h;
-	unsigned portIndex;
-	GC gc;
-// 	bool init;
-	bool keepRatio;
-	bool integerScaling;
-	bool shm;
-	bool portGrabbed;
-	bool failed;
-	bool initialized;
+	QCheckBox *const customDevBox;
+	QLineEdit *const customDevEdit;
+	QByteArray customDevStr;
+	bool useCustomDev;
 	
-	void initPort();
-
-protected:
-	void paintEvent(QPaintEvent *event);
-// 	void resizeEvent(QResizeEvent *event);
-
+private slots:
+	void customDevBoxChange(bool checked);
+	
 public:
-	XvBlitter(QWidget *parent = 0);
-	~XvBlitter();
-	void init();
-	void uninit();
-// 	void init(const unsigned int srcW, const unsigned int srcH);
-	bool isUnusable();
-	void keepAspectRatio(const bool enable);
-	bool keepsAspectRatio();
-	void scaleByInteger(const bool enable);
-	bool scalesByInteger();
-	int sync(bool turbo);
-	void setBufferDimensions(const unsigned int width, const unsigned int height);
-	const PixelBuffer inBuffer();
-	void blit();
-	
+	CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup);
+	~CustomDevConf();
 	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
+	const char* device() const;
 };
 
 #endif

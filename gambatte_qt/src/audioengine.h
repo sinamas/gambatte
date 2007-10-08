@@ -19,6 +19,10 @@
 #ifndef AUDIOENGINE_H
 #define AUDIOENGINE_H
 
+class QWidget;
+
+#include <QString>
+
 class AudioEngine {
 public:
 	struct BufferState {
@@ -26,12 +30,18 @@ public:
 		unsigned fromOverflow;
 	};
 	
+	const QString nameString;
+	
+	AudioEngine(const QString &name) : nameString(name) {}
 	virtual ~AudioEngine() {}
-	virtual int init() = 0;
+	virtual int init(int rate) = 0;
 	virtual void uninit() {}
 	virtual int write(void *buffer, unsigned samples) = 0;
 	virtual const BufferState bufferState() const { static const BufferState s = { 0xFFFFFFFF, 0xFFFFFFFF }; return s; }
 	virtual void pause() {}
+	virtual QWidget* settingsWidget() { return NULL; }
+	virtual void acceptSettings() {}
+	virtual void rejectSettings() {}
 };
 
 #endif
