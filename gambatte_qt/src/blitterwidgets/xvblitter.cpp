@@ -33,27 +33,27 @@
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xvlib.h>
 
-class XvSubBlitter {
+class XvBlitter::SubBlitter {
 public:
 	virtual void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height) = 0;
 	virtual bool failed() = 0;
 	virtual const PixelBuffer inBuffer() = 0;
-	virtual ~XvSubBlitter() {};
+	virtual ~SubBlitter() {};
 };
 
-class XvShmBlitter : public XvSubBlitter {
+class XvBlitter::ShmBlitter : public SubBlitter {
 	XShmSegmentInfo shminfo;
 	XvImage *xvimage;
 	
 public:
-	XvShmBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
+	ShmBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
 	void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
 	bool failed();
 	const PixelBuffer inBuffer();
-	~XvShmBlitter();
+	~ShmBlitter();
 };
 
-XvShmBlitter::XvShmBlitter(const XvPortID xvport, const int formatid, const unsigned int width, const unsigned int height) {
+XvBlitter::ShmBlitter::ShmBlitter(const XvPortID xvport, const int formatid, const unsigned int width, const unsigned int height) {
 	std::cout << "creating xvimage...\n";
 	xvimage = XvShmCreateImage(QX11Info::display(), xvport, formatid, NULL, width << (formatid != 3), height, &shminfo);
 	
@@ -68,7 +68,7 @@ XvShmBlitter::XvShmBlitter(const XvPortID xvport, const int formatid, const unsi
 	}
 }
 
-XvShmBlitter::~XvShmBlitter() {
+XvBlitter::ShmBlitter::~ShmBlitter() {
 	if (shminfo.shmaddr != NULL) {
 		XShmDetach(QX11Info::display(), &shminfo);
 		XSync(QX11Info::display(), 0);
@@ -80,7 +80,7 @@ XvShmBlitter::~XvShmBlitter() {
 		XFree(xvimage);
 }
 
-void XvShmBlitter::blit(const Drawable drawable, const XvPortID xvport, const unsigned width, const unsigned height) {
+void XvBlitter::ShmBlitter::blit(const Drawable drawable, const XvPortID xvport, const unsigned width, const unsigned height) {
 	if (xvimage && shminfo.shmaddr) {
 		if (XvShmPutImage(QX11Info::display(), xvport, drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()), xvimage, 0, 0, xvimage->width, xvimage->height, 0, 0, width, height, False) != Success) {
 			std::cout << "failed to put xvimage\n";
@@ -89,11 +89,11 @@ void XvShmBlitter::blit(const Drawable drawable, const XvPortID xvport, const un
 	}
 }
 
-bool XvShmBlitter::failed() {
+bool XvBlitter::ShmBlitter::failed() {
 	return xvimage == NULL || shminfo.shmaddr == NULL;
 }
 
-const PixelBuffer XvShmBlitter::inBuffer() {
+const PixelBuffer XvBlitter::ShmBlitter::inBuffer() {
 	PixelBuffer pixb = { NULL, PixelBuffer::UYVY, 0 };
 	
 	if (xvimage) {
@@ -105,18 +105,18 @@ const PixelBuffer XvShmBlitter::inBuffer() {
 	return pixb;
 }
 
-class XvPlainBlitter : public XvSubBlitter {
+class XvBlitter::PlainBlitter : public SubBlitter {
 	XvImage *xvimage;
 	
 public:
-	XvPlainBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
+	PlainBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
 	void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
 	bool failed();
 	const PixelBuffer inBuffer();
-	~XvPlainBlitter();
+	~PlainBlitter();
 };
 
-XvPlainBlitter::XvPlainBlitter(const XvPortID xvport, const int formatid, const unsigned int width, const unsigned int height) {
+XvBlitter::PlainBlitter::PlainBlitter(const XvPortID xvport, const int formatid, const unsigned int width, const unsigned int height) {
 	std::cout << "creating xvimage...\n";
 	xvimage = XvCreateImage(QX11Info::display(), xvport, formatid, NULL, width << (formatid != 3), height);
 	
@@ -127,7 +127,7 @@ XvPlainBlitter::XvPlainBlitter(const XvPortID xvport, const int formatid, const 
 	}
 }
 
-XvPlainBlitter::~XvPlainBlitter() {
+XvBlitter::PlainBlitter::~PlainBlitter() {
 	if (xvimage) {
 		if (xvimage->data)
 			delete[] xvimage->data;
@@ -136,7 +136,7 @@ XvPlainBlitter::~XvPlainBlitter() {
 	}
 }
 
-void XvPlainBlitter::blit(const Drawable drawable, const XvPortID xvport, const unsigned width, const unsigned height) {
+void XvBlitter::PlainBlitter::blit(const Drawable drawable, const XvPortID xvport, const unsigned width, const unsigned height) {
 	if (xvimage) {
 		if (XvPutImage(QX11Info::display(), xvport, drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()), xvimage, 0, 0, xvimage->width, xvimage->height, 0, 0, width, height) != Success) {
 			std::cout << "failed to put xvimage\n";
@@ -145,11 +145,11 @@ void XvPlainBlitter::blit(const Drawable drawable, const XvPortID xvport, const 
 	}
 }
 
-bool XvPlainBlitter::failed() {
+bool XvBlitter::PlainBlitter::failed() {
 	return xvimage == NULL;
 }
 
-const PixelBuffer XvPlainBlitter::inBuffer() {
+const PixelBuffer XvBlitter::PlainBlitter::inBuffer() {
 	PixelBuffer pixb = { NULL, PixelBuffer::UYVY, 0 };
 	
 	if (xvimage) {
@@ -380,7 +380,7 @@ void XvBlitter::setBufferDimensions(const unsigned int width, const unsigned int
 	subBlitter.reset(); // predestruct previous object to ensure resource availability.
 	
 	if (shm) {
-		subBlitter.reset(new XvShmBlitter(xvport, formatid, width, height));
+		subBlitter.reset(new ShmBlitter(xvport, formatid, width, height));
 		
 		if (subBlitter->failed()) {
 			shm = false;
@@ -389,7 +389,7 @@ void XvBlitter::setBufferDimensions(const unsigned int width, const unsigned int
 	}
 	
 	if (!shm)
-		subBlitter.reset(new XvPlainBlitter(xvport, formatid, width, height));
+		subBlitter.reset(new PlainBlitter(xvport, formatid, width, height));
 
 // 	delete []xvbuffer;
 // 	xvbuffer = new u_int16_t[width*height];

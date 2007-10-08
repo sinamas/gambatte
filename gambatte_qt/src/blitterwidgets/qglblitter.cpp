@@ -35,7 +35,7 @@
 #include "../x11getprocaddress.h"
 #endif
 
-class QGLSubWidget : public QGLWidget {
+class QGLBlitter::SubWidget : public QGLWidget {
 	unsigned textureRes;
 	unsigned inWidth;
 	unsigned inHeight;
@@ -51,8 +51,8 @@ protected:
 	void resizeGL(int w, int h);
 	
 public:
-	QGLSubWidget(unsigned swapInterval, bool bf, QWidget *parent = 0);
-	~QGLSubWidget();
+	SubWidget(unsigned swapInterval, bool bf, QWidget *parent = 0);
+	~SubWidget();
 	
 	void blit();
 	void blitFront();
@@ -113,7 +113,7 @@ static const QGLFormat getQGLFormat(const unsigned swapInterval) {
 	return f;
 }
 
-QGLSubWidget::QGLSubWidget(const unsigned swapInterval_in, const bool bf_in, QWidget *parent) :
+QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_in, QWidget *parent) :
 	QGLWidget(getQGLFormat(swapInterval_in), parent),
 	inWidth(160),
 	inHeight(144),
@@ -132,7 +132,7 @@ QGLSubWidget::QGLSubWidget(const unsigned swapInterval_in, const bool bf_in, QWi
 // 	settings.endGroup();
 }
 
-QGLSubWidget::~QGLSubWidget() {
+QGLBlitter::SubWidget::~SubWidget() {
 	uninit();
 	
 // 	QSettings settings;
@@ -141,12 +141,12 @@ QGLSubWidget::~QGLSubWidget() {
 // 	settings.endGroup();
 }
 
-void QGLSubWidget::blit() {
+void QGLBlitter::SubWidget::blit() {
 	glCallList(1);
 	glFlush();
 }
 
-void QGLSubWidget::initializeGL() {
+void QGLBlitter::SubWidget::initializeGL() {
 // 	void *libHandle = dlopen("libgl.so", RTLD_LAZY);
 	
 // 	glXGetVideoSyncSGI_ptr = (glXGetVideoSyncSGI_Func) dlsym(libHandle, "glXGetVideoSyncSGI");
@@ -184,7 +184,7 @@ void QGLSubWidget::initializeGL() {
 	initialized = true;
 }
 
-void QGLSubWidget::blitFront() {
+void QGLBlitter::SubWidget::blitFront() {
 	GLint drawBuffer;
 	glGetIntegerv(GL_DRAW_BUFFER, &drawBuffer);
 	glDrawBuffer(GL_FRONT);
@@ -192,7 +192,7 @@ void QGLSubWidget::blitFront() {
 	glDrawBuffer(drawBuffer);
 }
 
-void QGLSubWidget::paintGL() {
+void QGLBlitter::SubWidget::paintGL() {
 	if (swapInterval)
 		blitFront();
 	else {
@@ -201,7 +201,7 @@ void QGLSubWidget::paintGL() {
 	}
 }
 
-void QGLSubWidget::resizeGL(const int w, const int h) {
+void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	if (keepRatio) {
 		{
 			GLint drawBuffer;
@@ -232,7 +232,7 @@ void QGLSubWidget::resizeGL(const int w, const int h) {
 	}
 }
 
-void QGLSubWidget::setBilinearFiltering(const bool on) {
+void QGLBlitter::SubWidget::setBilinearFiltering(const bool on) {
 	const bool oldbf = bf;
 	bf = on;
 	
@@ -243,7 +243,7 @@ void QGLSubWidget::setBilinearFiltering(const bool on) {
 	}
 }
 
-void QGLSubWidget::setBufferDimensions(const unsigned int width, const unsigned int height) {
+void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const unsigned int height) {
 	inWidth = width;
 	inHeight = height;
 	
@@ -270,11 +270,11 @@ void QGLSubWidget::setBufferDimensions(const unsigned int width, const unsigned 
 	glOrtho(0, width / dres, 1, 1.0 - height / dres, -1, 1);
 }
 
-void QGLSubWidget::uninit() {
+void QGLBlitter::SubWidget::uninit() {
 	initialized = false;
 }
 
-void QGLSubWidget::updateTexture(uint32_t *const buffer) {
+void QGLBlitter::SubWidget::updateTexture(uint32_t *const buffer) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, textureRes - inHeight, inWidth, inHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
 }
 
@@ -304,7 +304,7 @@ QGLBlitter::QGLBlitter(QWidget *parent) :
 	vsyncBox->setChecked(vsync);
 	bfBox->setChecked(bf);
 	
-	subWidget = new QGLSubWidget(0, bf, this);
+	subWidget = new SubWidget(0, bf, this);
 }
 
 QGLBlitter::~QGLBlitter() {
@@ -418,7 +418,7 @@ void QGLBlitter::resetSubWidget() {
 	
 // 	subWidget->hide();
 	delete subWidget;
-	subWidget = new QGLSubWidget(swapInterval, bf, this);
+	subWidget = new SubWidget(swapInterval, bf, this);
 	subWidget->setKeepRatio(keepRatio);
 	subWidget->setIntegerScaling(integerScaling);
 	subWidget->setGeometry(0, 0, width(), height());

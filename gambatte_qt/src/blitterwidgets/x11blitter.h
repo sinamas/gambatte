@@ -23,12 +23,15 @@
 
 #include <memory>
 
-class X11SubBlitter;
 class VideoBufferReseter;
 
 class X11Blitter : public BlitterWidget {
+	class SubBlitter;
+	class ShmBlitter;
+	class PlainBlitter;
+	
 	VideoBufferReseter &resetVideoBuffer;
-	std::auto_ptr<X11SubBlitter> subBlitter;
+	std::auto_ptr<SubBlitter> subBlitter;
 	char *buffer;
 	unsigned int inWidth, inHeight;
 	unsigned int scale;

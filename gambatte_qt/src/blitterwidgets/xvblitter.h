@@ -28,11 +28,13 @@
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xvlib.h>
 
-class XvSubBlitter;
-
 class XvBlitter : public BlitterWidget {
+	class SubBlitter;
+	class ShmBlitter;
+	class PlainBlitter;
+	
 // 	XShmSegmentInfo shminfo;
-	std::auto_ptr<XvSubBlitter> subBlitter;
+	std::auto_ptr<SubBlitter> subBlitter;
 	XvPortID xvport;
 // 	u_int16_t *xvbuffer;
 // 	u_int32_t *yuv_table;

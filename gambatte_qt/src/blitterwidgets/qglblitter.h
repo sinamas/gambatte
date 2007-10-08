@@ -23,11 +23,12 @@
 #include <stdint.h>
 #include <memory>
 
-class QGLSubWidget;
 class QCheckBox;
 
 class QGLBlitter : public BlitterWidget {
-	QGLSubWidget *subWidget;
+	class SubWidget;
+	
+	SubWidget *subWidget;
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vsyncBox;
 	QCheckBox *const bfBox;
