@@ -66,7 +66,7 @@ public:
 		rate = tmp;
 	}
 	
-	const char* getDesc() const { return " N\t\tUse audio sample rate of N Hz\n\t\t\t\t    32000 <= N <= 192000, default: 48000\n"; }
+	const char* getDesc() const { return " N\t\tUse sound sample rate of N Hz\n\t\t\t\t    32000 <= N <= 192000, default: 48000\n"; }
 	unsigned getRate() const { return rate; }
 };
 

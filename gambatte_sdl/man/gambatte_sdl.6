@@ -30,6 +30,24 @@ loaded as Game Boy cartridge.
 .BR \-f ", " \-\-full\-screen
 Start in full screen mode.
 .TP
+.BR \-i ", " \-\-input " " \fIKEYS
+Use the 8 given input \fIKEYS\fR for respectively
+.br
+.br
+START SELECT A B UP DOWN LEFT RIGHT
+.TP
+.BR \-\-list\-keys
+List valid input KEYS.
+.TP
+.BR \-r ", " \-\-sample\-rate " " \fIN
+Use sound sample rate of \fIN\fR Hz.
+.br
+.br
+32000 <= N <= 192000, default: 48000
+.TP
+.BR \-s ", " \-\-scale " " \fIN
+Scale video output by an integer factor of \fIN\fR.
+.TP
 .BR \-v ", " \-\-video\-filter " " \fIN
 Use video filter number \fIN\fR:
 .br
@@ -43,6 +61,9 @@ Use video filter number \fIN\fR:
 3 = Kreed's 2xSaI
 .br
 4 = MaxSt's Hq2x
+.TP
+.BR \-y ", " \-\-yuv\-overlay
+Use YUV overlay for (usually faster) scaling.
 .SH INTERACTIVE KEYBOARD CONTROLS
 .TP
 TAB
