@@ -180,7 +180,7 @@ void Channel1::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) 
 	
 	while (cycleCounter < endCycles) {
 		const unsigned out = 15 * 8 * 4 * 0x00010001 +
-		                     outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : -15);
+		                     outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
 		
 		unsigned multiplier = nextEventUnit->getCounter();
 		
