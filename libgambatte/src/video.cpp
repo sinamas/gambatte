@@ -27,6 +27,7 @@
 
 #include "video/basic_add_event.h"
 
+/*
 const uint32_t LCD::dmgColorsRgb32[4] = { 3 * 85 * 0x010101, 2 * 85 * 0x010101, 1 * 85 * 0x010101, 0 * 85 * 0x010101 };
 const uint32_t LCD::dmgColorsRgb16[4] = { 3 * 10 * 0x0841, 2 * 10 * 0x0841, 1 * 10 * 0x0841, 0 * 10 * 0x0841 };
 
@@ -43,6 +44,7 @@ const uint32_t LCD::dmgColorsUyvy[4] = {
 		0x00800080 | (16 + 73 * 1) * 0x01000100U,
 		0x00800080 | (16 + 73 * 0) * 0x01000100U };
 #endif
+*/
 
 void LCD::setDmgPalette(uint32_t *const palette, const uint32_t *const dmgColors, const unsigned data) {
 	palette[0] = dmgColors[data & 3];
@@ -112,6 +114,10 @@ LCD::LCD(const uint8_t *const oamram, const uint8_t *const vram_in) :
 	pb.pixels = 0;
 	pb.format = PixelBuffer::RGB32;
 	pb.pitch = 0;
+	
+	for (unsigned i = 0; i < sizeof(dmgColorsRgb32) / sizeof(uint32_t); ++i) {
+		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
+	}
 	
 	filters.push_back(NULL);
 	filters.push_back(new Catrom2x);
@@ -981,6 +987,19 @@ void LCD::setDBuffer() {
 	
 	if (dbuffer == NULL)
 		draw = &LCD::null_draw;
+}
+
+void LCD::setDmgPaletteColor(const unsigned index, const unsigned rgb32) {
+	dmgColorsRgb32[index] = rgb32;
+	dmgColorsRgb16[index] = Rgb16Putter::toRgb16(rgb32);
+	dmgColorsUyvy[index] = UyvyPutter::toUyvy(rgb32);
+}
+
+void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, const unsigned rgb32) {
+	if (palNum > 2 || colorNum > 3)
+		return;
+	
+	setDmgPaletteColor(palNum * 4 | colorNum, rgb32);
 }
 
 void LCD::null_draw(unsigned /*xpos*/, const unsigned ypos, const unsigned endX) {

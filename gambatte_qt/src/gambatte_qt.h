@@ -41,6 +41,7 @@ class BlitterWidget;
 class VideoDialog;
 class InputDialog;
 class SoundDialog;
+class PaletteDialog;
 class FullResToggler;
 class BlitterContainer;
 class JoyObserver;
@@ -109,9 +110,12 @@ class GambatteQt : public QMainWindow {
 	QAction *fsAct;
 	QAction *hideMenuAct;
 	QAction *resetAct;
+	QAction *romPaletteAct;
 	InputDialog *inputDialog;
 	SoundDialog *soundDialog;
 	VideoDialog *videoDialog;
+	PaletteDialog *globalPaletteDialog;
+	PaletteDialog *romPaletteDialog;
 	BlitterWidget *blitter;
 	const std::auto_ptr<FullResToggler> fullResToggler;
 
@@ -142,6 +146,7 @@ class GambatteQt : public QMainWindow {
 	void unpause();
 	void setSamplesPrFrame();
 	void setCurrentFile(const QString &fileName);
+	void setDmgPaletteColors();
 	void soundEngineFailure();
 	void updateRecentFileActions();
 	QString strippedName(const QString &fullFileName);
@@ -160,9 +165,13 @@ private slots:
 	void inputSettingsChange();
 	void soundSettingsChange();
 	void videoSettingsChange();
+	void globalPaletteChange();
+	void romPaletteChange();
 	void execVideoDialog();
 	void execInputDialog();
 	void execSoundDialog();
+	void execGlobalPaletteDialog();
+	void execRomPaletteDialog();
 	
 protected:
 	void timerEvent(QTimerEvent *event);

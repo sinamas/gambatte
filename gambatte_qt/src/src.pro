@@ -13,7 +13,8 @@ SOURCES += gambatte_qt.cpp \
            SDL_Joystick/src/SDL_joystick.c \
            SDL_Joystick/src/SDL_string.c \
  sounddialog.cpp \
- audioengines/customdevconf.cpp
+ audioengines/customdevconf.cpp \
+ palettedialog.cpp
 
 HEADERS += gambatte_qt.h \
 blitterwidget.h \
@@ -42,7 +43,8 @@ SDL_Joystick/src/SDL_joystick_c.h \
 SDL_Joystick/src/SDL_sysjoystick.h \
  sounddialog.h \
  audioengines/nullaudioengine.h \
- audioengines/customdevconf.h
+ audioengines/customdevconf.h \
+ palettedialog.h
 
 TEMPLATE = app
 CONFIG += warn_on \

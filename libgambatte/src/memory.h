@@ -181,6 +181,8 @@ public:
 	std::vector<const FilterInfo*> filterInfo() const {
 		return display.filterInfo();
 	}
+	
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32, unsigned cycleCounter);
 };
 
 #endif

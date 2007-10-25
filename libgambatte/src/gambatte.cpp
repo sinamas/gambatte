@@ -73,3 +73,11 @@ bool Gambatte::load(const char* romfile) {
 void Gambatte::fill_buffer(uint16_t *const stream, const unsigned samples) {
 	z80->sound_fill_buffer(stream, samples);
 }
+
+bool Gambatte::isCgb() const {
+	return z80->isCgb();
+}
+
+void Gambatte::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
+	z80->setDmgPaletteColor(palNum, colorNum, rgb32);
+}

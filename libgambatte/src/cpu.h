@@ -88,6 +88,12 @@ public:
 	void sound_fill_buffer(uint16_t *const stream, const unsigned samples) {
 		memory.sound_fill_buffer(stream, samples, cycleCounter_);
 	}
+	
+	bool isCgb() const { return memory.isCgb(); }
+	
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
+		memory.setDmgPaletteColor(palNum, colorNum, rgb32, cycleCounter_);
+	}
 };
 
 #endif

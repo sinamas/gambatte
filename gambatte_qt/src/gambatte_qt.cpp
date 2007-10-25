@@ -29,6 +29,7 @@
 #include "videodialog.h"
 #include "inputdialog.h"
 #include "sounddialog.h"
+#include "palettedialog.h"
 #include "blittercontainer.h"
 
 #include "addaudioengines.h"
@@ -173,6 +174,16 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) :
 		QSettings iniSettings(QSettings::IniFormat, QSettings::UserScope, "gambatte", "gambatte_qt");
 		QString savepath = iniSettings.fileName();
 		savepath.truncate(iniSettings.fileName().lastIndexOf("/") + 1);
+		
+		{
+			QString palpath = savepath + "palettes";
+			QDir::root().mkpath(palpath);
+			globalPaletteDialog = new PaletteDialog(palpath, 0, this);
+			romPaletteDialog = new PaletteDialog(palpath, globalPaletteDialog, this);
+			connect(globalPaletteDialog, SIGNAL(accepted()), this, SLOT(globalPaletteChange()));
+			connect(romPaletteDialog, SIGNAL(accepted()), this, SLOT(romPaletteChange()));
+		}
+		
 		savepath += "saves";
 		QDir::root().mkpath(savepath);
 		gambatte.set_savedir(savepath.toAscii().data());
@@ -376,6 +387,22 @@ void GambatteQt::videoSettingsChange() {
 	resetVideoBuffer();
 }
 
+void GambatteQt::globalPaletteChange() {
+	romPaletteDialog->externalChange();
+	setDmgPaletteColors();
+}
+
+void GambatteQt::romPaletteChange() {
+	globalPaletteDialog->externalChange();
+	setDmgPaletteColors();
+}
+
+void GambatteQt::setDmgPaletteColors() {
+	for (unsigned palnum = 0; palnum < 3; ++palnum)
+		for (unsigned colornum = 0; colornum < 4; ++colornum)
+			gambatte.setDmgPaletteColor(palnum, colornum, romPaletteDialog->getColor(palnum, colornum));
+}
+
 void GambatteQt::createActions() {
 	exitAct = new QAction(tr("E&xit"), this);
 	exitAct->setShortcut(tr("Ctrl+Q"));
@@ -387,7 +414,7 @@ void GambatteQt::createActions() {
 	hideMenuAct->setShortcut(tr("Esc"));
 	connect(hideMenuAct, SIGNAL(triggered()), this, SLOT(toggleMenuHidden()));
 	
-	fsAct = new QAction(tr("&Full screen"), this);
+	fsAct = new QAction(tr("&Full Screen"), this);
 	fsAct->setShortcut(tr("Ctrl+F"));
 	fsAct->setCheckable(true);
 	connect(fsAct, SIGNAL(triggered()), this, SLOT(toggleFullScreen()));
@@ -445,6 +472,24 @@ void GambatteQt::createMenus() {
 		settingsm->addAction(act);
 	}
 	
+	settingsm->addSeparator();
+	
+	{
+		QMenu *const palm = settingsm->addMenu(tr("DMG &Palette"));
+		
+		{
+			QAction *act = new QAction(tr("&Global..."), this);
+			connect(act, SIGNAL(triggered()), this, SLOT(execGlobalPaletteDialog()));
+			palm->addAction(act);
+		}
+		
+		romPaletteAct = new QAction(tr("Current &ROM..."), this);
+		romPaletteAct->setEnabled(false);
+		connect(romPaletteAct, SIGNAL(triggered()), this, SLOT(execRomPaletteDialog()));
+		palm->addAction(romPaletteAct);
+	}
+	
+	settingsm->addSeparator();
 	settingsm->addAction(fsAct);
 	settingsm->addAction(hideMenuAct);
 
@@ -464,6 +509,13 @@ void GambatteQt::loadFile(const QString &fileName) {
 		);
 		return;
 	}
+	
+	if (!gambatte.isCgb()) {
+		romPaletteDialog->setSettingsFile(QFileInfo(fileName).completeBaseName() + ".pal");
+		setDmgPaletteColors();
+	}
+	
+	romPaletteAct->setEnabled(!gambatte.isCgb());
 
 	setCurrentFile(fileName);
 
@@ -486,6 +538,14 @@ void GambatteQt::execInputDialog() {
 
 void GambatteQt::execSoundDialog() {
 	execDialog(soundDialog);
+}
+
+void GambatteQt::execGlobalPaletteDialog() {
+	execDialog(globalPaletteDialog);
+}
+
+void GambatteQt::execRomPaletteDialog() {
+	execDialog(romPaletteDialog);
 }
 
 void GambatteQt::setSamplesPrFrame() {
@@ -628,7 +688,7 @@ void GambatteQt::setCurrentFile(const QString &fileName) {
 	if (curFile.isEmpty())
 		setWindowTitle(tr("Gambatte"));
 	else
-		setWindowTitle(tr("%1 - %2").arg(strippedName(curFile)) .arg(tr("Gambatte")));
+		setWindowTitle(tr("%1 - %2").arg(strippedName(curFile)).arg(tr("Gambatte")));
 
 	QSettings settings;
 	QStringList files = settings.value("recentFileList").toStringList();

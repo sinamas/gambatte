@@ -1981,6 +1981,11 @@ void Memory::setVideoFilter(const unsigned int n, const unsigned cycleCounter) {
 	refreshPalettes(cycleCounter);
 }
 
+void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32, unsigned cycleCounter) {
+	display.setDmgPaletteColor(palNum, colorNum, rgb32);
+	refreshPalettes(cycleCounter);
+}
+
 Memory::~Memory() {
 	if (battery)
 		saveram();

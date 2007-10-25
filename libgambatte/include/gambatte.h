@@ -40,6 +40,7 @@ public:
 	void videoBufferChange();
 	unsigned int videoWidth() const;
 	unsigned int videoHeight() const;
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32);
 	
 	void setVideoFilter(unsigned int n);
 	std::vector<const FilterInfo*> filterInfo() const;
@@ -48,6 +49,7 @@ public:
 	void fill_buffer(uint16_t *stream, unsigned samples);
 	
 	void set_savedir(const char *sdir);
+	bool isCgb() const;
 };
 
 #endif

@@ -34,26 +34,43 @@ class Rgb16Putter {
 public:
 	typedef uint16_t pixel_t;
 	
+	static unsigned toRgb16(const unsigned rgb32) {
+		return rgb32 >> 8 & 0xF800 | rgb32 >> 5 & 0x07E0 | rgb32 >> 3 & 0x001F;
+	}
+	
 	void operator()(pixel_t *const dest, const unsigned rgb32) {
-// 		const unsigned tmp = (rgb32 & 0xFCFEFC) + 0x040204;
-		const unsigned tmp = rgb32;
-		
-		*dest = tmp >> 8 & 0xF800 | tmp >> 5 & 0x07E0 | tmp >> 3 & 0x001F;
+		*dest = toRgb16(rgb32);
 	}
 };
 
 class UyvyPutter {
-public:
-	typedef uint32_t pixel_t;
-	
-	void operator()(pixel_t *const dest, const unsigned rgb32) {
+	static void convert(unsigned &y, unsigned &u, unsigned &v, const unsigned rgb32) {
 		const unsigned r = rgb32 >> 16;
 		const unsigned g = rgb32 >> 8 & 0xFF;
 		const unsigned b = rgb32 & 0xFF;
 		
-		const unsigned y = r * 66 + g * 129 + b * 25 + 16 * 256 + 128 >> 8;
-		const unsigned u = b * 112 - r * 38 - g * 74 + 128 * 256 + 128 >> 8;
-		const unsigned v = r * 112 - g * 94 - b * 18 + 128 * 256 + 128 >> 8;
+		y = r * 66 + g * 129 + b * 25 + 16 * 256 + 128 >> 8;
+		u = b * 112 - r * 38 - g * 74 + 128 * 256 + 128 >> 8;
+		v = r * 112 - g * 94 - b * 18 + 128 * 256 + 128 >> 8;
+	}
+	
+public:
+	typedef uint32_t pixel_t;
+	
+	static unsigned toUyvy(const unsigned rgb32) {
+		unsigned y, u, v;
+		convert(y, u, v, rgb32);
+		
+#ifdef WORDS_BIGENDIAN
+		return u << 24 | y << 16 | v << 8 | y;
+#else
+		return y << 24 | v << 16 | y << 8 | u;
+#endif
+	}
+	
+	void operator()(pixel_t *const dest, const unsigned rgb32) {
+		unsigned y, u, v;
+		convert(y, u, v, rgb32);
 		
 		uint8_t * d = reinterpret_cast<uint8_t*>(dest);
 		*d++ = u;

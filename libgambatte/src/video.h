@@ -51,9 +51,9 @@ class Filter;
 
 class LCD {
 	//static const uint8_t xflipt[0x100];
-	static const uint32_t dmgColorsRgb32[4];
-	static const uint32_t dmgColorsRgb16[4];
-	static const uint32_t dmgColorsUyvy[4];
+	uint32_t dmgColorsRgb32[3 * 4];
+	uint32_t dmgColorsRgb16[3 * 4];
+	uint32_t dmgColorsUyvy[3 * 4];
 
 	uint32_t bgPalette[8 * 4];
 	uint32_t spPalette[8 * 4];
@@ -120,6 +120,7 @@ class LCD {
 	bool spriteEnable;
 	
 	static void setDmgPalette(uint32_t *palette, const uint32_t *dmgColors, unsigned data);
+	void setDmgPaletteColor(unsigned index, unsigned rgb32);
 	static unsigned gbcToRgb32(unsigned bgr15);
 	static unsigned gbcToRgb16(unsigned bgr15);
 	static unsigned gbcToUyvy(unsigned bgr15);
@@ -160,6 +161,7 @@ public:
 	std::vector<const FilterInfo*> filterInfo() const;
 	unsigned int videoWidth() const;
 	unsigned int videoHeight() const;
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32);
 	
 	void wdTileMapSelectChange(bool newValue, unsigned cycleCounter);
 	void bgTileMapSelectChange(bool newValue, unsigned cycleCounter);
@@ -174,12 +176,12 @@ public:
 	
 	void dmgSpPalette1Change(const unsigned data, const unsigned cycleCounter) {
 		update(cycleCounter);
-		setDmgPalette(spPalette, dmgColors, data);
+		setDmgPalette(spPalette, dmgColors + 4, data);
 	}
 	
 	void dmgSpPalette2Change(const unsigned data, const unsigned cycleCounter) {
 		update(cycleCounter);
-		setDmgPalette(spPalette + 4, dmgColors, data);
+		setDmgPalette(spPalette + 4, dmgColors + 8, data);
 	}
 	
 	void cgbBgColorChange(const unsigned index, const unsigned bgr15, const unsigned cycleCounter) {
