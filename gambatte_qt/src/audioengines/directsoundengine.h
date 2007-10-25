@@ -19,16 +19,21 @@
 #ifndef DIRECTSOUNDENGINE_H
 #define DIRECTSOUNDENGINE_H
 
-#include "../audioengine.h"
+class QCheckBox;
 
+#include "../audioengine.h"
+#include <memory>
 #include <dsound.h>
 
 class DirectSoundEngine : public AudioEngine {
+	const std::auto_ptr<QWidget> confWidget;
+	QCheckBox *const globalBufBox;
 	LPDIRECTSOUND lpDS;
 	LPDIRECTSOUNDBUFFER lpDSB;
 	unsigned bufSize;
 	DWORD offset;
 	HWND hwnd;
+	bool useGlobalBuf;
 	
 public:
 	DirectSoundEngine(HWND hwnd);
@@ -38,6 +43,9 @@ public:
 	int write(void *buffer, unsigned frames);
 	const BufferState bufferState() const;
 	void pause();
+	QWidget* settingsWidget() { return confWidget.get(); }
+	void acceptSettings();
+	void rejectSettings();
 };
 
 #endif

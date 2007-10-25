@@ -18,13 +18,46 @@
  ***************************************************************************/
 #include "directsoundengine.h"
 
-#include <iostream>
+// #include <iostream>
 #include <cstring>
+#include <QWidget>
+#include <QCheckBox>
+#include <QVBoxLayout>
+#include <QSettings>
 
-DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) : AudioEngine("DirectSound"), lpDS(NULL), lpDSB(NULL), hwnd(hwnd_in) {}
+DirectSoundEngine::DirectSoundEngine(HWND hwnd_in)
+: AudioEngine("DirectSound"), confWidget(new QWidget), globalBufBox(new QCheckBox("Global buffer")),
+  lpDS(NULL), lpDSB(NULL), hwnd(hwnd_in), useGlobalBuf(false)
+{
+	confWidget->setLayout(new QVBoxLayout);
+	confWidget->layout()->setMargin(0);
+	confWidget->layout()->addWidget(globalBufBox);
+	
+	{
+		QSettings settings;
+		settings.beginGroup("directsoundengine");
+		useGlobalBuf = settings.value("useGlobalBuf", useGlobalBuf).toBool();
+		settings.endGroup();
+	}
+	
+	rejectSettings();
+}
 
 DirectSoundEngine::~DirectSoundEngine() {
 	uninit();
+	
+	QSettings settings;
+	settings.beginGroup("directsoundengine");
+	settings.setValue("useGlobalBuf", useGlobalBuf);
+	settings.endGroup();
+}
+
+void DirectSoundEngine::acceptSettings() {
+	useGlobalBuf = globalBufBox->isChecked();
+}
+
+void DirectSoundEngine::rejectSettings() {
+	globalBufBox->setChecked(useGlobalBuf);
 }
 
 int DirectSoundEngine::init(const int rate) {
@@ -40,6 +73,7 @@ int DirectSoundEngine::init(const int rate) {
 		DSBUFFERDESC dsbd;
 		std::memset(&dsbd, 0, sizeof(dsbd));
 		dsbd.dwSize = sizeof(dsbd);
+		dsbd.dwFlags |= useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0;
 		
 		{
 			int bufferSize = (((rate * 4389) / 262144) + 1) * 8 * 4;
