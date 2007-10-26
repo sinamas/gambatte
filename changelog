@@ -1,3 +1,7 @@
+-- 0.3.1 -- 2007-10-26 --
+gambatte_qt:
+    - Enable Joystick POV-Hat events.
+
 -- 0.3.0 -- 2007-10-26 --
 libgambatte:
     - Fix adc/sbc and add_hl_rr hfc calc, sp_plus_n cf/hcf calc and daa thanks

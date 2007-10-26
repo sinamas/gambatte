@@ -77,7 +77,7 @@ public:
 JoystickIniter::JoystickIniter() {
 	SDL_JoystickInit();
 	
-	SDL_SetEventFilter(SDL_JOYAXISMOTION | SDL_JOYBUTTONCHANGE);
+	SDL_SetEventFilter(SDL_JOYAXISMOTION | SDL_JOYBUTTONCHANGE | SDL_JOYHATMOTION);
 	
 	const int numJs = SDL_NumJoysticks();
 	
