@@ -1,3 +1,43 @@
+-- 0.3.0 -- 2007-10-26 --
+libgambatte:
+    - Fix adc/sbc and add_hl_rr hfc calc, sp_plus_n cf/hcf calc and daa thanks
+      to blargg.
+    - document HF2 better
+    - Update sound core according to blargg's findings.
+    - Improve resampling quality and performance.
+    - Fix overlooked "add hl,sp" flag calculation.
+    - fix initial endtime value
+    - check for resampling ratio < 1
+    - Add support for DMG palette customization.
+gambatte_sdl:
+    - use std::map for parser
+    - Don't bother hashing.
+    - Add input config support.
+    - Add joystick support.
+    - Fix horrid "turbo can affect emulation" bug.
+    - Add sw and yuv overlay scaling.
+    - Use cond/mutex for thread syncing, RAII, refactor.
+    - add option for sample rate choice
+    - Add option to list valid input keys
+    - don't die if audio fails
+gambatte_qt:
+    - no point in filter being non-static anymore
+    - use std::map for input vectors
+    - remove unused unusedBool
+    - Fix horrid "turbo can affect emulation" bug.
+    - remove some useless optimizations
+    - auto_ptr love.
+    - support joystick hat.
+    - nicer input handling.
+    - Add sound dialog.
+    - Add custom dev choice for oss, alsa engines.
+    - Use rgb if available for xv.
+    - Get rid of BAD_MATCH warnings for setting non-existent xv attributes.
+    - make subblitters private nested classes
+    - add reset action
+    - Add support for DMG palette customization.
+    - Add global buffer option for dsound engine
+
 -- 0.2.0 -- 2007-09-05 --
 libgambatte:
     - fix 64-bit compile and segfault. Thanks to Nach for noticing.
