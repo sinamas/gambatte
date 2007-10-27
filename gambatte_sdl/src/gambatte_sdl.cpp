@@ -277,8 +277,6 @@ static unsigned ceiledPowerOf2(unsigned t) {
 	return t;
 }
 
-static void fill_buffer(void *buffer, Uint8 *stream, int len);
-
 struct AudioData {
 	const unsigned samplesPrFrame;
 	
@@ -295,6 +293,10 @@ private:
 	unsigned rPos;
 	unsigned wPos;
 	bool failed;
+	
+	static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
+		reinterpret_cast<AudioData*>(data)->read(stream, len);
+	}
 };
 
 AudioData::AudioData(const unsigned srate) :
@@ -678,8 +680,4 @@ int main(int argc, char **argv) {
 	GambatteSdl gambatteSdl(argc, argv);
 	
 	return gambatteSdl.exec();
-}
-
-static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
-	reinterpret_cast<AudioData*>(data)->read(stream, len);
 }
