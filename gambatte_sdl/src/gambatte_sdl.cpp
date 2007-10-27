@@ -605,8 +605,9 @@ int GambatteSdl::exec() {
 					
 					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
 					     range.first != range.second; ++range.first) {
-						     *range.first->second = jd.dir == range.first->first.dir;
-					     }
+						*range.first->second = jd.dir == range.first->first.dir;
+					}
+					
 					break;
 				case SDL_JOYBUTTONDOWN:
 				case SDL_JOYBUTTONUP:
@@ -615,8 +616,9 @@ int GambatteSdl::exec() {
 					
 					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jbMap.equal_range(jd));
 					     range.first != range.second; ++range.first) {
-						     *range.first->second = e.jbutton.state;
-					     }
+						*range.first->second = e.jbutton.state;
+					}
+					
 					break;
 				case SDL_JOYHATMOTION:
 					jd.dev_num = e.jhat.which;
@@ -624,8 +626,9 @@ int GambatteSdl::exec() {
 					
 					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
 					     range.first != range.second; ++range.first) {
-						     *range.first->second = e.jhat.value & range.first->first.dir;
-					     }
+						*range.first->second = e.jhat.value & range.first->first.dir;
+					}
+					
 					break;
 				case SDL_KEYDOWN:
 					if (e.key.keysym.sym == SDLK_ESCAPE)
@@ -646,8 +649,8 @@ int GambatteSdl::exec() {
 				case SDL_KEYUP:
 					for (std::pair<keymap_t::iterator,keymap_t::iterator> range(keyMap.equal_range(e.key.keysym.sym));
 					     range.first != range.second; ++range.first) {
-						     *range.first->second = e.key.state;
-					     }
+						*range.first->second = e.key.state;
+					}
 					
 					break;
 				case SDL_QUIT:
