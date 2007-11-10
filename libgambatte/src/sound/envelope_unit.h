@@ -23,17 +23,17 @@
 
 class EnvelopeUnit : public SoundUnit {
 // 	bool zombie;
-	uint8_t nr2;
-	uint8_t volume;
+	unsigned char nr2;
+	unsigned char volume;
 	
 public:
 	void event();
 	bool dacIsOn() const { return nr2 & 0xF8; }
 	unsigned getVolume() const { return volume; }
 	bool nr2Change(unsigned newNr2);
-	bool nr4Init(unsigned cycleCounter);
+	bool nr4Init(unsigned long cycleCounter);
 	void reset();
-	void init(bool ch1, unsigned cc);
+	void init(bool ch1, unsigned long cc);
 };
 
 #endif

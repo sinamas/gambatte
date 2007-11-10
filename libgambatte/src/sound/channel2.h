@@ -19,6 +19,8 @@
 #ifndef SOUND_CHANNEL2_H
 #define SOUND_CHANNEL2_H
 
+#include <stdint.h>
+
 #include "master_disabler.h"
 #include "length_counter.h"
 #include "duty_unit.h"
@@ -32,12 +34,11 @@ class Channel2 {
 	
 	SoundUnit *nextEventUnit;
 	
-	uint32_t cycleCounter;
-	uint32_t soMask;
+	unsigned long cycleCounter;
+	unsigned long soMask;
 	
+	unsigned char nr4;
 	bool master;
-	
-	uint8_t nr4;
 	
 	void setEvent();
 	
@@ -52,10 +53,10 @@ public:
 	// void deactivate() { disableMaster(); setEvent(); }
 	bool isActive() const { return master; }
 	
-	void update(uint32_t *buf, unsigned soBaseVol, unsigned cycles);
+	void update(uint32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	
 	void reset();
-	void init(unsigned cc, bool cgb);
+	void init(unsigned long cc, bool cgb);
 };
 
 #endif

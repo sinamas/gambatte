@@ -71,19 +71,17 @@ PSG::~PSG() {
 	delete[] buffer;
 }
 
-void PSG::accumulate_channels(const unsigned next_update) {
+void PSG::accumulate_channels(const unsigned long cycles) {
 	uint32_t *const buf = buffer + bufferPos;
-
-	const unsigned soVol = (so1_volume << 16) | so2_volume;
 	
-	ch1.update(buf, soVol, next_update);
-	ch2.update(buf, soVol, next_update);
-	ch3.update(buf, soVol, next_update);
-	ch4.update(buf, soVol, next_update);
+	ch1.update(buf, soVol, cycles);
+	ch2.update(buf, soVol, cycles);
+	ch3.update(buf, soVol, cycles);
+	ch4.update(buf, soVol, cycles);
 }
 
-void PSG::generate_samples(const unsigned cycleCounter, const unsigned doubleSpeed) {
-	const unsigned cycles = cycleCounter - lastUpdate >> (1 + doubleSpeed);
+void PSG::generate_samples(const unsigned long cycleCounter, const unsigned doubleSpeed) {
+	const unsigned long cycles = cycleCounter - lastUpdate >> (1 + doubleSpeed);
 	lastUpdate += cycles << (1 + doubleSpeed);
 
 	if (bufferSize - bufferPos < cycles)
@@ -95,7 +93,7 @@ void PSG::generate_samples(const unsigned cycleCounter, const unsigned doubleSpe
 	bufferPos += cycles;
 }
 
-void PSG::resetCounter(const unsigned newCc, const unsigned oldCc, const unsigned doubleSpeed) {
+void PSG::resetCounter(const unsigned long newCc, const unsigned long oldCc, const unsigned doubleSpeed) {
 	generate_samples(oldCc, doubleSpeed);
 	lastUpdate = newCc - (oldCc - lastUpdate);
 }
@@ -107,16 +105,16 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 		uint16_t *const streamEnd = stream + samples * 2;
 		const uint32_t *buf = buffer;
 	
-		const unsigned ratio = (endPos << 16) / samples;
+		const unsigned long ratio = (endPos << 16) / samples;
 		
 		unsigned whole = ratio >> 16;
 		unsigned frac = ratio & 0xFFFF;
-		unsigned so1 = 0;
-		unsigned so2 = 0;
+		unsigned long so1 = 0;
+		unsigned long so2 = 0;
 		
 		while (stream < streamEnd) {
 			{
-				unsigned soTmp = 0;
+				unsigned long soTmp = 0;
 				
 				for (const uint32_t *const end = buf + whole; buf != end;)
 					soTmp += *buf++;
@@ -126,9 +124,9 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 			}
 			
 			{
-				const unsigned borderSample = *buf++;
-				const unsigned so1Tmp = (borderSample >> 16) * frac;
-				const unsigned so2Tmp = (borderSample & 0xFFFF) * frac;
+				const unsigned long borderSample = *buf++;
+				const unsigned long so1Tmp = (borderSample >> 16) * frac;
+				const unsigned long so2Tmp = (borderSample & 0xFFFF) * frac;
 				
 				so1 += so1Tmp;
 				so2 += so2Tmp;
@@ -140,7 +138,7 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 				so2 = (borderSample << 16 & 0xFFFFFFFF) - so2Tmp;
 			}
 			
-			const unsigned nextTotal = ratio - ((1 << 16) - frac);
+			const unsigned long nextTotal = ratio - ((1 << 16) - frac);
 			whole = nextTotal >> 16;
 			frac = nextTotal & 0xFFFF;
 		}
@@ -151,9 +149,7 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 }
 
 void PSG::set_so_volume(const unsigned nr50) {
-// 	printf("nr50 = 0x%X\n", nr50);
-	so1_volume = (nr50 & 0x7) + 1;
-	so2_volume = (nr50 >> 4 & 0x7) + 1;
+	soVol = (nr50 & 0x7) + 1 << 16 | (nr50 >> 4 & 0x7) + 1;
 }
 
 void PSG::map_so(const unsigned nr51) {

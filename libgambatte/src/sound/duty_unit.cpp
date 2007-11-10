@@ -18,9 +18,9 @@
  ***************************************************************************/
 #include "duty_unit.h"
 
-void DutyUnit::updatePos(const unsigned cc) {
+void DutyUnit::updatePos(const unsigned long cc) {
 	if (cc >= nextPosUpdate) {
-		const unsigned inc = 1 + (cc - nextPosUpdate) / period;
+		const unsigned long inc = 1 + (cc - nextPosUpdate) / period;
 		nextPosUpdate += period * inc;
 		pos += inc;
 		pos &= 7;
@@ -28,23 +28,23 @@ void DutyUnit::updatePos(const unsigned cc) {
 }
 
 void DutyUnit::setDuty(const unsigned nr1) {
-	static const uint8_t duties[4] = { 0x80, 0x81, 0xE1, 0x7E };
+	static const unsigned char duties[4] = { 0x80, 0x81, 0xE1, 0x7E };
 	
 	high = duties[(duty = nr1 >> 6)] >> pos & 1;
 }
 
 void DutyUnit::setCounter() {
-	static const uint8_t nextStateDistance[4 * 8] = {
+	static const unsigned char nextStateDistance[4 * 8] = {
 		6, 5, 4, 3, 2, 1, 0, 0,
 		0, 5, 4, 3, 2, 1, 0, 1,
 		0, 3, 2, 1, 0, 3, 2, 1,
 		0, 5, 4, 3, 2, 1, 0, 1
 	};
 	
-	counter = nextPosUpdate != 0xFFFFFFFF ? nextPosUpdate + period * nextStateDistance[duty * 8 | pos] : nextPosUpdate;
+	counter = nextPosUpdate != COUNTER_DISABLED ? nextPosUpdate + period * nextStateDistance[duty * 8 | pos] : nextPosUpdate;
 }
 
-void DutyUnit::setFreq(const unsigned newFreq, const unsigned cc) {
+void DutyUnit::setFreq(const unsigned newFreq, const unsigned long cc) {
 	updatePos(cc);
 	period = 2048 - newFreq << 1;
 	setCounter();
@@ -62,17 +62,17 @@ void DutyUnit::event() {
 	counter += inc;
 }
 
-void DutyUnit::nr1Change(const unsigned newNr1, const unsigned cc) {
+void DutyUnit::nr1Change(const unsigned newNr1, const unsigned long cc) {
 	updatePos(cc);
 	setDuty(newNr1);
 	setCounter();
 }
 
-void DutyUnit::nr3Change(const unsigned newNr3, const unsigned cc) {
+void DutyUnit::nr3Change(const unsigned newNr3, const unsigned long cc) {
 	setFreq(getFreq() & 0x700 | newNr3, cc);
 }
 
-void DutyUnit::nr4Change(const unsigned newNr4, const unsigned cc) {
+void DutyUnit::nr4Change(const unsigned newNr4, const unsigned long cc) {
 	setFreq(newNr4 << 8 & 0x700 | getFreq() & 0xFF, cc);
 	
 	if (newNr4 & 0x80) {
@@ -81,7 +81,7 @@ void DutyUnit::nr4Change(const unsigned newNr4, const unsigned cc) {
 	}
 }
 
-void DutyUnit::init(const unsigned cc) {
+void DutyUnit::init(const unsigned long cc) {
 	pos = 0;
 	setDuty(0);
 	period = 2048 << 1;
@@ -92,15 +92,15 @@ void DutyUnit::init(const unsigned cc) {
 void DutyUnit::reset() {
 	pos = 0;
 	setDuty(0);
-	nextPosUpdate = 0xFFFFFFFF;
+	nextPosUpdate = COUNTER_DISABLED;
 	setCounter();
 }
 
-void DutyUnit::resetCounters(const unsigned oldCc) {
-	if (nextPosUpdate == 0xFFFFFFFF)
+void DutyUnit::resetCounters(const unsigned long oldCc) {
+	if (nextPosUpdate == COUNTER_DISABLED)
 		return;
 	
 	updatePos(oldCc);
-	nextPosUpdate -= 0x80000000;
-	counter -= 0x80000000;
+	nextPosUpdate -= COUNTER_MAX;
+	counter -= COUNTER_MAX;
 }

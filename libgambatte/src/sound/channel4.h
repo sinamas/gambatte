@@ -19,28 +19,30 @@
 #ifndef SOUND_CHANNEL4_H
 #define SOUND_CHANNEL4_H
 
+#include <stdint.h>
+
 #include "master_disabler.h"
 #include "length_counter.h"
 #include "envelope_unit.h"
 
 class Channel4 {
 	class Lfsr : public SoundUnit {
-		uint32_t backupCounter;
-		uint16_t reg;
-		uint8_t nr3;
+		unsigned long backupCounter;
+		unsigned short reg;
+		unsigned char nr3;
 		
-		void updateBackupCounter(unsigned cc);
+		void updateBackupCounter(unsigned long cc);
 		
 	public:
 		Lfsr() {}
 		void event();
 		bool isHighState() const { return ~reg & 1; }
-		void nr3Change(unsigned newNr3, unsigned cc);
-		void nr4Init(unsigned cc);
-		void init(unsigned cc);
-		void reset(unsigned cc) { init(cc); }
-		void resetCounters(unsigned oldCc);
-		void killCounter() { counter = 0xFFFFFFFF; }
+		void nr3Change(unsigned newNr3, unsigned long cc);
+		void nr4Init(unsigned long cc);
+		void init(unsigned long cc);
+		void reset(unsigned long cc) { init(cc); }
+		void resetCounters(unsigned long oldCc);
+		void killCounter() { counter = COUNTER_DISABLED; }
 	};
 	
 	class Ch4MasterDisabler : public MasterDisabler {
@@ -57,10 +59,10 @@ class Channel4 {
 	
 	SoundUnit *nextEventUnit;
 	
-	uint32_t cycleCounter;
-	uint32_t soMask;
+	unsigned long cycleCounter;
+	unsigned long soMask;
 	
-	uint8_t nr4;
+	unsigned char nr4;
 	bool master;
 	
 	void setEvent();
@@ -75,10 +77,10 @@ public:
 	void setSo(bool so1, bool so2);
 	bool isActive() const { return master; }
 	
-	void update(uint32_t *buf, unsigned soBaseVol, unsigned cycles);
+	void update(uint32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	
 	void reset();
-	void init(unsigned cc, bool cgb);
+	void init(unsigned long cc, bool cgb);
 };
 
 #endif

@@ -22,29 +22,29 @@
 #include "sound_unit.h"
 
 class DutyUnit : public SoundUnit {
-	uint32_t period;
-	uint32_t nextPosUpdate;
-	uint8_t pos;
-	uint8_t duty;
+	unsigned long nextPosUpdate;
+	unsigned short period;
+	unsigned char pos;
+	unsigned char duty;
 	bool high;
 
 	void setCounter();
 	void setDuty(unsigned nr1);
-	void updatePos(unsigned cc);
+	void updatePos(unsigned long cc);
 
 public:
 	void event();
 	bool isHighState() const { return high; }
-	void nr1Change(unsigned newNr1, unsigned cc);
-	void nr3Change(unsigned newNr3, unsigned cc);
-	void nr4Change(unsigned newNr4, unsigned cc);
-	void init(unsigned cc);
+	void nr1Change(unsigned newNr1, unsigned long cc);
+	void nr3Change(unsigned newNr3, unsigned long cc);
+	void nr4Change(unsigned newNr4, unsigned long cc);
+	void init(unsigned long cc);
 	void reset();
-	void resetCounters(unsigned oldCc);
+	void resetCounters(unsigned long oldCc);
 	
 	//intended for use by SweepUnit only.
 	unsigned getFreq() const { return 2048 - (period >> 1); }
-	void setFreq(unsigned newFreq, unsigned cc);
+	void setFreq(unsigned newFreq, unsigned long cc);
 };
 
 #endif

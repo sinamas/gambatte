@@ -77,7 +77,7 @@ void Channel2::reset() {
 	setEvent();
 }
 
-void Channel2::init(const unsigned cc, const bool cgb) {
+void Channel2::init(const unsigned long cc, const bool cgb) {
 	nr4 = 0;
 	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
 	master = false;
@@ -89,15 +89,15 @@ void Channel2::init(const unsigned cc, const bool cgb) {
 	setEvent();
 }
 
-void Channel2::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) {
-	const unsigned outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
+void Channel2::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
+	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
 	
-	const unsigned endCycles = cycleCounter + cycles;
+	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned out = outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
+		const unsigned long out = outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
 		
-		unsigned multiplier = nextEventUnit->getCounter();
+		unsigned long multiplier = nextEventUnit->getCounter();
 		
 		if (multiplier <= endCycles) {
 			nextEventUnit->event();
@@ -118,11 +118,11 @@ void Channel2::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) 
 		buf = bufend;
 	}
 	
-	if (cycleCounter & 0x80000000) {
+	if (cycleCounter & SoundUnit::COUNTER_MAX) {
 		dutyUnit.resetCounters(cycleCounter);
 		lengthCounter.resetCounters(cycleCounter);
 		envelopeUnit.resetCounters(cycleCounter);
 		
-		cycleCounter -= 0x80000000;
+		cycleCounter -= SoundUnit::COUNTER_MAX;
 	}
 }

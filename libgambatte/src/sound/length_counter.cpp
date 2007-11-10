@@ -27,18 +27,18 @@ LengthCounter::LengthCounter(MasterDisabler &disabler, const unsigned mask) :
 }
 
 void LengthCounter::event() {
-	counter = 0xFFFFFFFF;
+	counter = COUNTER_DISABLED;
 	lengthCounter = 0;
 	disableMaster();
 }
 
-void LengthCounter::nr1Change(const unsigned newNr1, const unsigned nr4, const unsigned cycleCounter) {
+void LengthCounter::nr1Change(const unsigned newNr1, const unsigned nr4, const unsigned long cycleCounter) {
 	lengthCounter = (~newNr1 & lengthMask) + 1;
-	counter = (nr4 & 0x40) ? (cycleCounter >> 13) + lengthCounter << 13 : 0xFFFFFFFF;
+	counter = (nr4 & 0x40) ? (cycleCounter >> 13) + lengthCounter << 13 : COUNTER_DISABLED;
 }
 
-void LengthCounter::nr4Change(const unsigned oldNr4, const unsigned newNr4, const unsigned cycleCounter) {
-	if (counter != 0xFFFFFFFF)
+void LengthCounter::nr4Change(const unsigned oldNr4, const unsigned newNr4, const unsigned long cycleCounter) {
+	if (counter != COUNTER_DISABLED)
 		lengthCounter = (counter >> 13) - (cycleCounter >> 13);
 	
 	{
@@ -60,11 +60,11 @@ void LengthCounter::nr4Change(const unsigned oldNr4, const unsigned newNr4, cons
 	if ((newNr4 & 0x40) && lengthCounter)
 		counter = (cycleCounter >> 13) + lengthCounter << 13;
 	else
-		counter = 0xFFFFFFFF;
+		counter = COUNTER_DISABLED;
 }
 
 /*void LengthCounter::reset() {
-	counter = 0xFFFFFFFF;
+	counter = COUNTER_DISABLED;
 	
 	if (cgb)
 		lengthCounter = lengthMask + 1;

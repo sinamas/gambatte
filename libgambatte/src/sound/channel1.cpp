@@ -63,7 +63,7 @@ void Channel1::SweepUnit::nr0Change(const unsigned newNr0) {
 	nr0 = newNr0;
 }
 
-void Channel1::SweepUnit::nr4Init(const unsigned cc) {
+void Channel1::SweepUnit::nr4Init(const unsigned long cc) {
 	negging = false;
 	shadow = dutyUnit.getFreq();
 	
@@ -73,7 +73,7 @@ void Channel1::SweepUnit::nr4Init(const unsigned cc) {
 	if (period | shift)
 		counter = (cc >> 14) + (period ? period : 8) << 14;
 	else
-		counter = 0xFFFFFFFF;
+		counter = COUNTER_DISABLED;
 	
 	if (shift)
 		calcFreq();
@@ -83,11 +83,11 @@ void Channel1::SweepUnit::init() {
 	nr0 = 0;
 	shadow = 0;
 	negging = false;
-	counter = 0xFFFFFFFF;
+	counter = COUNTER_DISABLED;
 }
 
 void Channel1::SweepUnit::reset() {
-	counter = 0xFFFFFFFF;
+	counter = COUNTER_DISABLED;
 }
 
 Channel1::Channel1() :
@@ -158,7 +158,7 @@ void Channel1::reset() {
 	setEvent();
 }
 
-void Channel1::init(const unsigned cc, const bool cgb) {
+void Channel1::init(const unsigned long cc, const bool cgb) {
 	nr4 = 0;
 	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
 	
@@ -173,16 +173,16 @@ void Channel1::init(const unsigned cc, const bool cgb) {
 	setEvent();
 }
 
-void Channel1::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) {
-	const unsigned outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
+void Channel1::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
+	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
 	
-	const unsigned endCycles = cycleCounter + cycles;
+	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned out = 15 * 8 * 4 * 0x00010001 +
+		const unsigned long out = 15 * 8 * 4 * 0x00010001 +
 		                     outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
 		
-		unsigned multiplier = nextEventUnit->getCounter();
+		unsigned long multiplier = nextEventUnit->getCounter();
 		
 		if (multiplier <= endCycles) {
 			nextEventUnit->event();
@@ -198,12 +198,12 @@ void Channel1::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) 
 		buf += multiplier;
 	}
 	
-	if (cycleCounter & 0x80000000) {
+	if (cycleCounter & SoundUnit::COUNTER_MAX) {
 		dutyUnit.resetCounters(cycleCounter);
 		lengthCounter.resetCounters(cycleCounter);
 		envelopeUnit.resetCounters(cycleCounter);
 		sweepUnit.resetCounters(cycleCounter);
 		
-		cycleCounter -= 0x80000000;
+		cycleCounter -= SoundUnit::COUNTER_MAX;
 	}
 }

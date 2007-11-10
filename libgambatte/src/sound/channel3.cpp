@@ -71,7 +71,7 @@ void Channel3::reset() {
 	sampleBuf = 0;
 }
 
-void Channel3::init(const unsigned cc, const bool cgb) {
+void Channel3::init(const unsigned long cc, const bool cgb) {
 	this->cgb = cgb;
 
 	nr0 = 0;
@@ -89,15 +89,15 @@ void Channel3::init(const unsigned cc, const bool cgb) {
 	disableMaster();
 }
 
-void Channel3::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) {
-	const unsigned outBase = (nr0/* & 0x80*/) ? soBaseVol & soMask : 0;
+void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
+	const unsigned long outBase = (nr0/* & 0x80*/) ? soBaseVol & soMask : 0;
 	
-	const unsigned endCycles = cycleCounter + cycles;
+	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15 : 0 - 15);
+		const unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15 : 0 - 15);
 		
-		unsigned multiplier = endCycles;
+		unsigned long multiplier = endCycles;
 		
 		if (waveCounter <= multiplier || lengthCounter.getCounter() <= multiplier) {
 			if (lengthCounter.getCounter() < waveCounter) {
@@ -125,13 +125,13 @@ void Channel3::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) 
 		buf = bufend;
 	}
 	
-	if (cycleCounter & 0x80000000) {
+	if (cycleCounter & SoundUnit::COUNTER_MAX) {
 		lengthCounter.resetCounters(cycleCounter);
 		
-		if (waveCounter != 0xFFFFFFFF)
-			waveCounter -= 0x80000000;
+		if (waveCounter != SoundUnit::COUNTER_DISABLED)
+			waveCounter -= SoundUnit::COUNTER_MAX;
 		
-		lastReadTime -= 0x80000000;
-		cycleCounter -= 0x80000000;
+		lastReadTime -= SoundUnit::COUNTER_MAX;
+		cycleCounter -= SoundUnit::COUNTER_MAX;
 	}
 }

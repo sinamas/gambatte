@@ -33,15 +33,14 @@ class PSG {
 	Channel4 ch4;
 		
 	uint32_t *buffer;
+	unsigned long lastUpdate;
+	unsigned long soVol;
 	
-	uint32_t lastUpdate;
-	uint32_t bufferPos;
-	uint32_t so1_volume;
-	uint32_t so2_volume;
+	unsigned bufferPos;
 	
 	bool enabled;
 
-	void accumulate_channels(unsigned next_update);
+	void accumulate_channels(unsigned long cycles);
 
 public:
 	void init(const uint8_t *ioram, bool cgb);
@@ -49,8 +48,8 @@ public:
 	PSG();
 	~PSG();
 
-	void generate_samples(unsigned cycleCounter, unsigned doubleSpeed);
-	void resetCounter(unsigned newCc, unsigned oldCc, unsigned doubleSpeed);
+	void generate_samples(unsigned long cycleCounter, unsigned doubleSpeed);
+	void resetCounter(unsigned long newCc, unsigned long oldCc, unsigned doubleSpeed);
 	void fill_buffer(uint16_t *stream, const unsigned samples);
 	
 	bool isEnabled() const { return enabled; }
@@ -72,7 +71,7 @@ public:
 	void set_nr32(unsigned data) { ch3.setNr2(data); }
 	void set_nr33(unsigned data) { ch3.setNr3(data); }
 	void set_nr34(unsigned data) { ch3.setNr4(data); }
-	uint8_t waveRamRead(unsigned index) const { return ch3.waveRamRead(index); }
+	unsigned waveRamRead(unsigned index) const { return ch3.waveRamRead(index); }
 	void waveRamWrite(unsigned index, unsigned data) { ch3.waveRamWrite(index, data); }
 
 	void set_nr41(unsigned data) { ch4.setNr1(data); }

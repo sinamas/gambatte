@@ -19,6 +19,8 @@
 #ifndef SOUND_CHANNEL1_H
 #define SOUND_CHANNEL1_H
 
+#include <stdint.h>
+
 #include "master_disabler.h"
 #include "length_counter.h"
 #include "duty_unit.h"
@@ -28,8 +30,8 @@ class Channel1 {
 	class SweepUnit : public SoundUnit {
 		MasterDisabler &disableMaster;
 		DutyUnit &dutyUnit;
-		uint16_t shadow;
-		uint8_t nr0;
+		unsigned short shadow;
+		unsigned char nr0;
 		bool negging;
 		
 		unsigned calcFreq();
@@ -38,7 +40,7 @@ class Channel1 {
 		SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit);
 		void event();
 		void nr0Change(unsigned newNr0);
-		void nr4Init(unsigned cycleCounter);
+		void nr4Init(unsigned long cycleCounter);
 		void init();
 		void reset();
 	};
@@ -51,12 +53,11 @@ class Channel1 {
 	
 	SoundUnit *nextEventUnit;
 	
-	uint32_t cycleCounter;
-	uint32_t soMask;
+	unsigned long cycleCounter;
+	unsigned long soMask;
 	
+	unsigned char nr4;
 	bool master;
-	
-	uint8_t nr4;
 	
 	void setEvent();
 	
@@ -71,10 +72,10 @@ public:
 	void setSo(bool so1, bool so2);
 	bool isActive() const { return master; }
 	
-	void update(uint32_t *buf, unsigned soBaseVol, unsigned cycles);
+	void update(uint32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	
 	void reset();
-	void init(unsigned cc, bool cgb);
+	void init(unsigned long cc, bool cgb);
 };
 
 #endif

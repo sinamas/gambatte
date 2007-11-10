@@ -19,16 +19,17 @@
 #ifndef SOUND_UNIT_H
 #define SOUND_UNIT_H
 
-#include <stdint.h>
-
 class SoundUnit {
 protected:
-	uint32_t counter;
+	unsigned long counter;
 public:
+	static const unsigned long COUNTER_DISABLED = 0xFFFFFFFF;
+	static const unsigned long COUNTER_MAX = 0x80000000;
+	
 	virtual ~SoundUnit() {}
 	virtual void event() = 0;
-	uint32_t getCounter() const { return counter; }
-	virtual void resetCounters(unsigned /*oldCc*/) { if (counter != 0xFFFFFFFF) counter -= 0x80000000; }
+	unsigned long getCounter() const { return counter; }
+	virtual void resetCounters(unsigned long /*oldCc*/) { if (counter != COUNTER_DISABLED) counter -= COUNTER_MAX; }
 };
 
 #endif

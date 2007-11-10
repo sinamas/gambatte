@@ -30,7 +30,7 @@ static unsigned toPeriod(const unsigned nr3) {
 	return r << s;
 }
 
-void Channel4::Lfsr::updateBackupCounter(const unsigned cc) {
+void Channel4::Lfsr::updateBackupCounter(const unsigned long cc) {
 	if (backupCounter <= cc) {
 		const unsigned period = toPeriod(nr3);
 		backupCounter = cc - (cc - backupCounter) % period + period;
@@ -52,28 +52,28 @@ void Channel4::Lfsr::event() {
 	backupCounter = counter;
 }
 
-void Channel4::Lfsr::nr3Change(const unsigned newNr3, const unsigned cc) {
+void Channel4::Lfsr::nr3Change(const unsigned newNr3, const unsigned long cc) {
 	updateBackupCounter(cc);
 	nr3 = newNr3;
 }
 
-void Channel4::Lfsr::nr4Init(unsigned cc) {
+void Channel4::Lfsr::nr4Init(unsigned long cc) {
 	reg = 0xFF;
 	updateBackupCounter(cc);
 	backupCounter += 4;
 	counter = backupCounter;
 }
 
-void Channel4::Lfsr::init(const unsigned cc) {
+void Channel4::Lfsr::init(const unsigned long cc) {
 	nr3 = 0;
 	reg = 0xFF;
 	backupCounter = cc + toPeriod(nr3);
-	counter = 0xFFFFFFFF;
+	counter = COUNTER_DISABLED;
 }
 
-void Channel4::Lfsr::resetCounters(const unsigned oldCc) {
+void Channel4::Lfsr::resetCounters(const unsigned long oldCc) {
 	updateBackupCounter(oldCc);
-	backupCounter -= 0x80000000;
+	backupCounter -= COUNTER_MAX;
 	SoundUnit::resetCounters(oldCc);
 }
 
@@ -134,7 +134,7 @@ void Channel4::reset() {
 	setEvent();
 }
 
-void Channel4::init(const unsigned cc, const bool cgb) {
+void Channel4::init(const unsigned long cc, const bool cgb) {
 	nr4 = 0;
 	
 	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
@@ -148,15 +148,15 @@ void Channel4::init(const unsigned cc, const bool cgb) {
 	setEvent();
 }
 
-void Channel4::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) {
-	const unsigned outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
+void Channel4::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
+	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
 	
-	const unsigned endCycles = cycleCounter + cycles;
+	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned out = outBase * ((master && lfsr.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
+		const unsigned long out = outBase * ((master && lfsr.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
 		
-		unsigned multiplier = nextEventUnit->getCounter();
+		unsigned long multiplier = nextEventUnit->getCounter();
 		
 		if (multiplier <= endCycles) {
 			nextEventUnit->event();
@@ -177,11 +177,11 @@ void Channel4::update(uint32_t *buf, const unsigned soBaseVol, unsigned cycles) 
 		buf = bufend;
 	}
 	
-	if (cycleCounter & 0x80000000) {
+	if (cycleCounter & SoundUnit::COUNTER_MAX) {
 		lengthCounter.resetCounters(cycleCounter);
 		lfsr.resetCounters(cycleCounter);
 		envelopeUnit.resetCounters(cycleCounter);
 		
-		cycleCounter -= 0x80000000;
+		cycleCounter -= SoundUnit::COUNTER_MAX;
 	}
 }

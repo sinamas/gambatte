@@ -33,13 +33,13 @@ void EnvelopeUnit::event() {
 			volume = newVol;
 			counter += period << 15;
 		} else
-			counter = 0xFFFFFFFF;
+			counter = COUNTER_DISABLED;
 	} else
 		counter += 8 << 15;
 }
 
 bool EnvelopeUnit::nr2Change(const unsigned newNr2) {
-	if (!(nr2 & 7) && counter != 0xFFFFFFFF)
+	if (!(nr2 & 7) && counter != COUNTER_DISABLED)
 		++volume;
 	else if (!(nr2 & 8))
 		volume += 2;
@@ -54,7 +54,7 @@ bool EnvelopeUnit::nr2Change(const unsigned newNr2) {
 	return !(newNr2 & 0xF8);
 }
 
-bool EnvelopeUnit::nr4Init(const unsigned cc) {
+bool EnvelopeUnit::nr4Init(const unsigned long cc) {
 	{
 		unsigned period = nr2 & 7;
 		
@@ -73,16 +73,16 @@ bool EnvelopeUnit::nr4Init(const unsigned cc) {
 }
 
 void EnvelopeUnit::reset() {
-	counter = 0xFFFFFFFF;
+	counter = COUNTER_DISABLED;
 }
 
-void EnvelopeUnit::init(const bool ch1, const unsigned cc) {
+void EnvelopeUnit::init(const bool ch1, const unsigned long cc) {
 	volume = 0;
 	counter = cc - (cc - 0x1000 & 0x7FFF) + 8 * 0x8000;
 	nr2 = 0;
 	
 	if (ch1) {
 		nr2 = 0xF3;
-		counter = 0xFFFFFFFF;
+		counter = COUNTER_DISABLED;
 	}
 }
