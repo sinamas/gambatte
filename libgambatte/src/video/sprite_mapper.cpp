@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "sprite_mapper.h"
 #include "sprite_size_reader.h"
 #include "scx_reader.h"
@@ -39,6 +39,23 @@ SpriteMapper::SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
 void SpriteMapper::clearMap() {
 	for (uint16_t* i = &spritemap[10]; i < &spritemap[144 * 12]; i += 12)
 		i[1] = i[0] = 0;
+}
+
+static void insertionSort(uint16_t *const start, uint16_t *const end) {
+	uint16_t *a = start;
+	
+	while (++a < end) {
+		const unsigned e = *a;
+		
+		uint16_t *b = a;
+		
+		while (b != start && *(b - 1) > e) {
+			*b = *(b - 1);
+			b = b - 1;
+		}
+		
+		*b = e;
+	}
 }
 
 void SpriteMapper::mapSprites() {
@@ -77,25 +94,37 @@ void SpriteMapper::mapSprites() {
 			tmp = sortBuf;
 		}
 		
-		std::sort(tmp, tmp + tmp[10]);
+		insertionSort(tmp, tmp + tmp[10]);
+// 		std::sort(tmp, tmp + tmp[10]);
 		
 		unsigned sum = 0;
 		
 		for (unsigned i = 0; i < tmp[10]; ++i) {
 			const unsigned spx = tmp[i] >> 8;
-			const unsigned cycles = spx < 168 ? std::max(11U - ((scxReader.scxAnd7() + spx) & 7U), 6U) : 0;
 			
-			if (cycles > 6) {
-				unsigned j = 0;
-				for (; j < i; ++j) {
-					const unsigned tmpSpx = tmp[j] >> 8;
-					if (spx - tmpSpx < 5U && (((scxReader.scxAnd7() + tmpSpx) & 7) < 4 || spx == tmpSpx))
-						break;
-				}
+			if (spx > 167)
+				break;
+			
+			unsigned cycles = 6;
+			const unsigned posAnd7 = scxReader.scxAnd7() + spx & 7;
+			
+			if (posAnd7 < 5) {
+				cycles = 11 - posAnd7;
 				
-				sum += j < i ? 6 : cycles;
-			} else
-				sum += cycles;
+				for (unsigned j = i; j--;) {
+					const unsigned tmpSpx = tmp[j] >> 8;
+					
+					if (spx - tmpSpx > 4U)
+						break;
+					
+					if ((scxReader.scxAnd7() + tmpSpx & 7) < 4 || spx == tmpSpx) {
+						cycles = 6;
+						break;
+					}
+				}
+			}
+			
+			sum += cycles;
 		}
 		
 		mapPos[11] = sum;
