@@ -56,7 +56,12 @@ TARGET = ../bin/gambatte_qt
 INCLUDEPATH += ../../libgambatte/include SDL_Joystick/include
 LIBS += -L../../libgambatte -lgambatte -lz
 
-unix {
+macx {
+    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp audioengines/aoengine.cpp
+    SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
+    HEADERS += audioengines/aoengine.h
+    LIBS += -lao
+} else : unix {
     DEFINES += PLATFORM_UNIX
 
     SOURCES += blitterwidget.cpp \
@@ -80,7 +85,7 @@ unix {
         SOURCES += addaudioengines_linux.cpp audioengines/alsaengine.cpp SDL_Joystick/src/linux/SDL_sysjoystick.c
         HEADERS += audioengines/alsaengine.h
         LIBS += -lasound
-    }    else {
+    } else {
         SOURCES += addaudioengines_unix.cpp
 
         freebsd-g++|netbsd-g++|openbsd-g++ {
@@ -89,16 +94,16 @@ unix {
             exists( /usr/include/libusb.h ): DEFINES += HAVE_LIBUSB_H
             exists( /usr/include/libusbhid.h ): DEFINES += HAVE_LIBUSBHID_H
             SOURCES += SDL_Joystick/src/bsd/SDL_sysjoystick.c
-        }        else : darwin-g++ {
-                SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
-            }        else {
+        } else : darwin-g++ {
+            SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
+        } else {
             SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
         }
     }
-}else : win32 {
-        DEFINES += PLATFORM_WIN32
+} else : win32 {
+    DEFINES += PLATFORM_WIN32
 
-        SOURCES += getfullrestoggler_win32.cpp \
+    SOURCES += getfullrestoggler_win32.cpp \
                blitterwidget_win32.cpp \
                addaudioengines_win32.cpp \
                addblitterwidgets_win32.cpp \
@@ -107,19 +112,14 @@ unix {
                fullrestogglers/gditoggler.cpp \
                SDL_Joystick/src/win32/SDL_mmjoystick.c
 
-        HEADERS += audioengines/directsoundengine.h \
+    HEADERS += audioengines/directsoundengine.h \
                blitterwidgets/directdrawblitter.h \
                fullrestogglers/gditoggler.h
 
-        LIBS += -lwinmm -lddraw -ldxguid -ldsound
-    }else {
+    LIBS += -lwinmm -lddraw -ldxguid -ldsound
+} else {
     SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp audioengines/aoengine.cpp
+    SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
     HEADERS += audioengines/aoengine.h
     LIBS += -lao
-
-    macx {
-        SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
-    }    else {
-        SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
-    }
 }
