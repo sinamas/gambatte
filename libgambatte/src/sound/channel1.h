@@ -25,6 +25,7 @@
 #include "length_counter.h"
 #include "duty_unit.h"
 #include "envelope_unit.h"
+#include "static_output_tester.h"
 
 class Channel1 {
 	class SweepUnit : public SoundUnit {
@@ -45,7 +46,10 @@ class Channel1 {
 		void reset();
 	};
 	
-	MasterDisabler disableMaster;
+	friend class StaticOutputTester<Channel1,DutyUnit>;
+	
+	StaticOutputTester<Channel1,DutyUnit> staticOutputTest;
+	DutyMasterDisabler disableMaster;
 	LengthCounter lengthCounter;
 	DutyUnit dutyUnit;
 	EnvelopeUnit envelopeUnit;

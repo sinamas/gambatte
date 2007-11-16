@@ -18,16 +18,19 @@
  ***************************************************************************/
 #include "envelope_unit.h"
 
+EnvelopeUnit::VolOnOffEvent EnvelopeUnit::nullEvent;
+
 void EnvelopeUnit::event() {
 	const unsigned period = nr2 & 7;
 	
 	if (period) {
 		unsigned newVol = volume;
 		
-		if (nr2 & 8)
-			++newVol;
-		else
-			--newVol;
+		if (nr2 & 8) {
+			if (++newVol == 1)
+				volOnOffEvent(counter);
+		} else if (--newVol == 0)
+			volOnOffEvent(counter);
 		
 		if (newVol < 0x10U) {
 			volume = newVol;

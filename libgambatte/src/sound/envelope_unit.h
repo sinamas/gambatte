@@ -22,11 +22,20 @@
 #include "sound_unit.h"
 
 class EnvelopeUnit : public SoundUnit {
-// 	bool zombie;
+public:
+	struct VolOnOffEvent {
+		virtual ~VolOnOffEvent() {}
+		virtual void operator()(unsigned long /*cc*/) {}
+	};
+	
+private:
+	static VolOnOffEvent nullEvent;
+	VolOnOffEvent &volOnOffEvent;
 	unsigned char nr2;
 	unsigned char volume;
 	
 public:
+	EnvelopeUnit(VolOnOffEvent &volOnOffEvent = nullEvent) : volOnOffEvent(volOnOffEvent) {}
 	void event();
 	bool dacIsOn() const { return nr2 & 0xF8; }
 	unsigned getVolume() const { return volume; }

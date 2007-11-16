@@ -53,6 +53,8 @@ class Channel3 {
 	bool master;
 	bool cgb;
 	
+	void updateWaveCounter(unsigned long cc);
+	
 public:
 	Channel3();
 	bool isActive() const { return master; }

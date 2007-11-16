@@ -16,46 +16,26 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef DUTY_UNIT_H
-#define DUTY_UNIT_H
+#ifndef STATIC_OUTPUT_TESTER_H
+#define STATIC_OUTPUT_TESTER_H
 
-#include "sound_unit.h"
-#include "master_disabler.h"
+#include "envelope_unit.h"
 
-class DutyUnit : public SoundUnit {
-	unsigned long nextPosUpdate;
-	unsigned short period;
-	unsigned char pos;
-	unsigned char duty;
-	bool high;
-	bool enableEvents;
-
-	void setCounter();
-	void setDuty(unsigned nr1);
-	void updatePos(unsigned long cc);
-
+template<class Channel, class Unit>
+class StaticOutputTester : public EnvelopeUnit::VolOnOffEvent {
+	const Channel &ch;
+	Unit &unit;
 public:
-	void event();
-	bool isHighState() const { return high; }
-	void nr1Change(unsigned newNr1, unsigned long cc);
-	void nr3Change(unsigned newNr3, unsigned long cc);
-	void nr4Change(unsigned newNr4, unsigned long cc);
-	void init(unsigned long cc);
-	void reset();
-	void resetCounters(unsigned long oldCc);
-	void killCounter();
-	void reviveCounter(unsigned long cc);
-	
-	//intended for use by SweepUnit only.
-	unsigned getFreq() const { return 2048 - (period >> 1); }
-	void setFreq(unsigned newFreq, unsigned long cc);
+	StaticOutputTester(const Channel &ch, Unit &unit) : ch(ch), unit(unit) {}
+	void operator()(unsigned long cc);
 };
 
-class DutyMasterDisabler : public MasterDisabler {
-	DutyUnit &dutyUnit;
-public:
-	DutyMasterDisabler(bool &m, DutyUnit &dutyUnit) : MasterDisabler(m), dutyUnit(dutyUnit) {}
-	void operator()() { MasterDisabler::operator()(); dutyUnit.killCounter(); }
-};
+template<class Channel, class Unit>
+void StaticOutputTester<Channel, Unit>::operator()(const unsigned long cc) {
+	if (ch.soMask && ch.master && ch.envelopeUnit.getVolume())
+		unit.reviveCounter(cc);
+	else
+		unit.killCounter();
+}
 
 #endif

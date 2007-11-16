@@ -18,9 +18,15 @@
  ***************************************************************************/
 #include "duty_unit.h"
 
+static inline bool toOutState(const unsigned duty, const unsigned pos) {
+	static const unsigned char duties[4] = { 0x80, 0x81, 0xE1, 0x7E };
+	
+	return duties[duty] >> pos & 1;
+}
+
 void DutyUnit::updatePos(const unsigned long cc) {
 	if (cc >= nextPosUpdate) {
-		const unsigned long inc = 1 + (cc - nextPosUpdate) / period;
+		const unsigned long inc = (cc - nextPosUpdate) / period + 1;
 		nextPosUpdate += period * inc;
 		pos += inc;
 		pos &= 7;
@@ -28,9 +34,8 @@ void DutyUnit::updatePos(const unsigned long cc) {
 }
 
 void DutyUnit::setDuty(const unsigned nr1) {
-	static const unsigned char duties[4] = { 0x80, 0x81, 0xE1, 0x7E };
-	
-	high = duties[(duty = nr1 >> 6)] >> pos & 1;
+	duty = nr1 >> 6;
+	high = toOutState(duty, pos);
 }
 
 void DutyUnit::setCounter() {
@@ -41,7 +46,10 @@ void DutyUnit::setCounter() {
 		0, 5, 4, 3, 2, 1, 0, 1
 	};
 	
-	counter = nextPosUpdate != COUNTER_DISABLED ? nextPosUpdate + period * nextStateDistance[duty * 8 | pos] : nextPosUpdate;
+	if (enableEvents && nextPosUpdate != COUNTER_DISABLED)
+		counter = nextPosUpdate + period * nextStateDistance[duty * 8 | pos];
+	else
+		counter = COUNTER_DISABLED;
 }
 
 void DutyUnit::setFreq(const unsigned newFreq, const unsigned long cc) {
@@ -86,12 +94,13 @@ void DutyUnit::init(const unsigned long cc) {
 	setDuty(0);
 	period = 2048 << 1;
 	nextPosUpdate = (cc & ~1) + period;
+	enableEvents = true;
 	setCounter();
 }
 
 void DutyUnit::reset() {
 	pos = 0;
-	setDuty(0);
+	high = toOutState(duty, pos);
 	nextPosUpdate = COUNTER_DISABLED;
 	setCounter();
 }
@@ -102,5 +111,17 @@ void DutyUnit::resetCounters(const unsigned long oldCc) {
 	
 	updatePos(oldCc);
 	nextPosUpdate -= COUNTER_MAX;
-	counter -= COUNTER_MAX;
+	SoundUnit::resetCounters(oldCc);
+}
+
+void DutyUnit::killCounter() {
+	enableEvents = false;
+	setCounter();
+}
+
+void DutyUnit::reviveCounter(const unsigned long cc) {
+	updatePos(cc);
+	high = toOutState(duty, pos);
+	enableEvents = true;
+	setCounter();
 }

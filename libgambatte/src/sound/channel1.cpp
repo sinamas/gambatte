@@ -91,8 +91,10 @@ void Channel1::SweepUnit::reset() {
 }
 
 Channel1::Channel1() :
-	disableMaster(master),
+	staticOutputTest(*this, dutyUnit),
+	disableMaster(master, dutyUnit),
 	lengthCounter(disableMaster, 0x3F),
+	envelopeUnit(staticOutputTest),
 	sweepUnit(disableMaster, dutyUnit)
 {}
 
@@ -108,6 +110,7 @@ void Channel1::setEvent() {
 
 void Channel1::setNr0(const unsigned data) {
 	sweepUnit.nr0Change(data);
+	setEvent();
 }
 
 void Channel1::setNr1(const unsigned data) {
@@ -120,6 +123,10 @@ void Channel1::setNr1(const unsigned data) {
 void Channel1::setNr2(const unsigned data) {
 	if (envelopeUnit.nr2Change(data))
 		disableMaster();
+	else
+		staticOutputTest(cycleCounter);
+	
+	setEvent();
 }
 
 void Channel1::setNr3(const unsigned data) {
@@ -138,6 +145,7 @@ void Channel1::setNr4(const unsigned data) {
 		nr4 &= 0x7F;
 		master = !envelopeUnit.nr4Init(cycleCounter);
 		sweepUnit.nr4Init(cycleCounter);
+		staticOutputTest(cycleCounter);
 	}
 	
 	setEvent();
@@ -145,6 +153,8 @@ void Channel1::setNr4(const unsigned data) {
 
 void Channel1::setSo(const bool so1, const bool so2) {
 	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
+	staticOutputTest(cycleCounter);
+	setEvent();
 }
 
 void Channel1::reset() {
@@ -169,13 +179,13 @@ void Channel1::init(const unsigned long cc, const bool cgb) {
 	sweepUnit.init();
 	
 	master = true;
+	staticOutputTest(cycleCounter);
 	
 	setEvent();
 }
 
 void Channel1::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
-	
 	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {

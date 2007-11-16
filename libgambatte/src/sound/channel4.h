@@ -24,12 +24,14 @@
 #include "master_disabler.h"
 #include "length_counter.h"
 #include "envelope_unit.h"
+#include "static_output_tester.h"
 
 class Channel4 {
 	class Lfsr : public SoundUnit {
 		unsigned long backupCounter;
 		unsigned short reg;
 		unsigned char nr3;
+		bool master;
 		
 		void updateBackupCounter(unsigned long cc);
 		
@@ -42,16 +44,21 @@ class Channel4 {
 		void init(unsigned long cc);
 		void reset(unsigned long cc) { init(cc); }
 		void resetCounters(unsigned long oldCc);
+		void disableMaster() { killCounter(); master = false; reg = 0xFF; }
 		void killCounter() { counter = COUNTER_DISABLED; }
+		void reviveCounter(unsigned long cc);
 	};
 	
 	class Ch4MasterDisabler : public MasterDisabler {
 		Lfsr &lfsr;
 	public:
 		Ch4MasterDisabler(bool &m, Lfsr &lfsr) : MasterDisabler(m), lfsr(lfsr) {}
-		void operator()() { MasterDisabler::operator()(); lfsr.killCounter(); }
+		void operator()() { MasterDisabler::operator()(); lfsr.disableMaster(); }
 	};
 	
+	friend class StaticOutputTester<Channel4,Lfsr>;
+	
+	StaticOutputTester<Channel4,Lfsr> staticOutputTest;
 	Ch4MasterDisabler disableMaster;
 	LengthCounter lengthCounter;
 	EnvelopeUnit envelopeUnit;
@@ -71,7 +78,7 @@ public:
 	Channel4();
 	void setNr1(unsigned data);
 	void setNr2(unsigned data);
-	void setNr3(unsigned data) { lfsr.nr3Change(data, cycleCounter); }
+	void setNr3(unsigned data) { lfsr.nr3Change(data, cycleCounter); /*setEvent();*/ }
 	void setNr4(unsigned data);
 	
 	void setSo(bool so1, bool so2);

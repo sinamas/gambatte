@@ -20,6 +20,10 @@
 
 #include <cstring>
 
+static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
+	return 0x800 - (nr4 << 8 & 0x700 | nr3);
+}
+
 Channel3::Channel3() :
 	disableMaster(master, waveCounter),
 	lengthCounter(disableMaster, 0xFF)
@@ -56,7 +60,7 @@ void Channel3::setNr4(const unsigned data) {
 		
 		master = true;
 		wavePos = 0;
-		lastReadTime = waveCounter = cycleCounter + 2048 - (data << 8 & 0x700 | nr3) + 3;
+		lastReadTime = waveCounter = cycleCounter + toPeriod(nr3, data) + 3;
 	}
 }
 
@@ -89,40 +93,74 @@ void Channel3::init(const unsigned long cc, const bool cgb) {
 	disableMaster();
 }
 
+void Channel3::updateWaveCounter(const unsigned long cc) {
+	if (cc >= waveCounter) {
+		const unsigned period = toPeriod(nr3, nr4);
+		const unsigned periods = (cc - waveCounter) / period;
+
+		lastReadTime = waveCounter + periods * period;
+		waveCounter = lastReadTime + period;
+
+		wavePos += periods + 1;
+		wavePos &= 0x1F;
+
+		sampleBuf = waveRam[wavePos >> 1];
+	}
+}
+
 void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = (nr0/* & 0x80*/) ? soBaseVol & soMask : 0;
 	
-	const unsigned long endCycles = cycleCounter + cycles;
-	
-	while (cycleCounter < endCycles) {
-		const unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15 : 0 - 15);
+	if (outBase && rShift != 4) {
+		const unsigned long endCycles = cycleCounter + cycles;
 		
-		unsigned long multiplier = endCycles;
-		
-		if (waveCounter <= multiplier || lengthCounter.getCounter() <= multiplier) {
-			if (lengthCounter.getCounter() < waveCounter) {
-				multiplier = lengthCounter.getCounter();
-				lengthCounter.event();
-			} else {
-				lastReadTime = multiplier = waveCounter;
-				waveCounter += 2048 - (nr4 << 8 & 0x700 | nr3);
-				++wavePos;
-				wavePos &= 0x1F;
-				sampleBuf = waveRam[wavePos >> 1];
+		while (cycleCounter < endCycles) {
+			const unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15 : 0 - 15);
+			
+			unsigned long multiplier = endCycles;
+			
+			if (waveCounter <= multiplier || lengthCounter.getCounter() <= multiplier) {
+				if (lengthCounter.getCounter() < waveCounter) {
+					multiplier = lengthCounter.getCounter();
+					lengthCounter.event();
+				} else {
+					lastReadTime = multiplier = waveCounter;
+					waveCounter += toPeriod(nr3, nr4);
+					++wavePos;
+					wavePos &= 0x1F;
+					sampleBuf = waveRam[wavePos >> 1];
+				}
 			}
+			
+			multiplier -= cycleCounter;
+			cycleCounter += multiplier;
+			
+			uint32_t *const bufend = buf + multiplier;
+			
+			if (out) {
+				while (buf != bufend)
+					(*buf++) += out;
+			}
+			
+			buf = bufend;
 		}
-		
-		multiplier -= cycleCounter;
-		cycleCounter += multiplier;
-		
-		uint32_t *const bufend = buf + multiplier;
-		
-		if (out) {
+	} else {
+		if (outBase) {
+			const unsigned long out = outBase * (0 - 15);
+			uint32_t *const bufend = buf + cycles;
+			
 			while (buf != bufend)
 				(*buf++) += out;
 		}
 		
-		buf = bufend;
+		cycleCounter += cycles;
+		
+		while (lengthCounter.getCounter() <= cycleCounter) {
+			updateWaveCounter(lengthCounter.getCounter());
+			lengthCounter.event();
+		}
+		
+		updateWaveCounter(cycleCounter);
 	}
 	
 	if (cycleCounter & SoundUnit::COUNTER_MAX) {

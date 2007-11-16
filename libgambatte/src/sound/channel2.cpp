@@ -19,8 +19,10 @@
 #include "channel2.h"
 
 Channel2::Channel2() :
-	disableMaster(master),
-	lengthCounter(disableMaster, 0x3F)
+	staticOutputTest(*this, dutyUnit),
+	disableMaster(master, dutyUnit),
+	lengthCounter(disableMaster, 0x3F),
+	envelopeUnit(staticOutputTest)
 {}
 
 void Channel2::setEvent() {
@@ -41,6 +43,10 @@ void Channel2::setNr1(const unsigned data) {
 void Channel2::setNr2(const unsigned data) {
 	if (envelopeUnit.nr2Change(data))
 		disableMaster();
+	else
+		staticOutputTest(cycleCounter);
+	
+	setEvent();
 }
 
 void Channel2::setNr3(const unsigned data) {
@@ -56,6 +62,7 @@ void Channel2::setNr4(const unsigned data) {
 	if (data & 0x80) { //init-bit
 		nr4 &= 0x7F;
 		master = !envelopeUnit.nr4Init(cycleCounter);
+		staticOutputTest(cycleCounter);
 	}
 	
 	dutyUnit.nr4Change(data, cycleCounter);
@@ -65,6 +72,8 @@ void Channel2::setNr4(const unsigned data) {
 
 void Channel2::setSo(const bool so1, const bool so2) {
 	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
+	staticOutputTest(cycleCounter);
+	setEvent();
 }
 
 void Channel2::reset() {
@@ -85,13 +94,13 @@ void Channel2::init(const unsigned long cc, const bool cgb) {
 	dutyUnit.init(cycleCounter);
 	lengthCounter.init(cgb);
 	envelopeUnit.init(false, cycleCounter);
+	dutyUnit.killCounter();
 	
 	setEvent();
 }
 
 void Channel2::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
-	
 	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {

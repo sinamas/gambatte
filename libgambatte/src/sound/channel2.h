@@ -21,13 +21,16 @@
 
 #include <stdint.h>
 
-#include "master_disabler.h"
 #include "length_counter.h"
 #include "duty_unit.h"
 #include "envelope_unit.h"
+#include "static_output_tester.h"
 
 class Channel2 {
-	MasterDisabler disableMaster;
+	friend class StaticOutputTester<Channel2,DutyUnit>;
+	
+	StaticOutputTester<Channel2,DutyUnit> staticOutputTest;
+	DutyMasterDisabler disableMaster;
 	LengthCounter lengthCounter;
 	DutyUnit dutyUnit;
 	EnvelopeUnit envelopeUnit;
