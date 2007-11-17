@@ -94,7 +94,7 @@ LCD::LCD(const uint8_t *const oamram, const uint8_t *const vram_in) :
 	m3EventQueue(11, VideoEventComparer()),
 	irqEventQueue(4, VideoEventComparer()),
 	vEventQueue(5, VideoEventComparer()),
-	m3ExtraCycles(spriteMapper, scxReader, weMasterChecker, wyReg, we, wxReader),
+	m3ExtraCycles(*this),
 	weMasterChecker(m3EventQueue, wyReg, lyCounter),
 	wyReg(lyCounter, weMasterChecker),
 	wxReader(m3EventQueue, we.enableChecker(), we.disableChecker()),
@@ -1259,9 +1259,10 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 	const unsigned wx = wxReader.wx() < 7 ? 0 : wxReader.wx() - 7;
 	//const bool enableWindow = (memory.fastread(0xFF40) & 0x20) && (ypos >= memory.fastread(0xFF4A)) && (wx < 160);
 	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const unsigned short *const spriteMapLine = spriteMapper.sprites(ypos);
 	
-	for (int i = spriteMapper.spriteMap()[ypos * 12 + 10] - 1; i >= 0; --i) {
-		const uint8_t *const spriteInfo = spriteMapper.oamram + (spriteMapper.spriteMap()[ypos*12+i] & 0xFF);
+	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
+		const uint8_t *const spriteInfo = spriteMapper.oamram + (spriteMapLine[i] & 0xFF);
 		const unsigned spx = spriteInfo[1];
 		
 		if (spx < 168 && spx) {
@@ -1431,9 +1432,10 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 	const unsigned scy = (scReader.scy() + ypos)/*&0xFF*/;
 	const unsigned wx = wxReader.wx() < 7 ? 0 : wxReader.wx() - 7;
 	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const unsigned short *const spriteMapLine = spriteMapper.sprites(ypos);
 	
-	for (int i = spriteMapper.spriteMap()[ypos * 12 + 10] - 1; i >= 0; --i) {
-		const uint8_t *const spriteInfo = spriteMapper.oamram + (spriteMapper.spriteMap()[ypos * 12 + i] & 0xFF);
+	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
+		const uint8_t *const spriteInfo = spriteMapper.oamram + (spriteMapLine[i] & 0xFF);
 		const unsigned spx = spriteInfo[1];
 		
 		if (spx < 168 && spx) {

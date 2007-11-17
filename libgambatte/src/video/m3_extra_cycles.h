@@ -15,33 +15,17 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef VIDEO_M3_EXTRA_CYCLES_H
 #define VIDEO_M3_EXTRA_CYCLES_H
 
-class SpriteMapper;
-class ScxReader;
-class WeMasterChecker;
-class Wy;
-class We;
-class WxReader;
+class LCD;
 
 class M3ExtraCycles {
-	const SpriteMapper &spriteMapper;
-	const ScxReader &scxReader;
-	const WeMasterChecker &weMasterChecker;
-	const Wy &wyReg;
-	const We &we;
-	const WxReader &wxReader;
+	const LCD &video;
 	
 public:
-	M3ExtraCycles(const SpriteMapper &spriteMapper_in,
-	              const ScxReader &scxReader_in,
-	              const WeMasterChecker &weMasterChecker_in,
-	              const Wy &wyReg_in,
-	              const We &we_in,
-	              const WxReader &wxReader_in);
-	
+	M3ExtraCycles(const LCD &video);
 	unsigned operator()(unsigned ly) const;
 };
 

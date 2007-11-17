@@ -21,7 +21,8 @@
 #include "scx_reader.h"
 #include "../event_queue.h"
 
-#include <algorithm>
+// #include <algorithm>
+#include <cstring>
 
 SpriteMapper::SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
              const ScxReader &scxReader_in,
@@ -37,17 +38,53 @@ SpriteMapper::SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
 }
 
 void SpriteMapper::clearMap() {
-	for (uint16_t* i = &spritemap[10]; i < &spritemap[144 * 12]; i += 12)
-		i[1] = i[0] = 0;
+	std::memset(cycles, CYCLES_INVALID, sizeof(cycles));
+	std::memset(num, 0, sizeof(num));
 }
 
-static void insertionSort(uint16_t *const start, uint16_t *const end) {
-	uint16_t *a = start;
+void SpriteMapper::mapSprites() {
+	clearMap();
+	
+	const unsigned spriteHeight = 8 << spriteSizeReader.largeSprites();
+	
+	for (unsigned i = 0x00; i < 0xA0; i += 4) {
+		const unsigned bottom_pos = oamram[i] - (17 - spriteHeight);
+		
+		if (bottom_pos >= 143 + spriteHeight)
+			continue;
+		
+		const unsigned spx = oamram[i + 1];
+		const unsigned value = spx << 8 | i;
+		
+		unsigned short *map = spritemap;
+		unsigned char *n = num;
+		
+		if (bottom_pos >= spriteHeight) {
+			const unsigned startly = bottom_pos + 1 - spriteHeight;
+			n += startly;
+			map += startly * 10;
+		}
+		
+		unsigned char *const end = num + (bottom_pos >= 143 ? 143 : bottom_pos);
+		
+		do {
+			if (*n < 10)
+				map[(*n)++] = value;
+			
+			map += 10;
+			++n;
+		} while (n <= end);
+	}
+}
+
+// unsafe if start is at the end of allocated memory, since start+1 could be undefined/of.
+static void insertionSort(unsigned short *const start, unsigned short *const end) {
+	unsigned short *a = start;
 	
 	while (++a < end) {
 		const unsigned e = *a;
 		
-		uint16_t *b = a;
+		unsigned short *b = a;
 		
 		while (b != start && *(b - 1) > e) {
 			*b = *(b - 1);
@@ -58,77 +95,54 @@ static void insertionSort(uint16_t *const start, uint16_t *const end) {
 	}
 }
 
-void SpriteMapper::mapSprites() {
-	clearMap();
-	
-	const unsigned spriteHeight = 8 << spriteSizeReader.largeSprites();
-	
-	for (unsigned i = 0x00; i < 0xA0; i += 4) {
-		const unsigned bottom_pos = oamram[i] - (17 - spriteHeight);
-		if (bottom_pos >= 143 + spriteHeight)
-			continue;
-		
-		const unsigned spx = oamram[i + 1];
-		const unsigned value = (spx << 8) | i;
-		
-		uint16_t *tmp = &spritemap[bottom_pos < spriteHeight ? 0 : ((bottom_pos + 1 - spriteHeight) * 12)];
-		uint16_t *const end = &spritemap[bottom_pos >= 143 ? 143 * 12 : (bottom_pos * 12)];
-		
-		do {
-			if (tmp[10] < 10)
-				tmp[tmp[10]++] = value;
-			tmp += 12;
-		} while (tmp <= end);
+void SpriteMapper::updateLine(const unsigned ly) const {
+	if (num[ly] == 0) {
+		cycles[ly] = 0;
+		return;
 	}
 	
-	uint16_t sortBuf[11];
+	unsigned short sortBuf[10];
+	unsigned short *tmp = spritemap + ly * 10;
 	
-	for (uint16_t *mapPos = spritemap; mapPos < spritemap + 144 * 12; mapPos += 12) {
-		if (mapPos[10] == 0)
-			continue;
+	if (cgb) {
+		std::memcpy(sortBuf, tmp, sizeof(sortBuf));
+		tmp = sortBuf;
+	}
+	
+	insertionSort(tmp, tmp + num[ly]);
+// 	std::sort(tmp, tmp + num[ly]);
+	
+	unsigned sum = 0;
+	
+	for (unsigned i = 0; i < num[ly]; ++i) {
+		const unsigned spx = tmp[i] >> 8;
 		
-		uint16_t *tmp = mapPos;
+		if (spx > 167)
+			break;
 		
-		if (cgb) {
-			std::memcpy(sortBuf, tmp, sizeof(sortBuf));
-			tmp = sortBuf;
-		}
+		unsigned cycles = 6;
+		const unsigned posAnd7 = scxReader.scxAnd7() + spx & 7;
 		
-		insertionSort(tmp, tmp + tmp[10]);
-// 		std::sort(tmp, tmp + tmp[10]);
-		
-		unsigned sum = 0;
-		
-		for (unsigned i = 0; i < tmp[10]; ++i) {
-			const unsigned spx = tmp[i] >> 8;
+		if (posAnd7 < 5) {
+			cycles = 11 - posAnd7;
 			
-			if (spx > 167)
-				break;
-			
-			unsigned cycles = 6;
-			const unsigned posAnd7 = scxReader.scxAnd7() + spx & 7;
-			
-			if (posAnd7 < 5) {
-				cycles = 11 - posAnd7;
+			for (unsigned j = i; j--;) {
+				const unsigned tmpSpx = tmp[j] >> 8;
 				
-				for (unsigned j = i; j--;) {
-					const unsigned tmpSpx = tmp[j] >> 8;
-					
-					if (spx - tmpSpx > 4U)
-						break;
-					
-					if ((scxReader.scxAnd7() + tmpSpx & 7) < 4 || spx == tmpSpx) {
-						cycles = 6;
-						break;
-					}
+				if (spx - tmpSpx > 4U)
+					break;
+				
+				if ((scxReader.scxAnd7() + tmpSpx & 7) < 4 || spx == tmpSpx) {
+					cycles = 6;
+					break;
 				}
 			}
-			
-			sum += cycles;
 		}
 		
-		mapPos[11] = sum;
+		sum += cycles;
 	}
+	
+	cycles[ly] = sum;
 }
 
 void SpriteMapper::doEvent() {

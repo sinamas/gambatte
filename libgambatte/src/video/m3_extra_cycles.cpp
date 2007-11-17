@@ -15,36 +15,21 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "m3_extra_cycles.h"
 
-#include "sprite_mapper.h"
-#include "scx_reader.h"
-#include "we_master_checker.h"
-#include "wy.h"
-#include "we.h"
-#include "wx_reader.h"
+#include "../video.h"
 
-M3ExtraCycles::M3ExtraCycles(const SpriteMapper &spriteMapper_in,
-                             const ScxReader &scxReader_in,
-                             const WeMasterChecker &weMasterChecker_in,
-                             const Wy &wyReg_in,
-                             const We &we_in,
-                             const WxReader &wxReader_in) :
-	spriteMapper(spriteMapper_in),
-	scxReader(scxReader_in),
-	weMasterChecker(weMasterChecker_in),
-	wyReg(wyReg_in),
-	we(we_in),
-	wxReader(wxReader_in)
+M3ExtraCycles::M3ExtraCycles(const LCD &video) :
+	video(video)
 {}
 
 unsigned M3ExtraCycles::operator()(const unsigned ly) const {
-	unsigned cycles = spriteMapper.spriteMap()[ly * 12 + 11];
+	unsigned cycles = video.spriteMapper.spriteCycles(ly);
 	
-	cycles += scxReader.scxAnd7();
+	cycles += video.scxReader.scxAnd7();
 	
-	if ((weMasterChecker.weMaster() || ly == wyReg.value()) && we.value() && wyReg.value() <= ly && wxReader.wx() < 0xA7)
+	if (video.we.value() && video.wxReader.wx() < 0xA7 && ly >= video.wyReg.value() && (video.weMasterChecker.weMaster() || ly == video.wyReg.value()))
 		cycles += 6;
 	
 	return cycles;

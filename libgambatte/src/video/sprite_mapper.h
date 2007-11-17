@@ -29,7 +29,11 @@ class SpriteSizeReader;
 class ScxReader;
 
 class SpriteMapper : public VideoEvent {
-	uint16_t spritemap[144*12];
+	enum { CYCLES_INVALID = 0xFF };
+	
+	mutable unsigned short spritemap[144*10];
+	mutable unsigned char cycles[144];
+	unsigned char num[144];
 	
 	const SpriteSizeReader &spriteSizeReader;
 	const ScxReader &scxReader;
@@ -38,11 +42,12 @@ public:
 	const uint8_t *const oamram;
 
 private:
-	uint8_t timeDiff;
+	unsigned char timeDiff;
 	bool cgb;
 	
 	void clearMap();
 	void mapSprites();
+	void updateLine(unsigned ly) const;
 	
 public:
 	SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
@@ -66,8 +71,22 @@ public:
 		timeDiff = dS ? 85 * 2 - 40 : (82 - 16);
 	}
 	
-	const uint16_t * spriteMap() const {
-		return spritemap;
+	unsigned numSprites(const unsigned ly) const {
+		return num[ly];
+	}
+	
+	unsigned spriteCycles(const unsigned ly) const {
+		if (cycles[ly] == CYCLES_INVALID)
+			updateLine(ly);
+		
+		return cycles[ly];
+	}
+	
+	const unsigned short* sprites(const unsigned ly) const {
+		if (cycles[ly] == CYCLES_INVALID)
+			updateLine(ly);
+		
+		return spritemap + ly * 10;
 	}
 };
 

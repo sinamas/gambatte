@@ -50,6 +50,8 @@ class Filter;
 #include "video/m3_extra_cycles.h"
 
 class LCD {
+	friend class M3ExtraCycles;
+	
 	//static const uint8_t xflipt[0x100];
 	uint32_t dmgColorsRgb32[3 * 4];
 	uint32_t dmgColorsRgb16[3 * 4];
