@@ -202,6 +202,8 @@ void QGLBlitter::SubWidget::paintGL() {
 }
 
 void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
+	glViewport(0, 0, w, h);
+
 	if (keepRatio) {
 		{
 			GLint drawBuffer;
@@ -227,8 +229,6 @@ void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 				glViewport(0, h - new_h >> 1, w, new_h);
 			}
 		}
-	} else {
-		glViewport(0, 0, w, h);
 	}
 }
 
