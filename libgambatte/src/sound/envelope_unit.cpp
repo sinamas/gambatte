@@ -26,14 +26,17 @@ void EnvelopeUnit::event() {
 	if (period) {
 		unsigned newVol = volume;
 		
-		if (nr2 & 8) {
-			if (++newVol == 1)
-				volOnOffEvent(counter);
-		} else if (--newVol == 0)
-			volOnOffEvent(counter);
+		if (nr2 & 8)
+			++newVol;
+		else
+			--newVol;
 		
 		if (newVol < 0x10U) {
 			volume = newVol;
+			
+			if (volume < 2)
+				volOnOffEvent(counter);
+			
 			counter += period << 15;
 		} else
 			counter = COUNTER_DISABLED;
