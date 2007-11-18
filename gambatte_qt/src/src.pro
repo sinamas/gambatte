@@ -4,7 +4,6 @@ SOURCES += gambatte_qt.cpp \
            videobufferreseter.cpp \
            blittercontainer.cpp \
            inputdialog.cpp \
-           resizesignalingmenubar.cpp \
            samplescalculator.cpp \
            blitterwidgets/qglblitter.cpp \
            blitterwidgets/qpainterblitter.cpp \
@@ -24,7 +23,6 @@ videobufferreseter.h \
 blittercontainer.h \
 resinfo.h \
 inputdialog.h \
-resizesignalingmenubar.h \
 audioengine.h \
 samplescalculator.h \
 addaudioengines.h \
@@ -57,7 +55,7 @@ INCLUDEPATH += ../../libgambatte/include SDL_Joystick/include
 LIBS += -L../../libgambatte -lgambatte -lz
 
 macx {
-    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp audioengines/aoengine.cpp
+    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
     SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
     HEADERS += audioengines/aoengine.h
     LIBS += -lao
@@ -118,7 +116,7 @@ macx {
 
     LIBS += -lwinmm -lddraw -ldxguid -ldsound
 } else {
-    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp audioengines/aoengine.cpp
+    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
     SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
     HEADERS += audioengines/aoengine.h
     LIBS += -lao

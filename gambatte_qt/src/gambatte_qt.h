@@ -154,12 +154,12 @@ class GambatteQt : public QMainWindow {
 	void clearInputVectors();
 	void pushInputObserver(const SDL_Event &data, InputObserver &observer);
 	void updateJoysticks();
+	void resetWindowSize(const QSize &s);
 	
 private slots:
 	void open();
 	void openRecentFile();
 	void about();
-	void resetWindowSize();
 	void toggleFullScreen();
 	void toggleMenuHidden();
 	void inputSettingsChange();
@@ -178,6 +178,7 @@ protected:
 	void keyPressEvent(QKeyEvent *e);
 	void keyReleaseEvent(QKeyEvent *e);
 	void closeEvent(QCloseEvent *e);
+	void showEvent(QShowEvent *e);
 
 public:
 	GambatteQt(int argc, const char *const argv[]);

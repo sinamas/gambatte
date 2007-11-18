@@ -43,7 +43,6 @@
 #include <windows.h>
 #endif
 
-#include "resizesignalingmenubar.h"
 #include "SDL_Joystick/include/SDL_joystick.h"
 
 struct JoyObserver {
@@ -124,12 +123,6 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) :
 	setFocusPolicy(Qt::StrongFocus);
 	
 	{
-		ResizeSignalingMenuBar *m = new ResizeSignalingMenuBar;
-		connect(m, SIGNAL(resized()), this, SLOT(resetWindowSize()));
-		setMenuBar(m);
-	}
-	
-	{
 		QSettings settings;
 		settings.beginGroup("mainwindow");
 		resize(settings.value("size", QSize(160, 144)).toSize());
@@ -189,7 +182,7 @@ GambatteQt::GambatteQt(const int argc, const char *const argv[]) :
 		gambatte.set_savedir(savepath.toAscii().data());
 	}
 	
-	videoSettingsChange();
+// 	videoSettingsChange();
 	inputSettingsChange();
 	soundSettingsChange();
 	
@@ -246,27 +239,37 @@ void GambatteQt::about() {
 	unpause();
 }
 
-void GambatteQt::resetWindowSize() {
+void GambatteQt::resetWindowSize(const QSize &s) {
 	if (isFullScreen())
 		return;
 	
-	const QSize s(videoDialog->winRes());
-	
 	if (s == QSize(-1, -1)) {
-		setMinimumSize(0, 0);
-		setMaximumSize(0xFFFFFF, 0xFFFFFF);
+		centralWidget()->setMinimumSize(gambatte.videoWidth(), gambatte.videoHeight());
+		layout()->setSizeConstraint(QLayout::SetMinimumSize);
+		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
 	} else {
-		setFixedSize(s.width(), s.height() + (menuBar()->isVisible() ? menuBar()->height() : 0));
+		centralWidget()->setMinimumSize(s.width(), s.height());
+		layout()->setSizeConstraint(QLayout::SetFixedSize);
+// 		setFixedSize(s.width(), s.height() + (menuBar()->isVisible() ? menuBar()->height() : 0));
 	}
+}
+
+static void saveWindowSize(const QSize &s) {
+	QSettings settings;
+	settings.beginGroup("mainwindow");
+	settings.setValue("size", s);
+	settings.endGroup();
 }
 
 void GambatteQt::toggleFullScreen() {
 	if (fullResToggler->isFullRes()) {
 		fullResToggler->setFullRes(false);
 		showNormal();
-		resetWindowSize();
+		resetWindowSize(videoDialog->winRes());
 	} else {
 		fullResToggler->setFullRes(true);
+		saveWindowSize(size());
+		resetWindowSize(QSize(-1, -1));
 		showFullScreen();
 	}
 }
@@ -279,7 +282,7 @@ void GambatteQt::toggleMenuHidden() {
 	else
 		centralWidget()->setCursor(Qt::BlankCursor);
 	
-	resetWindowSize();
+// 	resetWindowSize();
 }
 
 void GambatteQt::clearInputVectors() {
@@ -362,9 +365,9 @@ void GambatteQt::videoSettingsChange() {
 	}
 	
 	gambatte.setVideoFilter(videoDialog->filterIndex());
-	centralWidget()->setMinimumSize(gambatte.videoWidth(), gambatte.videoHeight());
+// 	centralWidget()->setMinimumSize(gambatte.videoWidth(), gambatte.videoHeight());
 	
-	resetWindowSize();
+	resetWindowSize(videoDialog->winRes());
 	
 	if (fullResToggler->currentResIndex() != videoDialog->fullMode() ||
 			fullResToggler->currentRateIndex() != videoDialog->fullRate()) {
@@ -793,16 +796,13 @@ void GambatteQt::closeEvent(QCloseEvent *e) {
 	stop();
 	
 	if (!isFullScreen()) {
-		QSettings settings;
-		settings.beginGroup("mainwindow");
-		settings.setValue("size", size());
-		settings.endGroup();
+		saveWindowSize(size());
 	}
 	
 	QMainWindow::closeEvent(e);
 }
 
-/*void GambatteQt::showEvent(QShowEvent *event) {
+void GambatteQt::showEvent(QShowEvent *event) {
 	QMainWindow::showEvent(event);
-	resetWindowSize();
-}*/
+	videoSettingsChange(); // some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
+}
