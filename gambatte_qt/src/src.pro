@@ -58,7 +58,9 @@ macx {
     SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
     SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
     HEADERS += audioengines/aoengine.h
-    LIBS += -lao
+    CONFIG += link_pkgconfig
+    PKGCONFIG += ao
+    LIBS += -framework IOKit
 } else : unix {
     DEFINES += PLATFORM_UNIX
 
@@ -119,5 +121,6 @@ macx {
     SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
     SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
     HEADERS += audioengines/aoengine.h
-    LIBS += -lao
+    CONFIG += link_pkgconfig
+    PKGCONFIG += ao
 }
