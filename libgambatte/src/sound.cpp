@@ -99,7 +99,7 @@ void PSG::resetCounter(const unsigned long newCc, const unsigned long oldCc, con
 }
 
 void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
-	const unsigned endPos = std::min(bufferPos, 35112U);
+	const unsigned long endPos = std::min(bufferPos, 35112U);
 	
 	if (stream && samples && endPos >= samples) {
 		uint16_t *const streamEnd = stream + samples * 2;
@@ -138,7 +138,7 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 				so2 = (borderSample << 16 & 0xFFFFFFFF) - so2Tmp;
 			}
 			
-			const unsigned long nextTotal = ratio - ((1 << 16) - frac);
+			const unsigned long nextTotal = ratio - ((1ul << 16) - frac);
 			whole = nextTotal >> 16;
 			frac = nextTotal & 0xFFFF;
 		}
@@ -149,7 +149,7 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 }
 
 void PSG::set_so_volume(const unsigned nr50) {
-	soVol = (nr50 & 0x7) + 1 << 16 | (nr50 >> 4 & 0x7) + 1;
+	soVol = (nr50 & 0x7) + 1ul << 16 | (nr50 >> 4 & 0x7) + 1;
 }
 
 void PSG::map_so(const unsigned nr51) {

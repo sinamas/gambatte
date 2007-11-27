@@ -40,7 +40,7 @@ unsigned Channel1::SweepUnit::calcFreq() {
 }
 
 void Channel1::SweepUnit::event() {
-	const unsigned period = nr0 >> 4 & 0x07;
+	const unsigned long period = nr0 >> 4 & 0x07;
 	
 	if (period) {
 		const unsigned freq = calcFreq();
@@ -53,7 +53,7 @@ void Channel1::SweepUnit::event() {
 		
 		counter += period << 14;
 	} else
-		counter += 8 << 14;
+		counter += 8ul << 14;
 }
 
 void Channel1::SweepUnit::nr0Change(const unsigned newNr0) {
@@ -189,8 +189,8 @@ void Channel1::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned long out = 15 * 8 * 4 * 0x00010001 +
-		                     outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
+		const unsigned long out = 15 * 8 * 4 * 0x00010001ul +
+		                     outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15ul : 0 - 15ul);
 		
 		unsigned long multiplier = nextEventUnit->getCounter();
 		

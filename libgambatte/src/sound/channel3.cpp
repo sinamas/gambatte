@@ -96,7 +96,7 @@ void Channel3::init(const unsigned long cc, const bool cgb) {
 void Channel3::updateWaveCounter(const unsigned long cc) {
 	if (cc >= waveCounter) {
 		const unsigned period = toPeriod(nr3, nr4);
-		const unsigned periods = (cc - waveCounter) / period;
+		const unsigned long periods = (cc - waveCounter) / period;
 
 		lastReadTime = waveCounter + periods * period;
 		waveCounter = lastReadTime + period;
@@ -115,7 +115,7 @@ void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 		const unsigned long endCycles = cycleCounter + cycles;
 		
 		while (cycleCounter < endCycles) {
-			const unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15 : 0 - 15);
+			const unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul : 0 - 15ul);
 			
 			unsigned long multiplier = endCycles;
 			
@@ -146,7 +146,7 @@ void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 		}
 	} else {
 		if (outBase) {
-			const unsigned long out = outBase * (0 - 15);
+			const unsigned long out = outBase * (0 - 15ul);
 			uint32_t *const bufend = buf + cycles;
 			
 			while (buf != bufend)

@@ -104,7 +104,7 @@ void Channel2::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 	const unsigned long endCycles = cycleCounter + cycles;
 	
 	while (cycleCounter < endCycles) {
-		const unsigned long out = outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15 : 0 - 15);
+		const unsigned long out = outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15ul : 0 - 15ul);
 		
 		unsigned long multiplier = nextEventUnit->getCounter();
 		
