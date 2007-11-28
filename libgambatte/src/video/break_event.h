@@ -15,23 +15,22 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef BREAK_EVENT_H
 #define BREAK_EVENT_H
 
-#include <stdint.h>
 #include "video_event.h"
 #include "ly_counter.h"
 
 class BreakEvent : public VideoEvent {
-	uint8_t &drawStartCycle;
-	uint8_t &scReadOffset;
+	unsigned char &drawStartCycle;
+	unsigned char &scReadOffset;
 	
-	uint8_t scxSrc;
-	uint8_t baseCycle;
+	unsigned char scxSrc;
+	unsigned char baseCycle;
 	
 public:
-	BreakEvent(uint8_t &drawStartCycle_in, uint8_t &scReadOffset_in);
+	BreakEvent(unsigned char &drawStartCycle_in, unsigned char &scReadOffset_in);
 	
 	void doEvent();
 	
@@ -39,7 +38,7 @@ public:
 		doEvent();
 	}
 	
-	void schedule(const LyCounter &lyCounter, unsigned) {
+	void schedule(const LyCounter &lyCounter, unsigned long) {
 		setTime(lyCounter.time());
 	}
 	

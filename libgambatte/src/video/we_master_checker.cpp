@@ -15,14 +15,12 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "we_master_checker.h"
 
 #include "event_queue.h"
 #include "wy.h"
 #include "basic_add_event.h"
-
-#include <cstdio>
 
 WeMasterChecker::WeMasterChecker(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
                 Wy &wy_in,
@@ -48,8 +46,9 @@ void WeMasterChecker::doEvent() {
 	setTime(time() + (70224U << lyCounter.isDoubleSpeed()));
 }
 
-void addEvent(WeMasterChecker &event, const unsigned wy, const bool we, const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned oldTime = event.time();
+void addEvent(WeMasterChecker &event, const unsigned wy, const bool we, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
+	const unsigned long oldTime = event.time();
+	
 	event.schedule(wy, we, cycleCounter);
 	
 	if (oldTime != event.time()) {

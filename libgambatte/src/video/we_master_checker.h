@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef WE_MASTER_CHECKER_H
 #define WE_MASTER_CHECKER_H
 
@@ -46,9 +46,9 @@ public:
 		setTime(uint32_t(-1));
 	}
 	
-	void schedule(const unsigned wy, const bool we, const unsigned cycleCounter) {
+	void schedule(const unsigned wy, const bool we, const unsigned long cycleCounter) {
 		if (we && wy < 143)
-			setTime(lyCounter.nextFrameCycle(wy * 456 + 448 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
+			setTime(lyCounter.nextFrameCycle(wy * 456ul + 448 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
 		else
 			setTime(uint32_t(-1));
 	}
@@ -62,6 +62,6 @@ public:
 	}
 };
 
-void addEvent(WeMasterChecker &event, unsigned wy, bool we, unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
+void addEvent(WeMasterChecker &event, unsigned wy, bool we, unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif

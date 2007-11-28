@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "ly_counter.h"
 
 LyCounter::LyCounter() : VideoEvent(0) {
@@ -32,8 +32,8 @@ void LyCounter::doEvent() {
 	setTime(time() + lineTime_);
 }
 
-unsigned LyCounter::nextLineCycle(const unsigned lineCycle, const unsigned cycleCounter) const {
-	unsigned tmp = time() + (lineCycle << ds);
+unsigned long LyCounter::nextLineCycle(const unsigned lineCycle, const unsigned long cycleCounter) const {
+	unsigned long tmp = time() + (lineCycle << ds);
 	
 	if (tmp - cycleCounter > lineTime_)
 		tmp -= lineTime_;
@@ -41,8 +41,8 @@ unsigned LyCounter::nextLineCycle(const unsigned lineCycle, const unsigned cycle
 	return tmp;
 }
 
-unsigned LyCounter::nextFrameCycle(const unsigned frameCycle, const unsigned cycleCounter) const {
-	unsigned tmp = time() + ((153U - ly()) * 456U + frameCycle << ds);
+unsigned long LyCounter::nextFrameCycle(const unsigned long frameCycle, const unsigned long cycleCounter) const {
+	unsigned long tmp = time() + ((153U - ly()) * 456U + frameCycle << ds);
 	
 	if (tmp - cycleCounter > 70224U << ds)
 		tmp -= 70224U << ds;

@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef WE_H
 #define WE_H
 
@@ -32,7 +32,7 @@ class We {
 		
 		void doEvent();
 		
-		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned cycleCounter) {
+		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned long cycleCounter) {
 			setTime(lyCounter.nextLineCycle(scxAnd7 + 82 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 		}
 	};
@@ -46,7 +46,7 @@ class We {
 		
 		void doEvent();
 		
-		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned cycleCounter) {
+		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned long cycleCounter) {
 			setTime(lyCounter.nextLineCycle(scxAnd7 + 88 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 		}
 	};

@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef SC_READER_H
 #define SC_READER_H
 
@@ -26,12 +26,12 @@ template<typename T, class Comparer> class event_queue;
 #include "video_event_comparer.h"
 
 class ScReader : public VideoEvent {
-	uint8_t scx_[2];
-	uint8_t scy_[2];
+	unsigned char scx_[2];
+	unsigned char scy_[2];
 	
-	uint8_t scxSrc;
-	uint8_t scySrc;
-	uint8_t incCycles;
+	unsigned char scxSrc;
+	unsigned char scySrc;
+	unsigned char incCycles;
 	bool dS;
 	
 public:
@@ -49,7 +49,7 @@ public:
 		return scy_[0];
 	}
 	
-	void schedule(unsigned lastUpdate, unsigned videoCycles, unsigned scReadOffset);
+	void schedule(unsigned long lastUpdate, unsigned long videoCycles, unsigned scReadOffset);
 	
 	void setDoubleSpeed(bool dS_in);
 	
@@ -62,7 +62,7 @@ public:
 	}
 };
 
-void addEvent(ScReader &event, unsigned lastUpdate, unsigned videoCycles,
+void addEvent(ScReader &event, unsigned long lastUpdate, unsigned long videoCycles,
               unsigned scReadOffset, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif

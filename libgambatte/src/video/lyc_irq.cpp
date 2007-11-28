@@ -15,12 +15,12 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "lyc_irq.h"
 
 #include "ly_counter.h"
 
-LycIrq::LycIrq(uint8_t &ifReg_in) :
+LycIrq::LycIrq(unsigned char &ifReg_in) :
 	VideoEvent(1),
 	ifReg(ifReg_in)
 {
@@ -37,18 +37,20 @@ void LycIrq::doEvent() {
 	setTime(time() + frameTime);
 }
 
-void LycIrq::lycRegSchedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+void LycIrq::lycRegSchedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 	schedule(lyCounter, cycleCounter);
+	
 	if (lycReg_ > 0 && time() - cycleCounter > (4U >> lyCounter.isDoubleSpeed()) && time() - cycleCounter < 8)
 		setTime(time() + frameTime);
 }
 
-void LycIrq::schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+void LycIrq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 	//setTime(lyCounter.nextFrameCycle(lycReg_ ? lycReg_ * 456 - 1 : (153 * 456 + 7), cycleCounter));
 	
-	int next = (((lycReg_ ? lycReg_ * 456 : (153 * 456 + 8)) - (lyCounter.ly() + 1) * 456) << lyCounter.isDoubleSpeed()) + lyCounter.time() - cycleCounter - 1;
-	if (next <= 0)
-		next += frameTime;
+	unsigned long next = lyCounter.time() + ((153u - lyCounter.ly()) * 456ul + (lycReg_ ? lycReg_ * 456ul : (153 * 456ul + 8)) << lyCounter.isDoubleSpeed()) - 1;
 	
-	setTime(cycleCounter + next);
+	if (next - cycleCounter > frameTime)
+		next -= frameTime;
+	
+	setTime(next);
 }

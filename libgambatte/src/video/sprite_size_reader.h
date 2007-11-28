@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef SPRITE_SIZE_READER_H
 #define SPRITE_SIZE_READER_H
 
@@ -53,7 +53,7 @@ public:
 		src_ = src;
 	}
 	
-	void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 		setTime(lyCounter.nextLineCycle(16 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
 	}
 };

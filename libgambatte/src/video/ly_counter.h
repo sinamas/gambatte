@@ -15,16 +15,15 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef LY_COUNTER_H
 #define LY_COUNTER_H
 
-#include <stdint.h>
 #include "video_event.h"
 
 class LyCounter : public VideoEvent {
-	uint32_t lineTime_;
-	uint8_t ly_;
+	unsigned short lineTime_;
+	unsigned char ly_;
 	bool ds;
 	
 public:
@@ -44,8 +43,8 @@ public:
 		return ly_;
 	}
 	
-	unsigned nextLineCycle(unsigned lineCycle, unsigned cycleCounter) const;
-	unsigned nextFrameCycle(unsigned frameCycle, unsigned cycleCounter) const;
+	unsigned long nextLineCycle(unsigned lineCycle, unsigned long cycleCounter) const;
+	unsigned long nextFrameCycle(unsigned long frameCycle, unsigned long cycleCounter) const;
 	
 	void resetLy() {
 		ly_ = 0;
@@ -53,7 +52,7 @@ public:
 	
 	void setDoubleSpeed(bool ds_in);
 	
-	void setTime(const unsigned int time) {
+	void setTime(const unsigned long time) {
 		VideoEvent::setTime(time);
 	}
 };

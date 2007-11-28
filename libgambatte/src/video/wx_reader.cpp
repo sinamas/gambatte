@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "wx_reader.h"
 
 #include <stdint.h>
@@ -34,7 +34,7 @@ weDisableChecker(weDisableChecker_in)
 	reset();
 }
 
-void WxReader::rescheduleEvent(VideoEvent& event, const unsigned diff) {
+void WxReader::rescheduleEvent(VideoEvent& event, const unsigned long diff) {
 	if (event.time() != uint32_t(-1)) {
 		event.setTime(event.time() + diff);
 		(diff & 0x200) ? m3EventQueue.dec(&event, &event) : m3EventQueue.inc(&event, &event);
@@ -42,7 +42,7 @@ void WxReader::rescheduleEvent(VideoEvent& event, const unsigned diff) {
 }
 
 void WxReader::doEvent() {
-	const unsigned diff = src_ - wx_ << dS;
+	const unsigned long diff = static_cast<unsigned long>(src_) - static_cast<unsigned long>(wx_) << dS;
 	wx_ = src_;
 	
 	rescheduleEvent(weEnableChecker, diff);
@@ -52,9 +52,10 @@ void WxReader::doEvent() {
 }
 
 void addEvent(WxReader &event, const unsigned scxAnd7, const LyCounter &lyCounter,
-		const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
+		const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
 {
-	const unsigned oldTime = event.time();
+	const unsigned long oldTime = event.time();
+	
 	event.schedule(scxAnd7, lyCounter, cycleCounter);
 	
 	if (oldTime == uint32_t(-1))

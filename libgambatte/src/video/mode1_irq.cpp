@@ -15,10 +15,10 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "mode1_irq.h"
 
-Mode1Irq::Mode1Irq(uint8_t &ifReg_in) :
+Mode1Irq::Mode1Irq(unsigned char &ifReg_in) :
 	VideoEvent(0),
 	ifReg(ifReg_in)
 {
@@ -33,12 +33,13 @@ void Mode1Irq::doEvent() {
 	setTime(time() + frameTime);
 }
 
-void Mode1Irq::schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+void Mode1Irq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 	//setTime(lyCounter.nextFrameCycle(144 * 456 - 1, cycleCounter));
 	
-	int next = (143 - lyCounter.ly()) * lyCounter.lineTime() + (lyCounter.time() - cycleCounter) - 1;
-	if (next <= 0)
-		next += frameTime;
+	unsigned long next = lyCounter.time() + (153u + 144u - lyCounter.ly()) * lyCounter.lineTime() - 1;
 	
-	setTime(cycleCounter + next);
+	if (next - cycleCounter > frameTime)
+		next -= frameTime;
+	
+	setTime(next);
 }

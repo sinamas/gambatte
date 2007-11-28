@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef VIDEO_MODE1_IRQ_H
 #define VIDEO_MODE1_IRQ_H
 
@@ -23,12 +23,12 @@
 #include "ly_counter.h"
 
 class Mode1Irq : public VideoEvent {
-	uint8_t &ifReg;
-	uint32_t frameTime;
-	uint8_t flags;
+	unsigned char &ifReg;
+	unsigned long frameTime;
+	unsigned char flags;
 	
 public:
-	Mode1Irq(uint8_t &ifReg_in);
+	Mode1Irq(unsigned char &ifReg_in);
 	
 	void doEvent();
 	
@@ -36,14 +36,14 @@ public:
 		setTime(uint32_t(-1));
 	}
 	
-	void schedule(const LyCounter &lyCounter, unsigned cycleCounter);
+	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);
 	
 	void setDoubleSpeed(const bool ds) {
 		frameTime = 70224 << ds;
 	}
 	
 	void setM1StatIrqEnabled(const bool enabled) {
-		flags = (enabled * 2) | 1;
+		flags = enabled * 2 | 1;
 	}
 };
 

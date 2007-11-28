@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef WX_READER_H
 #define WX_READER_H
 
@@ -30,11 +30,11 @@ class WxReader : public VideoEvent {
 	VideoEvent &weEnableChecker;
 	VideoEvent &weDisableChecker;
 
-	uint8_t wx_;
-	uint8_t src_;
+	unsigned char wx_;
+	unsigned char src_;
 	bool dS;
 	
-	void rescheduleEvent(VideoEvent& event, unsigned diff);
+	void rescheduleEvent(VideoEvent& event, unsigned long diff);
 	
 public:
 	WxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
@@ -47,7 +47,7 @@ public:
 		return src_;
 	}
 	
-	uint8_t wx() const {
+	unsigned char wx() const {
 		return wx_;
 	}
 	
@@ -63,13 +63,13 @@ public:
 		src_ = src;
 	}
 	
-	void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned cycleCounter) {
+	void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned long cycleCounter) {
 		setTime(lyCounter.nextLineCycle(scxAnd7 + 82 + lyCounter.isDoubleSpeed() * 3 + (src_ < wx_ ? src_ : wx_), cycleCounter));
 		//setTime(lyCounter.nextLineCycle(scxAnd7 + 89 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 	}
 };
 
 void addEvent(WxReader &event, unsigned scxAnd7, const LyCounter &lyCounter,
-		unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
+		unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif

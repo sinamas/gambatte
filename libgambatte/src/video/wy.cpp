@@ -15,16 +15,16 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "wy.h"
 
 #include "we_master_checker.h"
 #include "scx_reader.h"
 #include "../event_queue.h"
 
-#include <cstdio>
+#include <stdint.h>
 
-Wy::WyReader1::WyReader1(uint8_t &wy, const uint8_t &src, const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker) :
+Wy::WyReader1::WyReader1(unsigned char &wy, const unsigned char &src, const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker) :
 	VideoEvent(3),
 	lyCounter(lyCounter),
 	weMasterChecker(weMasterChecker),
@@ -40,7 +40,7 @@ void Wy::WyReader1::doEvent() {
 	setTime(uint32_t(-1));
 }
 
-Wy::WyReader2::WyReader2(uint8_t &wy_in, const uint8_t &src_in, const LyCounter &lyCounter_in) :
+Wy::WyReader2::WyReader2(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in) :
 	VideoEvent(4),
 	lyCounter(lyCounter_in),
 	wy(wy_in),
@@ -54,7 +54,7 @@ void Wy::WyReader2::doEvent() {
 	setTime(uint32_t(-1));
 }
 
-Wy::WyReader3::WyReader3(uint8_t &wy_in, const uint8_t &src_in, const LyCounter &lyCounter_in) :
+Wy::WyReader3::WyReader3(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in) :
 	VideoEvent(5),
 	lyCounter(lyCounter_in),
 	wy(wy_in),
@@ -68,7 +68,7 @@ void Wy::WyReader3::doEvent() {
 	setTime(uint32_t(-1));
 }
 
-void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const unsigned cycleCounter) {
+void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const unsigned long cycleCounter) {
 	const unsigned curLineCycle = 456 - (lyCounter.time() - cycleCounter >> lyCounter.isDoubleSpeed());
 	const unsigned baseTime = 78 + lyCounter.isDoubleSpeed() * 6 + wxSrc;
 	
@@ -81,7 +81,7 @@ void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, c
 		setTime(lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter));
 }
 
-Wy::WyReader4::WyReader4(uint8_t &wy_in, const uint8_t &src_in) :
+Wy::WyReader4::WyReader4(unsigned char &wy_in, const unsigned char &src_in) :
 	VideoEvent(6),
 	wy(wy_in),
 	src(src_in)
@@ -111,9 +111,10 @@ void Wy::reset() {
 }
 
 void addEvent(Wy::WyReader3 &event, const unsigned wxSrc, const ScxReader &scxReader,
-		const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
+		const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
 {
-	const unsigned oldTime = event.time();
+	const unsigned long oldTime = event.time();
+	
 	event.schedule(wxSrc, scxReader, cycleCounter);
 	
 	if (oldTime == uint32_t(-1))

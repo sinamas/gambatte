@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef VIDEO_MODE2_IRQ_H
 #define VIDEO_MODE2_IRQ_H
 
@@ -27,11 +27,11 @@ class LycIrq;
 class Mode2Irq : public VideoEvent {
 	const LyCounter &lyCounter;
 	const LycIrq &lycIrq;
-	uint8_t &ifReg;
+	unsigned char &ifReg;
 	
 public:
 	Mode2Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in,
-	         uint8_t &ifReg_in);
+	         unsigned char &ifReg_in);
 	
 	void doEvent();
 	
@@ -39,7 +39,7 @@ public:
 		setTime(uint32_t(-1));
 	}
 	
-	void schedule(const LyCounter &lyCounter, unsigned cycleCounter);
+	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);
 };
 
 #endif

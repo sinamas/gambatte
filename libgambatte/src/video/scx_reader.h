@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef SCX_READER_H
 #define SCX_READER_H
 
@@ -33,11 +33,11 @@ class ScxReader : public VideoEvent {
 	VideoEvent &weEnableChecker;
 	VideoEvent &weDisableChecker;
 	
-	uint8_t scxAnd7_;
-	uint8_t src;
+	unsigned char scxAnd7_;
+	unsigned char src;
 	bool dS;
 	
-	void rescheduleEvent(VideoEvent& event, unsigned diff);
+	void rescheduleEvent(VideoEvent& event, unsigned long diff);
 	
 public:
 	ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
@@ -57,7 +57,7 @@ public:
 		setTime(uint32_t(-1));
 	}
 	
-	void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 		setTime(lyCounter.nextLineCycle(82 + dS * 3, cycleCounter));
 	}
 	

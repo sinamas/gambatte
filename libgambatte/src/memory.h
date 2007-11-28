@@ -34,10 +34,6 @@ class Memory {
 	enum cartridgetype { plain, mbc1, mbc2, mbc3, mbc5 };
 	enum events { HDMA_RESCHEDULE, DMA, INTERRUPTS, BLIT, UNHALT, END };
 	enum irqEvents { /*MODE0, MODE1, MODE2, LYC,*/ TIMA, /*M0RESC,*/ SERIAL };
-
-	LCD display;
-	PSG sound;
-	Interrupter interrupter;
 	
 	uint8_t memory[0x10000];
 	uint8_t vram[0x2000 * 2];
@@ -45,47 +41,55 @@ class Memory {
 	uint8_t *mem[0x10];
 	uint8_t cgb_bgp_data[8 * 8];
 	uint8_t cgb_objp_data[8 * 8];
+	
 	uint8_t *rombankptr;
-	uint32_t rombank;
-	cartridgetype romtype;
-
-	uint32_t rombanks;
 	uint8_t *rambankdata;
 	uint8_t *cgb_wramdata;
 
 	char* romfile;
-
 	uint8_t *romdata;
+	char *savedir;
+	char *savename;
+	
+	InputStateGetter *getInput;
 
-	uint32_t div_lastUpdate, tima_lastUpdate, next_timatime, next_blittime, next_irqtime, next_dmatime, next_hdmaReschedule, next_unhalttime, next_endtime, next_irqEventTime, tmatime;
-	uint32_t next_serialtime;
+	unsigned long div_lastUpdate;
+	unsigned long tima_lastUpdate;
+	unsigned long next_timatime;
+	unsigned long next_blittime;
+	unsigned long next_irqtime;
+	unsigned long next_dmatime;
+	unsigned long next_hdmaReschedule;
+	unsigned long next_unhalttime;
+	unsigned long next_endtime;
+	unsigned long next_irqEventTime;
+	unsigned long tmatime;
+	unsigned long next_serialtime;
+	unsigned long next_eventtime;
+	
+	LCD display;
+	PSG sound;
+	Interrupter interrupter;
+	Rtc rtc;
 
 	events next_event;
 	irqEvents next_irqEvent;
+	cartridgetype romtype;
+	
+	unsigned short rombanks;
+	unsigned short rombank;
+	unsigned short dmaSource;
+	unsigned short dmaDestination;
+	
+	unsigned char rambank;
+	unsigned char rambanks;
 
-	char *savedir, *savename;
-	
-	InputStateGetter *getInput;
-	
-	uint32_t next_eventtime;
-	
-	uint16_t dmaSource;
-	uint16_t dmaDestination;
-	
-	Rtc rtc;
-
-// public:
-// 	uint32_t CycleCounter;
-
-// private:
 	bool IME;
 	bool enable_ram;
 	bool rambank_mode;
 	bool battery, rtcRom;
 	bool hdma_transfer;
 	bool active;
-	uint8_t rambank;
-	uint8_t rambanks;
 
 	void init();
 	void saveram();
@@ -93,18 +97,18 @@ class Memory {
 	void updateInput();
 
 	void swap_rombank();
-	void oamDma(unsigned cycleCounter);
+	void oamDma(unsigned long cycleCounter);
 	void mbc_write(uint16_t P, uint8_t data);
 
 	void set_event();
 	void set_irqEvent();
-	void update_irqEvents(unsigned cc);
-	void update_tima(unsigned cycleCounter);
+	void update_irqEvents(unsigned long cc);
+	void update_tima(unsigned long cycleCounter);
 	
-	void rescheduleIrq(unsigned cycleCounter);
+	void rescheduleIrq(unsigned long cycleCounter);
 	void rescheduleHdmaReschedule();
 	
-	void refreshPalettes(unsigned cycleCounter);
+	void refreshPalettes(unsigned long cycleCounter);
 
 public:
 	Memory(const Interrupter &interrupter);
@@ -113,15 +117,15 @@ public:
 	void reset();
 	void reload();
 
-	void speedChange(unsigned cycleCounter);
+	void speedChange(unsigned long cycleCounter);
 	bool isDoubleSpeed() const { return memory[0xFF4D] >> 7; }
 	bool isCgb() const { return memory[0x0143] >> 7; }
 	bool getIME() const { return IME; }
-	unsigned getNextEventTime() const { return next_eventtime; }
+	unsigned long getNextEventTime() const { return next_eventtime; }
 	
 	bool isActive() const { return active; }
 
-	void ei(unsigned cycleCounter);
+	void ei(unsigned long cycleCounter);
 
 	void di() {
 		IME = 0;
@@ -133,11 +137,11 @@ public:
 	}
 
 
-	uint8_t ff_read(unsigned P, unsigned cycleCounter);
+	uint8_t ff_read(unsigned P, unsigned long cycleCounter);
 
-	uint8_t read(unsigned P, unsigned cycleCounter);
+	uint8_t read(unsigned P, unsigned long cycleCounter);
 	
-	uint8_t pc_read(const unsigned P, const unsigned cycleCounter) {
+	uint8_t pc_read(const unsigned P, const unsigned long cycleCounter) {
 		if (P < 0x4000)
 			return mem[0][P];
 		
@@ -147,11 +151,11 @@ public:
 		return read(P, cycleCounter);
 	}
 
-	void write(uint16_t P, uint8_t data, unsigned cycleCounter);
-	void ff_write(uint16_t P, uint8_t data, unsigned cycleCounter);
+	void write(uint16_t P, uint8_t data, unsigned long cycleCounter);
+	void ff_write(uint16_t P, uint8_t data, unsigned long cycleCounter);
 
-	unsigned event(unsigned cycleCounter);
-	unsigned resetCounters(unsigned cycleCounter);
+	unsigned long event(unsigned long cycleCounter);
+	unsigned long resetCounters(unsigned long cycleCounter);
 
 	bool loadROM();
 	bool loadROM(const char* romfile);
@@ -162,19 +166,19 @@ public:
 	}
 
 	void schedule_unhalt();
-	void inc_endtime(unsigned inc);
+	void inc_endtime(unsigned long inc);
 	
-	void sound_fill_buffer(uint16_t *stream, unsigned samples, unsigned cycleCounter);
-	void setVideoBlitter(VideoBlitter * vb, unsigned cycleCounter);
-	void setVideoFilter(unsigned int n, unsigned cycleCounter);
+	void sound_fill_buffer(uint16_t *stream, unsigned samples, unsigned long cycleCounter);
+	void setVideoBlitter(VideoBlitter * vb, unsigned long cycleCounter);
+	void setVideoFilter(unsigned int n, unsigned long cycleCounter);
 	
-	void videoBufferChange(unsigned cycleCounter);
+	void videoBufferChange(unsigned long cycleCounter);
 	
-	unsigned int videoWidth() const {
+	unsigned videoWidth() const {
 		return display.videoWidth();
 	}
 	
-	unsigned int videoHeight() const {
+	unsigned videoHeight() const {
 		return display.videoHeight();
 	}
 	
@@ -182,7 +186,7 @@ public:
 		return display.filterInfo();
 	}
 	
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32, unsigned cycleCounter);
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32, unsigned long cycleCounter);
 };
 
 #endif

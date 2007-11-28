@@ -45,10 +45,10 @@ void SpriteMapper::clearMap() {
 void SpriteMapper::mapSprites() {
 	clearMap();
 	
-	const unsigned spriteHeight = 8 << spriteSizeReader.largeSprites();
+	const unsigned spriteHeight = 8u << spriteSizeReader.largeSprites();
 	
 	for (unsigned i = 0x00; i < 0xA0; i += 4) {
-		const unsigned bottom_pos = oamram[i] - (17 - spriteHeight);
+		const unsigned bottom_pos = oamram[i] - (17u - spriteHeight);
 		
 		if (bottom_pos >= 143 + spriteHeight)
 			continue;

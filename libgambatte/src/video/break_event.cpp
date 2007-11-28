@@ -15,10 +15,12 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "break_event.h"
 
-BreakEvent::BreakEvent(uint8_t &drawStartCycle_in, uint8_t &scReadOffset_in) :
+#include <stdint.h>
+
+BreakEvent::BreakEvent(unsigned char &drawStartCycle_in, unsigned char &scReadOffset_in) :
 	VideoEvent(3),
 	drawStartCycle(drawStartCycle_in),
 	scReadOffset(scReadOffset_in)

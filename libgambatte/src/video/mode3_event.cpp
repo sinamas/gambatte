@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "mode3_event.h"
 #include "mode0_irq.h"
 #include "irq_event.h"
@@ -43,13 +43,15 @@ void Mode3Event::doEvent() {
 		m3EventQueue.modify_root(m3EventQueue.top());
 	
 	if (mode0Irq.time() != uint32_t(-1)) {
-		const unsigned oldTime = mode0Irq.time();
+		const unsigned long oldTime = mode0Irq.time();
 		mode0Irq.mode3CyclesChange();
+		
 		if (mode0Irq.time() != oldTime) {
 			// position in irqEventQueue should remain the same.
 			// The same may be possible for vEventQueue, with some precautions.
 			if (irqEvent.time() == oldTime) {
 				irqEvent.schedule();
+				
 				if (mode0Irq.time() > oldTime)
 					vEventQueue.inc(&irqEvent, &irqEvent);
 				else
@@ -63,7 +65,8 @@ void Mode3Event::doEvent() {
 }
 
 void addEvent(Mode3Event &event, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned oldTime = event.time();
+	const unsigned long oldTime = event.time();
+	
 	event.schedule();
 	
 	if (oldTime == uint32_t(-1))

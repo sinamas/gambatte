@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "scx_reader.h"
 
 #include "../event_queue.h"
@@ -37,7 +37,7 @@ ScxReader::ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_i
 	reset();
 }
 
-void ScxReader::rescheduleEvent(VideoEvent& event, const unsigned diff) {
+void ScxReader::rescheduleEvent(VideoEvent& event, const unsigned long diff) {
 	if (event.time() != uint32_t(-1)) {
 		event.setTime(event.time() + diff);
 		(diff & 0x10) ? m3EventQueue.dec(&event, &event) : m3EventQueue.inc(&event, &event);
@@ -45,7 +45,7 @@ void ScxReader::rescheduleEvent(VideoEvent& event, const unsigned diff) {
 }
 
 void ScxReader::doEvent() {
-	const unsigned diff = src - scxAnd7_ << dS;
+	const unsigned long diff = static_cast<unsigned long>(src) - static_cast<unsigned long>(scxAnd7_) << dS;
 	scxAnd7_ = src;
 	
 // 	rescheduleEvent(wyReader3, diff);

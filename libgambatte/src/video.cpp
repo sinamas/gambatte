@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "video.h"
 #include "videoblitter.h"
 #include "video/filters/filter.h"
@@ -46,46 +46,46 @@ const uint32_t LCD::dmgColorsUyvy[4] = {
 #endif
 */
 
-void LCD::setDmgPalette(uint32_t *const palette, const uint32_t *const dmgColors, const unsigned data) {
+void LCD::setDmgPalette(unsigned long *const palette, const unsigned long *const dmgColors, const unsigned data) {
 	palette[0] = dmgColors[data & 3];
-	palette[1] = dmgColors[(data >> 2) & 3];
-	palette[2] = dmgColors[(data >> 4) & 3];
-	palette[3] = dmgColors[(data >> 6) & 3];
+	palette[1] = dmgColors[data >> 2 & 3];
+	palette[2] = dmgColors[data >> 4 & 3];
+	palette[3] = dmgColors[data >> 6 & 3];
 }
 
-unsigned LCD::gbcToRgb32(const unsigned bgr15) {
-	const unsigned r = bgr15 & 0x1F;
-	const unsigned g = (bgr15 >> 5) & 0x1F;
-	const unsigned b = (bgr15 >> 10) & 0x1F;
+unsigned long LCD::gbcToRgb32(const unsigned bgr15) {
+	const unsigned long r = bgr15 & 0x1F;
+	const unsigned long g = bgr15 >> 5 & 0x1F;
+	const unsigned long b = bgr15 >> 10 & 0x1F;
 	
-	return (((r * 13 + g * 2 + b) >> 1) << 16) | ((g * 3 + b) << 9) | ((r * 3 + g * 2 + b * 11) >> 1);
+	return (r * 13 + g * 2 + b >> 1) << 16 | g * 3 + b << 9 | r * 3 + g * 2 + b * 11 >> 1;
 }
 
-unsigned LCD::gbcToRgb16(const unsigned bgr15) {
+unsigned long LCD::gbcToRgb16(const unsigned bgr15) {
 	const unsigned r = bgr15 & 0x1F;
-	const unsigned g = (bgr15 >> 5) & 0x1F;
-	const unsigned b = (bgr15 >> 10) & 0x1F;
+	const unsigned g = bgr15 >> 5 & 0x1F;
+	const unsigned b = bgr15 >> 10 & 0x1F;
 	
-	return (((r * 13 + g * 2 + b + 8) << 7) & 0xF800) | (((g * 3 + b + 1) >> 1) << 5) | ((r * 3 + g * 2 + b * 11 + 8) >> 4);
+	return r * 13 + g * 2 + b + 8 << 7 & 0xF800 | (g * 3 + b + 1 >> 1) << 5 | r * 3 + g * 2 + b * 11 + 8 >> 4;
 }
 
-unsigned LCD::gbcToUyvy(const unsigned bgr15) {
+unsigned long LCD::gbcToUyvy(const unsigned bgr15) {
 	const unsigned r5 = bgr15 & 0x1F;
-	const unsigned g5 = (bgr15 >> 5) & 0x1F;
-	const unsigned b5 = (bgr15 >> 10) & 0x1F;
+	const unsigned g5 = bgr15 >> 5 & 0x1F;
+	const unsigned b5 = bgr15 >> 10 & 0x1F;
 	
 	// y = (r5 * 926151 + g5 * 1723530 + b5 * 854319) / 510000 + 16;
 	// u = (b5 * 397544 - r5 * 68824 - g5 * 328720) / 225930 + 128;
 	// v = (r5 * 491176 - g5 * 328720 - b5 * 162456) / 178755 + 128;
 	
-	const unsigned y = r5 * 116 + g5 * 216 + b5 * 107 + 16 * 64 + 32 >> 6;
-	const unsigned u = b5 * 225 - r5 * 39 - g5 * 186 + 128 * 128 + 64 >> 7;
-	const unsigned v = r5 * 176 - g5 * 118 - b5 * 58 + 128 * 64 + 32 >> 6;
+	const unsigned long y = r5 * 116 + g5 * 216 + b5 * 107 + 16 * 64 + 32 >> 6;
+	const unsigned long u = b5 * 225 - r5 * 39 - g5 * 186 + 128 * 128 + 64 >> 7;
+	const unsigned long v = r5 * 176 - g5 * 118 - b5 * 58 + 128 * 64 + 32 >> 6;
 	
 #ifdef WORDS_BIGENDIAN
-	return (u << 24) | (y << 16) | (v << 8) | y;
+	return u << 24 | y << 16 | v << 8 | y;
 #else
-	return (y << 24) | (v << 16) | (y << 8) | u;
+	return y << 24 | v << 16 | y << 8 | u;
 #endif
 }
 
@@ -115,7 +115,7 @@ LCD::LCD(const uint8_t *const oamram, const uint8_t *const vram_in) :
 	pb.format = PixelBuffer::RGB32;
 	pb.pitch = 0;
 	
-	for (unsigned i = 0; i < sizeof(dmgColorsRgb32) / sizeof(uint32_t); ++i) {
+	for (unsigned i = 0; i < sizeof(dmgColorsRgb32) / sizeof(unsigned long); ++i) {
 		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
 	}
 	
@@ -170,7 +170,7 @@ void LCD::reset(const bool cgb_in) {
 	lycIrq.setLycReg(0);
 	mode1Irq.setM1StatIrqEnabled(false);
 	
-	resetVideoState(0x80, 0x102A0 - (144*456 + 164));
+	resetVideoState(0x80, 0x102A0 - (144*456ul + 164));
 	//setEvent();
 }
 
@@ -187,7 +187,7 @@ void LCD::setDoubleSpeed(const bool ds) {
 }
 
 template<class T>
-static inline void rescheduleIfActive(T &event, const LyCounter &lyCounter, const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
+static inline void rescheduleIfActive(T &event, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
 	if (event.time() != uint32_t(-1)) {
 		event.schedule(lyCounter, cycleCounter);
 		queue.push(&event);
@@ -195,7 +195,7 @@ static inline void rescheduleIfActive(T &event, const LyCounter &lyCounter, cons
 }
 
 template<class T>
-static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const LyCounter &lyCounter, const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
+static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
 	if (event.time() != uint32_t(-1)) {
 		event.schedule(scxReader.scxAnd7(), lyCounter, cycleCounter);
 		queue.push(&event);
@@ -203,14 +203,14 @@ static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, cons
 }
 
 template<class T>
-static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const WxReader &wxReader, const LyCounter &lyCounter, const unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
+static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const WxReader &wxReader, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
 	if (event.time() != uint32_t(-1)) {
 		event.schedule(scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter);
 		queue.push(&event);
 	}
 }
 
-void LCD::resetVideoState(const unsigned statReg, const unsigned cycleCounter) {
+void LCD::resetVideoState(const unsigned statReg, const unsigned long cycleCounter) {
 	videoCycles = 0;
 	lastUpdate = cycleCounter;
 	enableDisplayM0Time = cycleCounter + 159;
@@ -290,9 +290,9 @@ void LCD::videoBufferChange() {
 	}
 }
 
-void LCD::setVideoFilter(const uint32_t n) {
-	const unsigned int oldw = filter ? filter->info().outWidth : 160;
-	const unsigned int oldh = filter ? filter->info().outHeight : 144;
+void LCD::setVideoFilter(const unsigned n) {
+	const unsigned oldw = filter ? filter->info().outWidth : 160;
+	const unsigned oldh = filter ? filter->info().outHeight : 144;
 	
 	if (filter)
 		filter->outit();
@@ -303,7 +303,7 @@ void LCD::setVideoFilter(const uint32_t n) {
 		filter->init();
 	}
 
-	if (vBlitter && ((oldw != (filter ? filter->info().outWidth : 160)) || (oldh != (filter ? filter->info().outHeight : 144)))) {
+	if (vBlitter && (oldw != (filter ? filter->info().outWidth : 160) || oldh != (filter ? filter->info().outHeight : 144))) {
 		vBlitter->setBufferDimensions(filter ? filter->info().outWidth : 160, filter ? filter->info().outHeight : 144);
 		pb = vBlitter->inBuffer();
 	}
@@ -331,7 +331,7 @@ unsigned int LCD::videoHeight() const {
 	return filter ? filter->info().outHeight : 144;
 }
 
-void LCD::updateScreen(const unsigned cycleCounter) {
+void LCD::updateScreen(const unsigned long cycleCounter) {
 	update(cycleCounter);
 
 	if (filter && pb.pixels) {
@@ -353,7 +353,7 @@ void LCD::updateScreen(const unsigned cycleCounter) {
 }
 
 template<typename T>
-static void clear(T *buf, const unsigned color, const unsigned dpitch) {
+static void clear(T *buf, const unsigned long color, const unsigned dpitch) {
 	unsigned lines = 144;
 	
 	while (lines--) {
@@ -362,13 +362,13 @@ static void clear(T *buf, const unsigned color, const unsigned dpitch) {
 	}
 }
 
-void LCD::enableChange(const unsigned statReg, const unsigned cycleCounter) {
+void LCD::enableChange(const unsigned statReg, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	enabled = !enabled;
 	resetVideoState(statReg, cycleCounter);
 	
 	if (!enabled && dbuffer) {
-		const unsigned color = cgb ? (*gbcToFormat)(0xFFFF) : dmgColors[0];
+		const unsigned long color = cgb ? (*gbcToFormat)(0xFFFF) : dmgColors[0];
 		
 		if (!filter && pb.format == PixelBuffer::RGB16)
 			clear(static_cast<uint16_t*>(dbuffer), color, dpitch);
@@ -379,26 +379,26 @@ void LCD::enableChange(const unsigned statReg, const unsigned cycleCounter) {
 	}
 }
 
-void LCD::preResetCounter(const unsigned cycleCounter) {
+void LCD::preResetCounter(const unsigned long cycleCounter) {
 	preSpeedChange(cycleCounter);
 }
 
-void LCD::postResetCounter(const unsigned oldCC, const unsigned cycleCounter) {
+void LCD::postResetCounter(const unsigned long oldCC, const unsigned long cycleCounter) {
 	enableDisplayM0Time = oldCC > enableDisplayM0Time ? 0 : (cycleCounter + enableDisplayM0Time - oldCC);
 	lastUpdate = cycleCounter - (oldCC - lastUpdate);
 	rescheduleEvents(cycleCounter);
 }
 
-void LCD::preSpeedChange(const unsigned cycleCounter) {
+void LCD::preSpeedChange(const unsigned long cycleCounter) {
 	update(cycleCounter);
 }
 
-void LCD::rescheduleEvents(const unsigned cycleCounter) {
+void LCD::rescheduleEvents(const unsigned long cycleCounter) {
 	vEventQueue.clear();
 	m3EventQueue.clear();
 	irqEventQueue.clear();
 	
-	lyCounter.setTime(lastUpdate + (456 - (videoCycles - lyCounter.ly() * 456) << doubleSpeed));
+	lyCounter.setTime(lastUpdate + (456 - (videoCycles - lyCounter.ly() * 456ul) << doubleSpeed));
 	vEventQueue.push(&lyCounter);
 	
 	rescheduleIfActive(scxReader, lyCounter, cycleCounter, m3EventQueue);
@@ -444,13 +444,13 @@ void LCD::rescheduleEvents(const unsigned cycleCounter) {
 	vEventQueue.push(&irqEvent);
 }
 
-void LCD::postSpeedChange(const unsigned cycleCounter) {
+void LCD::postSpeedChange(const unsigned long cycleCounter) {
 	setDoubleSpeed(!doubleSpeed);
 	
 	rescheduleEvents(cycleCounter);
 }
 
-bool LCD::isMode0IrqPeriod(const unsigned cycleCounter) {
+bool LCD::isMode0IrqPeriod(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 
@@ -459,29 +459,29 @@ bool LCD::isMode0IrqPeriod(const unsigned cycleCounter) {
 	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed) << doubleSpeed) + doubleSpeed && timeToNextLy > 4;
 }
 
-bool LCD::isMode2IrqPeriod(const unsigned cycleCounter) {
+bool LCD::isMode2IrqPeriod(const unsigned long cycleCounter) {
 	if (cycleCounter >= lyCounter.time())
 		update(cycleCounter);
 
 	const unsigned nextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */((lyCounter.ly() < 143 && nextLy <= 5) || (lyCounter.ly() == 153 && nextLy <= 1));
+	return /*memory.enable_display && */(lyCounter.ly() < 143 && nextLy <= 5 || lyCounter.ly() == 153 && nextLy <= 1);
 }
 
-bool LCD::isLycIrqPeriod(const unsigned lycReg, const unsigned endCycles, const unsigned cycleCounter) {
+bool LCD::isLycIrqPeriod(const unsigned lycReg, const unsigned endCycles, const unsigned long cycleCounter) {
 	if (cycleCounter >= lyCounter.time())
 		update(cycleCounter);
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
 	if (lycReg)
-		return (lyCounter.ly() == lycReg && timeToNextLy > endCycles) || (lyCounter.ly() < 153 && lyCounter.ly() + 1 == lycReg && timeToNextLy <= 1);
+		return lyCounter.ly() == lycReg && timeToNextLy > endCycles || lyCounter.ly() < 153 && lyCounter.ly() + 1 == lycReg && timeToNextLy <= 1;
 	else
-		return (lyCounter.ly() == 153 && timeToNextLy <= ((456U - 8U) << doubleSpeed) + 1) || (lyCounter.ly() == 0 && timeToNextLy > endCycles);
+		return lyCounter.ly() == 153 && timeToNextLy <= ((456U - 8U) << doubleSpeed) + 1 || lyCounter.ly() == 0 && timeToNextLy > endCycles;
 
 }
 
-bool LCD::isMode1IrqPeriod(const unsigned cycleCounter) {
+bool LCD::isMode1IrqPeriod(const unsigned long cycleCounter) {
 	if (cycleCounter >= lyCounter.time())
 		update(cycleCounter);
 
@@ -490,7 +490,7 @@ bool LCD::isMode1IrqPeriod(const unsigned cycleCounter) {
 	return lyCounter.ly() > 143 && (lyCounter.ly() < 153 || doubleSpeed || timeToNextLy > 4);
 }
 
-bool LCD::isHdmaPeriod(const unsigned cycleCounter) {
+bool LCD::isHdmaPeriod(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
@@ -499,13 +499,13 @@ bool LCD::isHdmaPeriod(const unsigned cycleCounter) {
 	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169U + doubleSpeed * 3 + 80U + m3ExtraCycles(lyCounter.ly()) + 2 - doubleSpeed) << doubleSpeed) && timeToNextLy > 4;
 }
 
-unsigned LCD::nextHdmaTime(const unsigned cycleCounter) {
+unsigned long LCD::nextHdmaTime(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
 	const unsigned lineCycles = 456 * 2 - ((lyCounter.time() - cycleCounter) << (1 ^ doubleSpeed));
 	unsigned line = lyCounter.ly();
-	int next = ((169 + doubleSpeed * 3 + 80 + 2 - doubleSpeed) * 2) - lineCycles;
+	int next = static_cast<int>((169 + doubleSpeed * 3 + 80 + 2 - doubleSpeed) * 2) - lineCycles;
 	unsigned m3ExCs;
 	
 	if (line < 144) {
@@ -526,10 +526,10 @@ unsigned LCD::nextHdmaTime(const unsigned cycleCounter) {
 		next += (154 - line) * 456 * 2 + m3ExCs;
 	}
 	
-	return cycleCounter + (next >> (1 ^ doubleSpeed));
+	return cycleCounter + (static_cast<unsigned>(next) >> (1 ^ doubleSpeed));
 }
 
-bool LCD::vramAccessible(const unsigned cycleCounter) {
+bool LCD::vramAccessible(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 
@@ -544,7 +544,7 @@ bool LCD::vramAccessible(const unsigned cycleCounter) {
 	return accessible;
 }
 
-bool LCD::cgbpAccessible(const unsigned cycleCounter) {
+bool LCD::cgbpAccessible(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 
@@ -559,7 +559,7 @@ bool LCD::cgbpAccessible(const unsigned cycleCounter) {
 	return accessible;
 }
 
-bool LCD::oamAccessible(const unsigned cycleCounter) {
+bool LCD::oamAccessible(const unsigned long cycleCounter) {
 	bool accessible = true;
 
 	if (enabled) {
@@ -575,7 +575,7 @@ bool LCD::oamAccessible(const unsigned cycleCounter) {
 					accessible = false;
 			} else {
 				const unsigned m0start = 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly());
-				if (lineCycles < m0start || (!doubleSpeed && lineCycles >= 452))
+				if (lineCycles < m0start || !doubleSpeed && lineCycles >= 452)
 					accessible = false;
 			}
 		}
@@ -584,7 +584,7 @@ bool LCD::oamAccessible(const unsigned cycleCounter) {
 	return accessible;
 }
 
-void LCD::weChange(const bool newValue, const unsigned cycleCounter) {
+void LCD::weChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 // 	printf("%u: weChange: %u\n", videoCycles, newValue);
 	
@@ -598,7 +598,7 @@ void LCD::weChange(const bool newValue, const unsigned cycleCounter) {
 	addEvent(mode3Event, vEventQueue);
 }
 
-void LCD::wxChange(const unsigned newValue, const unsigned cycleCounter) {
+void LCD::wxChange(const unsigned newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 // 	printf("%u: wxChange: 0x%X\n", videoCycles, newValue);
 	
@@ -611,7 +611,7 @@ void LCD::wxChange(const unsigned newValue, const unsigned cycleCounter) {
 	addEvent(mode3Event, vEventQueue);
 }
 
-void LCD::wyChange(const unsigned newValue, const unsigned cycleCounter) {
+void LCD::wyChange(const unsigned newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 // 	printf("%u: wyChange: 0x%X\n", videoCycles, newValue);
 	
@@ -626,7 +626,7 @@ void LCD::wyChange(const unsigned newValue, const unsigned cycleCounter) {
 	addEvent(mode3Event, vEventQueue);
 }
 
-void LCD::scxChange(const unsigned newScx, const unsigned cycleCounter) {
+void LCD::scxChange(const unsigned newScx, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	//printf("scxChange\n");
 	
@@ -657,7 +657,7 @@ void LCD::scxChange(const unsigned newScx, const unsigned cycleCounter) {
 	addEvent(scReader, lastUpdate, videoCycles, scReadOffset, vEventQueue);
 }
 
-void LCD::scyChange(const unsigned newValue, const unsigned cycleCounter) {
+void LCD::scyChange(const unsigned newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	//printf("scyChange\n");
 	
@@ -665,7 +665,7 @@ void LCD::scyChange(const unsigned newValue, const unsigned cycleCounter) {
 	addEvent(scReader, lastUpdate, videoCycles, scReadOffset, vEventQueue);
 }
 
-void LCD::spriteSizeChange(const bool newLarge, const unsigned cycleCounter) {
+void LCD::spriteSizeChange(const bool newLarge, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	//printf("spriteSizeChange\n");
 	
@@ -679,7 +679,7 @@ void LCD::spriteSizeChange(const bool newLarge, const unsigned cycleCounter) {
 	addEvent(mode3Event, vEventQueue);
 }
 
-void LCD::oamChange(const unsigned cycleCounter) {
+void LCD::oamChange(const unsigned long cycleCounter) {
 	update(cycleCounter);
 	//printf("oamChange\n");
 	
@@ -688,7 +688,7 @@ void LCD::oamChange(const unsigned cycleCounter) {
 	addEvent(mode3Event, vEventQueue);
 }
 
-void LCD::wdTileMapSelectChange(const bool newValue, const unsigned cycleCounter) {
+void LCD::wdTileMapSelectChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
 // 	printf("%u: wdTileMapSelectChange: 0x%X\n", videoCycles, newValue);
@@ -696,13 +696,13 @@ void LCD::wdTileMapSelectChange(const bool newValue, const unsigned cycleCounter
 	wdTileMap = vram + (0x1800 | newValue * 0x400);
 }
 
-void LCD::bgTileMapSelectChange(const bool newValue, const unsigned cycleCounter) {
+void LCD::bgTileMapSelectChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
 	bgTileMap = vram + (0x1800 | newValue * 0x400);
 }
 
-void LCD::bgTileDataSelectChange(const bool newValue, const unsigned cycleCounter) {
+void LCD::bgTileDataSelectChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
 // 	printf("%u: bgTileDataSelectChange: 0x%X\n", videoCycles, newValue);
@@ -711,13 +711,13 @@ void LCD::bgTileDataSelectChange(const bool newValue, const unsigned cycleCounte
 	bgTileData = vram + (newValue ^ 1) * 0x1000;
 }
 
-void LCD::spriteEnableChange(const bool newValue, const unsigned cycleCounter) {
+void LCD::spriteEnableChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
 	spriteEnable = newValue;
 }
 
-void LCD::bgEnableChange(const bool newValue, const unsigned cycleCounter) {
+void LCD::bgEnableChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
 // 	printf("%u: bgEnableChange: %u\n", videoCycles, newValue);
@@ -725,7 +725,7 @@ void LCD::bgEnableChange(const bool newValue, const unsigned cycleCounter) {
 	bgEnable = newValue;
 }
 
-void LCD::lcdstatChange(const unsigned old, const unsigned data, const unsigned cycleCounter) {
+void LCD::lcdstatChange(const unsigned old, const unsigned data, const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
@@ -801,7 +801,7 @@ void LCD::lcdstatChange(const unsigned old, const unsigned data, const unsigned 
 	modifyEvent(irqEvent, vEventQueue);
 }
 
-void LCD::lycRegChange(const unsigned data, const unsigned statReg, const unsigned cycleCounter) {
+void LCD::lycRegChange(const unsigned data, const unsigned statReg, const unsigned long cycleCounter) {
 	if (data == lycIrq.lycReg())
 		return;
 	
@@ -821,7 +821,7 @@ void LCD::lycRegChange(const unsigned data, const unsigned statReg, const unsign
 		if (isLycIrqPeriod(data, data == 153 ? lyCounter.lineTime() - doubleSpeed * 8 : 8, cycleCounter))
 			ifReg |= 2;
 		
-		const unsigned oldTime = lycIrq.time();
+		const unsigned long oldTime = lycIrq.time();
 		lycIrq.lycRegSchedule(lyCounter, cycleCounter);
 		
 		if (oldTime == uint32_t(-1)) {
@@ -838,7 +838,7 @@ void LCD::lycRegChange(const unsigned data, const unsigned statReg, const unsign
 	modifyEvent(irqEvent, vEventQueue);
 }
 
-unsigned LCD::nextIrqEvent() const {
+unsigned long LCD::nextIrqEvent() const {
 	if (!enabled)
 		return uint32_t(-1);
 	
@@ -848,21 +848,21 @@ unsigned LCD::nextIrqEvent() const {
 	return irqEvent.time();
 }
 
-unsigned LCD::getIfReg(const unsigned cycleCounter) {
+unsigned LCD::getIfReg(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
 	return ifReg;
 }
 
-void LCD::setIfReg(const unsigned ifReg_in, const unsigned cycleCounter) {
+void LCD::setIfReg(const unsigned ifReg_in, const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
 	ifReg = ifReg_in;
 }
 
-unsigned LCD::get_stat(const unsigned lycReg, const unsigned cycleCounter) {
+unsigned LCD::get_stat(const unsigned lycReg, const unsigned long cycleCounter) {
 	unsigned stat = 0;
 
 	if (enabled) {
@@ -932,12 +932,12 @@ inline void LCD::event() {
 		vEventQueue.modify_root(vEventQueue.top());
 }
 
-void LCD::update(const unsigned cycleCounter) {
+void LCD::update(const unsigned long cycleCounter) {
 	if (!enabled)
 		return;
 		
 	for (;;) {
-		const unsigned cycles = (std::max(std::min(cycleCounter, vEventQueue.top()->time()), lastUpdate) - lastUpdate) >> doubleSpeed;
+		const unsigned cycles = (std::max(std::min(cycleCounter, static_cast<unsigned long>(vEventQueue.top()->time())), lastUpdate) - lastUpdate) >> doubleSpeed;
 		do_update(cycles);
 		lastUpdate += cycles << doubleSpeed;
 		
@@ -989,13 +989,13 @@ void LCD::setDBuffer() {
 		draw = &LCD::null_draw;
 }
 
-void LCD::setDmgPaletteColor(const unsigned index, const unsigned rgb32) {
+void LCD::setDmgPaletteColor(const unsigned index, const unsigned long rgb32) {
 	dmgColorsRgb32[index] = rgb32;
 	dmgColorsRgb16[index] = Rgb16Putter::toRgb16(rgb32);
 	dmgColorsUyvy[index] = UyvyPutter::toUyvy(rgb32);
 }
 
-void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, const unsigned rgb32) {
+void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, const unsigned long rgb32) {
 	if (palNum > 2 || colorNum > 3)
 		return;
 	
@@ -1003,7 +1003,7 @@ void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, con
 }
 
 void LCD::null_draw(unsigned /*xpos*/, const unsigned ypos, const unsigned endX) {
-	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
 	
 	if (enableWindow && winYPos == 0xFF)
 		winYPos = /*ypos - wyReg.value()*/ 0;
@@ -1018,24 +1018,24 @@ template<typename T>
 void LCD::cgb_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 	const unsigned effectiveScx = scReader.scx();
 	
-	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
 	
 	if (enableWindow && winYPos == 0xFF)
 		winYPos = /*ypos - wyReg.value()*/ 0;
 		
-	T *const bufLine = static_cast<T*>(dbuffer) + ypos * dpitch;
+	T *const bufLine = static_cast<T*>(dbuffer) + ypos * static_cast<unsigned long>(dpitch);
 	
-	if (!(enableWindow && wxReader.wx() <= (xpos + 7))) {
-		const unsigned fby = (scReader.scy() + ypos)/*&0xFF*/;
+	if (!(enableWindow && wxReader.wx() <= xpos + 7)) {
+		const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
 		const unsigned end = std::min(enableWindow ? wxReader.wx() - 7 : 160U, endX);
 
 		cgb_bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData, fby & 7);
 	}
 	
-	if (enableWindow && (endX + 7) > wxReader.wx()) {
+	if (enableWindow && endX + 7 > wxReader.wx()) {
 		const unsigned start = std::max(wxReader.wx() < 7 ? 0U : (wxReader.wx() - 7), xpos);
 		
-		cgb_bg_drawPixels(bufLine, start, endX, 0 - (wxReader.wx() - 7), wdTileMap + (winYPos & 0xF8) * 4, bgTileData, winYPos & 7);
+		cgb_bg_drawPixels(bufLine, start, endX, 7u - wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData, winYPos & 7);
 	}
 		
 	if (endX == 160) {
@@ -1051,16 +1051,16 @@ template<typename T>
 void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 	const unsigned effectiveScx = scReader.scx();
 	
-	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
 	
 	if (enableWindow && winYPos == 0xFF)
 		winYPos = /*ypos - wyReg.value()*/ 0;
 		
-	T *const bufLine = static_cast<T*>(dbuffer) + ypos * dpitch;
+	T *const bufLine = static_cast<T*>(dbuffer) + ypos * static_cast<unsigned long>(dpitch);
 	
 	if (bgEnable) {
 		if (!(enableWindow && wxReader.wx() <= xpos + 7)) {
-			const unsigned fby = (scReader.scy() + ypos)/*&0xFF*/;
+			const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
 			const unsigned end = std::min(enableWindow ? wxReader.wx() - 7 : 160U, endX);
 			
 			bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData + (fby & 7) * 2);
@@ -1069,7 +1069,7 @@ void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 		if (enableWindow && endX + 7 > wxReader.wx()) {
 			const unsigned start = std::max(wxReader.wx() < 7 ? 0U : (wxReader.wx() - 7), xpos);
 			
-			bg_drawPixels(bufLine, start, endX, 0 - (wxReader.wx() - 7), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
+			bg_drawPixels(bufLine, start, endX, 7u - wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
 		}
 	} else
 		std::fill_n(bufLine + xpos, endX - xpos, bgPalette[0]);
@@ -1089,7 +1089,7 @@ void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 #define FLIP_ROW(n) FLIP((n)|0x0), FLIP((n)|0x1), FLIP((n)|0x2), FLIP((n)|0x3), FLIP((n)|0x4), FLIP((n)|0x5), FLIP((n)|0x6), FLIP((n)|0x7), \
 FLIP((n)|0x8), FLIP((n)|0x9), FLIP((n)|0xA), FLIP((n)|0xB), FLIP((n)|0xC), FLIP((n)|0xD), FLIP((n)|0xE), FLIP((n)|0xF)
 
-static const uint8_t xflipt[0x100] = {
+static const unsigned char xflipt[0x100] = {
 	FLIP_ROW(0x00), FLIP_ROW(0x10), FLIP_ROW(0x20), FLIP_ROW(0x30),
 	FLIP_ROW(0x40), FLIP_ROW(0x50), FLIP_ROW(0x60), FLIP_ROW(0x70),
 	FLIP_ROW(0x80), FLIP_ROW(0x90), FLIP_ROW(0xA0), FLIP_ROW(0xB0),
@@ -1112,10 +1112,10 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 	while (xpos < end) {
 		if ((scx + xpos & 7) || xpos + 7 >= end) {
 			const uint8_t *const maptmp = tilemap + (scx + xpos >> 3 & 0x1F);
-			const uintptr_t tile = maptmp[0];
+			const unsigned tile = maptmp[0];
 			const unsigned attributes = maptmp[0x2000];
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
-				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+				tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 			
 			unsigned byte1 = data[0];
 			unsigned byte2 = data[1];
@@ -1127,7 +1127,7 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 			
 			byte2 <<= 1;
 			
-			const uint32_t *const palette = bgPalette + (attributes & 7) * 4;
+			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
 			unsigned tmp = 7 - (scx + xpos & 7);
 			
 			do {
@@ -1137,10 +1137,10 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 		
 		while (xpos + 7 < end) {
 			const uint8_t *const maptmp = tilemap + (scx + xpos >> 3 & 0x1F);
-			const uintptr_t tile = maptmp[0];
+			const unsigned tile = maptmp[0];
 			const unsigned attributes = maptmp[0x2000];
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
-				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+				tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 			
 			unsigned byte1 = data[0];
 			unsigned byte2 = data[1];
@@ -1152,7 +1152,7 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 			
 			byte2 <<= 1;
 			
-			const uint32_t *const palette = bgPalette + (attributes & 7) * 4;
+			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
 			T * const buf = buffer_line + xpos;
 			
 			buf[0] = palette[(byte2 & 0x100 | byte1) >> 7];
@@ -1171,18 +1171,18 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 
 static unsigned cgb_prioritizedBG_mask(const unsigned spx, const unsigned bgStart, const unsigned bgEnd, const unsigned scx,
                                        const uint8_t *const tilemap, const uint8_t *const tiledata, const unsigned tileline, const unsigned sign) {
-	const unsigned spStart = spx < bgStart + 8 ? bgStart - (spx - 8) : 0;
+	const unsigned spStart = spx < bgStart + 8 ? bgStart + 8 - spx : 0;
 
 	unsigned bgbyte;
 	
 	{
-		const unsigned pos = scx + (spx - 8) + spStart;
+		const unsigned pos = scx + spx - 8 + spStart;
 		const uint8_t *maptmp = tilemap + (pos >> 3 & 0x1F);
-		uintptr_t tile = maptmp[0];
+		unsigned tile = maptmp[0];
 		unsigned attributes = maptmp[0x2000];
 		
 		const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
-			(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+			tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 		
 		bgbyte = (attributes & 0x20) ? xflipt[data[0] | data[1]] : (data[0] | data[1]);
 		
@@ -1195,35 +1195,35 @@ static unsigned cgb_prioritizedBG_mask(const unsigned spx, const unsigned bgStar
 			attributes = maptmp[0x2000];
 			
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
-				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+				tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 			
 			bgbyte |= ((attributes & 0x20) ? xflipt[data[0] | data[1]] : (data[0] | data[1])) >> (8 - offset);
 		}
 	}
 	
 	bgbyte >>= spStart;
-	const unsigned spEnd = spx > bgEnd ? bgEnd - (spx - 8) : 8;
-	const unsigned mask = ~bgbyte | (0xFF >> spEnd);
+	const unsigned spEnd = spx > bgEnd ? bgEnd + 8 - spx : 8;
+	const unsigned mask = ~bgbyte | 0xFF >> spEnd;
 	
 	return mask;
 }
 
 static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, const unsigned bgEnd, const unsigned scx,
                                     const uint8_t *const tilemap, const uint8_t *const tiledata, const unsigned tileline, const unsigned sign) {
-	const unsigned spStart = spx < bgStart + 8 ? bgStart - (spx - 8) : 0;
+	const unsigned spStart = spx < bgStart + 8 ? bgStart + 8 - spx : 0;
 
 	unsigned bgbyte = 0;
 
 	{
-		const unsigned pos = scx + (spx - 8) + spStart;
+		const unsigned pos = scx + spx - 8 + spStart;
 		const uint8_t *maptmp = tilemap + (pos >> 3 & 0x1F);
 		unsigned attributes = maptmp[0x2000];
 		
 		if (attributes & 0x80) {
-			const uintptr_t tile = maptmp[0];
+			const unsigned tile = maptmp[0];
 			
 			const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
-				(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+				tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 			
 			bgbyte = (attributes & 0x20) ? xflipt[data[0] | data[1]] : (data[0] | data[1]);
 		}
@@ -1236,10 +1236,10 @@ static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, 
 			attributes = maptmp[0x2000];
 			
 			if (attributes & 0x80) {
-				const uintptr_t tile = maptmp[0];
+				const unsigned tile = maptmp[0];
 				
 				const uint8_t *const data = tiledata + (attributes << 10 & 0x2000) +
-					(tile - (tile & sign) * 2 << 4) + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+					tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 				
 				bgbyte |= ((attributes & 0x20) ? xflipt[data[0] | data[1]] : (data[0] | data[1])) >> (8 - offset);
 			}
@@ -1247,18 +1247,18 @@ static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, 
 	}
 
 	bgbyte >>= spStart;
-	const unsigned spEnd = spx > bgEnd ? bgEnd - (spx - 8) : 8;
-	const unsigned mask = ~bgbyte | (0xFF >> spEnd);
+	const unsigned spEnd = spx > bgEnd ? bgEnd + 8 - spx : 8;
+	const unsigned mask = ~bgbyte | 0xFF >> spEnd;
 	
 	return mask;
 }
 
 template<typename T>
 void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
-	const unsigned scy = (scReader.scy() + ypos)/*&0xFF*/;
+	const unsigned scy = scReader.scy() + ypos /*& 0xFF*/;
 	const unsigned wx = wxReader.wx() < 7 ? 0 : wxReader.wx() - 7;
 	//const bool enableWindow = (memory.fastread(0xFF40) & 0x20) && (ypos >= memory.fastread(0xFF4A)) && (wx < 160);
-	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
 	const unsigned short *const spriteMapLine = spriteMapper.sprites(ypos);
 	
 	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
@@ -1266,11 +1266,11 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 		const unsigned spx = spriteInfo[1];
 		
 		if (spx < 168 && spx) {
-			unsigned spLine = ypos - (spriteInfo[0] - 16);
+			unsigned spLine = ypos + 16 - spriteInfo[0];
 			unsigned spTile = spriteInfo[2];
 			const unsigned attributes = spriteInfo[3];
 
-			if (spriteSizeReader.largeSprites()) { //large sprite
+			if (spriteSizeReader.largeSprites()) {
 				if (attributes & 0x40) //yflip
 					spLine = 15 - spLine;
 				
@@ -1285,7 +1285,7 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 					spLine = 7 - spLine;
 			}
 			
-			const uint8_t *const data = vram + ((attributes * 0x400) & 0x2000) + (spTile << 4) + spLine * 2;
+			const uint8_t *const data = vram + ((attributes * 0x400) & 0x2000) + spTile * 16 + spLine * 2;
 
 			unsigned byte1 = data[0];
 			unsigned byte2 = data[1];
@@ -1300,17 +1300,17 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 				unsigned mask = 0xFF;
 				
 				if (attributes & 0x80) {
-					if (!(enableWindow && (wx == 0 || spx >= unsigned(wx + 8))))
+					if (!(enableWindow && (wx == 0 || spx >= wx + 8u)))
 						mask = cgb_prioritizedBG_mask(spx, 0, enableWindow ? wx : 160, scReader.scx(),
 						                              bgTileMap + ((scy & 0xF8) << 2), bgTileData, scy & 7, tileIndexSign);
 					if (enableWindow && spx > wx)
-						mask &= cgb_prioritizedBG_mask(spx, wx, 160, 0 - wx, wdTileMap + ((winYPos & 0xF8) << 2), bgTileData, winYPos & 7, tileIndexSign);
+						mask &= cgb_prioritizedBG_mask(spx, wx, 160, 0u - wx, wdTileMap + ((winYPos & 0xF8) << 2), bgTileData, winYPos & 7, tileIndexSign);
 				} else {
-					if (!(enableWindow && (wx == 0 || spx >= unsigned(wx + 8))))
+					if (!(enableWindow && (wx == 0 || spx >= wx + 8u)))
 						mask = cgb_toplayerBG_mask(spx, 0, enableWindow ? wx : 160, scReader.scx(),
 						                           bgTileMap + ((scy & 0xF8) << 2), bgTileData, scy & 7, tileIndexSign);
 					if (enableWindow && spx > wx)
-						mask &= cgb_toplayerBG_mask(spx, wx, 160, 0 - wx, wdTileMap + ((winYPos & 0xF8) << 2), bgTileData, winYPos & 7, tileIndexSign);
+						mask &= cgb_toplayerBG_mask(spx, wx, 160, 0u - wx, wdTileMap + ((winYPos & 0xF8) << 2), bgTileData, winYPos & 7, tileIndexSign);
 				}
 				
 				byte1 &= mask;
@@ -1319,10 +1319,10 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 
 			byte2 <<= 1;
 
-			const uint32_t *const palette = spPalette + (attributes & 7) * 4;
+			const unsigned long *const palette = spPalette + (attributes & 7) * 4;
 
 			if (spx > 7 && spx < 161) {
-				T * const buf = buffer_line + (spx - 8);
+				T * const buf = buffer_line + spx - 8;
 				unsigned color;
 
 				if ((color = (byte2 & 0x100 | byte1) >> 7))
@@ -1344,7 +1344,7 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 			} else {
 				const unsigned end = spx >= 160 ? 160 : spx;
 				unsigned xpos = spx <= 8 ? 0 : (spx - 8);
-				unsigned u32temp = 7 - (xpos - (spx - 8));
+				unsigned u32temp = 7 - (xpos + 8 - spx);
 				
 				while (xpos < end) {
 					const unsigned color = byte2 >> u32temp & 2 | byte1 >> u32temp & 1;
@@ -1369,8 +1369,8 @@ void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end
 
 	while (xpos < end) {
 		if ((scx + xpos & 7) || xpos + 7 >= end) {
-			const uintptr_t tile = tilemap[scx + xpos >> 3 & 0x1F];
-			const uint8_t *const data = tiledata + (tile - (tile & sign) * 2 << 4);
+			const unsigned tile = tilemap[scx + xpos >> 3 & 0x1F];
+			const uint8_t *const data = tiledata + tile * 16 - (tile & sign) * 32;
 			const unsigned byte1 = data[0];
 			const unsigned byte2 = data[1] << 1;
 			unsigned tmp = 7 - (scx + xpos & 7);
@@ -1381,8 +1381,8 @@ void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end
 		}
 		
 		while (xpos + 7 < end) {
-			const uintptr_t tile = tilemap[scx + xpos >> 3 & 0x1F];
-			const uint8_t *const data = tiledata + (tile - (tile & sign) * 2 << 4);
+			const unsigned tile = tilemap[scx + xpos >> 3 & 0x1F];
+			const uint8_t *const data = tiledata + tile * 16 - (tile & sign) * 32;
 			const unsigned byte1 = data[0];
 			const unsigned byte2 = data[1] << 1;
 			T * const buf = buffer_line + xpos;
@@ -1401,37 +1401,37 @@ void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end
 
 static unsigned prioritizedBG_mask(const unsigned spx, const unsigned bgStart, const unsigned bgEnd, const unsigned scx,
                                    const uint8_t *const tilemap, const uint8_t *const tiledata, const unsigned sign) {
-	const unsigned spStart = spx < bgStart + 8 ? bgStart - (spx - 8) : 0;
+	const unsigned spStart = spx < bgStart + 8 ? bgStart + 8 - spx : 0;
 
 	unsigned bgbyte;
 	
 	{
-		const unsigned pos = scx + (spx - 8) + spStart;
-		uintptr_t tile = tilemap[pos >> 3 & 0x1F];
-		const uint8_t *data = tiledata + (tile - (tile & sign) * 2 << 4);
+		const unsigned pos = scx + spx - 8 + spStart;
+		unsigned tile = tilemap[pos >> 3 & 0x1F];
+		const uint8_t *data = tiledata + tile * 16 - (tile & sign) * 32;
 		bgbyte = data[0] | data[1];
 		const unsigned offset = pos & 7;
 		
 		if (offset) {
 			bgbyte <<= offset;
 			tile = tilemap[(pos >> 3) + 1 & 0x1F];
-			data = tiledata + (tile - (tile & sign) * 2 << 4);
+			data = tiledata + tile * 16 - (tile & sign) * 32;
 			bgbyte |= (data[0] | data[1]) >> (8 - offset);
 		}
 	}
 	
 	bgbyte >>= spStart;
-	const unsigned spEnd = spx > bgEnd ? bgEnd - (spx - 8) : 8;
-	const unsigned mask = ~bgbyte | (0xFF >> spEnd);
+	const unsigned spEnd = spx > bgEnd ? bgEnd + 8 - spx : 8;
+	const unsigned mask = ~bgbyte | 0xFF >> spEnd;
 	
 	return mask;
 }
 
 template<typename T>
 void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
-	const unsigned scy = (scReader.scy() + ypos)/*&0xFF*/;
+	const unsigned scy = scReader.scy() + ypos /*& 0xFF*/;
 	const unsigned wx = wxReader.wx() < 7 ? 0 : wxReader.wx() - 7;
-	const bool enableWindow = (weMasterChecker.weMaster() || ypos == wyReg.value()) && we.value() && wyReg.value() <= ypos && wxReader.wx() < 0xA7;
+	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
 	const unsigned short *const spriteMapLine = spriteMapper.sprites(ypos);
 	
 	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
@@ -1439,7 +1439,7 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 		const unsigned spx = spriteInfo[1];
 		
 		if (spx < 168 && spx) {
-			unsigned spLine = ypos - (spriteInfo[0] - 16);
+			unsigned spLine = ypos + 16 - spriteInfo[0];
 			unsigned spTile = spriteInfo[2];
 			const unsigned attributes = spriteInfo[3];
 
@@ -1458,7 +1458,7 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 					spLine = 7 - spLine;
 			}
 			
-			const uint8_t *const data = vram + (spTile << 4) + spLine * 2;
+			const uint8_t *const data = vram + spTile * 16 + spLine * 2;
 
 			unsigned byte1 = data[0];
 			unsigned byte2 = data[1];
@@ -1472,11 +1472,11 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 			if (attributes & 0x80) {
 				unsigned mask = 0xFF;
 				
-				if (bgEnable && !(enableWindow && (wx == 0 || spx >= unsigned(wx + 8))))
+				if (bgEnable && !(enableWindow && (wx == 0 || spx >= wx + 8u)))
 					mask = prioritizedBG_mask(spx, 0, enableWindow ? wx : 160, scReader.scx(),
 					                          bgTileMap + ((scy & 0xF8) << 2), bgTileData + ((scy & 7) << 1), tileIndexSign);
 				if (enableWindow && spx > wx)
-					mask &= prioritizedBG_mask(spx, wx, 160, 0 - wx, wdTileMap + ((winYPos & 0xF8) << 2), bgTileData + ((winYPos & 7) << 1), tileIndexSign);
+					mask &= prioritizedBG_mask(spx, wx, 160, 0u - wx, wdTileMap + ((winYPos & 0xF8) << 2), bgTileData + ((winYPos & 7) << 1), tileIndexSign);
 				
 				byte1 &= mask;
 				byte2 &= mask;
@@ -1484,10 +1484,10 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 
 			byte2 <<= 1;
 
-			const uint32_t *const palette = spPalette + ((attributes >> 2) & 4);
+			const unsigned long *const palette = spPalette + ((attributes >> 2) & 4);
 
 			if (spx > 7 && spx < 161) {
-				T * const buf = buffer_line + (spx - 8);
+				T * const buf = buffer_line + spx - 8;
 				unsigned color;
 				
 				if ((color = (byte2 & 0x100 | byte1) >> 7))
@@ -1509,7 +1509,7 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 			} else {
 				const unsigned end = spx >= 160 ? 160 : spx;
 				unsigned xpos = spx <= 8 ? 0 : (spx - 8);
-				unsigned u32temp = 7 - (xpos - (spx - 8));
+				unsigned u32temp = 7 - (xpos + 8 - spx);
 				
 				while (xpos < end) {
 					const unsigned color = byte2 >> u32temp & 2 | byte1 >> u32temp & 1;

@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef VIDEO_LYC_IRQ_H
 #define VIDEO_LYC_IRQ_H
 
@@ -23,15 +23,13 @@
 #include "ly_counter.h"
 
 class LycIrq : public VideoEvent {
-	uint8_t &ifReg;
-	
-	uint32_t frameTime;
-	
-	uint8_t lycReg_;
+	unsigned char &ifReg;
+	unsigned long frameTime;
+	unsigned char lycReg_;
 	bool m2IrqEnabled;
 	
 public:
-	LycIrq(uint8_t &ifReg_in);
+	LycIrq(unsigned char &ifReg_in);
 	
 	void doEvent();
 	
@@ -39,13 +37,13 @@ public:
 		return lycReg_;
 	}
 	
-	void lycRegSchedule(const LyCounter &lyCounter, unsigned cycleCounter);
+	void lycRegSchedule(const LyCounter &lyCounter, unsigned long cycleCounter);
 	
 	void reset() {
 		setTime(uint32_t(-1));
 	}
 	
-	void schedule(const LyCounter &lyCounter, unsigned cycleCounter);
+	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);
 	
 	void setDoubleSpeed(const bool ds) {
 		frameTime = 70224 << ds;

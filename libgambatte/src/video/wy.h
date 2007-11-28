@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef WY_H
 #define WY_H
 
@@ -23,7 +23,6 @@ class WeMasterChecker;
 class ScxReader;
 template<typename T, class Comparer> class event_queue;
 
-#include <stdint.h>
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
@@ -32,44 +31,44 @@ class Wy {
 	class WyReader1 : public VideoEvent {
 		const LyCounter &lyCounter;
 		const WeMasterChecker &weMasterChecker;
-		uint8_t &wy;
-		const uint8_t &src;
+		unsigned char &wy;
+		const unsigned char &src;
 		
 	public:
-		WyReader1(uint8_t &wy_in, const uint8_t &src_in, const LyCounter &lyCounter_in, const WeMasterChecker &weMasterChecker);
+		WyReader1(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in, const WeMasterChecker &weMasterChecker);
 		
 		void doEvent();
 		
-		void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 			setTime(lyCounter.nextLineCycle(448 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
 		}
 	};
 	
 	class WyReader2 : public VideoEvent {
 		const LyCounter &lyCounter;
-		uint8_t &wy;
-		const uint8_t &src;
+		unsigned char &wy;
+		const unsigned char &src;
 		
 	public:
-		WyReader2(uint8_t &wy_in, const uint8_t &src_in, const LyCounter &lyCounter_in);
+		WyReader2(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in);
 		
 		void doEvent();
 		
-		void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 			setTime(lyCounter.isDoubleSpeed() ? lyCounter.time() : lyCounter.nextLineCycle(452, cycleCounter));
 		}
 	};
 	
 	class WyReader4 : public VideoEvent {
-		uint8_t &wy;
-		const uint8_t &src;
+		unsigned char &wy;
+		const unsigned char &src;
 		
 	public:
-		WyReader4(uint8_t &wy_in, const uint8_t &src_in);
+		WyReader4(unsigned char &wy_in, const unsigned char &src_in);
 		
 		void doEvent();
 		
-		void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 			setTime(lyCounter.nextFrameCycle(lyCounter.isDoubleSpeed() * 4, cycleCounter));
 		}
 	};
@@ -77,14 +76,14 @@ class Wy {
 public:
 	class WyReader3 : public VideoEvent {
 		const LyCounter &lyCounter;
-		uint8_t &wy;
-		const uint8_t &src;
+		unsigned char &wy;
+		const unsigned char &src;
 		
 	public:
-		WyReader3(uint8_t &wy_in, const uint8_t &src_in, const LyCounter &lyCounter_in);
+		WyReader3(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in);
 		
 		void doEvent();
-		void schedule(unsigned wxSrc, const ScxReader &scxReader, unsigned cycleCounter);
+		void schedule(unsigned wxSrc, const ScxReader &scxReader, unsigned long cycleCounter);
 		
 		//void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned cycleCounter) {
 		//	setTime(lyCounter.nextLineCycle(scxAnd7 + 85 + lyCounter.isDoubleSpeed() * 6, cycleCounter));
@@ -97,8 +96,8 @@ private:
 	WyReader3 reader3_;
 	WyReader4 reader4_;
 	
-	uint8_t wy_;
-	uint8_t src_;
+	unsigned char wy_;
+	unsigned char src_;
 	
 public:
 	Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker);
@@ -143,6 +142,6 @@ public:
 };
 
 void addEvent(Wy::WyReader3 &event, unsigned wxSrc, const ScxReader &scxReader,
-		unsigned cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
+		unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif

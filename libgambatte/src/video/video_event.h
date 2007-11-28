@@ -15,18 +15,18 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef VIDEO_EVENT_H
 #define VIDEO_EVENT_H
 
 #include <stdint.h>
 
 class VideoEvent {
-	uint32_t time_;
-	const uint8_t priority_;
+	unsigned long time_;
+	const unsigned char priority_;
 	
 protected:
-	void setTime(const unsigned time_in) {
+	void setTime(const unsigned long time_in) {
 		time_ = time_in;
 	}
 	
@@ -42,7 +42,7 @@ public:
 		return priority_;
 	}
 	
-	unsigned time() const {
+	unsigned long time() const {
 		return time_;
 	}
 	

@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef SPRITE_MAPPER_H
 #define SPRITE_MAPPER_H
 
@@ -58,7 +58,7 @@ public:
 	
 	void reset();
 	
-	void schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 		// synced to scxReader.
 		setTime(lyCounter.nextLineCycle(82 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 	}

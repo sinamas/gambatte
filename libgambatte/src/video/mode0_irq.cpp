@@ -23,7 +23,7 @@
 #include "m3_extra_cycles.h"
 
 Mode0Irq::Mode0Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in, 
-                   const M3ExtraCycles &m3ExtraCycles_in, uint8_t &ifReg_in) :
+                   const M3ExtraCycles &m3ExtraCycles_in, unsigned char &ifReg_in) :
 	VideoEvent(0),
 	lyCounter(lyCounter_in),
 	lycIrq(lycIrq_in),
@@ -54,8 +54,10 @@ void Mode0Irq::doEvent() {
 
 void Mode0Irq::mode3CyclesChange() {
 	unsigned ly = lyCounter.ly();
+	
 	if (time() >= lyCounter.time()) {
 		++ly;
+		
 		if (ly > 143)
 			ly = 0;
 	}
@@ -66,18 +68,20 @@ void Mode0Irq::mode3CyclesChange() {
 	lastM3ExtraCycles = m3ec;
 }
 
-void Mode0Irq::schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
-	const unsigned lineCycles = 456 * 2 - ((lyCounter.time() - cycleCounter) << (1 ^ lyCounter.isDoubleSpeed()));
+void Mode0Irq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+	const int lineCycles = 456 * 2 - ((lyCounter.time() - cycleCounter) << (1 ^ lyCounter.isDoubleSpeed()));
 	unsigned line = lyCounter.ly();
-	int next = ((169 + lyCounter.isDoubleSpeed() * 3 + 80 + 1 - lyCounter.isDoubleSpeed()) * 2 - lyCounter.isDoubleSpeed()) - lineCycles;
+	int next = static_cast<int>((169 + lyCounter.isDoubleSpeed() * 3 + 80 + 1 - lyCounter.isDoubleSpeed()) * 2 - lyCounter.isDoubleSpeed()) - lineCycles;
 	unsigned m3ExCs;
 	
 	if (line < 144) {
 		m3ExCs = m3ExtraCycles(line) * 2;
 		next += m3ExCs;
+		
 		if (next <= 0) {
 			next += 456 * 2 - m3ExCs;
 			++line;
+			
 			if (line < 144) {
 				m3ExCs = m3ExtraCycles(line) * 2;
 				next += m3ExCs;
@@ -92,5 +96,5 @@ void Mode0Irq::schedule(const LyCounter &lyCounter, const unsigned cycleCounter)
 	
 	lastM3ExtraCycles = m3ExCs >> (1 ^ lyCounter.isDoubleSpeed());
 	
-	setTime(cycleCounter + (next >> (1 ^ lyCounter.isDoubleSpeed())));
+	setTime(cycleCounter + (static_cast<unsigned>(next) >> (1 ^ lyCounter.isDoubleSpeed())));
 }

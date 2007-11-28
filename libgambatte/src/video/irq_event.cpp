@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "irq_event.h"
 
 IrqEvent::IrqEvent(event_queue<VideoEvent*,VideoEventComparer> &irqEventQueue_in) :
@@ -37,7 +37,7 @@ void IrqEvent::doEvent() {
 }
 
 void modifyEvent(IrqEvent &event, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned oldTime = event.time();
+	const unsigned long oldTime = event.time();
 	event.schedule();
 	
 	if (oldTime != event.time()) {

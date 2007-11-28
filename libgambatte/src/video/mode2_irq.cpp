@@ -15,14 +15,14 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "mode2_irq.h"
 
 #include "ly_counter.h"
 #include "lyc_irq.h"
 
 Mode2Irq::Mode2Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in,
-                   uint8_t &ifReg_in) :
+                   unsigned char &ifReg_in) :
 	VideoEvent(0),
 	lyCounter(lyCounter_in),
 	lycIrq(lycIrq_in),
@@ -45,17 +45,20 @@ void Mode2Irq::doEvent() {
 		setTime(time() + lyCounter.lineTime() * 10 + 4);
 }
 
-void Mode2Irq::schedule(const LyCounter &lyCounter, const unsigned cycleCounter) {
+void Mode2Irq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 	unsigned next = lyCounter.time() - cycleCounter;
 	
-	if (lyCounter.ly() >= 143 || (lyCounter.ly() == 142 && next <= 5)) {
-		next += (153 - lyCounter.ly()) * lyCounter.lineTime();
+	if (lyCounter.ly() >= 143 || lyCounter.ly() == 142 && next <= 5) {
+		next += (153u - lyCounter.ly()) * lyCounter.lineTime();
+		
 		if (next <= 1)
 			next += lyCounter.lineTime();
+		
 		next -= 1;
 	} else {
 		if (next <= 5)
 			next += lyCounter.lineTime();
+		
 		next -= 5;
 	}
 	

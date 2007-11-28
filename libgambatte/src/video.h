@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef VIDEO_H
 #define VIDEO_H
 
@@ -53,12 +53,12 @@ class LCD {
 	friend class M3ExtraCycles;
 	
 	//static const uint8_t xflipt[0x100];
-	uint32_t dmgColorsRgb32[3 * 4];
-	uint32_t dmgColorsRgb16[3 * 4];
-	uint32_t dmgColorsUyvy[3 * 4];
+	unsigned long dmgColorsRgb32[3 * 4];
+	unsigned long dmgColorsRgb16[3 * 4];
+	unsigned long dmgColorsUyvy[3 * 4];
 
-	uint32_t bgPalette[8 * 4];
-	uint32_t spPalette[8 * 4];
+	unsigned long bgPalette[8 * 4];
+	unsigned long spPalette[8 * 4];
 	
 	const uint8_t *const vram;
 	const uint8_t *bgTileData;
@@ -70,17 +70,15 @@ class LCD {
 	
 	void *dbuffer;
 	void (LCD::*draw)(unsigned xpos, unsigned ypos, unsigned endX);
-	unsigned (*gbcToFormat)(unsigned bgr15);
-	const uint32_t *dmgColors;
+	unsigned long (*gbcToFormat)(unsigned bgr15);
+	const unsigned long *dmgColors;
 	
-	uint32_t dpitch;
-
-	uint32_t lastUpdate;
-	uint32_t videoCycles;
-
-	uint32_t winYPos;
-
-	uint32_t enableDisplayM0Time;
+	unsigned long lastUpdate;
+	unsigned long videoCycles;
+	unsigned long enableDisplayM0Time;
+	
+	unsigned dpitch;
+	unsigned winYPos;
 	
 	event_queue<VideoEvent*,VideoEventComparer> m3EventQueue;
 	event_queue<VideoEvent*,VideoEventComparer> irqEventQueue;
@@ -110,10 +108,10 @@ class LCD {
 	
 	std::vector<Filter*> filters;
 	
-	uint8_t drawStartCycle;
-	uint8_t scReadOffset;
-	uint8_t tileIndexSign;
-	uint8_t ifReg;
+	unsigned char drawStartCycle;
+	unsigned char scReadOffset;
+	unsigned char ifReg;
+	unsigned char tileIndexSign;
 	
 	bool doubleSpeed;
 	bool enabled;
@@ -121,24 +119,24 @@ class LCD {
 	bool bgEnable;
 	bool spriteEnable;
 	
-	static void setDmgPalette(uint32_t *palette, const uint32_t *dmgColors, unsigned data);
-	void setDmgPaletteColor(unsigned index, unsigned rgb32);
-	static unsigned gbcToRgb32(unsigned bgr15);
-	static unsigned gbcToRgb16(unsigned bgr15);
-	static unsigned gbcToUyvy(unsigned bgr15);
+	static void setDmgPalette(unsigned long *palette, const unsigned long *dmgColors, unsigned data);
+	void setDmgPaletteColor(unsigned index, unsigned long rgb32);
+	static unsigned long gbcToRgb32(unsigned bgr15);
+	static unsigned long gbcToRgb16(unsigned bgr15);
+	static unsigned long gbcToUyvy(unsigned bgr15);
 	
 	void setDBuffer();
-	void resetVideoState(unsigned statReg, unsigned cycleCounter);
-	void rescheduleEvents(unsigned cycleCounter);
+	void resetVideoState(unsigned statReg, unsigned long cycleCounter);
+	void rescheduleEvents(unsigned long cycleCounter);
 	
 	void setDoubleSpeed(bool enabled);
 
 	void event();
 	
-	bool isMode0IrqPeriod(unsigned cycleCounter);
-	bool isMode2IrqPeriod(unsigned cycleCounter);
-	bool isLycIrqPeriod(unsigned lycReg, unsigned endCycles, unsigned cycleCounter);
-	bool isMode1IrqPeriod(unsigned cycleCounter);
+	bool isMode0IrqPeriod(unsigned long cycleCounter);
+	bool isMode2IrqPeriod(unsigned long cycleCounter);
+	bool isLycIrqPeriod(unsigned lycReg, unsigned endCycles, unsigned long cycleCounter);
+	bool isMode1IrqPeriod(unsigned long cycleCounter);
 
 	template<typename T> void bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const uint8_t *tilemap, const uint8_t *tiledata);
 	template<typename T> void drawSprites(T *buffer_line, unsigned ypos);
@@ -151,7 +149,7 @@ class LCD {
 	template<typename T> void cgb_draw(unsigned xpos, unsigned ypos, unsigned endX);
 
 	void do_update(unsigned cycles);
-	void update(unsigned cycleCounter);
+	void update(unsigned long cycleCounter);
 
 public:
 	LCD(const uint8_t *oamram, const uint8_t *vram_in);
@@ -159,74 +157,74 @@ public:
 	void reset(bool cgb);
 	void setVideoBlitter(VideoBlitter *vb);
 	void videoBufferChange();
-	void setVideoFilter(uint32_t n);
+	void setVideoFilter(unsigned n);
 	std::vector<const FilterInfo*> filterInfo() const;
-	unsigned int videoWidth() const;
-	unsigned int videoHeight() const;
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32);
+	unsigned videoWidth() const;
+	unsigned videoHeight() const;
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
 	
-	void wdTileMapSelectChange(bool newValue, unsigned cycleCounter);
-	void bgTileMapSelectChange(bool newValue, unsigned cycleCounter);
-	void bgTileDataSelectChange(bool newValue, unsigned cycleCounter);
-	void bgEnableChange(bool newValue, unsigned cycleCounter);
-	void spriteEnableChange(bool newValue, unsigned cycleCounter);
+	void wdTileMapSelectChange(bool newValue, unsigned long cycleCounter);
+	void bgTileMapSelectChange(bool newValue, unsigned long cycleCounter);
+	void bgTileDataSelectChange(bool newValue, unsigned long cycleCounter);
+	void bgEnableChange(bool newValue, unsigned long cycleCounter);
+	void spriteEnableChange(bool newValue, unsigned long cycleCounter);
 	
-	void dmgBgPaletteChange(const unsigned data, const unsigned cycleCounter) {
+	void dmgBgPaletteChange(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		setDmgPalette(bgPalette, dmgColors, data);
 	}
 	
-	void dmgSpPalette1Change(const unsigned data, const unsigned cycleCounter) {
+	void dmgSpPalette1Change(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		setDmgPalette(spPalette, dmgColors + 4, data);
 	}
 	
-	void dmgSpPalette2Change(const unsigned data, const unsigned cycleCounter) {
+	void dmgSpPalette2Change(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		setDmgPalette(spPalette + 4, dmgColors + 8, data);
 	}
 	
-	void cgbBgColorChange(const unsigned index, const unsigned bgr15, const unsigned cycleCounter) {
+	void cgbBgColorChange(const unsigned index, const unsigned bgr15, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		bgPalette[index] = (*gbcToFormat)(bgr15);
 	}
 	
-	void cgbSpColorChange(const unsigned index, const unsigned bgr15, const unsigned cycleCounter) {
+	void cgbSpColorChange(const unsigned index, const unsigned bgr15, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		spPalette[index] = (*gbcToFormat)(bgr15);
 	}
 	
-	void updateScreen(unsigned cc);
-	void enableChange(unsigned statReg, unsigned cycleCounter);
-	void preResetCounter(unsigned cycleCounter);
-	void postResetCounter(unsigned oldCC, unsigned cycleCounter);
-	void preSpeedChange(unsigned cycleCounter);
-	void postSpeedChange(unsigned cycleCounter);
+	void updateScreen(unsigned long cc);
+	void enableChange(unsigned statReg, unsigned long cycleCounter);
+	void preResetCounter(unsigned long cycleCounter);
+	void postResetCounter(unsigned long oldCC, unsigned long cycleCounter);
+	void preSpeedChange(unsigned long cycleCounter);
+	void postSpeedChange(unsigned long cycleCounter);
 // 	unsigned get_mode(unsigned cycleCounter) /*const*/;
-	bool vramAccessible(unsigned cycleCounter);
-	bool cgbpAccessible(unsigned cycleCounter);
-	bool oamAccessible(unsigned cycleCounter);
-	void weChange(bool newValue, unsigned cycleCounter);
-	void wxChange(unsigned newValue, unsigned cycleCounter);
-	void wyChange(unsigned newValue, unsigned cycleCounter);
-	void oamChange(unsigned cycleCounter);
-	void scxChange(unsigned newScx, unsigned cycleCounter);
-	void scyChange(unsigned newValue, unsigned cycleCounter);
-	void spriteSizeChange(bool newLarge, unsigned cycleCounter);
+	bool vramAccessible(unsigned long cycleCounter);
+	bool cgbpAccessible(unsigned long cycleCounter);
+	bool oamAccessible(unsigned long cycleCounter);
+	void weChange(bool newValue, unsigned long cycleCounter);
+	void wxChange(unsigned newValue, unsigned long cycleCounter);
+	void wyChange(unsigned newValue, unsigned long cycleCounter);
+	void oamChange(unsigned long cycleCounter);
+	void scxChange(unsigned newScx, unsigned long cycleCounter);
+	void scyChange(unsigned newValue, unsigned long cycleCounter);
+	void spriteSizeChange(bool newLarge, unsigned long cycleCounter);
 	
-	void vramChange(const unsigned cycleCounter) {
+	void vramChange(const unsigned long cycleCounter) {
 		update(cycleCounter);
 	}
 	
-	unsigned get_stat(unsigned lycReg, unsigned cycleCounter);
+	unsigned get_stat(unsigned lycReg, unsigned long cycleCounter);
 
-	unsigned getLyReg(const unsigned cycleCounter) {
+	unsigned getLyReg(const unsigned long cycleCounter) {
 		if (cycleCounter >= lyCounter.time())
 			update(cycleCounter);
 			
 		unsigned lyReg = lyCounter.ly();
 		
-		if ((lyCounter.time() - cycleCounter) <= 4) {
+		if (lyCounter.time() - cycleCounter <= 4) {
 			if (lyReg == 153)
 				lyReg = 0;
 			else
@@ -237,20 +235,20 @@ public:
 		return lyReg;
 	}
 	
-	unsigned nextMode1IrqTime() const {
+	unsigned long nextMode1IrqTime() const {
 		return mode1Irq.time();
 	}
 	
-	void lcdstatChange(unsigned old, unsigned data, unsigned cycleCounter);
-	void lycRegChange(unsigned data, unsigned statReg, unsigned cycleCounter);
-	unsigned nextIrqEvent() const;
-	unsigned getIfReg(unsigned cycleCounter);
-	void setIfReg(unsigned ifReg_in, unsigned cycleCounter);
+	void lcdstatChange(unsigned old, unsigned data, unsigned long cycleCounter);
+	void lycRegChange(unsigned data, unsigned statReg, unsigned long cycleCounter);
+	unsigned long nextIrqEvent() const;
+	unsigned getIfReg(unsigned long cycleCounter);
+	void setIfReg(unsigned ifReg_in, unsigned long cycleCounter);
 
-	unsigned nextHdmaTime(unsigned cycleCounter);
-	bool isHdmaPeriod(unsigned cycleCounter);
+	unsigned long nextHdmaTime(unsigned long cycleCounter);
+	bool isHdmaPeriod(unsigned long cycleCounter);
 	
-	unsigned nextHdmaTimeInvalid() const {
+	unsigned long nextHdmaTimeInvalid() const {
 		return mode3Event.time();
 	}
 };

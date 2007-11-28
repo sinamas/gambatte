@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "sc_reader.h"
 
 #include "../event_queue.h"
@@ -46,18 +46,19 @@ void ScReader::reset() {
 	setTime(uint32_t(-1));
 }
 
-void ScReader::schedule(const unsigned lastUpdate, const unsigned videoCycles, const unsigned scReadOffset) {
-	setTime(lastUpdate + ((8 - ((videoCycles - scReadOffset) & 7)) << dS));
+void ScReader::schedule(const unsigned long lastUpdate, const unsigned long videoCycles, const unsigned scReadOffset) {
+	setTime(lastUpdate + ((8u - ((videoCycles - scReadOffset) & 7)) << dS));
 }
 
 void ScReader::setDoubleSpeed(const bool dS_in) {
 	dS = dS_in;
-	incCycles = 8 << dS_in;
+	incCycles = 8u << dS_in;
 }
 
-void addEvent(ScReader &event, const unsigned lastUpdate, const unsigned videoCycles,
+void addEvent(ScReader &event, const unsigned long lastUpdate, const unsigned long videoCycles,
               const unsigned scReadOffset, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned oldTime = event.time();
+	const unsigned long oldTime = event.time();
+	
 	event.schedule(lastUpdate, videoCycles, scReadOffset);
 	
 	if (oldTime == uint32_t(-1))
