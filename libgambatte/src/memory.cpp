@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "memory.h"
 #include "video.h"
 #include "sound.h"
@@ -116,14 +116,14 @@ Memory::Memory(const Interrupter &interrupter_in): display(memory + 0xFE00, vram
 }
 
 void Memory::init() {
-	next_timatime = uint32_t(-1);
-	tmatime = uint32_t(-1);
-	next_unhalttime = uint32_t(-1);
+	next_timatime = COUNTER_DISABLED;
+	tmatime = COUNTER_DISABLED;
+	next_unhalttime = COUNTER_DISABLED;
 	next_endtime = 0x102A0;
-	next_dmatime = uint32_t(-1);
-	next_hdmaReschedule = uint32_t(-1);
+	next_dmatime = COUNTER_DISABLED;
+	next_hdmaReschedule = COUNTER_DISABLED;
 	next_blittime = 0x102A0 + 144 * 456ul - 1;
-	next_irqtime = uint32_t(-1);
+	next_irqtime = COUNTER_DISABLED;
 	div_lastUpdate = 0;
 	tima_lastUpdate = 0;
 	hdma_transfer = 0;
@@ -136,7 +136,7 @@ void Memory::init() {
 	rambank_mode = false;
 	rambank = 0;
 	rombank = 1;
-	next_serialtime = uint32_t(-1);
+	next_serialtime = COUNTER_DISABLED;
 	rombanks = 1;
 	IME = false;
 	set_irqEvent();
@@ -288,7 +288,7 @@ void Memory::update_irqEvents(const unsigned long cc) {
 			next_timatime += (256u - memory[0xFF06]) << timaClock[memory[0xFF07] & 3];
 			break;
 		case SERIAL:
-			next_serialtime = uint32_t(-1);
+			next_serialtime = COUNTER_DISABLED;
 			memory[0xFF01] = 0xFF;
 			memory[0xFF02] &= 0x7F;
 			memory[0xFF0F] |= 8;
@@ -363,7 +363,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			memory[0xFF55] = dmaLength / 0x10 - 0x1 & 0xFF | memory[0xFF55] & 0x80;
 			
 			if (memory[0xFF55] & 0x80) {
-				next_hdmaReschedule = next_dmatime = uint32_t(-1);
+				next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
 				hdma_transfer = 0;
 			}
 			
@@ -427,7 +427,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 				cycleCounter = interrupter.interrupt(address, cycleCounter, *this);
 			}
 		}
-		next_irqtime = IME ? std::min(next_irqEventTime, display.nextIrqEvent()) : uint32_t(-1);
+		next_irqtime = IME ? std::min(next_irqEventTime, display.nextIrqEvent()) : COUNTER_DISABLED;
 		break;
 	case BLIT:
 // 		printf("blit\n");
@@ -436,7 +436,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		if (memory[0xFF40] & 0x80)
 			next_blittime += 70224 << isDoubleSpeed();
 		else
-			next_blittime = uint32_t(-1);
+			next_blittime = COUNTER_DISABLED;
 		break;
 	case UNHALT:
 // 		printf("unhalt\n");
@@ -447,7 +447,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		// 	set_event();
 		// }
 		if (memory[0xFF0F] & memory[0xFFFF] & 0x1F) {
-			next_unhalttime = uint32_t(-1);
+			next_unhalttime = COUNTER_DISABLED;
 			interrupter.unhalt();
 		} else
 			next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent()) + isCgb() * 4;
@@ -480,7 +480,7 @@ void Memory::speedChange(const unsigned long cycleCounter) {
 			next_hdmaReschedule = display.nextHdmaTimeInvalid();
 		}
 		
-		next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);
+		next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : COUNTER_DISABLED;
 		next_endtime = cycleCounter + (isDoubleSpeed() ? next_endtime - cycleCounter << 1 : (next_endtime - cycleCounter >> 1));
 		set_irqEvent();
 		rescheduleIrq(cycleCounter);
@@ -514,18 +514,18 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 		tima_lastUpdate -= dec;
 	
 	next_eventtime -= dec;
-	if (next_irqEventTime != uint32_t(-1))
+	if (next_irqEventTime != COUNTER_DISABLED)
 		next_irqEventTime -= dec;
-	if (next_timatime != uint32_t(-1))
+	if (next_timatime != COUNTER_DISABLED)
 		next_timatime -= dec;
-	if (next_blittime != uint32_t(-1))
+	if (next_blittime != COUNTER_DISABLED)
 		next_blittime -= dec;
 	next_endtime -= dec;
-	if (next_dmatime != uint32_t(-1)) next_dmatime -= dec;
-	if (next_hdmaReschedule != uint32_t(-1)) next_hdmaReschedule -= dec;
-	if (next_irqtime != uint32_t(-1)) next_irqtime -= dec;
-	if (next_serialtime != uint32_t(-1)) next_serialtime -= dec;
-	if (tmatime != uint32_t(-1))
+	if (next_dmatime != COUNTER_DISABLED) next_dmatime -= dec;
+	if (next_hdmaReschedule != COUNTER_DISABLED) next_hdmaReschedule -= dec;
+	if (next_irqtime != COUNTER_DISABLED) next_irqtime -= dec;
+	if (next_serialtime != COUNTER_DISABLED) next_serialtime -= dec;
+	if (tmatime != COUNTER_DISABLED)
 		tmatime -= dec;
 	
 	cycleCounter -= dec;
@@ -541,7 +541,7 @@ void Memory::updateInput() {
 	unsigned dpad = 0xFF;
 
 	if (getInput) {
-		const InputState &is = (*getInput)();
+		const Gambatte::InputState &is = (*getInput)();
 
 		button ^= is.startButton << 3;
 		button ^= is.selectButton << 2;
@@ -604,7 +604,7 @@ void Memory::update_tima(const unsigned long cycleCounter) {
 	
 	if (cycleCounter >= tmatime) {
 		if (cycleCounter >= tmatime + 4)
-			tmatime = uint32_t(-1);
+			tmatime = COUNTER_DISABLED;
 		
 		memory[0xFF05] = memory[0xFF06];
 	}
@@ -620,7 +620,7 @@ void Memory::update_tima(const unsigned long cycleCounter) {
 		
 		if (cycleCounter >= tmatime) {
 			if (cycleCounter >= tmatime + 4)
-				tmatime = uint32_t(-1);
+				tmatime = COUNTER_DISABLED;
 			
 			tmp = memory[0xFF06];
 		}
@@ -629,7 +629,7 @@ void Memory::update_tima(const unsigned long cycleCounter) {
 	memory[0xFF05] = tmp;
 }
 
-uint8_t Memory::ff_read(const unsigned P, const unsigned long cycleCounter) {
+unsigned char Memory::ff_read(const unsigned P, const unsigned long cycleCounter) {
 	switch (P & 0xFF) {
 	case 0x00:
 		updateInput();
@@ -704,7 +704,7 @@ uint8_t Memory::ff_read(const unsigned P, const unsigned long cycleCounter) {
 	return memory[P];
 }
 
-uint8_t Memory::read(const unsigned P, const unsigned long cycleCounter) {
+unsigned char Memory::read(const unsigned P, const unsigned long cycleCounter) {
 	if ((P & 0xC000) == 0x8000) {
 		if (P & 0x2000) {
 			if (rtc.getActive())
@@ -723,7 +723,7 @@ uint8_t Memory::read(const unsigned P, const unsigned long cycleCounter) {
 	return mem[P >> 12][P & 0xFFF];
 }
 
-void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleCounter) {
+void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycleCounter) {
 // 	printf("mem[0x%X] = 0x%X\n", P, data);
 	switch (P & 0xFF) {
 	case 0x00:
@@ -761,7 +761,7 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 			update_tima(cycleCounter);
 			
 			if (tmatime - cycleCounter < 4)
-				tmatime = uint32_t(-1);
+				tmatime = COUNTER_DISABLED;
 			
 			next_timatime = tima_lastUpdate + ((256u - data) << timaClock[memory[0xFF07] & 3]) + 1;
 			set_irqEvent();
@@ -793,8 +793,8 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 				update_tima(cycleCounter);
 				update_irqEvents(cycleCounter);
 				
-				tmatime = uint32_t(-1);
-				next_timatime = uint32_t(-1);
+				tmatime = COUNTER_DISABLED;
+				next_timatime = COUNTER_DISABLED;
 			}
 			
 			if (data & 4) {
@@ -1007,7 +1007,7 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 					if (hdma_transfer)
 						next_dmatime = cycleCounter;
 					
-					next_hdmaReschedule = uint32_t(-1);
+					next_hdmaReschedule = COUNTER_DISABLED;
 				}
 
 				set_event();
@@ -1070,7 +1070,7 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 		display.enableChange(memory[0xFF41], cycleCounter);
 		display.enableChange(memory[0xFF41], cycleCounter);
 		// lastModeIRQ=0xFF;
-		next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);
+		next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : COUNTER_DISABLED;
 		/*if (enable_display && (memory[0xFF41]&0x40) && memory[0xFF45] < 154) {
 			// lastLycIRQ=uint32_t(-1);
 			if (memory[0xFF45])
@@ -1179,7 +1179,7 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 				
 				if (next_dmatime > cycleCounter) {
 					hdma_transfer = 0;
-					next_hdmaReschedule = next_dmatime = uint32_t(-1);
+					next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
 					set_event();
 				}
 			}
@@ -1191,7 +1191,7 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 			
 			if (!(memory[0xFF40] & 0x80) || display.isHdmaPeriod(cycleCounter)) {
 				next_dmatime = cycleCounter;
-				next_hdmaReschedule = uint32_t(-1);
+				next_hdmaReschedule = COUNTER_DISABLED;
 			} else {
 				next_dmatime = display.nextHdmaTime(cycleCounter);
 				next_hdmaReschedule = display.nextHdmaTimeInvalid();
@@ -1267,7 +1267,7 @@ void Memory::ff_write(const uint16_t P, uint8_t data, const unsigned long cycleC
 	memory[P] = data;
 }
 
-void Memory::mbc_write(const uint16_t P, const uint8_t data) {
+void Memory::mbc_write(const unsigned P, const unsigned data) {
 // 	printf("mem[0x%X] = 0x%X\n", P, data);
 	
 	switch (P >> 12 & 0x7) {
@@ -1386,7 +1386,7 @@ void Memory::mbc_write(const uint16_t P, const uint8_t data) {
 	}
 }
 
-void Memory::write(const uint16_t P, const uint8_t data, const unsigned long cycleCounter) {
+void Memory::write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
 	if (P < 0x8000) {
 		mbc_write(P, data);
 		return;
@@ -1469,7 +1469,7 @@ bool Memory::loadROM() {
 
 	if (isCgb()) {
 // 		cgb = 1;
-		cgb_wramdata = new uint8_t[0x8000];
+		cgb_wramdata = new unsigned char[0x8000];
 		
 		std::memcpy(cgb_wramdata, memory + 0xC000, 0x2000);
 		std::memcpy(cgb_wramdata + 0x2000, cgb_wramdata, 0x2000);
@@ -1686,7 +1686,7 @@ bool Memory::loadROM() {
 	rom.rewind();
 	
 	delete []romdata;
-	romdata = new uint8_t[rombanks * 0x4000];
+	romdata = new unsigned char[rombanks * 0x4000];
 	rom.read(reinterpret_cast<char*>(romdata), rombanks * 0x4000);
 	rom.close();
 
@@ -1696,7 +1696,7 @@ bool Memory::loadROM() {
 	rombankptr = mem[0x4] - 0x4000;
 
 	delete []rambankdata;
-	rambankdata = new uint8_t[rambanks * 0x2000];
+	rambankdata = new unsigned char[rambanks * 0x2000];
 	std::memset(rambankdata, 0xFF, rambanks * 0x2000);
 
 	{
@@ -1782,7 +1782,7 @@ bool Memory::loadROM() {
 	sound.init(memory + 0xFF00, isCgb());
 	display.reset(isCgb());
 	refreshPalettes(0x102A0);
-	next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : uint32_t(-1);
+	next_blittime = (memory[0xFF40] & 0x80) ? display.nextMode1IrqTime() : COUNTER_DISABLED;
 
 	return 0;
 }
@@ -1865,12 +1865,12 @@ void Memory::save_rtc() {
 	delete []savefile;
 }
 
-void Memory::sound_fill_buffer(uint16_t *const stream, const unsigned samples, const unsigned long cycleCounter) {
+void Memory::sound_fill_buffer(Gambatte::uint_least16_t *const stream, const unsigned samples, const unsigned long cycleCounter) {
 	sound.generate_samples(cycleCounter, isDoubleSpeed());
 	sound.fill_buffer(stream, samples);
 }
 
-void Memory::setVideoBlitter(VideoBlitter *const vb, const unsigned long cycleCounter) {
+void Memory::setVideoBlitter(Gambatte::VideoBlitter *const vb, const unsigned long cycleCounter) {
 	display.setVideoBlitter(vb);
 	refreshPalettes(cycleCounter);
 }

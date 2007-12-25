@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,8 +18,6 @@
  ***************************************************************************/
 #include "break_event.h"
 
-#include <stdint.h>
-
 BreakEvent::BreakEvent(unsigned char &drawStartCycle_in, unsigned char &scReadOffset_in) :
 	VideoEvent(3),
 	drawStartCycle(drawStartCycle_in),
@@ -33,5 +31,5 @@ void BreakEvent::doEvent() {
 	scReadOffset = baseCycle;
 	drawStartCycle = baseCycle + (scxSrc & 7);
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }

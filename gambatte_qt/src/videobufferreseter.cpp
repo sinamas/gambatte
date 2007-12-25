@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,7 +20,7 @@
 #include "videobufferreseter.h"
 #include <gambatte.h>
 
-VideoBufferReseter::VideoBufferReseter(Gambatte &gambatte_in) :
+VideoBufferReseter::VideoBufferReseter(Gambatte::GB &gambatte_in) :
 	gambatte(gambatte_in)
 {}
 

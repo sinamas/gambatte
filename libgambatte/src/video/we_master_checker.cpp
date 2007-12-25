@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -52,9 +52,9 @@ void addEvent(WeMasterChecker &event, const unsigned wy, const bool we, const un
 	event.schedule(wy, we, cycleCounter);
 	
 	if (oldTime != event.time()) {
-		if (oldTime == uint32_t(-1))
+		if (oldTime == VideoEvent::DISABLED_TIME)
 			queue.push(&event);
-		else if (event.time() == uint32_t(-1))
+		else if (event.time() == VideoEvent::DISABLED_TIME)
 			queue.remove(&event);
 		else if (event.time() > oldTime)
 			queue.inc(&event, &event);

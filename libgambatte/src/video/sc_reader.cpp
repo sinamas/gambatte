@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -36,14 +36,14 @@ void ScReader::doEvent() {
 	if ((scy_[0] ^ scy_[1]) | (scx_[0] ^ scx_[1]))
 		setTime(time() + incCycles);
 	else
-		setTime(uint32_t(-1));
+		setTime(DISABLED_TIME);
 	
 }
 
 void ScReader::reset() {
 	scx_[1] = scx_[0] = scxSrc;
 	scy_[1] = scy_[0] = scySrc;
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 void ScReader::schedule(const unsigned long lastUpdate, const unsigned long videoCycles, const unsigned scReadOffset) {
@@ -61,7 +61,7 @@ void addEvent(ScReader &event, const unsigned long lastUpdate, const unsigned lo
 	
 	event.schedule(lastUpdate, videoCycles, scReadOffset);
 	
-	if (oldTime == uint32_t(-1))
+	if (oldTime == VideoEvent::DISABLED_TIME)
 		queue.push(&event);
 	else if (oldTime != event.time()) {
 		if (event.time() > oldTime)

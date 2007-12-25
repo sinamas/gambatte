@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,13 +15,13 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "catrom2x.h"
 #include "filterinfo.h"
 #include <cstring>
 
 struct Colorsum {
-	uint32_t r, g, b;
+	Gambatte::uint_least32_t r, g, b;
 };
 
 template<class PixelPutter>
@@ -30,9 +30,9 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 	
 	while (w--) {
 		{
-			unsigned rsum = sums[1].r;
-			unsigned gsum = sums[1].g;
-			unsigned bsum = sums[1].b;
+			Gambatte::uint_least32_t rsum = sums[1].r;
+			Gambatte::uint_least32_t gsum = sums[1].g;
+			Gambatte::uint_least32_t bsum = sums[1].b;
 			
 			if (rsum & 0x80000000) rsum = 0;
 			if (gsum & 0x80000000) gsum = 0;
@@ -49,13 +49,13 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 			if (gsum > 0x00FF00) gsum = 0x00FF00;
 			if (bsum > 0x0000FF) bsum = 0x0000FF;
 			
-			putPixel(dest++, (rsum & 0xFF0000) | (gsum & 0x00FF00) | bsum);
+			putPixel(dest++, rsum & 0xFF0000 | gsum & 0x00FF00 | bsum);
 		}
 		
 		{
-			uint32_t rsum = sums[1].r * 9;
-			uint32_t gsum = sums[1].g * 9;
-			uint32_t bsum = sums[1].b * 9;
+			Gambatte::uint_least32_t rsum = sums[1].r * 9;
+			Gambatte::uint_least32_t gsum = sums[1].g * 9;
+			Gambatte::uint_least32_t bsum = sums[1].b * 9;
 			
 			rsum -= sums[0].r;
 			gsum -= sums[0].g;
@@ -84,7 +84,7 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 			if (gsum > 0x00FF00) gsum = 0x00FF00;
 			if (bsum > 0x0000FF) bsum = 0x0000FF;
 			
-			putPixel(dest++, (rsum & 0xFF0000) | (gsum & 0x00FF00) | bsum);
+			putPixel(dest++, rsum & 0xFF0000 | gsum & 0x00FF00 | bsum);
 		}
 		
 		++sums;
@@ -92,18 +92,18 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 }
 
 template<class PixelPutter>
-static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, PixelPutter putPixel, const uint32_t *sline) {
+static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, PixelPutter putPixel, const Gambatte::uint_least32_t *sline) {
 	Colorsum sums[163];
 	
 	for (unsigned h = 144; h--;) {
 		{
-			const uint32_t *s = sline;
+			const Gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = 163;
 			
 			while (n--) {
-				unsigned pixel = *s;
-				sum->r = (pixel >> 12) & 0x000FF0 ;
+				unsigned long pixel = *s;
+				sum->r = pixel >> 12 & 0x000FF0 ;
 				pixel <<= 4;
 				sum->g = pixel & 0x0FF000;
 				sum->b = pixel & 0x000FF0;
@@ -117,15 +117,15 @@ static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, P
 		dline += pitch;
 		
 		{
-			const uint32_t *s = sline;
+			const Gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = 163;
 			
 			while (n--) {
-				unsigned pixel = *s;
-				unsigned rsum = (pixel >> 16) * 9;
-				unsigned gsum = (pixel & 0x00FF00) * 9;
-				unsigned bsum = (pixel & 0x0000FF) * 9;
+				unsigned long pixel = *s;
+				unsigned long rsum = (pixel >> 16) * 9;
+				unsigned long gsum = (pixel & 0x00FF00) * 9;
+				unsigned long bsum = (pixel & 0x0000FF) * 9;
 				
 				pixel = s[-1*163];
 				rsum -= pixel >> 16;
@@ -168,8 +168,8 @@ Catrom2x::~Catrom2x() {
 void Catrom2x::init() {
 	delete []buffer;
 
-	buffer = new uint32_t[147 * 163];
-	std::memset(buffer, 0, 147 * 163 * sizeof(uint32_t));
+	buffer = new Gambatte::uint_least32_t[147 * 163];
+	std::memset(buffer, 0, 147ul * 163 * sizeof(Gambatte::uint_least32_t));
 }
 
 void Catrom2x::outit() {
@@ -177,13 +177,13 @@ void Catrom2x::outit() {
 	buffer = NULL;
 }
 
-const FilterInfo& Catrom2x::info() {
-	static FilterInfo fInfo = { "Bicubic Catmull-Rom Spline 2x", 160 * 2, 144 * 2 };
+const Gambatte::FilterInfo& Catrom2x::info() {
+	static Gambatte::FilterInfo fInfo = { "Bicubic Catmull-Rom Spline 2x", 160 * 2, 144 * 2 };
 	
 	return fInfo;
 }
 
-uint32_t* Catrom2x::inBuffer() {
+Gambatte::uint_least32_t* Catrom2x::inBuffer() {
 	return buffer + 164;
 }
 

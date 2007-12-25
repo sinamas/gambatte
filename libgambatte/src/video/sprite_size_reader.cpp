@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,7 +18,6 @@
  ***************************************************************************/
 #include "sprite_size_reader.h"
 
-#include <stdint.h>
 #include "sprite_mapper.h"
 #include "basic_add_event.h"
 
@@ -38,5 +37,5 @@ void SpriteSizeReader::doEvent() {
 	
 	addEvent(spriteMapper, lyCounter, time(), m3EventQueue);
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }

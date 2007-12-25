@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,26 +15,28 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "interrupter.h"
 
 #include "memory.h"
 
-Interrupter::Interrupter(uint16_t &SP_in, uint16_t &PC_in, bool &halted_in) :
+Interrupter::Interrupter(unsigned short &SP_in, unsigned short &PC_in, bool &halted_in) :
 	SP(SP_in),
 	PC(PC_in),
 	halted(halted_in)
 {}
 
-unsigned Interrupter::interrupt(const unsigned address, unsigned cycleCounter, Memory &memory) {
+unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycleCounter, Memory &memory) {
 	if (halted && memory.isCgb())
 		cycleCounter += 4;
 	
 	halted = false;
 	cycleCounter += 8;
-	memory.write(--SP, PC >> 8, cycleCounter);
+	SP = SP - 1 & 0xFFFF;
+	memory.write(SP, PC >> 8, cycleCounter);
 	cycleCounter += 4;
-	memory.write(--SP, PC & 0xFF, cycleCounter);
+	SP = SP - 1 & 0xFFFF;
+	memory.write(SP, PC & 0xFF, cycleCounter);
 	PC = address;
 	cycleCounter += 8;
 	

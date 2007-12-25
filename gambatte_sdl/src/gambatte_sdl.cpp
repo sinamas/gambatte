@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -27,6 +27,8 @@
 #include "parser.h"
 #include "str_to_sdlkey.h"
 #include "sdlblitter.h"
+
+using namespace Gambatte;
 
 struct DescOption : Parser::Option {
 	DescOption(const char *s, char c = 0, int nArgs = 0) : Option(s, c, nArgs) {}
@@ -404,7 +406,7 @@ class GambatteSdl {
 	typedef std::multimap<JoyData,bool*> jmap_t;
 	
 	Uint16 *tmpBuf;
-	Gambatte gambatte;
+	GB gambatte;
 	SdlIniter sdlIniter;
 	SdlBlitter blitter;
 	InputGetter inputGetter;

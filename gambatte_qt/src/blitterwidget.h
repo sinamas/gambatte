@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,7 +25,7 @@
 
 class QHBoxLayout;
 
-class BlitterWidget : public QWidget, public VideoBlitter {
+class BlitterWidget : public QWidget, public Gambatte::VideoBlitter {
 	Q_OBJECT
 
 public:

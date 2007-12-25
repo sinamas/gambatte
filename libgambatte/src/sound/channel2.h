@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,11 +15,11 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef SOUND_CHANNEL2_H
 #define SOUND_CHANNEL2_H
 
-#include <stdint.h>
+#include "int.h"
 
 #include "length_counter.h"
 #include "duty_unit.h"
@@ -56,7 +56,7 @@ public:
 	// void deactivate() { disableMaster(); setEvent(); }
 	bool isActive() const { return master; }
 	
-	void update(uint32_t *buf, unsigned long soBaseVol, unsigned long cycles);
+	void update(Gambatte::uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	
 	void reset();
 	void init(unsigned long cc, bool cgb);

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,30 +15,29 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef CPU_H
 #define CPU_H
 
-#include <stdint.h>
-
+#include "int.h"
 #include "memory.h"
 
 class CPU {
 	Memory memory;
 	
-	uint32_t cycleCounter_;
+	unsigned long cycleCounter_;
 
-	uint16_t PC_;
-	uint16_t SP;
+	unsigned short PC_;
+	unsigned short SP;
 
-	uint8_t A_, B, C, D, E, F, H, L;
+	unsigned char A_, B, C, D, E, F, H, L;
 
-	uint32_t HF1, HF2, ZF, CF;
+	unsigned HF1, HF2, ZF, CF;
 
 	bool skip;
 	bool halted;
 	
-	void process(unsigned cycles);
+	void process(unsigned long cycles);
 	
 public:
 	
@@ -48,10 +47,10 @@ public:
 
 // 	unsigned interrupt(unsigned address, unsigned cycleCounter);
 	
-	void runFor(unsigned int cycles);
+	void runFor(unsigned long cycles);
 	void reset();
 	
-	void setVideoBlitter(VideoBlitter *vb) {
+	void setVideoBlitter(Gambatte::VideoBlitter *vb) {
 		memory.setVideoBlitter(vb, cycleCounter_);
 	}
 	
@@ -71,11 +70,11 @@ public:
 		memory.setVideoFilter(n, cycleCounter_);
 	}
 	
-	std::vector<const FilterInfo*> filterInfo() const {
+	std::vector<const Gambatte::FilterInfo*> filterInfo() const {
 		return memory.filterInfo();
 	}
 	
-	void setInputStateGetter(InputStateGetter *getInput) {
+	void setInputStateGetter(Gambatte::InputStateGetter *getInput) {
 		memory.setInputStateGetter(getInput);
 	}
 	
@@ -85,7 +84,7 @@ public:
 	
 	bool load(const char* romfile);
 	
-	void sound_fill_buffer(uint16_t *const stream, const unsigned samples) {
+	void sound_fill_buffer(Gambatte::uint_least16_t *const stream, const unsigned samples) {
 		memory.sound_fill_buffer(stream, samples, cycleCounter_);
 	}
 	

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -38,7 +38,7 @@ class X11Blitter::SubBlitter {
 public:
 	virtual void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h) = 0;
 	virtual bool failed() = 0;
-	virtual const PixelBuffer inBuffer() = 0;
+	virtual const Gambatte::PixelBuffer inBuffer() = 0;
 	virtual ~SubBlitter() {};
 };
 
@@ -50,7 +50,7 @@ public:
 	ShmBlitter(unsigned int width, unsigned int height);
 	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
 	bool failed();
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	~ShmBlitter();
 };
 
@@ -92,9 +92,9 @@ bool X11Blitter::ShmBlitter::failed() {
 	return ximage == NULL || shminfo.shmaddr == NULL;
 }
 
-const PixelBuffer X11Blitter::ShmBlitter::inBuffer() {
-	PixelBuffer pixb;
-	pixb.format = QX11Info::appDepth() == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
+const Gambatte::PixelBuffer X11Blitter::ShmBlitter::inBuffer() {
+	Gambatte::PixelBuffer pixb;
+	pixb.format = QX11Info::appDepth() == 16 ? Gambatte::PixelBuffer::RGB16 : Gambatte::PixelBuffer::RGB32;
 	pixb.pixels = ximage ? ximage->data : NULL;
 	pixb.pitch = ximage ? ximage->width : 0;
 	
@@ -108,7 +108,7 @@ public:
 	PlainBlitter (unsigned int width, unsigned int height);
 	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
 	bool failed();
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	~PlainBlitter ();
 };
 
@@ -140,9 +140,9 @@ bool X11Blitter::PlainBlitter::failed() {
 	return ximage == NULL;
 }
 
-const PixelBuffer X11Blitter::PlainBlitter::inBuffer() {
-	PixelBuffer pixb;
-	pixb.format = QX11Info::appDepth() == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
+const Gambatte::PixelBuffer X11Blitter::PlainBlitter::inBuffer() {
+	Gambatte::PixelBuffer pixb;
+	pixb.format = QX11Info::appDepth() == 16 ? Gambatte::PixelBuffer::RGB16 : Gambatte::PixelBuffer::RGB32;
 	pixb.pixels = ximage ? ximage->data : NULL;
 	pixb.pitch = ximage ? ximage->width : 0;
 	
@@ -257,10 +257,10 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 		subBlitter.reset(new PlainBlitter (w * scale, h * scale));
 }
 
-const PixelBuffer X11Blitter::inBuffer() {
+const Gambatte::PixelBuffer X11Blitter::inBuffer() {
 	if (buffer) {
-		PixelBuffer pixb;
-		pixb.format = QX11Info::appDepth() == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
+		Gambatte::PixelBuffer pixb;
+		pixb.format = QX11Info::appDepth() == 16 ? Gambatte::PixelBuffer::RGB16 : Gambatte::PixelBuffer::RGB32;
 		pixb.pixels = buffer;
 		pixb.pitch = inWidth;
 		
@@ -272,12 +272,12 @@ const PixelBuffer X11Blitter::inBuffer() {
 
 void X11Blitter::blit() {
 	if (buffer) {
-		const PixelBuffer &pb = subBlitter->inBuffer();
+		const Gambatte::PixelBuffer &pb = subBlitter->inBuffer();
 		
 		if (QX11Info::appDepth() == 16) {
-			scaleBuffer(reinterpret_cast<uint16_t*>(buffer), reinterpret_cast<uint16_t*>(pb.pixels), inWidth, inHeight, scale);
+			scaleBuffer(reinterpret_cast<quint16*>(buffer), reinterpret_cast<quint16*>(pb.pixels), inWidth, inHeight, scale);
 		} else {
-			scaleBuffer(reinterpret_cast<uint32_t*>(buffer), reinterpret_cast<uint32_t*>(pb.pixels), inWidth, inHeight, scale);
+			scaleBuffer(reinterpret_cast<quint32*>(buffer), reinterpret_cast<quint32*>(pb.pixels), inWidth, inHeight, scale);
 		}
 	}
 	

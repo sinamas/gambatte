@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -38,7 +38,7 @@ ScxReader::ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_i
 }
 
 void ScxReader::rescheduleEvent(VideoEvent& event, const unsigned long diff) {
-	if (event.time() != uint32_t(-1)) {
+	if (event.time() != DISABLED_TIME) {
 		event.setTime(event.time() + diff);
 		(diff & 0x10) ? m3EventQueue.dec(&event, &event) : m3EventQueue.inc(&event, &event);
 	}
@@ -53,5 +53,5 @@ void ScxReader::doEvent() {
 	rescheduleEvent(weEnableChecker, diff);
 	rescheduleEvent(weDisableChecker, diff);
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }

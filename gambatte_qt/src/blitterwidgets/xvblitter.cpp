@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -37,7 +37,7 @@ class XvBlitter::SubBlitter {
 public:
 	virtual void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height) = 0;
 	virtual bool failed() = 0;
-	virtual const PixelBuffer inBuffer() = 0;
+	virtual const Gambatte::PixelBuffer inBuffer() = 0;
 	virtual ~SubBlitter() {};
 };
 
@@ -49,7 +49,7 @@ public:
 	ShmBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
 	void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
 	bool failed();
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	~ShmBlitter();
 };
 
@@ -93,11 +93,11 @@ bool XvBlitter::ShmBlitter::failed() {
 	return xvimage == NULL || shminfo.shmaddr == NULL;
 }
 
-const PixelBuffer XvBlitter::ShmBlitter::inBuffer() {
-	PixelBuffer pixb = { NULL, PixelBuffer::UYVY, 0 };
+const Gambatte::PixelBuffer XvBlitter::ShmBlitter::inBuffer() {
+	Gambatte::PixelBuffer pixb = { NULL, Gambatte::PixelBuffer::UYVY, 0 };
 	
 	if (xvimage) {
-		pixb.format = xvimage->id == 3 ? PixelBuffer::RGB32 : PixelBuffer::UYVY;
+		pixb.format = xvimage->id == 3 ? Gambatte::PixelBuffer::RGB32 : Gambatte::PixelBuffer::UYVY;
 		pixb.pixels = xvimage->data + xvimage->offsets[0];
 		pixb.pitch = xvimage->pitches[0] >> 2;
 	}
@@ -112,7 +112,7 @@ public:
 	PlainBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
 	void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
 	bool failed();
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	~PlainBlitter();
 };
 
@@ -149,11 +149,11 @@ bool XvBlitter::PlainBlitter::failed() {
 	return xvimage == NULL;
 }
 
-const PixelBuffer XvBlitter::PlainBlitter::inBuffer() {
-	PixelBuffer pixb = { NULL, PixelBuffer::UYVY, 0 };
+const Gambatte::PixelBuffer XvBlitter::PlainBlitter::inBuffer() {
+	Gambatte::PixelBuffer pixb = { NULL, Gambatte::PixelBuffer::UYVY, 0 };
 	
 	if (xvimage) {
-		pixb.format = xvimage->id == 3 ? PixelBuffer::RGB32 : PixelBuffer::UYVY;
+		pixb.format = xvimage->id == 3 ? Gambatte::PixelBuffer::RGB32 : Gambatte::PixelBuffer::UYVY;
 		pixb.pixels = xvimage->data + xvimage->offsets[0];
 		pixb.pitch = xvimage->pitches[0] >> 2;
 	}
@@ -397,7 +397,7 @@ void XvBlitter::setBufferDimensions(const unsigned int width, const unsigned int
 	old_w = old_h = 0;
 }
 
-const PixelBuffer XvBlitter::inBuffer() {
+const Gambatte::PixelBuffer XvBlitter::inBuffer() {
 	/*PixelBuffer pixb;
 	pixb.format = PixelBuffer::RGB16;
 	pixb.pixels = xvbuffer;

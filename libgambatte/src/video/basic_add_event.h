@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,14 +19,13 @@
 #ifndef BASIC_ADD_EVENT_H
 #define BASIC_ADD_EVENT_H
 
-#include <stdint.h>
 #include "ly_counter.h"
 #include "video_event_comparer.h"
 #include "../event_queue.h"
 
 template<class T>
 static inline void addEvent(T &event, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	if (event.time() == uint32_t(-1)) {
+	if (event.time() == VideoEvent::DISABLED_TIME) {
 		event.schedule(lyCounter, cycleCounter);
 		queue.push(&event);
 	}
@@ -34,7 +33,7 @@ static inline void addEvent(T &event, const LyCounter &lyCounter, const unsigned
 
 template<class T>
 static inline void addEvent(T &event, const unsigned data, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	if (event.time() == uint32_t(-1)) {
+	if (event.time() == VideoEvent::DISABLED_TIME) {
 		event.schedule(data, lyCounter, cycleCounter);
 		queue.push(&event);
 	}
@@ -42,7 +41,7 @@ static inline void addEvent(T &event, const unsigned data, const LyCounter &lyCo
 
 template<class T>
 static inline void addEvent(T &event, const unsigned data1, const unsigned data2, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	if (event.time() == uint32_t(-1)) {
+	if (event.time() == VideoEvent::DISABLED_TIME) {
 		event.schedule(data1, data2, lyCounter, cycleCounter);
 		queue.push(&event);
 	}

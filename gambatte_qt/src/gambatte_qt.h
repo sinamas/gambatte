@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -66,9 +66,9 @@ public:
 	void valueChanged(const bool value) { gbButton = value; }
 };
 
-struct InputGetter : public InputStateGetter {
-	InputState is;
-	const InputState& operator()() { return is; }
+struct InputGetter : public Gambatte::InputStateGetter {
+	Gambatte::InputState is;
+	const Gambatte::InputState& operator()() { return is; }
 };
 
 class JoystickIniter {
@@ -84,7 +84,7 @@ class GambatteQt : public QMainWindow {
 	typedef std::multimap<unsigned,InputObserver*> keymap_t;
 	typedef std::multimap<unsigned,JoyObserver*> joymap_t;
 	
-	Gambatte gambatte;
+	Gambatte::GB gambatte;
 
 	std::vector<AudioEngine*> audioEngines;
 	std::vector<BlitterWidget*> blitters;
@@ -102,7 +102,7 @@ class GambatteQt : public QMainWindow {
 	GbButHandler gbSelectHandler;
 	VideoBufferReseter resetVideoBuffer;
 	
-	int16_t *sndBuffer;
+	qint16 *sndBuffer;
 
 	BlitterContainer *blitterContainer;
 	QAction *exitAct;

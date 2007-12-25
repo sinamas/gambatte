@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,8 +20,6 @@
 #include "mode0_irq.h"
 #include "irq_event.h"
 
-#include <stdint.h>
-
 Mode3Event::Mode3Event(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
                        event_queue<VideoEvent*,VideoEventComparer> &vEventQueue_in,
                        Mode0Irq &mode0Irq_in, IrqEvent &irqEvent_in) :
@@ -37,12 +35,12 @@ Mode3Event::Mode3Event(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue
 void Mode3Event::doEvent() {
 	m3EventQueue.top()->doEvent();
 	
-	if (m3EventQueue.top()->time() == uint32_t(-1))
+	if (m3EventQueue.top()->time() == DISABLED_TIME)
 		m3EventQueue.pop();
 	else
 		m3EventQueue.modify_root(m3EventQueue.top());
 	
-	if (mode0Irq.time() != uint32_t(-1)) {
+	if (mode0Irq.time() != DISABLED_TIME) {
 		const unsigned long oldTime = mode0Irq.time();
 		mode0Irq.mode3CyclesChange();
 		
@@ -61,7 +59,7 @@ void Mode3Event::doEvent() {
 		}
 	}
 	
-	setTime(m3EventQueue.empty() ? uint32_t(-1) : m3EventQueue.top()->time());
+	setTime(m3EventQueue.empty() ? DISABLED_TIME : m3EventQueue.top()->time());
 }
 
 void addEvent(Mode3Event &event, event_queue<VideoEvent*,VideoEventComparer> &queue) {
@@ -69,7 +67,7 @@ void addEvent(Mode3Event &event, event_queue<VideoEvent*,VideoEventComparer> &qu
 	
 	event.schedule();
 	
-	if (oldTime == uint32_t(-1))
+	if (oldTime == VideoEvent::DISABLED_TIME)
 		queue.push(&event);
 	else if (oldTime != event.time()) {
 		if (event.time() > oldTime)

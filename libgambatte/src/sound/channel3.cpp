@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -108,7 +108,7 @@ void Channel3::updateWaveCounter(const unsigned long cc) {
 	}
 }
 
-void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
+void Channel3::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = (nr0/* & 0x80*/) ? soBaseVol & soMask : 0;
 	
 	if (outBase && rShift != 4) {
@@ -135,7 +135,7 @@ void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 			multiplier -= cycleCounter;
 			cycleCounter += multiplier;
 			
-			uint32_t *const bufend = buf + multiplier;
+			Gambatte::uint_least32_t *const bufend = buf + multiplier;
 			
 			if (out) {
 				while (buf != bufend)
@@ -147,7 +147,7 @@ void Channel3::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 	} else {
 		if (outBase) {
 			const unsigned long out = outBase * (0 - 15ul);
-			uint32_t *const bufend = buf + cycles;
+			Gambatte::uint_least32_t *const bufend = buf + cycles;
 			
 			while (buf != bufend)
 				(*buf++) += out;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,12 +19,13 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
+namespace Gambatte {
 class VideoBlitter;
 struct FilterInfo;
+}
+
 class Filter;
 
-// #include <sys/types.h>
-#include <stdint.h>
 #include <vector>
 #include "event_queue.h"
 #include "videoblitter.h"
@@ -60,12 +61,12 @@ class LCD {
 	unsigned long bgPalette[8 * 4];
 	unsigned long spPalette[8 * 4];
 	
-	const uint8_t *const vram;
-	const uint8_t *bgTileData;
-	const uint8_t *bgTileMap;
-	const uint8_t *wdTileMap;
+	const unsigned char *const vram;
+	const unsigned char *bgTileData;
+	const unsigned char *bgTileMap;
+	const unsigned char *wdTileMap;
 	
-	VideoBlitter *vBlitter;
+	Gambatte::VideoBlitter *vBlitter;
 	Filter *filter;
 	
 	void *dbuffer;
@@ -104,7 +105,7 @@ class LCD {
 	Mode2Irq mode2Irq;
 	IrqEvent irqEvent;
 	
-	PixelBuffer pb;
+	Gambatte::PixelBuffer pb;
 	
 	std::vector<Filter*> filters;
 	
@@ -138,10 +139,10 @@ class LCD {
 	bool isLycIrqPeriod(unsigned lycReg, unsigned endCycles, unsigned long cycleCounter);
 	bool isMode1IrqPeriod(unsigned long cycleCounter);
 
-	template<typename T> void bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const uint8_t *tilemap, const uint8_t *tiledata);
+	template<typename T> void bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const unsigned char *tilemap, const unsigned char *tiledata);
 	template<typename T> void drawSprites(T *buffer_line, unsigned ypos);
 
-	template<typename T> void cgb_bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const uint8_t *tilemap, const uint8_t *tiledata, unsigned tileline);
+	template<typename T> void cgb_bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const unsigned char *tilemap, const unsigned char *tiledata, unsigned tileline);
 	template<typename T> void cgb_drawSprites(T *buffer_line, unsigned ypos);
 	
 	void null_draw(unsigned xpos, unsigned ypos, unsigned endX);
@@ -152,13 +153,13 @@ class LCD {
 	void update(unsigned long cycleCounter);
 
 public:
-	LCD(const uint8_t *oamram, const uint8_t *vram_in);
+	LCD(const unsigned char *oamram, const unsigned char *vram_in);
 	~LCD();
 	void reset(bool cgb);
-	void setVideoBlitter(VideoBlitter *vb);
+	void setVideoBlitter(Gambatte::VideoBlitter *vb);
 	void videoBufferChange();
 	void setVideoFilter(unsigned n);
-	std::vector<const FilterInfo*> filterInfo() const;
+	std::vector<const Gambatte::FilterInfo*> filterInfo() const;
 	unsigned videoWidth() const;
 	unsigned videoHeight() const;
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);

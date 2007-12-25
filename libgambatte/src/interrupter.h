@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,22 +15,20 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef INTERRUPTER_H
 #define INTERRUPTER_H
 
 class Memory;
 
-#include <stdint.h>
-
 class Interrupter {
-	uint16_t &SP;
-	uint16_t &PC;
+	unsigned short &SP;
+	unsigned short &PC;
 	bool &halted;
 	
 public:
-	Interrupter(uint16_t &SP, uint16_t &PC, bool &halted);
-	unsigned interrupt(const unsigned address, unsigned cycleCounter, Memory &memory);
+	Interrupter(unsigned short &SP, unsigned short &PC, bool &halted);
+	unsigned long interrupt(const unsigned address, unsigned long cycleCounter, Memory &memory);
 	
 	void unhalt() {
 		halted = false;

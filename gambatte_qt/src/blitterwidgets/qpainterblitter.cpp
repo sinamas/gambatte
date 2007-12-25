@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -46,9 +46,9 @@ void QPainterBlitter::blit() {
 	repaint();
 }
 
-const PixelBuffer QPainterBlitter::inBuffer() {
-	PixelBuffer pixb;
-	pixb.format = PixelBuffer::RGB32;	
+const Gambatte::PixelBuffer QPainterBlitter::inBuffer() {
+	Gambatte::PixelBuffer pixb;
+	pixb.format = Gambatte::PixelBuffer::RGB32;	
 	pixb.pixels = image->bits();
 	pixb.pitch = image->bytesPerLine() >> 2;
 	
@@ -62,7 +62,7 @@ const PixelBuffer QPainterBlitter::inBuffer() {
 
 void QPainterBlitter::paintEvent(QPaintEvent *const event) {
 	if (buffer) {
-		scaleBuffer(buffer, reinterpret_cast<uint32_t*>(image->bits()), inWidth, inHeight, scale);
+		scaleBuffer(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, scale);
 	}
 	
 	QPainter painter(this);
@@ -92,7 +92,7 @@ void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned i
 	uninit();
 	
 	if (scale > 1)
-		buffer = new uint32_t[w * h];
+		buffer = new quint32[w * h];
 	
 	image.reset(new QImage(w * scale, h * scale, QImage::Format_RGB32));
 }

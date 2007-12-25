@@ -53,6 +53,7 @@ QT += opengl
 TARGET = ../bin/gambatte_qt
 INCLUDEPATH += ../../libgambatte/include SDL_Joystick/include
 LIBS += -L../../libgambatte -lgambatte -lz
+DEFINES += HAVE_STDINT_H
 
 macx {
     SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp

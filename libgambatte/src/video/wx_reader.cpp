@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,7 +18,6 @@
  ***************************************************************************/
 #include "wx_reader.h"
 
-#include <stdint.h>
 #include "../event_queue.h"
 
 WxReader::WxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
@@ -35,7 +34,7 @@ weDisableChecker(weDisableChecker_in)
 }
 
 void WxReader::rescheduleEvent(VideoEvent& event, const unsigned long diff) {
-	if (event.time() != uint32_t(-1)) {
+	if (event.time() != DISABLED_TIME) {
 		event.setTime(event.time() + diff);
 		(diff & 0x200) ? m3EventQueue.dec(&event, &event) : m3EventQueue.inc(&event, &event);
 	}
@@ -48,7 +47,7 @@ void WxReader::doEvent() {
 	rescheduleEvent(weEnableChecker, diff);
 	rescheduleEvent(weDisableChecker, diff);
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 void addEvent(WxReader &event, const unsigned scxAnd7, const LyCounter &lyCounter,
@@ -58,7 +57,7 @@ void addEvent(WxReader &event, const unsigned scxAnd7, const LyCounter &lyCounte
 	
 	event.schedule(scxAnd7, lyCounter, cycleCounter);
 	
-	if (oldTime == uint32_t(-1))
+	if (oldTime == VideoEvent::DISABLED_TIME)
 		queue.push(&event);
 	else if (oldTime != event.time()) {
 		if (event.time() > oldTime)

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "rtc.h"
 
 using namespace std;
@@ -33,7 +33,7 @@ void Rtc::doLatch() {
 		dataDh |= 0x80;
 	}
 	
-	dataDl = tmp / 86400;
+	dataDl = tmp / 86400 & 0xFF;
 	dataDh &= 0xFE;
 	dataDh |= ((tmp / 86400) & 0x100) >> 8;
 	tmp %= 86400;
@@ -88,7 +88,7 @@ void Rtc::reset() {
 	lastLatchData = false;
 }
 
-void Rtc::setDh(const uint8_t new_dh) {
+void Rtc::setDh(const unsigned new_dh) {
 	const time_t unixtime = (dataDh & 0x40) ? haltTime : time(NULL);
 	const time_t old_highdays = ((unixtime - baseTime) / 86400) & 0x100;
 	baseTime += old_highdays * 86400;
@@ -102,28 +102,28 @@ void Rtc::setDh(const uint8_t new_dh) {
 	}
 }
 
-void Rtc::setDl(const uint8_t new_lowdays) {
+void Rtc::setDl(const unsigned new_lowdays) {
 	const time_t unixtime = (dataDh & 0x40) ? haltTime : time(NULL);
 	const time_t old_lowdays = ((unixtime - baseTime) / 86400) & 0xFF;
 	baseTime += old_lowdays * 86400;
 	baseTime -= new_lowdays * 86400;
 }
 
-void Rtc::setH(const uint8_t new_hours) {
+void Rtc::setH(const unsigned new_hours) {
 	const time_t unixtime = (dataDh & 0x40) ? haltTime : time(NULL);
 	const time_t old_hours = ((unixtime - baseTime) / 3600) % 24;
 	baseTime += old_hours * 3600;
 	baseTime -= new_hours * 3600;
 }
 
-void Rtc::setM(const uint8_t new_minutes) {
+void Rtc::setM(const unsigned new_minutes) {
 	const time_t unixtime = (dataDh & 0x40) ? haltTime : time(NULL);
 	const time_t old_minutes = ((unixtime - baseTime) / 60) % 60;
 	baseTime += old_minutes * 60;
 	baseTime -= new_minutes * 60;
 }
 
-void Rtc::setS(const uint8_t new_seconds) {
+void Rtc::setS(const unsigned new_seconds) {
 	const time_t unixtime = (dataDh & 0x40) ? haltTime : time(NULL);
 	baseTime += (unixtime - baseTime) % 60;
 	baseTime -= new_seconds;

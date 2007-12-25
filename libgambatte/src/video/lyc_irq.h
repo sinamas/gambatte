@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,7 +19,6 @@
 #ifndef VIDEO_LYC_IRQ_H
 #define VIDEO_LYC_IRQ_H
 
-#include <stdint.h>
 #include "ly_counter.h"
 
 class LycIrq : public VideoEvent {
@@ -40,7 +39,7 @@ public:
 	void lycRegSchedule(const LyCounter &lyCounter, unsigned long cycleCounter);
 	
 	void reset() {
-		setTime(uint32_t(-1));
+		setTime(DISABLED_TIME);
 	}
 	
 	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);

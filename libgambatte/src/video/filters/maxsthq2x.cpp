@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 2003 MaxSt                                              *
@@ -18,110 +18,110 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "maxsthq2x.h"
 #include "filterinfo.h"
 #include <cstring>
 
-typedef unsigned (*pixelop)(const unsigned w[]);
+typedef unsigned long (*pixelop)(const unsigned long w[]);
 
 static pixelop lut[0x400];
 
-static inline unsigned Interp2(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned lowbits = (c1 * 2 & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303) & 0x030303;
+static inline unsigned long Interp2(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
+	const unsigned long lowbits = (c1 * 2 & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303) & 0x030303;
 	
 	return (c1 * 2 + c2 + c3 - lowbits) >> 2;
 }
 
-static inline unsigned Interp1(const unsigned c1, const unsigned c2) {
+static inline unsigned long Interp1(const unsigned long c1, const unsigned long c2) {
 	return Interp2(c1, c1, c2);
 }
 
-static inline unsigned Interp5(const unsigned c1, const unsigned c2) {
+static inline unsigned long Interp5(const unsigned long c1, const unsigned long c2) {
 	return c1 + c2 - ((c1 ^ c2) & 0x010101) >> 1;
 }
 
-static inline unsigned Interp6(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned lowbits = (c1 * 4 & 0x040404) + (c1 & 0x070707) + (c2 * 2 & 0x060606) + (c3 & 0x070707) & 0x070707;
+static inline unsigned long Interp6(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
+	const unsigned long lowbits = (c1 * 4 & 0x040404) + (c1 & 0x070707) + (c2 * 2 & 0x060606) + (c3 & 0x070707) & 0x070707;
 	
 	return ((c1 * 5 + c2 * 2 + c3) - lowbits) >> 3;
 }
 
-static inline unsigned Interp7(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned lowbits = ((c1 * 2 & 0x020202) + (c1 & 0x030303)) * 2 + (c2 & 0x070707) + (c3 & 0x070707) & 0x070707;
+static inline unsigned long Interp7(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
+	const unsigned long lowbits = ((c1 * 2 & 0x020202) + (c1 & 0x030303)) * 2 + (c2 & 0x070707) + (c3 & 0x070707) & 0x070707;
 	
 	return ((c1 * 6 + c2 + c3) - lowbits) >> 3;
 }
 
-static inline unsigned Interp9(unsigned c1, const unsigned c2, const unsigned c3) {
+static inline unsigned long Interp9(unsigned long c1, const unsigned long c2, const unsigned long c3) {
 	c1 <<= 1;
 	
-	const unsigned rb = (c1 & 0x01FE01FE) + ((c2 & 0xFF00FF) + (c3 & 0xFF00FF)) * 3;
-	const unsigned g = (c1 & 0x0001FE00) + ((c2 & 0x00FF00) + (c3 & 0x00FF00)) * 3;
+	const unsigned long rb = (c1 & 0x01FE01FE) + ((c2 & 0xFF00FF) + (c3 & 0xFF00FF)) * 3;
+	const unsigned long g = (c1 & 0x0001FE00) + ((c2 & 0x00FF00) + (c3 & 0x00FF00)) * 3;
 	
-	return ((rb & 0x07F807F8) | (g & 0x0007F800)) >> 3;
+	return (rb & 0x07F807F8 | g & 0x0007F800) >> 3;
 }
 
-static inline unsigned Interp10(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned rb = (c1 & 0xFF00FF) * 14 + (c2 & 0xFF00FF) + (c3 & 0xFF00FF);
-	const unsigned g = (c1 & 0x00FF00) * 14 + (c2 & 0x00FF00) + (c3 & 0x00FF00);
+static inline unsigned long Interp10(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
+	const unsigned long rb = (c1 & 0xFF00FF) * 14 + (c2 & 0xFF00FF) + (c3 & 0xFF00FF);
+	const unsigned long g = (c1 & 0x00FF00) * 14 + (c2 & 0x00FF00) + (c3 & 0x00FF00);
 	
-	return ((rb & 0x0FF00FF0) | (g & 0x000FF000)) >> 4;
+	return (rb & 0x0FF00FF0 | g & 0x000FF000) >> 4;
 }
 
-static inline unsigned pixel00_0(const unsigned w[]) { return w[5]; }
-static inline unsigned pixel00_10(const unsigned w[]) { return Interp1(w[5], w[1]); }
-static inline unsigned pixel00_11(const unsigned w[]) { return Interp1(w[5], w[4]); }
-static inline unsigned pixel00_12(const unsigned w[]) { return Interp1(w[5], w[2]); }
-static inline unsigned pixel00_20(const unsigned w[]) { return Interp2(w[5], w[4], w[2]); }
-static inline unsigned pixel00_21(const unsigned w[]) { return Interp2(w[5], w[1], w[2]); }
-static inline unsigned pixel00_22(const unsigned w[]) { return Interp2(w[5], w[1], w[4]); }
-static inline unsigned pixel00_60(const unsigned w[]) { return Interp6(w[5], w[2], w[4]); }
-static inline unsigned pixel00_61(const unsigned w[]) { return Interp6(w[5], w[4], w[2]); }
-static inline unsigned pixel00_70(const unsigned w[]) { return Interp7(w[5], w[4], w[2]); }
-static inline unsigned pixel00_90(const unsigned w[]) { return Interp9(w[5], w[4], w[2]); }
-static inline unsigned pixel00_100(const unsigned w[]) { return Interp10(w[5], w[4], w[2]); }
+static inline unsigned long pixel00_0(const unsigned long w[]) { return w[5]; }
+static inline unsigned long pixel00_10(const unsigned long w[]) { return Interp1(w[5], w[1]); }
+static inline unsigned long pixel00_11(const unsigned long w[]) { return Interp1(w[5], w[4]); }
+static inline unsigned long pixel00_12(const unsigned long w[]) { return Interp1(w[5], w[2]); }
+static inline unsigned long pixel00_20(const unsigned long w[]) { return Interp2(w[5], w[4], w[2]); }
+static inline unsigned long pixel00_21(const unsigned long w[]) { return Interp2(w[5], w[1], w[2]); }
+static inline unsigned long pixel00_22(const unsigned long w[]) { return Interp2(w[5], w[1], w[4]); }
+static inline unsigned long pixel00_60(const unsigned long w[]) { return Interp6(w[5], w[2], w[4]); }
+static inline unsigned long pixel00_61(const unsigned long w[]) { return Interp6(w[5], w[4], w[2]); }
+static inline unsigned long pixel00_70(const unsigned long w[]) { return Interp7(w[5], w[4], w[2]); }
+static inline unsigned long pixel00_90(const unsigned long w[]) { return Interp9(w[5], w[4], w[2]); }
+static inline unsigned long pixel00_100(const unsigned long w[]) { return Interp10(w[5], w[4], w[2]); }
 
 #define pixel01_0 pixel00_0
-static inline unsigned pixel01_10(const unsigned w[]) { return Interp1(w[5], w[3]); }
+static inline unsigned long pixel01_10(const unsigned long w[]) { return Interp1(w[5], w[3]); }
 #define pixel01_11 pixel00_12
-static inline unsigned pixel01_12(const unsigned w[]) { return Interp1(w[5], w[6]); }
-static inline unsigned pixel01_20(const unsigned w[]) { return Interp2(w[5], w[2], w[6]); }
-static inline unsigned pixel01_21(const unsigned w[]) { return Interp2(w[5], w[3], w[6]); }
-static inline unsigned pixel01_22(const unsigned w[]) { return Interp2(w[5], w[3], w[2]); }
-static inline unsigned pixel01_60(const unsigned w[]) { return Interp6(w[5], w[6], w[2]); }
-static inline unsigned pixel01_61(const unsigned w[]) { return Interp6(w[5], w[2], w[6]); }
-static inline unsigned pixel01_70(const unsigned w[]) { return Interp7(w[5], w[2], w[6]); }
-static inline unsigned pixel01_90(const unsigned w[]) { return Interp9(w[5], w[2], w[6]); }
-static inline unsigned pixel01_100(const unsigned w[]) { return Interp10(w[5], w[2], w[6]); }
+static inline unsigned long pixel01_12(const unsigned long w[]) { return Interp1(w[5], w[6]); }
+static inline unsigned long pixel01_20(const unsigned long w[]) { return Interp2(w[5], w[2], w[6]); }
+static inline unsigned long pixel01_21(const unsigned long w[]) { return Interp2(w[5], w[3], w[6]); }
+static inline unsigned long pixel01_22(const unsigned long w[]) { return Interp2(w[5], w[3], w[2]); }
+static inline unsigned long pixel01_60(const unsigned long w[]) { return Interp6(w[5], w[6], w[2]); }
+static inline unsigned long pixel01_61(const unsigned long w[]) { return Interp6(w[5], w[2], w[6]); }
+static inline unsigned long pixel01_70(const unsigned long w[]) { return Interp7(w[5], w[2], w[6]); }
+static inline unsigned long pixel01_90(const unsigned long w[]) { return Interp9(w[5], w[2], w[6]); }
+static inline unsigned long pixel01_100(const unsigned long w[]) { return Interp10(w[5], w[2], w[6]); }
 
 #define pixel10_0 pixel00_0
-static inline unsigned pixel10_10(const unsigned w[]) { return Interp1(w[5], w[7]); }
-static inline unsigned pixel10_11(const unsigned w[]) { return Interp1(w[5], w[8]); }
+static inline unsigned long pixel10_10(const unsigned long w[]) { return Interp1(w[5], w[7]); }
+static inline unsigned long pixel10_11(const unsigned long w[]) { return Interp1(w[5], w[8]); }
 #define pixel10_12 pixel00_11
-static inline unsigned pixel10_20(const unsigned w[]) { return Interp2(w[5], w[8], w[4]); }
-static inline unsigned pixel10_21(const unsigned w[]) { return Interp2(w[5], w[7], w[4]); }
-static inline unsigned pixel10_22(const unsigned w[]) { return Interp2(w[5], w[7], w[8]); }
-static inline unsigned pixel10_60(const unsigned w[]) { return Interp6(w[5], w[4], w[8]); }
-static inline unsigned pixel10_61(const unsigned w[]) { return Interp6(w[5], w[8], w[4]); }
-static inline unsigned pixel10_70(const unsigned w[]) { return Interp7(w[5], w[8], w[4]); }
-static inline unsigned pixel10_90(const unsigned w[]) { return Interp9(w[5], w[8], w[4]); }
-static inline unsigned pixel10_100(const unsigned w[]) { return Interp10(w[5], w[8], w[4]); }
+static inline unsigned long pixel10_20(const unsigned long w[]) { return Interp2(w[5], w[8], w[4]); }
+static inline unsigned long pixel10_21(const unsigned long w[]) { return Interp2(w[5], w[7], w[4]); }
+static inline unsigned long pixel10_22(const unsigned long w[]) { return Interp2(w[5], w[7], w[8]); }
+static inline unsigned long pixel10_60(const unsigned long w[]) { return Interp6(w[5], w[4], w[8]); }
+static inline unsigned long pixel10_61(const unsigned long w[]) { return Interp6(w[5], w[8], w[4]); }
+static inline unsigned long pixel10_70(const unsigned long w[]) { return Interp7(w[5], w[8], w[4]); }
+static inline unsigned long pixel10_90(const unsigned long w[]) { return Interp9(w[5], w[8], w[4]); }
+static inline unsigned long pixel10_100(const unsigned long w[]) { return Interp10(w[5], w[8], w[4]); }
 
 #define pixel11_0 pixel00_0
-static inline unsigned pixel11_10(const unsigned w[]) { return Interp1(w[5], w[9]); }
+static inline unsigned long pixel11_10(const unsigned long w[]) { return Interp1(w[5], w[9]); }
 #define pixel11_11 pixel01_12
 #define pixel11_12 pixel10_11
-static inline unsigned pixel11_20(const unsigned w[]) { return Interp2(w[5], w[6], w[8]); }
-static inline unsigned pixel11_21(const unsigned w[]) { return Interp2(w[5], w[9], w[8]); }
-static inline unsigned pixel11_22(const unsigned w[]) { return Interp2(w[5], w[9], w[6]); }
-static inline unsigned pixel11_60(const unsigned w[]) { return Interp6(w[5], w[8], w[6]); }
-static inline unsigned pixel11_61(const unsigned w[]) { return Interp6(w[5], w[6], w[8]); }
-static inline unsigned pixel11_70(const unsigned w[]) { return Interp7(w[5], w[6], w[8]); }
-static inline unsigned pixel11_90(const unsigned w[]) { return Interp9(w[5], w[6], w[8]); }
-static inline unsigned pixel11_100(const unsigned w[]) { return Interp10(w[5], w[6], w[8]); }
+static inline unsigned long pixel11_20(const unsigned long w[]) { return Interp2(w[5], w[6], w[8]); }
+static inline unsigned long pixel11_21(const unsigned long w[]) { return Interp2(w[5], w[9], w[8]); }
+static inline unsigned long pixel11_22(const unsigned long w[]) { return Interp2(w[5], w[9], w[6]); }
+static inline unsigned long pixel11_60(const unsigned long w[]) { return Interp6(w[5], w[8], w[6]); }
+static inline unsigned long pixel11_61(const unsigned long w[]) { return Interp6(w[5], w[6], w[8]); }
+static inline unsigned long pixel11_70(const unsigned long w[]) { return Interp7(w[5], w[6], w[8]); }
+static inline unsigned long pixel11_90(const unsigned long w[]) { return Interp9(w[5], w[6], w[8]); }
+static inline unsigned long pixel11_100(const unsigned long w[]) { return Interp10(w[5], w[6], w[8]); }
 
-static inline bool Diff(const unsigned int w1, const unsigned int w2) {
+static inline bool Diff(const unsigned long w1, const unsigned long w2) {
 	const unsigned rdiff = (w1 >> 16) - (w2 >> 16);
 	const unsigned gdiff = (w1 >> 8 & 0xFF) - (w2 >> 8 & 0xFF);
 	const unsigned bdiff = (w1 & 0xFF) - (w2 & 0xFF);
@@ -131,7 +131,7 @@ static inline bool Diff(const unsigned int w1, const unsigned int w2) {
 		gdiff * 2 - rdiff - bdiff + 0x30U > 0x30U * 2;
 }
 
-static unsigned pixel00_cond0(const unsigned w[]) {
+static unsigned long pixel00_cond0(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel00_0(w);
 	} else {
@@ -139,7 +139,7 @@ static unsigned pixel00_cond0(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond1(const unsigned w[]) {
+static unsigned long pixel00_cond1(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel00_10(w);
 	} else {
@@ -147,7 +147,7 @@ static unsigned pixel00_cond1(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond2(const unsigned w[]) {
+static unsigned long pixel00_cond2(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel00_12(w);
 	} else {
@@ -155,7 +155,7 @@ static unsigned pixel00_cond2(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond3(const unsigned w[]) {
+static unsigned long pixel00_cond3(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel00_10(w);
 	} else {
@@ -163,7 +163,7 @@ static unsigned pixel00_cond3(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond4(const unsigned w[]) {
+static unsigned long pixel00_cond4(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel00_11(w);
 	} else {
@@ -171,7 +171,7 @@ static unsigned pixel00_cond4(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond5(const unsigned w[]) {
+static unsigned long pixel00_cond5(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel00_10(w);
 	} else {
@@ -179,7 +179,7 @@ static unsigned pixel00_cond5(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond6(const unsigned w[]) {
+static unsigned long pixel00_cond6(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel00_0(w);
 	} else {
@@ -187,7 +187,7 @@ static unsigned pixel00_cond6(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel00_cond7(const unsigned w[]) {
+static unsigned long pixel00_cond7(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel00_0(w);
 	} else {
@@ -195,7 +195,7 @@ static unsigned pixel00_cond7(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond0(const unsigned w[]) {
+static unsigned long pixel01_cond0(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel01_0(w);
 	} else {
@@ -203,7 +203,7 @@ static unsigned pixel01_cond0(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond1(const unsigned w[]) {
+static unsigned long pixel01_cond1(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel01_10(w);
 	} else {
@@ -211,7 +211,7 @@ static unsigned pixel01_cond1(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond2(const unsigned w[]) {
+static unsigned long pixel01_cond2(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel01_12(w);
 	} else {
@@ -219,7 +219,7 @@ static unsigned pixel01_cond2(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond3(const unsigned w[]) {
+static unsigned long pixel01_cond3(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel01_10(w);
 	} else {
@@ -227,7 +227,7 @@ static unsigned pixel01_cond3(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond4(const unsigned w[]) {
+static unsigned long pixel01_cond4(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel01_11(w);
 	} else {
@@ -235,7 +235,7 @@ static unsigned pixel01_cond4(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond5(const unsigned w[]) {
+static unsigned long pixel01_cond5(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel01_10(w);
 	} else {
@@ -243,7 +243,7 @@ static unsigned pixel01_cond5(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond6(const unsigned w[]) {
+static unsigned long pixel01_cond6(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel01_0(w);
 	} else {
@@ -251,7 +251,7 @@ static unsigned pixel01_cond6(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel01_cond7(const unsigned w[]) {
+static unsigned long pixel01_cond7(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel01_0(w);
 	} else {
@@ -259,7 +259,7 @@ static unsigned pixel01_cond7(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond0(const unsigned w[]) {
+static unsigned long pixel10_cond0(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel10_0(w);
 	} else {
@@ -267,7 +267,7 @@ static unsigned pixel10_cond0(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond1(const unsigned w[]) {
+static unsigned long pixel10_cond1(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel10_10(w);
 	} else {
@@ -275,7 +275,7 @@ static unsigned pixel10_cond1(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond2(const unsigned w[]) {
+static unsigned long pixel10_cond2(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel10_12(w);
 	} else {
@@ -283,7 +283,7 @@ static unsigned pixel10_cond2(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond3(const unsigned w[]) {
+static unsigned long pixel10_cond3(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel10_10(w);
 	} else {
@@ -291,7 +291,7 @@ static unsigned pixel10_cond3(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond4(const unsigned w[]) {
+static unsigned long pixel10_cond4(const unsigned long w[]) {
 	if (Diff(w[4], w[2])) {
 		return pixel10_11(w);
 	} else {
@@ -299,7 +299,7 @@ static unsigned pixel10_cond4(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond5(const unsigned w[]) {
+static unsigned long pixel10_cond5(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel10_10(w);
 	} else {
@@ -307,7 +307,7 @@ static unsigned pixel10_cond5(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond6(const unsigned w[]) {
+static unsigned long pixel10_cond6(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel10_0(w);
 	} else {
@@ -315,7 +315,7 @@ static unsigned pixel10_cond6(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel10_cond7(const unsigned w[]) {
+static unsigned long pixel10_cond7(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel10_0(w);
 	} else {
@@ -323,7 +323,7 @@ static unsigned pixel10_cond7(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond0(const unsigned w[]) {
+static unsigned long pixel11_cond0(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel11_0(w);
 	} else {
@@ -331,7 +331,7 @@ static unsigned pixel11_cond0(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond1(const unsigned w[]) {
+static unsigned long pixel11_cond1(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel11_10(w);
 	} else {
@@ -339,7 +339,7 @@ static unsigned pixel11_cond1(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond2(const unsigned w[]) {
+static unsigned long pixel11_cond2(const unsigned long w[]) {
 	if (Diff(w[2], w[6])) {
 		return pixel11_12(w);
 	} else {
@@ -347,7 +347,7 @@ static unsigned pixel11_cond2(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond3(const unsigned w[]) {
+static unsigned long pixel11_cond3(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel11_10(w);
 	} else {
@@ -355,7 +355,7 @@ static unsigned pixel11_cond3(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond4(const unsigned w[]) {
+static unsigned long pixel11_cond4(const unsigned long w[]) {
 	if (Diff(w[8], w[4])) {
 		return pixel11_11(w);
 	} else {
@@ -363,7 +363,7 @@ static unsigned pixel11_cond4(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond5(const unsigned w[]) {
+static unsigned long pixel11_cond5(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel11_10(w);
 	} else {
@@ -371,7 +371,7 @@ static unsigned pixel11_cond5(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond6(const unsigned w[]) {
+static unsigned long pixel11_cond6(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel11_0(w);
 	} else {
@@ -379,7 +379,7 @@ static unsigned pixel11_cond6(const unsigned w[]) {
 	}
 }
 
-static unsigned pixel11_cond7(const unsigned w[]) {
+static unsigned long pixel11_cond7(const unsigned long w[]) {
 	if (Diff(w[6], w[8])) {
 		return pixel11_0(w);
 	} else {
@@ -904,7 +904,7 @@ static void buildLut() {
 // void hq2x_32( const unsigned char * pIn, unsigned char * pOut, int Xres, int Yres, int BpL ) {
 template<class PixelPutter>
 static void filter(typename PixelPutter::pixel_t *pOut, const unsigned dstPitch, PixelPutter putPixel,
-                   const uint32_t *pIn, const unsigned Xres, const unsigned Yres)
+		   const Gambatte::uint_least32_t *pIn, const unsigned Xres, const unsigned Yres)
 {
 	//   +----+----+----+
 	//   |    |    |    |
@@ -925,7 +925,7 @@ static void filter(typename PixelPutter::pixel_t *pOut, const unsigned dstPitch,
 		if (j < Yres - 1) nextline = Xres;
 		else nextline = 0;
 		
-		unsigned  w[10];
+		unsigned long w[10];
 		
 		w[3] = w[2] = *(pIn + prevline);
 		w[6] = w[5] = *(pIn);
@@ -1001,7 +1001,7 @@ MaxSt_Hq2x::~MaxSt_Hq2x() {
 
 void MaxSt_Hq2x::init() {
 	delete []buffer;
-	buffer = new uint32_t[144 * 160];
+	buffer = new Gambatte::uint_least32_t[144 * 160];
 }
 
 void MaxSt_Hq2x::outit() {
@@ -1009,12 +1009,12 @@ void MaxSt_Hq2x::outit() {
 	buffer = NULL;
 }
 
-const FilterInfo& MaxSt_Hq2x::info() {
-	static FilterInfo fInfo = { "MaxSt's Hq2x", 160 * 2, 144 * 2 };
+const Gambatte::FilterInfo& MaxSt_Hq2x::info() {
+	static Gambatte::FilterInfo fInfo = { "MaxSt's Hq2x", 160 * 2, 144 * 2 };
 	return fInfo;
 }
 
-uint32_t* MaxSt_Hq2x::inBuffer() {
+Gambatte::uint_least32_t* MaxSt_Hq2x::inBuffer() {
 	return buffer;
 }
 

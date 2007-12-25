@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "channel2.h"
 
 Channel2::Channel2() :
@@ -99,7 +99,7 @@ void Channel2::init(const unsigned long cc, const bool cgb) {
 	setEvent();
 }
 
-void Channel2::update(uint32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
+void Channel2::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
 	const unsigned long endCycles = cycleCounter + cycles;
 	
@@ -117,7 +117,7 @@ void Channel2::update(uint32_t *buf, const unsigned long soBaseVol, unsigned lon
 		multiplier -= cycleCounter;
 		cycleCounter += multiplier;
 		
-		uint32_t *const bufend = buf + multiplier;
+		Gambatte::uint_least32_t *const bufend = buf + multiplier;
 		
 		if (out) {
 			while (buf != bufend)

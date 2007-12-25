@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,16 +15,18 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
-#ifndef FILTERINFO_H
-#define FILTERINFO_H
+ ***************************************************************************/
+#ifndef GAMBATTE_FILTERINFO_H
+#define GAMBATTE_FILTERINFO_H
 
 #include <string>
 
+namespace Gambatte {
 struct FilterInfo {
 	std::string handle;
 	unsigned int outWidth;
 	unsigned int outHeight;
 };
+}
 
 #endif

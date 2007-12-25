@@ -1,8 +1,12 @@
+global_cflags = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer')
+global_cxxflags = ARGUMENTS.get('CXXFLAGS', global_cflags + ' -fno-exceptions -fno-rtti')
+global_defines = ' -DHAVE_STDINT_H'
+
 env = Environment(CPPPATH = ['src', '../libgambatte/include'],
                   LIBS = ['gambatte'],
                   LIBPATH = '../libgambatte',
-                  CFLAGS = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer'),
-                  CXXFLAGS = ARGUMENTS.get('CXXFLAGS', ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer') + ' -fno-exceptions -fno-rtti'))
+                  CFLAGS = global_cflags + global_defines,
+                  CXXFLAGS = global_cxxflags + global_defines)
 
 env.ParseConfig('sdl-config --cflags --libs')
 

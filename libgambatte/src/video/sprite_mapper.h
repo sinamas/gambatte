@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,7 +19,6 @@
 #ifndef SPRITE_MAPPER_H
 #define SPRITE_MAPPER_H
 
-#include <stdint.h>
 #include "video_event.h"
 //#include "video_event_comparer.h"
 #include "ly_counter.h"
@@ -39,7 +38,7 @@ class SpriteMapper : public VideoEvent {
 	const ScxReader &scxReader;
 	
 public:
-	const uint8_t *const oamram;
+	const unsigned char *const oamram;
 
 private:
 	unsigned char timeDiff;
@@ -52,7 +51,7 @@ private:
 public:
 	SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
 	             const ScxReader &scxReader_in,
-	             const uint8_t *const oamram_in);
+	             const unsigned char *const oamram_in);
 	
 	void doEvent();
 	

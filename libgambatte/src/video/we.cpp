@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,8 +18,6 @@
  ***************************************************************************/
 #include "we.h"
 
-#include <stdint.h>
-
 We::WeEnableChecker::WeEnableChecker(bool &we_in, const bool &src_in) :
 	VideoEvent(8),
 	we(we_in),
@@ -29,7 +27,7 @@ We::WeEnableChecker::WeEnableChecker(bool &we_in, const bool &src_in) :
 void We::WeEnableChecker::doEvent() {
 	we = src;
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 We::WeDisableChecker::WeDisableChecker(bool &we_in, const bool &src_in) :
@@ -41,7 +39,7 @@ We::WeDisableChecker::WeDisableChecker(bool &we_in, const bool &src_in) :
 void We::WeDisableChecker::doEvent() {
 	we = we && src;
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 We::We() :

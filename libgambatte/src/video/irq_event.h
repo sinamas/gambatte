@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,7 +20,6 @@
 #define VIDEO_IRQ_EVENT_H
 
 #include "../event_queue.h"
-#include <stdint.h>
 #include "video_event.h"
 #include "video_event_comparer.h"
 
@@ -33,7 +32,7 @@ public:
 	void doEvent();
 	
 	void reset() {
-		setTime(uint32_t(-1));
+		setTime(DISABLED_TIME);
 	}
 	
 	void schedule() {

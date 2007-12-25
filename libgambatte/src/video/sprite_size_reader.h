@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -46,7 +46,7 @@ public:
 	
 	void reset() {
 		largeSprites_ = src_;
-		setTime(uint32_t(-1));
+		setTime(DISABLED_TIME);
 	}
 	
 	void setSource(const bool src) {

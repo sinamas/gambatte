@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,14 +15,16 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
-#ifndef INPUTSTATEGETTER_H
-#define INPUTSTATEGETTER_H
+ ***************************************************************************/
+#ifndef GAMBATTE_INPUTSTATEGETTER_H
+#define GAMBATTE_INPUTSTATEGETTER_H
 
+namespace Gambatte {
 class InputStateGetter {
 public:
 	virtual ~InputStateGetter() {};
 	virtual const InputState& operator()() = 0;
 };
+}
 
 #endif

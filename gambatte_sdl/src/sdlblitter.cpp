@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,8 @@
 #include "sdlblitter.h"
 
 #include "scalebuffer.h"
+
+using namespace Gambatte;
 
 SdlBlitter::SdlBlitter(const bool startFull, const Uint8 scale, const bool yuv) :
 screen(NULL),

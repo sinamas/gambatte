@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "cpu.h"
 #include "memory.h"
 
@@ -42,7 +42,7 @@ void CPU::init() {
 	if (memory.isCgb()) A_ = 0x11;
 }
 
-void CPU::runFor(const unsigned int cycles) {
+void CPU::runFor(const unsigned long cycles) {
 	process(cycles/* << memory.isDoubleSpeed()*/);
 	
 	if (cycleCounter_ & 0x80000000)
@@ -107,12 +107,13 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 	HF2 |= arg1 & 0x200;
 }
 
-#define BC() ( (B << 8) | C )
-#define DE() ( (D << 8) | E )
-#define HL() ( (H << 8) | L )
+#define BC() ( B << 8 | C )
+#define DE() ( D << 8 | E )
+#define HL() ( H << 8 | L )
 
 #define READ(dest, addr) do { (dest) = memory.read(addr, cycleCounter); cycleCounter += 4; } while (0)
-#define PC_READ(dest, addr) do { (dest) = memory.pc_read(addr, cycleCounter); cycleCounter += 4; } while (0)
+// #define PC_READ(dest, addr) do { (dest) = memory.pc_read(addr, cycleCounter); cycleCounter += 4; } while (0)
+#define PC_READ(dest) do { (dest) = memory.pc_read(PC, cycleCounter); PC = PC + 1 & 0xFFFF; cycleCounter += 4; } while (0)
 #define FF_READ(dest, addr) do { (dest) = memory.ff_read(addr, cycleCounter); cycleCounter += 4; } while (0)
 
 #define WRITE(addr, data) do { memory.write(addr, data, cycleCounter); cycleCounter += 4; } while (0)
@@ -120,38 +121,47 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 
 #define PC_MOD(data) do { PC = data; cycleCounter += 4; } while (0)
 
+#define PUSH(r1, r2) do { \
+	SP = SP - 1 & 0xFFFF; \
+	WRITE(SP, (r1)); \
+	SP = SP - 1 & 0xFFFF; \
+	WRITE(SP, (r2)); \
+} while (0)
+
 //CB OPCODES (Shifts, rotates and bits):
 //swap r (8 cycles):
 //Swap upper and lower nibbles of 8-bit register, reset flags, check zero flag:
 #define swap_r(r) do { \
 	CF = HF2 = 0; \
 	ZF = (r); \
-	(r) = (ZF << 4) | (ZF >> 4); \
+	(r) = (ZF << 4 | ZF >> 4) & 0xFF; \
 } while (0)
 
 //rlc r (8 cycles):
 //Rotate 8-bit register left, store old bit7 in CF. Reset SF and HCF, Check ZF:
 #define rlc_r(r) do { \
 	CF = (r) << 1; \
-	(r) = ZF = CF | (CF >> 8); \
+	ZF = CF | CF >> 8; \
+	(r) = ZF & 0xFF; \
 	HF2 = 0; \
 } while (0)
 
 //rl r (8 cycles):
 //Rotate 8-bit register left through CF, store old bit7 in CF, old CF value becomes bit0. Reset SF and HCF, Check ZF:
 #define rl_r(r) do { \
-	const unsigned rl_r_var_oldcf = (CF >> 8) & 1; \
+	const unsigned rl_r_var_oldcf = CF >> 8 & 1; \
 	CF = (r) << 1; \
-	(r) = ZF = CF | rl_r_var_oldcf; \
+	ZF = CF | rl_r_var_oldcf; \
+	(r) = ZF & 0xFF; \
 	HF2 = 0; \
 } while (0)
 
 //rrc r (8 cycles):
 //Rotate 8-bit register right, store old bit0 in CF. Reset SF and HCF, Check ZF:
 #define rrc_r(r) do { \
-	CF = (r) << 8; \
 	ZF = (r); \
-	(r) = (ZF | CF) >> 1; \
+	CF = ZF << 8; \
+	(r) = (ZF | CF) >> 1 & 0xFF; \
 	HF2 = 0; \
 } while (0)
 
@@ -167,7 +177,8 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //sla r (8 cycles):
 //Shift 8-bit register left, store old bit7 in CF. Reset SF and HCF, Check ZF:
 #define sla_r(r) do { \
-	(r) = ZF = CF = (r) << 1; \
+	ZF = CF = (r) << 1; \
+	(r) = ZF & 0xFF; \
 	HF2 = 0; \
 } while (0)
 
@@ -176,7 +187,7 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 #define sra_r(r) do { \
 	CF = (r) << 8; \
 	ZF = (r) >> 1; \
-	(r) = ZF | ((r) & 0x80); \
+	(r) = ZF | (r) & 0x80; \
 	HF2 = 0; \
 } while (0)
 
@@ -258,23 +269,24 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //ld rr,nn (12 cycles)
 //set rr to 16-bit value of next 2 bytes in memory
 #define ld_rr_nn(r1, r2) do { \
-	PC_READ(r2, PC++); \
-	PC_READ(r1, PC++); \
+	PC_READ(r2); \
+	PC_READ(r1); \
 } while (0)
 
 //push rr (16 cycles):
 //Push value of register pair onto stack:
 #define push_rr(r1, r2) do { \
-	WRITE(--SP, (r1)); \
-	WRITE(--SP, (r2)); \
+	PUSH(r1, r2); \
 	cycleCounter += 4; \
 } while (0)
 
 //pop rr (12 cycles):
 //Pop two bytes off stack into register pair:
 #define pop_rr(r1, r2) do { \
-	READ(r2, SP++); \
-	READ(r1, SP++); \
+	READ(r2, SP); \
+	SP = SP + 1 & 0xFFFF; \
+	READ(r1, SP); \
+	SP = SP + 1 & 0xFFFF; \
 } while (0)
 
 //8-BIT ALU:
@@ -284,7 +296,8 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 #define add_a_u8(u8) do { \
 	HF1 = A; \
 	HF2 = u8; \
-	A = ZF = CF = A + HF2; \
+	ZF = CF = A + HF2; \
+	A = ZF & 0xFF; \
 } while (0)
 
 //adc a,r (4 cycles):
@@ -292,8 +305,9 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //Add 8-bit value+CF to A, check flags:
 #define adc_a_u8(u8) do { \
 	HF1 = A; \
-	HF2 = (CF & 0x100) | (u8); \
-	A = ZF = CF = ((CF >> 8) & 1) + (u8) + A; \
+	HF2 = CF & 0x100 | (u8); \
+	ZF = CF = (CF >> 8 & 1) + (u8) + A; \
+	A = ZF & 0xFF; \
 } while (0)
 
 //sub a,r (4 cycles):
@@ -302,7 +316,8 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 #define sub_a_u8(u8) do { \
 	HF1 = A; \
 	HF2 = u8; \
-	A = ZF = CF = A - HF2; \
+	ZF = CF = A - HF2; \
+	A = ZF & 0xFF; \
 	HF2 |= 0x400; \
 } while (0)
 
@@ -311,8 +326,9 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //Subtract CF and 8-bit value from A, check flags:
 #define sbc_a_u8(u8) do { \
 	HF1 = A; \
-	HF2 = 0x400 | (CF & 0x100) | (u8); \
-	A = ZF = CF = A - ((CF >> 8) & 1) - (u8); \
+	HF2 = 0x400 | CF & 0x100 | (u8); \
+	ZF = CF = A - ((CF >> 8) & 1) - (u8); \
+	A = ZF & 0xFF; \
 } while (0)
 
 //and a,r (4 cycles):
@@ -357,14 +373,16 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //Increment value of 8-bit register, check flags except CF:
 #define inc_r(r) do { \
 	HF2 = (r) | 0x800; \
-	(r) = ZF = (r) + 1; \
+	ZF = (r) + 1; \
+	(r) = ZF & 0xFF; \
 } while (0)
 
 //dec r (4 cycles):
 //Decrement value of 8-bit register, check flags except CF:
 #define dec_r(r) do { \
 	HF2 = (r) | 0xC00; \
-	(r) = ZF = (r) - 1; \
+	ZF = (r) - 1; \
+	(r) = ZF & 0xFF; \
 } while (0)
 
 //16-BIT ARITHMETIC
@@ -380,10 +398,12 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 } while (0)*/
 
 #define add_hl_rr(rh, rl) do { \
-	L = CF = L + (rl); \
+	CF = L + (rl); \
+	L = CF & 0xFF; \
 	HF1 = H; \
-	HF2 = (CF & 0x100) | (rh); \
-	H = CF = H + (CF >> 8) + (rh); \
+	HF2 = CF & 0x100 | (rh); \
+	CF = H + (CF >> 8) + (rh); \
+	H = CF & 0xFF; \
 	cycleCounter += 4; \
 } while (0)
 
@@ -391,8 +411,8 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //Increment 16-bit register:
 #define inc_rr(rh, rl) do { \
 	const unsigned inc_rr_var_tmp = (rl) + 1; \
-	(rl) = inc_rr_var_tmp; \
-	(rh) += inc_rr_var_tmp >> 8; \
+	(rl) = inc_rr_var_tmp & 0xFF; \
+	(rh) = (rh) + (inc_rr_var_tmp >> 8) & 0xFF; \
 	cycleCounter += 4; \
 } while (0)
 
@@ -400,19 +420,22 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 //Decrement 16-bit register:
 #define dec_rr(rh, rl) do { \
 	const unsigned dec_rr_var_tmp = (rl) - 1; \
-	(rl) = dec_rr_var_tmp; \
-	(rh) -= (dec_rr_var_tmp >> 8) & 1; \
+	(rl) = dec_rr_var_tmp & 0xFF; \
+	(rh) = (rh) - (dec_rr_var_tmp >> 8 & 1) & 0xFF; \
 	cycleCounter += 4; \
 } while (0)
 
 #define sp_plus_n(sumout) do { \
-	const unsigned sp_plus_n_var_n = int8_t(memory.pc_read(PC++, cycleCounter)); \
+	unsigned sp_plus_n_var_n; \
+	PC_READ(sp_plus_n_var_n); \
+	sp_plus_n_var_n = (sp_plus_n_var_n ^ 0x80) - 0x80; \
+	\
 	const unsigned sp_plus_n_var_sum = SP + sp_plus_n_var_n; \
 	CF = SP ^ sp_plus_n_var_n ^ sp_plus_n_var_sum; \
 	HF2 = CF << 5 & 0x200; \
 	ZF = 1; \
-	cycleCounter += 8; \
-	(sumout) = sp_plus_n_var_sum; \
+	cycleCounter += 4; \
+	(sumout) = sp_plus_n_var_sum & 0xFFFF; \
 } while (0)
 
 //JUMPS:
@@ -421,10 +444,10 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 #define jp_nn() do { \
 	unsigned jp_nn_var_l, jp_nn_var_h; \
 \
-	PC_READ(jp_nn_var_l, PC++); \
-	PC_READ(jp_nn_var_h, PC); \
+	PC_READ(jp_nn_var_l); \
+	PC_READ(jp_nn_var_h); \
 \
-	PC_MOD((jp_nn_var_h << 8) | jp_nn_var_l); \
+	PC_MOD(jp_nn_var_h << 8 | jp_nn_var_l); \
 } while (0)
 
 //jr disp (12 cycles):
@@ -432,27 +455,24 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 #define jr_disp() do { \
 	unsigned jr_disp_var_tmp; \
 \
-	PC_READ(jr_disp_var_tmp, PC++); \
+	PC_READ(jr_disp_var_tmp); \
+	jr_disp_var_tmp = (jr_disp_var_tmp ^ 0x80) - 0x80; \
 \
-	PC_MOD(PC + static_cast<int8_t>(jr_disp_var_tmp)); \
+	PC_MOD(PC + jr_disp_var_tmp & 0xFFFF); \
 } while (0)
 
 //CALLS, RESTARTS AND RETURNS:
 //call nn (24 cycles):
 //Push address of next instruction onto stack and then jump to address stored in next two bytes in memory:
 #define call_nn() do { \
-	WRITE(--SP, (PC + 2) >> 8); \
-	WRITE(--SP, (PC + 2) & 0xFF); \
-\
+	PUSH(PC + 2 >> 8 & 0xFF, PC + 2 & 0xFF); \
 	jp_nn(); \
 } while (0)
 
 //rst n (16 Cycles):
 //Push present address onto stack, jump to address n (one of 00h,08h,10h,18h,20h,28h,30h,38h):
 #define rst_n(n) do { \
-	WRITE(--SP, PC >> 8); \
-	WRITE(--SP, PC & 0xFF); \
-\
+	PUSH(PC >> 8, PC & 0xFF); \
 	PC_MOD(n); \
 } while (0)
 
@@ -461,35 +481,32 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 #define ret() do { \
 	unsigned ret_var_l, ret_var_h; \
 \
-	READ(ret_var_l, SP++); \
-	READ(ret_var_h, SP++); \
+	pop_rr(ret_var_h, ret_var_l); \
 \
-	PC_MOD((ret_var_h << 8) | ret_var_l); \
+	PC_MOD(ret_var_h << 8 | ret_var_l); \
 } while (0)
 
-#include <iostream>
-
-void CPU::process(const unsigned cycles) {
+void CPU::process(const unsigned long cycles) {
 	memory.inc_endtime(cycles);
 	
-	uint8_t A = A_;
-	unsigned cycleCounter = cycleCounter_;
+	unsigned char A = A_;
+	unsigned long cycleCounter = cycleCounter_;
 	
 	while (memory.isActive()) {
-		uint16_t PC = PC_;
+		unsigned short PC = PC_;
 		
 		if (halted) {
 			if (cycleCounter < memory.getNextEventTime()) {
-				const unsigned cycles = memory.getNextEventTime() - cycleCounter;
-				cycleCounter += cycles + ((4 - (cycles & 3)) & 3);
+				const unsigned long cycles = memory.getNextEventTime() - cycleCounter;
+				cycleCounter += cycles + (4 - (cycles & 3) & 3);
 			}
 		} else while (cycleCounter < memory.getNextEventTime()) {
-			uint8_t opcode;
+			unsigned char opcode;
 			
-			PC_READ(opcode, PC++);
+			PC_READ(opcode);
 			
 			if (skip) {
-				--PC;
+				PC = PC - 1 & 0xFFFF;
 				skip = false;
 			}
 			
@@ -514,14 +531,14 @@ void CPU::process(const unsigned cycles) {
 				dec_r(B);
 				break;
 			case 0x06:
-				PC_READ(B, PC++);
+				PC_READ(B);
 				break;
 
 				//rlca (4 cycles):
 				//Rotate 8-bit register A left, store old bit7 in CF. Reset SF, HCF, ZF:
 			case 0x07:
 				CF = A << 1;
-				A = CF | (CF >> 8);
+				A = (CF | CF >> 8) & 0xFF;
 				HF2 = 0;
 				ZF = 1;
 				break;
@@ -532,13 +549,13 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned l, h;
 					
-					PC_READ(l, PC++);
-					PC_READ(h, PC++);
+					PC_READ(l);
+					PC_READ(h);
 					
 					const unsigned addr = h << 8 | l;
 					
 					WRITE(addr, SP & 0xFF);
-					WRITE(addr + 1, SP >> 8);
+					WRITE(addr + 1 & 0xFFFF, SP >> 8);
 				}
 				break;
 
@@ -558,14 +575,14 @@ void CPU::process(const unsigned cycles) {
 				dec_r(C);
 				break;
 			case 0x0E:
-				PC_READ(C, PC++);
+				PC_READ(C);
 				break;
 
 				//rrca (4 cycles):
 				//Rotate 8-bit register A right, store old bit0 in CF. Reset SF, HCF, ZF:
 			case 0x0F:
-				CF = (A << 8) | A;
-				A = CF >> 1;
+				CF = A << 8 | A;
+				A = CF >> 1 & 0xFF;
 				HF2 = 0;
 				ZF = 1;
 				break;
@@ -574,7 +591,7 @@ void CPU::process(const unsigned cycles) {
 				//Halt CPU and LCD display until button pressed:
 			case 0x10:
 				memory.speedChange(cycleCounter);
-				++PC;
+				PC = PC + 1 & 0xFFFF;
 				break;
 			case 0x11:
 				ld_rr_nn(D, E);
@@ -592,16 +609,16 @@ void CPU::process(const unsigned cycles) {
 				dec_r(D);
 				break;
 			case 0x16:
-				PC_READ(D, PC++);
+				PC_READ(D);
 				break;
 
 				//rla (4 cycles):
 				//Rotate 8-bit register A left through CF, store old bit7 in CF, old CF value becomes bit0. Reset SF, HCF, ZF:
 			case 0x17:
 				{
-					const unsigned oldcf = (CF >> 8) & 1;
+					const unsigned oldcf = CF >> 8 & 1;
 					CF = A << 1;
-					A = CF | oldcf;
+					A = (CF | oldcf) & 0xFF;
 				}
 				
 				HF2 = 0;
@@ -627,7 +644,7 @@ void CPU::process(const unsigned cycles) {
 				dec_r(E);
 				break;
 			case 0x1E:
-				PC_READ(E, PC++);
+				PC_READ(E);
 				break;
 
 				//rra (4 cycles):
@@ -649,8 +666,7 @@ void CPU::process(const unsigned cycles) {
 				if (ZF & 0xFF) {
 					jr_disp();
 				} else {
-					PC++;
-					cycleCounter += 4;
+					PC_MOD(PC + 1 & 0xFFFF);
 				}
 				break;
 
@@ -666,7 +682,7 @@ void CPU::process(const unsigned cycles) {
 					
 					WRITE(addr, A);
 					
-					++addr;
+					addr = addr + 1 & 0xFFFF;
 					L = addr;
 					H = addr >> 8;
 				}
@@ -682,7 +698,7 @@ void CPU::process(const unsigned cycles) {
 				dec_r(H);
 				break;
 			case 0x26:
-				PC_READ(H, PC++);
+				PC_READ(H);
 				break;
 
 
@@ -725,6 +741,7 @@ void CPU::process(const unsigned cycles) {
 					
 					CF = correction << 2 & 0x100;
 					ZF = A;
+					A &= 0xFF;
 				}
 				break;
 
@@ -732,8 +749,7 @@ void CPU::process(const unsigned cycles) {
 			//Jump to value of next (signed) byte in memory+current address if ZF is set:
 			case 0x28:
 				if (ZF & 0xFF) {
-					PC++;
-					cycleCounter += 4;
+					PC_MOD(PC + 1 & 0xFFFF);
 				} else {
 					jr_disp();
 				}
@@ -753,7 +769,7 @@ void CPU::process(const unsigned cycles) {
 					
 					READ(A, addr);
 					
-					++addr;
+					addr = addr + 1 & 0xFFFF;
 					L = addr;
 					H = addr >> 8;
 				}
@@ -769,22 +785,21 @@ void CPU::process(const unsigned cycles) {
 				dec_r(L);
 				break;
 			case 0x2E:
-				PC_READ(L, PC++);
+				PC_READ(L);
 				break;
 
 				//cpl (4 cycles):
 				//Complement register A. (Flip all bits), set SF and HCF:
 			case 0x2F: /*setSubtractFlag(); setHalfCarryFlag();*/
 				HF2 = 0x600;
-				A = ~A;
+				A ^= 0xFF;
 				break;
 
 				//jr nc,disp (12;8 cycles):
 				//Jump to value of next (signed) byte in memory+current address if CF is unset:
 			case 0x30:
 				if (CF & 0x100) {
-					++PC;
-					cycleCounter += 4;
+					PC_MOD(PC + 1 & 0xFFFF);
 				} else {
 					jr_disp();
 				}
@@ -796,8 +811,8 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned l, h;
 					
-					PC_READ(l, PC++);
-					PC_READ(h, PC++);
+					PC_READ(l);
+					PC_READ(h);
 					
 					SP = h << 8 | l;
 				}
@@ -811,14 +826,14 @@ void CPU::process(const unsigned cycles) {
 					
 					WRITE(addr, A);
 					
-					--addr;
+					addr = addr - 1 & 0xFFFF;
 					L = addr;
 					H = addr >> 8;
 				}
 				break;
 
 			case 0x33:
-				++SP;
+				SP = SP + 1 & 0xFFFF;
 				cycleCounter += 4;
 				break;
 
@@ -830,7 +845,7 @@ void CPU::process(const unsigned cycles) {
 					
 					READ(HF2, addr);
 					ZF = HF2 + 1;
-					WRITE(addr, ZF);
+					WRITE(addr, ZF & 0xFF);
 					HF2 |= 0x800;
 				}
 				break;
@@ -843,7 +858,7 @@ void CPU::process(const unsigned cycles) {
 					
 					READ(HF2, addr);
 					ZF = HF2 - 1;
-					WRITE(addr, ZF);
+					WRITE(addr, ZF & 0xFF);
 					HF2 |= 0xC00;
 				}
 				break;
@@ -854,7 +869,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned tmp;
 					
-					PC_READ(tmp, PC++);
+					PC_READ(tmp);
 					WRITE(HL(), tmp);
 				}
 				break;
@@ -872,20 +887,20 @@ void CPU::process(const unsigned cycles) {
 				if (CF & 0x100) {
 					jr_disp();
 				} else {
-					++PC;
-					cycleCounter += 4;
+					PC_MOD(PC + 1 & 0xFFFF);
 				}
 				break;
 
 				//add hl,sp (8 cycles):
 				//add SP to HL, check flags except ZF:
 			case 0x39: /*add_hl_rr(SP>>8, SP); break;*/
-				L = CF = L + SP;
+				CF = L + SP;
+				L = CF & 0xFF;
 				HF1 = H;
 				HF2 = (CF ^ SP) & 0x100 | SP >> 8;
 				CF >>= 8;
 				CF += H;
-				H = CF;
+				H = CF & 0xFF;
 				cycleCounter += 4;
 				break;
 
@@ -898,14 +913,14 @@ void CPU::process(const unsigned cycles) {
 					A = memory.read(addr, cycleCounter);
 					cycleCounter += 4;
 					
-					--addr;
+					addr = addr - 1 & 0xFFFF;
 					L = addr;
 					H = addr >> 8;
 				}
 				break;
 
 			case 0x3B:
-				--SP;
+				SP = SP - 1 & 0xFFFF;
 				cycleCounter += 4;
 				break;
 			case 0x3C:
@@ -915,7 +930,7 @@ void CPU::process(const unsigned cycles) {
 				dec_r(A);
 				break;
 			case 0x3E:
-				PC_READ(A, PC++);
+				PC_READ(A);
 				break;
 
 				//ccf (4 cycles):
@@ -1097,8 +1112,8 @@ void CPU::process(const unsigned cycles) {
 					halted = 1;
 
 					if (cycleCounter < memory.getNextEventTime()) {
-						const unsigned cycles = memory.getNextEventTime() - cycleCounter;
-						cycleCounter += cycles + ((4 - (cycles & 3)) & 3);
+						const unsigned long cycles = memory.getNextEventTime() - cycleCounter;
+						cycleCounter += cycles + (4 - (cycles & 3) & 3);
 					}
 				} else {
 					if ((memory.ff_read(0xFF0F, cycleCounter) & memory.ff_read(0xFFFF, cycleCounter)) & 0x1F) {
@@ -1111,8 +1126,8 @@ void CPU::process(const unsigned cycles) {
 						halted = 1;
 						
 						if (cycleCounter < memory.getNextEventTime()) {
-							const unsigned cycles = memory.getNextEventTime() - cycleCounter;
-							cycleCounter += cycles + ((4 - (cycles & 3)) & 3);
+							const unsigned long cycles = memory.getNextEventTime() - cycleCounter;
+							cycleCounter += cycles + (4 - (cycles & 3) & 3);
 						}
 					}
 				}
@@ -1415,7 +1430,7 @@ void CPU::process(const unsigned cycles) {
 				if (ZF & 0xFF) {
 					jp_nn();
 				} else {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				}
 				break;
@@ -1430,7 +1445,7 @@ void CPU::process(const unsigned cycles) {
 				if (ZF & 0xFF) {
 					call_nn();
 				} else {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				}
 				break;
@@ -1442,7 +1457,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 					
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					add_a_u8(data);
 				}
@@ -1472,7 +1487,7 @@ void CPU::process(const unsigned cycles) {
 				//Jump to address stored in next two bytes in memory if ZF is set:
 			case 0xCA:
 				if (ZF & 0xFF) {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				} else {
 					jp_nn();
@@ -1482,7 +1497,7 @@ void CPU::process(const unsigned cycles) {
 
 				//CB OPCODES (Shifts, rotates and bits):
 			case 0xCB:
-				PC_READ(opcode, PC++);
+				PC_READ(opcode);
 				
 				switch (opcode) {
 				case 0x00:
@@ -1514,7 +1529,7 @@ void CPU::process(const unsigned cycles) {
 						
 						ZF = CF | (CF >> 8);
 
-						WRITE(addr, ZF);
+						WRITE(addr, ZF & 0xFF);
 						
 						HF2 = 0;
 					}
@@ -1550,7 +1565,7 @@ void CPU::process(const unsigned cycles) {
 						
 						CF = ZF << 8;
 						
-						WRITE(addr, (ZF | CF) >> 1);
+						WRITE(addr, (ZF | CF) >> 1 & 0xFF);
 						
 						HF2 = 0;
 					}
@@ -1581,14 +1596,14 @@ void CPU::process(const unsigned cycles) {
 				case 0x16:
 					{
 						const unsigned addr = HL();
-						const unsigned oldcf = (CF >> 8) & 1;
+						const unsigned oldcf = CF >> 8 & 1;
 						
 						READ(CF, addr);
 						CF <<= 1;
 						
 						ZF = CF | oldcf;
 						
-						WRITE(addr, ZF);
+						WRITE(addr, ZF & 0xFF);
 						
 						HF2 = 0;
 					}
@@ -1663,7 +1678,7 @@ void CPU::process(const unsigned cycles) {
 						
 						ZF = CF;
 						
-						WRITE(addr, ZF);
+						WRITE(addr, ZF & 0xFF);
 						
 						HF2 = 0;
 					}
@@ -1699,7 +1714,7 @@ void CPU::process(const unsigned cycles) {
 						
 						ZF = CF >> 1;
 						
-						WRITE(addr, ZF | (CF&0x80));
+						WRITE(addr, ZF | CF & 0x80);
 						
 						CF <<= 8;
 						HF2 = 0;
@@ -1734,7 +1749,7 @@ void CPU::process(const unsigned cycles) {
 						
 						READ(ZF, addr);
 						
-						WRITE(addr, (ZF << 4) | (ZF >> 4));
+						WRITE(addr, (ZF << 4 | ZF >> 4) & 0xFF);
 						
 						CF = HF2 = 0;
 					}
@@ -2412,7 +2427,7 @@ void CPU::process(const unsigned cycles) {
 				//Push address of next instruction onto stack and then jump to address stored in next two bytes in memory, if ZF is set:
 			case 0xCC:
 				if (ZF & 0xFF) {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				} else {
 					call_nn();
@@ -2426,7 +2441,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 					
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					adc_a_u8(data);
 				}
@@ -2454,7 +2469,7 @@ void CPU::process(const unsigned cycles) {
 				//Jump to address stored in next two bytes in memory if CF is unset:
 			case 0xD2:
 				if (CF & 0x100) {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				} else {
 					jp_nn();
@@ -2468,7 +2483,7 @@ void CPU::process(const unsigned cycles) {
 				//Push address of next instruction onto stack and then jump to address stored in next two bytes in memory, if CF is unset:
 			case 0xD4:
 				if (CF & 0x100) {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				} else {
 					call_nn();
@@ -2482,7 +2497,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 					
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					sub_a_u8(data);
 				}
@@ -2508,8 +2523,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned l, h;
 					
-					READ(l, SP++);
-					READ(h, SP++);
+					pop_rr(h, l);
 					
 					memory.ei(cycleCounter);
 					
@@ -2523,7 +2537,7 @@ void CPU::process(const unsigned cycles) {
 				if (CF & 0x100) {
 					jp_nn();
 				} else {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				}
 				break;
@@ -2537,7 +2551,7 @@ void CPU::process(const unsigned cycles) {
 				if (CF & 0x100) {
 					call_nn();
 				} else {
-					PC_MOD(PC + 2);
+					PC_MOD(PC + 2 & 0xFFFF);
 					cycleCounter += 4;
 				}
 				break;
@@ -2546,7 +2560,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 					
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					sbc_a_u8(data);
 				}
@@ -2561,9 +2575,9 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned tmp;
 					
-					PC_READ(tmp, PC++);
+					PC_READ(tmp);
 					
-					FF_WRITE((0xFF00 | tmp), A);
+					FF_WRITE(0xFF00 | tmp, A);
 				}
 				break;
 
@@ -2574,7 +2588,7 @@ void CPU::process(const unsigned cycles) {
 				//ld ($FF00+C),a (8 ycles):
 				//Put A into address (0xFF00 + register C):
 			case 0xE2:
-				FF_WRITE((0xFF00 | C), A);
+				FF_WRITE(0xFF00 | C, A);
 				break;
 			case 0xE3: /*doesn't exist*/
 				break;
@@ -2587,7 +2601,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 					
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					and_a_u8(data);
 				}
@@ -2625,8 +2639,8 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned l, h;
 					
-					PC_READ(l, PC++);
-					PC_READ(h, PC++);
+					PC_READ(l);
+					PC_READ(h);
 					
 					WRITE(h << 8 | l, A);
 				}
@@ -2642,7 +2656,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 					
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					xor_a_u8(data);
 				}
@@ -2657,7 +2671,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned tmp;
 					
-					PC_READ(tmp, PC++);
+					PC_READ(tmp);
 					
 					FF_READ(A, 0xFF00 | tmp);
 				}
@@ -2667,15 +2681,13 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned F;
 					
-					READ(F, SP++);
+					pop_rr(A, F);
 					
 					ZF = (F & 0x80) ^ 0x80;
 					F <<= 4;
 					HF2 = F & 0x600;
 					CF = F & 0x100;
 				}
-				
-				READ(A, SP++);
 				break;
 
 				//ld a,($FF00+C) (8 cycles):
@@ -2698,8 +2710,10 @@ void CPU::process(const unsigned cycles) {
 					unsigned F = HF2 & 0x600;
 					F |= CF & 0x100;
 					F >>= 4;
-					unsigned tmp = (!(ZF & 0xFF)) << 7;
-					F |= tmp;
+					
+					if (!(ZF & 0xFF))
+						F |= 0x80;
+					
 					push_rr(A, F);
 				}
 				break;
@@ -2708,7 +2722,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					or_a_u8(data);
 				}
@@ -2733,7 +2747,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned sum;
 					sp_plus_n(sum);
-					L = sum;
+					L = sum & 0xFF;
 					H = sum >> 8;
 				}
 				break;
@@ -2751,8 +2765,8 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned l, h;
 					
-					PC_READ(l, PC++);
-					PC_READ(h, PC++);
+					PC_READ(l);
+					PC_READ(h);
 					
 					READ(A, h << 8 | l);
 				}
@@ -2772,7 +2786,7 @@ void CPU::process(const unsigned cycles) {
 				{
 					unsigned data;
 
-					PC_READ(data, PC++);
+					PC_READ(data);
 					
 					cp_a_u8(data);
 				}

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,8 +19,6 @@
 #ifndef VIDEO_EVENT_H
 #define VIDEO_EVENT_H
 
-#include <stdint.h>
-
 class VideoEvent {
 	unsigned long time_;
 	const unsigned char priority_;
@@ -31,6 +29,8 @@ protected:
 	}
 	
 public:
+	static const unsigned long DISABLED_TIME = 0xFFFFFFFF;
+	
 	VideoEvent(const unsigned priority_in) :
 		priority_(priority_in)
 	{}

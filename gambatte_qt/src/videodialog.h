@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -27,9 +27,12 @@ class QVBoxLayout;
 class QHBoxLayout;
 class QComboBox;
 class QCheckBox;
-class FilterInfo;
 class BlitterWidget;
 class FullResToggler;
+
+namespace Gambatte {
+class FilterInfo;
+}
 
 #include "resinfo.h"
 
@@ -69,7 +72,7 @@ private slots:
 	void integerScalingChange(bool checked);
 
 public:
-	VideoDialog(const std::vector<BlitterWidget*> &engines, std::vector<const FilterInfo*> filterInfo, const FullResToggler &resHandler, QWidget *parent = 0);
+	VideoDialog(const std::vector<BlitterWidget*> &engines, std::vector<const Gambatte::FilterInfo*> filterInfo, const FullResToggler &resHandler, QWidget *parent = 0);
 	~VideoDialog();
 	const int engine() const;
 	const QSize winRes() const;

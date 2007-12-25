@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -124,11 +124,11 @@ void DirectDrawBlitter::blit() {
 		std::cout << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK, NULL) failed" << std::endl;
 	
 	pixb.pixels = ddsd.lpSurface;
-	pixb.pitch = pixb.format == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2);
+	pixb.pitch = pixb.format == Gambatte::PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2);
 	resetVideoBuffer();
 }
 
-const PixelBuffer DirectDrawBlitter::inBuffer() {
+const Gambatte::PixelBuffer DirectDrawBlitter::inBuffer() {
 	return pixb;
 }
 
@@ -241,22 +241,22 @@ bool DirectDrawBlitter::restoreSurfaces() {
 	return false;
 }
 
-static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer *const pixb, LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
+static void setDdPf(DDPIXELFORMAT *const ddpf, Gambatte::PixelBuffer *const pixb, LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
 	bool alpha = false;
 
 	ddpf->dwSize = sizeof(DDPIXELFORMAT);
 	
 	if (lpDDSPrimary && lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK && (ddpf->dwFlags & DDPF_RGB) && ddpf->dwRGBBitCount == 16) {
-		pixb->format = PixelBuffer::RGB16;
+		pixb->format = Gambatte::PixelBuffer::RGB16;
 	} else {
-		pixb->format = PixelBuffer::RGB32;
+		pixb->format = Gambatte::PixelBuffer::RGB32;
 		alpha = ddpf->dwFlags & DDPF_ALPHAPIXELS;
 	}
 	
 	std::memset(ddpf, 0, sizeof(DDPIXELFORMAT));
 	ddpf->dwFlags = DDPF_RGB;
 	
-	if (pixb->format == PixelBuffer::RGB16) {
+	if (pixb->format == Gambatte::PixelBuffer::RGB16) {
 		ddpf->dwRGBBitCount = 16;
 		ddpf->dwRBitMask = 0xF800;
 		ddpf->dwGBitMask = 0x07E0;
@@ -319,7 +319,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	}
 	
 	pixb.pixels = ddsd.lpSurface;
-	pixb.pitch = pixb.format == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2);
+	pixb.pitch = pixb.format == Gambatte::PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2);
 	
 	return;
 	

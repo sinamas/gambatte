@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,7 +22,6 @@
 template<typename T, class Comparer> class event_queue;
 class Wy;
 
-#include <stdint.h>
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
@@ -43,14 +42,14 @@ public:
 	
 	void reset() {
 		unset();
-		setTime(uint32_t(-1));
+		setTime(DISABLED_TIME);
 	}
 	
 	void schedule(const unsigned wy, const bool we, const unsigned long cycleCounter) {
 		if (we && wy < 143)
 			setTime(lyCounter.nextFrameCycle(wy * 456ul + 448 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
 		else
-			setTime(uint32_t(-1));
+			setTime(DISABLED_TIME);
 	}
 	
 	void unset() {

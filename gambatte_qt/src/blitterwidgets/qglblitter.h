@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -32,7 +32,7 @@ class QGLBlitter : public BlitterWidget {
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vsyncBox;
 	QCheckBox *const bfBox;
-	uint32_t *buffer;
+	quint32 *buffer;
 	unsigned hz;
 	bool vsync;
 	bool bf;
@@ -53,7 +53,7 @@ public:
 	void scaleByInteger(bool enable);
 	bool scalesByInteger();
 	void setBufferDimensions(unsigned int width, unsigned int height);
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	void blit();
 	const Rational frameTime() const;
 	int sync(bool turbo);

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,7 +22,7 @@
 #include <videoblitter.h>
 #include <SDL.h>
 
-class SdlBlitter : public VideoBlitter {
+class SdlBlitter : public Gambatte::VideoBlitter {
 	SDL_Surface *screen;
 	SDL_Surface *surface;
 	SDL_Overlay *overlay;
@@ -36,7 +36,7 @@ public:
 	SdlBlitter(bool startFull = false, Uint8 scale = 1, bool yuv = false);
 	~SdlBlitter();
 	void setBufferDimensions(unsigned int width, unsigned int height);
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	void blit();
 	void toggleFullScreen();
 	void setScale(const Uint8 scale) { if (!screen) this->scale = scale; }

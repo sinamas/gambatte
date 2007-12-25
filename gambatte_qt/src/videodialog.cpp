@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -34,7 +34,7 @@
 
 #include "fullrestoggler.h"
 
-VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters, std::vector<const FilterInfo*> filterInfo, const FullResToggler& resHandler, QWidget *parent) :
+VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters, std::vector<const Gambatte::FilterInfo*> filterInfo, const FullResToggler& resHandler, QWidget *parent) :
 QDialog(parent),
 engines(blitters),
 resVector(resHandler.resVector()),

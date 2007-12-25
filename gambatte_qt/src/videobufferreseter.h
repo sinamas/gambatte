@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,13 +19,15 @@
 #ifndef VIDEOBUFFERRESETER_H
 #define VIDEOBUFFERRESETER_H
 
-class Gambatte;
+namespace Gambatte {
+class GB;
+}
 
 class VideoBufferReseter {
-	Gambatte &gambatte;
+	Gambatte::GB &gambatte;
 	
 public:
-	VideoBufferReseter(Gambatte &gambatte_in);
+	VideoBufferReseter(Gambatte::GB &gambatte_in);
 	void operator()();
 };
 

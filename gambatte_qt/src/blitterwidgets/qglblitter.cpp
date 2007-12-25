@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -98,7 +98,7 @@ public:
 		}
 	}
 	
-	void updateTexture(uint32_t *buffer);
+	void updateTexture(quint32 *buffer);
 	
 	void uninit();
 };
@@ -274,7 +274,7 @@ void QGLBlitter::SubWidget::uninit() {
 	initialized = false;
 }
 
-void QGLBlitter::SubWidget::updateTexture(uint32_t *const buffer) {
+void QGLBlitter::SubWidget::updateTexture(quint32 *const buffer) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, textureRes - inHeight, inWidth, inHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
 }
 
@@ -352,14 +352,14 @@ bool QGLBlitter::scalesByInteger() {
 
 void QGLBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
 	delete []buffer;
-	buffer = new uint32_t[width * height];
+	buffer = new quint32[width * height];
 	
 	subWidget->setBufferDimensions(width, height);
 }
 
-const PixelBuffer QGLBlitter::inBuffer() {
-	PixelBuffer pixb;
-	pixb.format = PixelBuffer::RGB32;
+const Gambatte::PixelBuffer QGLBlitter::inBuffer() {
+	Gambatte::PixelBuffer pixb;
+	pixb.format = Gambatte::PixelBuffer::RGB32;
 	pixb.pixels = buffer;
 	pixb.pitch = subWidget->getInWidth();
 	

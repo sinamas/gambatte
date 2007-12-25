@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -28,7 +28,7 @@ IrqEvent::IrqEvent(event_queue<VideoEvent*,VideoEventComparer> &irqEventQueue_in
 void IrqEvent::doEvent() {
 	irqEventQueue.top()->doEvent();
 	
-	if (irqEventQueue.top()->time() == uint32_t(-1))
+	if (irqEventQueue.top()->time() == DISABLED_TIME)
 		irqEventQueue.pop();
 	else
 		irqEventQueue.modify_root(irqEventQueue.top());

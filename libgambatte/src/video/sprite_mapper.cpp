@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,7 +26,7 @@
 
 SpriteMapper::SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
              const ScxReader &scxReader_in,
-             const uint8_t *const oamram_in) :
+             const unsigned char *const oamram_in) :
 	VideoEvent(2),
 	spriteSizeReader(spriteSizeReader_in),
 	scxReader(scxReader_in),
@@ -156,7 +156,7 @@ void SpriteMapper::doEvent() {
 
 void SpriteMapper::reset() {
 	mapSprites();
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 /*void SpriteMapper::schedule() {
@@ -170,7 +170,7 @@ void addEvent(SpriteMapper &event, event_queue<VideoEvent*,VideoEventComparer> &
 	const unsigned oldTime = event.time();
 	event.schedule();
 	
-	if (oldTime == uint32_t(-1))
+	if (oldTime == DISABLED_TIME)
 		queue.push(&event);
 	else if (oldTime > event.time()) {
 		queue.dec(&event, &event);

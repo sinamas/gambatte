@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -72,7 +72,7 @@ public:
 	bool scalesByInteger();
 	int sync(bool turbo);
 	void setBufferDimensions(const unsigned int width, const unsigned int height);
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	void blit();
 	
 	QWidget* settingsWidget() { return confWidget.get(); }

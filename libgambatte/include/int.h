@@ -16,38 +16,47 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef MODE3_EVENT_H
-#define MODE3_EVENT_H
+#ifndef GAMBATTE_INT_H
+#define GAMBATTE_INT_H
 
-class Mode0Irq;
-class IrqEvent;
+#ifdef HAVE_CSTDINT
 
-#include "video_event.h"
-#include "video_event_comparer.h"
-#include "../event_queue.h"
+#include <cstdint>
 
-class Mode3Event : public VideoEvent {
-	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
-	event_queue<VideoEvent*,VideoEventComparer> &vEventQueue;
-	Mode0Irq &mode0Irq;
-	IrqEvent &irqEvent;
-	
-public:
-	Mode3Event(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
-	           event_queue<VideoEvent*,VideoEventComparer> &vEventQueue_in,
-	           Mode0Irq &mode0Irq_in, IrqEvent &irqEvent_in);
-	
-	void doEvent();
-	
-	void reset() {
-		setTime(DISABLED_TIME);
-	}
-	
-	void schedule() {
-		setTime(m3EventQueue.top()->time());
-	}
-};
+namespace Gambatte {
+using std::uint_least32_t;
+using std::uint_least16_t;
+}
 
-void addEvent(Mode3Event &event, event_queue<VideoEvent*,VideoEventComparer> &queue);
+#elif defined(HAVE_STDINT_H)
+
+#include <stdint.h>
+
+namespace Gambatte {
+using ::uint_least32_t;
+using ::uint_least16_t;
+}
+
+#else
+
+namespace Gambatte {
+#ifdef CHAR_LEAST_32
+typedef unsigned char uint_least32_t;
+#elif defined(SHORT_LEAST_32)
+typedef unsigned short uint_least32_t;
+#elif defined(INT_LEAST_32)
+typedef unsigned uint_least32_t;
+#else
+typedef unsigned long uint_least32_t;
+#endif
+
+#ifdef CHAR_LEAST_16
+typedef unsigned char uint_least16_t;
+#else
+typedef unsigned short uint_least16_t;
+#endif
+}
+
+#endif
 
 #endif

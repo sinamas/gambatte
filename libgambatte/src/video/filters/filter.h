@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,36 +15,36 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #ifndef FILTER_H
 #define FILTER_H
 
-#include <stdint.h>
+#include "int.h"
 
 class Rgb32Putter {
 public:
-	typedef uint32_t pixel_t;
+	typedef Gambatte::uint_least32_t pixel_t;
 	
-	void operator()(pixel_t *const dest, const unsigned rgb32) {
+	void operator()(pixel_t *const dest, const unsigned long rgb32) {
 		*dest = rgb32;
 	}
 };
 
 class Rgb16Putter {
 public:
-	typedef uint16_t pixel_t;
+	typedef Gambatte::uint_least16_t pixel_t;
 	
-	static unsigned toRgb16(const unsigned rgb32) {
+	static unsigned toRgb16(const unsigned long rgb32) {
 		return rgb32 >> 8 & 0xF800 | rgb32 >> 5 & 0x07E0 | rgb32 >> 3 & 0x001F;
 	}
 	
-	void operator()(pixel_t *const dest, const unsigned rgb32) {
+	void operator()(pixel_t *const dest, const unsigned long rgb32) {
 		*dest = toRgb16(rgb32);
 	}
 };
 
 class UyvyPutter {
-	static void convert(unsigned &y, unsigned &u, unsigned &v, const unsigned rgb32) {
+	static void convert(unsigned &y, unsigned &u, unsigned &v, const unsigned long rgb32) {
 		const unsigned r = rgb32 >> 16;
 		const unsigned g = rgb32 >> 8 & 0xFF;
 		const unsigned b = rgb32 & 0xFF;
@@ -55,43 +55,49 @@ class UyvyPutter {
 	}
 	
 public:
-	typedef uint32_t pixel_t;
+	typedef Gambatte::uint_least32_t pixel_t;
 	
-	static unsigned toUyvy(const unsigned rgb32) {
+	static unsigned long toUyvy(const unsigned long rgb32) {
 		unsigned y, u, v;
 		convert(y, u, v, rgb32);
 		
 #ifdef WORDS_BIGENDIAN
-		return u << 24 | y << 16 | v << 8 | y;
+		return static_cast<unsigned long>(u) << 24 | static_cast<unsigned long>(y) << 16 | v << 8 | y;
 #else
-		return y << 24 | v << 16 | y << 8 | u;
+		return static_cast<unsigned long>(y) << 24 | static_cast<unsigned long>(v) << 16 | y << 8 | u;
 #endif
 	}
 	
-	void operator()(pixel_t *const dest, const unsigned rgb32) {
+	void operator()(pixel_t *const dest, const unsigned long rgb32) {
+#ifdef CHAR_WIDTH_8
 		unsigned y, u, v;
 		convert(y, u, v, rgb32);
 		
-		uint8_t * d = reinterpret_cast<uint8_t*>(dest);
+		unsigned char *d = reinterpret_cast<unsigned char*>(dest);
 		*d++ = u;
 		*d++ = y;
 		*d++ = v;
 		*d++ = y;
+#else
+		*dest = toUyvy(rgb32);
+#endif
 	}
 };
 
+namespace Gambatte {
 struct FilterInfo;
+}
 
 class Filter {
 public:
 	virtual ~Filter() {}
 	virtual void init() {};
 	virtual void outit() {};
-	virtual const FilterInfo& info() = 0;
+	virtual const Gambatte::FilterInfo& info() = 0;
 	virtual void filter(Rgb32Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb32Putter putPixel) = 0;
 	virtual void filter(Rgb16Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb16Putter putPixel) = 0;
 	virtual void filter(UyvyPutter::pixel_t *const dbuffer, const unsigned pitch, UyvyPutter putPixel) = 0;
-	virtual uint32_t* inBuffer() = 0;
+	virtual Gambatte::uint_least32_t* inBuffer() = 0;
 	virtual unsigned inPitch() = 0;
 };
 

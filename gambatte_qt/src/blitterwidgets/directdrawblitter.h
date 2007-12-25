@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -39,7 +39,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	LPDIRECTDRAWSURFACE7 lpDDSSystem;
 	LPDIRECTDRAWSURFACE7 lpDDSVideo;
 	LPDIRECTDRAWCLIPPER lpClipper;
-	PixelBuffer pixb;
+	Gambatte::PixelBuffer pixb;
 	bool keepRatio;
 	bool integerScaling;
 	bool vblank;
@@ -66,7 +66,7 @@ public:
 	DirectDrawBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent = 0);
 	~DirectDrawBlitter();
 	void blit();
-	const PixelBuffer inBuffer();
+	const Gambatte::PixelBuffer inBuffer();
 	void init();
 	void keepAspectRatio(bool enable);
 	bool keepsAspectRatio();

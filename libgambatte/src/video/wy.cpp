@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,8 +22,6 @@
 #include "scx_reader.h"
 #include "../event_queue.h"
 
-#include <stdint.h>
-
 Wy::WyReader1::WyReader1(unsigned char &wy, const unsigned char &src, const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker) :
 	VideoEvent(3),
 	lyCounter(lyCounter),
@@ -37,7 +35,7 @@ void Wy::WyReader1::doEvent() {
 		wy = src;
 	}
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 Wy::WyReader2::WyReader2(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in) :
@@ -51,7 +49,7 @@ void Wy::WyReader2::doEvent() {
 	if (wy == lyCounter.ly() + 1 - lyCounter.isDoubleSpeed() && src > wy)
 		wy = src;
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 Wy::WyReader3::WyReader3(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in) :
@@ -65,7 +63,7 @@ void Wy::WyReader3::doEvent() {
 	if (src == lyCounter.ly() && wy > lyCounter.ly())
 		wy = src;
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const unsigned long cycleCounter) {
@@ -90,7 +88,7 @@ Wy::WyReader4::WyReader4(unsigned char &wy_in, const unsigned char &src_in) :
 void Wy::WyReader4::doEvent() {
 	wy = src;
 	
-	setTime(uint32_t(-1));
+	setTime(DISABLED_TIME);
 }
 
 Wy::Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker) :
@@ -117,7 +115,7 @@ void addEvent(Wy::WyReader3 &event, const unsigned wxSrc, const ScxReader &scxRe
 	
 	event.schedule(wxSrc, scxReader, cycleCounter);
 	
-	if (oldTime == uint32_t(-1))
+	if (oldTime == VideoEvent::DISABLED_TIME)
 		queue.push(&event);
 	else if (oldTime != event.time()) {
 		if (event.time() > oldTime)

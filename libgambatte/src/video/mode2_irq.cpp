@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -34,7 +34,7 @@ Mode2Irq::Mode2Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in,
 void Mode2Irq::doEvent() {
 	const unsigned ly = lyCounter.ly() == 153 ? 0 : (lyCounter.ly() + 1);
 	
-	if (lycIrq.time() == uint32_t(-1) || (lycIrq.lycReg() != 0 && ly != (lycIrq.lycReg() + 1U)) || (lycIrq.lycReg() == 0 && ly > 1))
+	if (lycIrq.time() == DISABLED_TIME || (lycIrq.lycReg() != 0 && ly != (lycIrq.lycReg() + 1U)) || (lycIrq.lycReg() == 0 && ly > 1))
 		ifReg |= 2;
 	
 	setTime(time() + lyCounter.lineTime());

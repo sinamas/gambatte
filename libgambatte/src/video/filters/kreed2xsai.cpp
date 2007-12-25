@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 1999 Derek Liauw Kie Fa (Kreed)                         *
@@ -17,12 +17,12 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "kreed2xsai.h"
 #include "filterinfo.h"
 #include <cstring>
 
-static inline int getResult1(const unsigned a, const unsigned b, const unsigned c, const unsigned d) {
+static inline int getResult1(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
 	int x = 0;
 	int y = 0;
 	int r = 0;
@@ -40,7 +40,7 @@ static inline int getResult1(const unsigned a, const unsigned b, const unsigned 
 	return r;
 }
 
-static inline int getResult2(const unsigned a, const unsigned b, const unsigned c, const unsigned d) {
+static inline int getResult2(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
 	int x = 0;
 	int y = 0;
 	int r = 0;
@@ -58,32 +58,32 @@ static inline int getResult2(const unsigned a, const unsigned b, const unsigned 
 	return r;
 }
 
-static inline unsigned interpolate(const unsigned a, const unsigned b) {
+static inline unsigned long interpolate(const unsigned long a, const unsigned long b) {
 	return a + b - ((a ^ b) & 0x010101) >> 1;
 }
 
-static inline unsigned qInterpolate(const unsigned a, const unsigned b, const unsigned c, const unsigned d) {
-	const unsigned lowBits = (a & 0x030303) + (b & 0x030303) + (c & 0x030303) + (d & 0x030303) & 0x030303;
+static inline unsigned long qInterpolate(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
+	const unsigned long lowBits = (a & 0x030303) + (b & 0x030303) + (c & 0x030303) + (d & 0x030303) & 0x030303;
 	
 	return a + b + c + d - lowBits >> 2;
 }
 
 template<class PixelPutter>
 static void filter(typename PixelPutter::pixel_t *dstPtr, const unsigned dstPitch, PixelPutter putPixel,
-                   const uint32_t *srcPtr, const unsigned srcPitch, const unsigned width, unsigned height)
+		   const Gambatte::uint_least32_t *srcPtr, const unsigned srcPitch, const unsigned width, unsigned height)
 {
 	while (height--) {
-		const uint32_t *bP = srcPtr;
+		const Gambatte::uint_least32_t *bP = srcPtr;
 		typename PixelPutter::pixel_t *dP = dstPtr;
 		
 		for (unsigned finish = width; finish--;) {
-			register unsigned colorA, colorB;
-			unsigned colorC, colorD,
+			register unsigned long colorA, colorB;
+			unsigned long colorC, colorD,
 				colorE, colorF, colorG, colorH,
 				colorI, colorJ, colorK, colorL,
 				
 				colorM, colorN, colorO, colorP;
-			unsigned product, product1, product2;
+			unsigned long product, product1, product2;
 			
       //---------------------------------------
       // Map of the pixels:                    I|E F|J
@@ -216,8 +216,8 @@ Kreed_2xSaI::~Kreed_2xSaI() {
 void Kreed_2xSaI::init() {
 	delete []buffer;
 
-	buffer = new uint32_t[145 * 161];
-	std::memset(buffer, 0, 145 * 161 * sizeof(uint32_t));
+	buffer = new Gambatte::uint_least32_t[145 * 161];
+	std::memset(buffer, 0, 145ul * 161 * sizeof(Gambatte::uint_least32_t));
 }
 
 void Kreed_2xSaI::outit() {
@@ -225,13 +225,13 @@ void Kreed_2xSaI::outit() {
 	buffer = NULL;
 }
 
-const FilterInfo& Kreed_2xSaI::info() {
-	static FilterInfo fInfo = { "Kreed's 2xSaI", 160 * 2, 144 * 2 };
+const Gambatte::FilterInfo& Kreed_2xSaI::info() {
+	static Gambatte::FilterInfo fInfo = { "Kreed's 2xSaI", 160 * 2, 144 * 2 };
 	
 	return fInfo;
 }
 
-uint32_t* Kreed_2xSaI::inBuffer() {
+Gambatte::uint_least32_t* Kreed_2xSaI::inBuffer() {
 	return buffer;
 }
 

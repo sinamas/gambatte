@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,7 +15,7 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "sound.h"
 
 #include <cstring>
@@ -42,7 +42,7 @@ S) start step on sound power on.
 
 static const unsigned bufferSize = 35112 + 16 + 2048; //FIXME: DMA can prevent process from returning for up to 4096 cycles.
 
-void PSG::init(const uint8_t *const ioram, const bool cgb) {
+void PSG::init(const unsigned char *const ioram, const bool cgb) {
 	bufferPos = 0;
 	lastUpdate = 0x102A0;
 	enabled = true;
@@ -64,7 +64,7 @@ void PSG::reset() {
 }
 
 PSG::PSG() {
-	buffer = new uint32_t[bufferSize];
+	buffer = new Gambatte::uint_least32_t[bufferSize];
 }
 
 PSG::~PSG() {
@@ -72,7 +72,7 @@ PSG::~PSG() {
 }
 
 void PSG::accumulate_channels(const unsigned long cycles) {
-	uint32_t *const buf = buffer + bufferPos;
+	Gambatte::uint_least32_t *const buf = buffer + bufferPos;
 	
 	ch1.update(buf, soVol, cycles);
 	ch2.update(buf, soVol, cycles);
@@ -98,12 +98,12 @@ void PSG::resetCounter(const unsigned long newCc, const unsigned long oldCc, con
 	lastUpdate = newCc - (oldCc - lastUpdate);
 }
 
-void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
+void PSG::fill_buffer(Gambatte::uint_least16_t *stream, const unsigned samples) {
 	const unsigned long endPos = std::min(bufferPos, 35112U);
 	
 	if (stream && samples && endPos >= samples) {
-		uint16_t *const streamEnd = stream + samples * 2;
-		const uint32_t *buf = buffer;
+		Gambatte::uint_least16_t *const streamEnd = stream + samples * 2;
+		const Gambatte::uint_least32_t *buf = buffer;
 	
 		const unsigned long ratio = (endPos << 16) / samples;
 		
@@ -116,7 +116,7 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 			{
 				unsigned long soTmp = 0;
 				
-				for (const uint32_t *const end = buf + whole; buf != end;)
+				for (const Gambatte::uint_least32_t *const end = buf + whole; buf != end;)
 					soTmp += *buf++;
 				
 				so1 += soTmp & 0xFFFF0000;
@@ -145,7 +145,7 @@ void PSG::fill_buffer(uint16_t *stream, const unsigned samples) {
 	}
 
 	bufferPos -= endPos;
-	std::memmove(buffer, buffer + endPos, bufferPos * sizeof(uint32_t));
+	std::memmove(buffer, buffer + endPos, bufferPos * sizeof(Gambatte::uint_least32_t));
 }
 
 void PSG::set_so_volume(const unsigned nr50) {
