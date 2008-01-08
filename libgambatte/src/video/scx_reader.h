@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@
 #define SCX_READER_H
 
 template<typename T, class Comparer> class event_queue;
+class M3ExtraCycles;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
@@ -31,6 +32,7 @@ class ScxReader : public VideoEvent {
 	VideoEvent &wxReader;
 	VideoEvent &weEnableChecker;
 	VideoEvent &weDisableChecker;
+	M3ExtraCycles &m3ExtraCycles;
 	
 	unsigned char scxAnd7_;
 	unsigned char src;
@@ -43,7 +45,8 @@ public:
 // 	          VideoEvent &wyReader3_in,
 	          VideoEvent &wxReader_in,
 	          VideoEvent &weEnableChecker_in,
-	          VideoEvent &weDisableChecker_in);
+	          VideoEvent &weDisableChecker_in,
+	          M3ExtraCycles &m3ExtraCycles);
 	
 	void doEvent();
 	

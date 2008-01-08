@@ -33,7 +33,6 @@ sourceFiles = Split('''
 			src/video/sc_reader.cpp
 			src/video/scx_reader.cpp
 			src/video/sprite_mapper.cpp
-			src/video/sprite_size_reader.cpp
 			src/video/we_master_checker.cpp
 			src/video/we.cpp
 			src/video/wx_reader.cpp

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,18 +25,28 @@ class Wy;
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
+#include "m3_extra_cycles.h"
 
 class WeMasterChecker : public VideoEvent {
 	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
 	Wy &wy;
 	const LyCounter &lyCounter;
+	M3ExtraCycles &m3ExtraCycles;
 	
 	bool weMaster_;
+	
+	void set(const bool value) {
+		if (weMaster_ != value)
+			m3ExtraCycles.invalidateCache();
+		
+		weMaster_ = value;
+	}
 	
 public:
 	WeMasterChecker(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
 	                Wy &wy_in,
-	                const LyCounter &lyCounter_in);
+	                const LyCounter &lyCounter_in,
+	                M3ExtraCycles &m3ExtraCycles);
 	
 	void doEvent();
 	
@@ -53,7 +63,7 @@ public:
 	}
 	
 	void unset() {
-		weMaster_ = false;
+		set(false);
 	}
 	
 	bool weMaster() const {

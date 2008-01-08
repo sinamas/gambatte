@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -94,13 +94,10 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	m3EventQueue(11, VideoEventComparer()),
 	irqEventQueue(4, VideoEventComparer()),
 	vEventQueue(5, VideoEventComparer()),
-	m3ExtraCycles(*this),
-	weMasterChecker(m3EventQueue, wyReg, lyCounter),
-	wyReg(lyCounter, weMasterChecker),
-	wxReader(m3EventQueue, we.enableChecker(), we.disableChecker()),
-	spriteSizeReader(m3EventQueue, spriteMapper, lyCounter),
-	scxReader(m3EventQueue, /*wyReg.reader3(),*/ wxReader, we.enableChecker(), we.disableChecker()),
-	spriteMapper(spriteSizeReader, scxReader, oamram),
+	win(m3EventQueue, lyCounter, m3ExtraCycles),
+	scxReader(m3EventQueue, /*wyReg.reader3(),*/ win.wxReader, win.we.enableChecker(), win.we.disableChecker(), m3ExtraCycles),
+	spriteMapper(m3ExtraCycles, oamram),
+	m3ExtraCycles(spriteMapper, scxReader, win),
 	breakEvent(drawStartCycle, scReadOffset),
 	mode3Event(m3EventQueue, vEventQueue, mode0Irq, irqEvent),
 	lycIrq(ifReg),
@@ -158,10 +155,10 @@ void LCD::reset(const bool cgb_in) {
 	we = false;*/
 	
 	scxReader.setSource(0);
-	wxReader.setSource(0);
-	wyReg.setSource(0);
-	spriteSizeReader.setSource(false);
-	we.setSource(false);
+	win.wxReader.setSource(0);
+	win.wyReg.setSource(0);
+	spriteMapper.setLargeSpritesSource(false);
+	win.we.setSource(false);
 // 	weMasterChecker.setSource(false);
 	scReader.setScxSource(0);
 	scReader.setScySource(0);
@@ -178,8 +175,7 @@ void LCD::setDoubleSpeed(const bool ds) {
 	doubleSpeed = ds;
 	lyCounter.setDoubleSpeed(doubleSpeed);
 	scxReader.setDoubleSpeed(doubleSpeed);
-	wxReader.setDoubleSpeed(doubleSpeed);
-	spriteMapper.setDoubleSpeed(doubleSpeed);
+	win.wxReader.setDoubleSpeed(doubleSpeed);
 	scReader.setDoubleSpeed(doubleSpeed);
 	breakEvent.setDoubleSpeed(doubleSpeed);
 	lycIrq.setDoubleSpeed(doubleSpeed);
@@ -225,21 +221,20 @@ void LCD::resetVideoState(const unsigned statReg, const unsigned long cycleCount
 	vEventQueue.push(&lyCounter);
 	
 	scxReader.reset();
-	wxReader.reset();
-	wyReg.reset();
-	spriteSizeReader.reset();
+	win.wxReader.reset();
+	win.wyReg.reset();
 	spriteMapper.reset();
-	we.reset();
+	win.we.reset();
 	scReader.reset();
 	breakEvent.reset();
 	
 	mode3Event.reset();
 	
-	weMasterChecker.reset();
-	weMasterChecker.schedule(wyReg.getSource(), we.getSource(), cycleCounter);
+	win.weMasterChecker.reset();
+	win.weMasterChecker.schedule(win.wyReg.getSource(), win.we.getSource(), cycleCounter);
 	
-	if (weMasterChecker.time() != VideoEvent::DISABLED_TIME) {
-		m3EventQueue.push(&weMasterChecker);
+	if (win.weMasterChecker.time() != VideoEvent::DISABLED_TIME) {
+		m3EventQueue.push(&win.weMasterChecker);
 		mode3Event.schedule();
 		vEventQueue.push(&mode3Event);
 	}
@@ -266,6 +261,8 @@ void LCD::resetVideoState(const unsigned statReg, const unsigned long cycleCount
 	
 	irqEvent.schedule();
 	vEventQueue.push(&irqEvent);
+	
+	m3ExtraCycles.invalidateCache();
 }
 
 // static VideoBlitter *vBlitter = NULL;
@@ -402,24 +399,23 @@ void LCD::rescheduleEvents(const unsigned long cycleCounter) {
 	vEventQueue.push(&lyCounter);
 	
 	rescheduleIfActive(scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(spriteSizeReader, lyCounter, cycleCounter, m3EventQueue);
 	rescheduleIfActive(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(wxReader, scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(win.wxReader, scxReader, lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(win.wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(win.wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
 // 	rescheduleIfActive(wyReg.reader3(), scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(we.disableChecker(), scxReader, wxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(we.enableChecker(), scxReader, wxReader, lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(win.wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(win.we.disableChecker(), scxReader, win.wxReader, lyCounter, cycleCounter, m3EventQueue);
+	rescheduleIfActive(win.we.enableChecker(), scxReader, win.wxReader, lyCounter, cycleCounter, m3EventQueue);
 	
-	if (wyReg.reader3().time() != VideoEvent::DISABLED_TIME) {
-		wyReg.reader3().schedule(wxReader.getSource(), scxReader, cycleCounter);
-		m3EventQueue.push(&wyReg.reader3());
+	if (win.wyReg.reader3().time() != VideoEvent::DISABLED_TIME) {
+		win.wyReg.reader3().schedule(win.wxReader.getSource(), scxReader, cycleCounter);
+		m3EventQueue.push(&win.wyReg.reader3());
 	}
 	
-	if (weMasterChecker.time() != VideoEvent::DISABLED_TIME) {
-		weMasterChecker.schedule(wyReg.getSource(), we.getSource(), cycleCounter);
-		m3EventQueue.push(&weMasterChecker);
+	if (win.weMasterChecker.time() != VideoEvent::DISABLED_TIME) {
+		win.weMasterChecker.schedule(win.wyReg.getSource(), win.we.getSource(), cycleCounter);
+		m3EventQueue.push(&win.weMasterChecker);
 	}
 	
 	if (scReader.time() != VideoEvent::DISABLED_TIME) {
@@ -588,12 +584,12 @@ void LCD::weChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 // 	printf("%u: weChange: %u\n", videoCycles, newValue);
 	
-	addEvent(weMasterChecker, wyReg.getSource(), newValue, cycleCounter, m3EventQueue);
+	addEvent(win.weMasterChecker, win.wyReg.getSource(), newValue, cycleCounter, m3EventQueue);
 // 	addEvent(weMasterChecker, lyCounter, cycleCounter, m3EventQueue);
 	
-	we.setSource(newValue);
-	addEvent(we.disableChecker(), scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(we.enableChecker(), scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
+	win.we.setSource(newValue);
+	addEvent(win.we.disableChecker(), scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(win.we.enableChecker(), scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 }
@@ -602,11 +598,11 @@ void LCD::wxChange(const unsigned newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 // 	printf("%u: wxChange: 0x%X\n", videoCycles, newValue);
 	
-	wxReader.setSource(newValue);
-	addEvent(wxReader, scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
+	win.wxReader.setSource(newValue);
+	addEvent(win.wxReader, scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
 	
-	if (wyReg.reader3().time() != VideoEvent::DISABLED_TIME)
-		addEvent(wyReg.reader3(), wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
+	if (win.wyReg.reader3().time() != VideoEvent::DISABLED_TIME)
+		addEvent(win.wyReg.reader3(), win.wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 }
@@ -615,13 +611,13 @@ void LCD::wyChange(const unsigned newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 // 	printf("%u: wyChange: 0x%X\n", videoCycles, newValue);
 	
-	wyReg.setSource(newValue);
-	addEvent(wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(wyReg.reader3(), wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
-	addEvent(wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
+	win.wyReg.setSource(newValue);
+	addEvent(win.wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(win.wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(win.wyReg.reader3(), win.wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
+	addEvent(win.wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
 	
-	addEvent(weMasterChecker, newValue, we.getSource(), cycleCounter, m3EventQueue);
+	addEvent(win.weMasterChecker, newValue, win.we.getSource(), cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 }
@@ -633,10 +629,8 @@ void LCD::scxChange(const unsigned newScx, const unsigned long cycleCounter) {
 	scxReader.setSource(newScx);
 	addEvent(scxReader, lyCounter, cycleCounter, m3EventQueue);
 	
-	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
-	
-	if (wyReg.reader3().time() != VideoEvent::DISABLED_TIME)
-		addEvent(wyReg.reader3(), wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
+	if (win.wyReg.reader3().time() != VideoEvent::DISABLED_TIME)
+		addEvent(win.wyReg.reader3(), win.wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 	
@@ -669,12 +663,8 @@ void LCD::spriteSizeChange(const bool newLarge, const unsigned long cycleCounter
 	update(cycleCounter);
 	//printf("spriteSizeChange\n");
 	
-	spriteSizeReader.setSource(newLarge);
-	addEvent(spriteSizeReader, lyCounter, cycleCounter, m3EventQueue);
-	
-	//if (spriteSizeReader.time() < spriteMapper.time()) {
-	//	addEvent(spriteMapper, m3EventQueue);
-	//}
+	spriteMapper.setLargeSpritesSource(newLarge);
+	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
 }
@@ -885,15 +875,11 @@ unsigned LCD::get_stat(const unsigned lycReg, const unsigned long cycleCounter) 
 					stat = 3;
 			}
 		}
-
-		unsigned lyc;
 		
-		if (lycReg)
-			lyc = lyCounter.ly() == lycReg && timeToNextLy > 4U - (doubleSpeed << 2);
-		else
-			lyc = (lyCounter.ly() == 153 && (timeToNextLy >> doubleSpeed) <= 456 - 8) || (lyCounter.ly() == 0 && timeToNextLy > 4U - (doubleSpeed << 2));
-		
-		stat |= lyc << 2;
+		if (lyCounter.ly() == lycReg && timeToNextLy > 4U - doubleSpeed * 4U ||
+				lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy >> doubleSpeed <= 456 - 8) {
+			stat |= 4;
+		}
 	}
 
 	return stat;
@@ -915,7 +901,7 @@ void LCD::do_update(unsigned cycles) {
 		winYPos = 0xFF;
 		//scy[0] = scy[1] = memory.fastread(0xFF42);
 		//scx[0] = scx[1] = memory.fastread(0xFF43);
-		weMasterChecker.unset();
+		win.weMasterChecker.unset();
 	}
 	
 	videoCycles += cycles;
@@ -1003,7 +989,7 @@ void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, con
 }
 
 void LCD::null_draw(unsigned /*xpos*/, const unsigned ypos, const unsigned endX) {
-	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
+	const bool enableWindow = win.enabled(ypos);
 	
 	if (enableWindow && winYPos == 0xFF)
 		winYPos = /*ypos - wyReg.value()*/ 0;
@@ -1018,24 +1004,24 @@ template<typename T>
 void LCD::cgb_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 	const unsigned effectiveScx = scReader.scx();
 	
-	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
+	const bool enableWindow = win.enabled(ypos);
 	
 	if (enableWindow && winYPos == 0xFF)
 		winYPos = /*ypos - wyReg.value()*/ 0;
 		
 	T *const bufLine = static_cast<T*>(dbuffer) + ypos * static_cast<unsigned long>(dpitch);
 	
-	if (!(enableWindow && wxReader.wx() <= xpos + 7)) {
+	if (!(enableWindow && win.wxReader.wx() <= xpos + 7)) {
 		const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
-		const unsigned end = std::min(enableWindow ? wxReader.wx() - 7 : 160U, endX);
+		const unsigned end = std::min(enableWindow ? win.wxReader.wx() - 7 : 160U, endX);
 
 		cgb_bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData, fby & 7);
 	}
 	
-	if (enableWindow && endX + 7 > wxReader.wx()) {
-		const unsigned start = std::max(wxReader.wx() < 7 ? 0U : (wxReader.wx() - 7), xpos);
+	if (enableWindow && endX + 7 > win.wxReader.wx()) {
+		const unsigned start = std::max(win.wxReader.wx() < 7 ? 0U : (win.wxReader.wx() - 7), xpos);
 		
-		cgb_bg_drawPixels(bufLine, start, endX, 7u - wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData, winYPos & 7);
+		cgb_bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData, winYPos & 7);
 	}
 		
 	if (endX == 160) {
@@ -1051,7 +1037,7 @@ template<typename T>
 void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 	const unsigned effectiveScx = scReader.scx();
 	
-	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
+	const bool enableWindow = win.enabled(ypos);
 	
 	if (enableWindow && winYPos == 0xFF)
 		winYPos = /*ypos - wyReg.value()*/ 0;
@@ -1059,17 +1045,17 @@ void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 	T *const bufLine = static_cast<T*>(dbuffer) + ypos * static_cast<unsigned long>(dpitch);
 	
 	if (bgEnable) {
-		if (!(enableWindow && wxReader.wx() <= xpos + 7)) {
+		if (!(enableWindow && win.wxReader.wx() <= xpos + 7)) {
 			const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
-			const unsigned end = std::min(enableWindow ? wxReader.wx() - 7 : 160U, endX);
+			const unsigned end = std::min(enableWindow ? win.wxReader.wx() - 7 : 160U, endX);
 			
 			bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData + (fby & 7) * 2);
 		}
 		
-		if (enableWindow && endX + 7 > wxReader.wx()) {
-			const unsigned start = std::max(wxReader.wx() < 7 ? 0U : (wxReader.wx() - 7), xpos);
+		if (enableWindow && endX + 7 > win.wxReader.wx()) {
+			const unsigned start = std::max(win.wxReader.wx() < 7 ? 0U : (win.wxReader.wx() - 7), xpos);
 			
-			bg_drawPixels(bufLine, start, endX, 7u - wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
+			bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
 		}
 	} else
 		std::fill_n(bufLine + xpos, endX - xpos, bgPalette[0]);
@@ -1256,13 +1242,12 @@ static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, 
 template<typename T>
 void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 	const unsigned scy = scReader.scy() + ypos /*& 0xFF*/;
-	const unsigned wx = wxReader.wx() < 7 ? 0 : wxReader.wx() - 7;
-	//const bool enableWindow = (memory.fastread(0xFF40) & 0x20) && (ypos >= memory.fastread(0xFF4A)) && (wx < 160);
-	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
-	const unsigned short *const spriteMapLine = spriteMapper.sprites(ypos);
+	const unsigned wx = win.wxReader.wx() < 7 ? 0 : win.wxReader.wx() - 7;
+	const bool enableWindow = win.enabled(ypos);
+	const unsigned char *const spriteMapLine = spriteMapper.sprites(ypos);
 	
 	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
-		const unsigned char *const spriteInfo = spriteMapper.oamram + (spriteMapLine[i] & 0xFF);
+		const unsigned char *const spriteInfo = spriteMapper.oamram + spriteMapLine[i];
 		const unsigned spx = spriteInfo[1];
 		
 		if (spx < 168 && spx) {
@@ -1270,7 +1255,7 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 			unsigned spTile = spriteInfo[2];
 			const unsigned attributes = spriteInfo[3];
 
-			if (spriteSizeReader.largeSprites()) {
+			if (spriteMapper.largeSprites()) {
 				if (attributes & 0x40) //yflip
 					spLine = 15 - spLine;
 				
@@ -1430,12 +1415,12 @@ static unsigned prioritizedBG_mask(const unsigned spx, const unsigned bgStart, c
 template<typename T>
 void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 	const unsigned scy = scReader.scy() + ypos /*& 0xFF*/;
-	const unsigned wx = wxReader.wx() < 7 ? 0 : wxReader.wx() - 7;
-	const bool enableWindow = we.value() && wxReader.wx() < 0xA7 && ypos >= wyReg.value() && (weMasterChecker.weMaster() || ypos == wyReg.value());
-	const unsigned short *const spriteMapLine = spriteMapper.sprites(ypos);
+	const unsigned wx = win.wxReader.wx() < 7 ? 0 : win.wxReader.wx() - 7;
+	const bool enableWindow = win.enabled(ypos);
+	const unsigned char *const spriteMapLine = spriteMapper.sprites(ypos);
 	
 	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
-		const unsigned char *const spriteInfo = spriteMapper.oamram + (spriteMapLine[i] & 0xFF);
+		const unsigned char *const spriteInfo = spriteMapper.oamram + spriteMapLine[i];
 		const unsigned spx = spriteInfo[1];
 		
 		if (spx < 168 && spx) {
@@ -1443,7 +1428,7 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 			unsigned spTile = spriteInfo[2];
 			const unsigned attributes = spriteInfo[3];
 
-			if (spriteSizeReader.largeSprites()) {
+			if (spriteMapper.largeSprites()) {
 				if (attributes & 0x40) //yflip
 					spLine = 15 - spLine;
 				

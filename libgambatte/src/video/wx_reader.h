@@ -20,6 +20,7 @@
 #define WX_READER_H
 
 template<typename T, class Comparer> class event_queue;
+class M3ExtraCycles;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
@@ -29,6 +30,7 @@ class WxReader : public VideoEvent {
 	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
 	VideoEvent &weEnableChecker;
 	VideoEvent &weDisableChecker;
+	M3ExtraCycles &m3ExtraCycles;
 
 	unsigned char wx_;
 	unsigned char src_;
@@ -39,7 +41,8 @@ class WxReader : public VideoEvent {
 public:
 	WxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
 	         VideoEvent &weEnableChecker_in,
-	         VideoEvent &weDisableChecker_in);
+	         VideoEvent &weDisableChecker_in,
+	         M3ExtraCycles &m3ExtraCycles);
 	
 	void doEvent();
 	

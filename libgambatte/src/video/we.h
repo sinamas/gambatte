@@ -21,14 +21,14 @@
 
 #include "video_event.h"
 #include "ly_counter.h"
+#include "m3_extra_cycles.h"
 
 class We {
 	class WeEnableChecker : public VideoEvent {
-		bool &we;
-		const bool &src;
+		We &we;
 		
 	public:
-		WeEnableChecker(bool &we_in, const bool &src_in);
+		WeEnableChecker(We &we);
 		
 		void doEvent();
 		
@@ -38,11 +38,10 @@ class We {
 	};
 	
 	class WeDisableChecker : public VideoEvent {
-		bool &we;
-		const bool &src;
+		We &we;
 		
 	public:
-		WeDisableChecker(bool &we_in, const bool &src_in);
+		WeDisableChecker(We &we);
 		
 		void doEvent();
 		
@@ -51,15 +50,25 @@ class We {
 		}
 	};
 	
+	friend class WeEnableChecker;
+	friend class WeDisableChecker;
 	
+	M3ExtraCycles &m3ExtraCycles_;
 	WeEnableChecker enableChecker_;
 	WeDisableChecker disableChecker_;
 	
 	bool we_;
 	bool src_;
 	
+	void set(const bool value) {
+		if (we_ != value)
+			m3ExtraCycles_.invalidateCache();
+		
+		we_ = value;
+	}
+	
 public:
-	We();
+	We(M3ExtraCycles &m3ExtraCycles);
 	
 	WeDisableChecker& disableChecker() {
 		return disableChecker_;

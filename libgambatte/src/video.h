@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -32,11 +32,7 @@ class Filter;
 
 #include "video/video_event_comparer.h"
 #include "video/ly_counter.h"
-#include "video/sprite_size_reader.h"
-#include "video/wx_reader.h"
-#include "video/wy.h"
-#include "video/we.h"
-#include "video/we_master_checker.h"
+#include "video/window.h"
 #include "video/scx_reader.h"
 #include "video/sprite_mapper.h"
 #include "video/sc_reader.h"
@@ -51,8 +47,6 @@ class Filter;
 #include "video/m3_extra_cycles.h"
 
 class LCD {
-	friend class M3ExtraCycles;
-	
 	//static const uint8_t xflipt[0x100];
 	unsigned long dmgColorsRgb32[3 * 4];
 	unsigned long dmgColorsRgb16[3 * 4];
@@ -85,16 +79,11 @@ class LCD {
 	event_queue<VideoEvent*,VideoEventComparer> irqEventQueue;
 	event_queue<VideoEvent*,VideoEventComparer> vEventQueue;
 	
-	const M3ExtraCycles m3ExtraCycles;
-	
 	LyCounter lyCounter;
-	We we;
-	WeMasterChecker weMasterChecker;
-	Wy wyReg;
-	WxReader wxReader;
-	SpriteSizeReader spriteSizeReader;
+	Window win;
 	ScxReader scxReader;
 	SpriteMapper spriteMapper;
+	M3ExtraCycles m3ExtraCycles;
 	ScReader scReader;
 	BreakEvent breakEvent;
 	Mode3Event mode3Event;

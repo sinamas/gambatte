@@ -17,20 +17,85 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "m3_extra_cycles.h"
+#include "scx_reader.h"
+#include "window.h"
+#include "sprite_mapper.h"
+#include "../insertion_sort.h"
 
-#include "../video.h"
+M3ExtraCycles::M3ExtraCycles(const SpriteMapper &spriteMapper,
+                             const ScxReader &scxReader,
+                             const Window &win) :
+	spriteMapper(spriteMapper),
+	scxReader(scxReader),
+	win(win)
+{
+	invalidateCache();
+}
 
-M3ExtraCycles::M3ExtraCycles(const LCD &video) :
-	video(video)
-{}
+static const unsigned char* addLineCycles(const unsigned char *const start, const unsigned char *const end,
+		const unsigned maxSpx, const unsigned scwxAnd7, const unsigned char *const oamram_plus1, unsigned char *cycles_out) {
+	unsigned sum = 0;
+	
+	const unsigned char *a = start; 
+	
+	for (; a < end; ++a) {
+		const unsigned spx = oamram_plus1[*a];
+		
+		if (spx > maxSpx)
+			break;
+		
+		unsigned cycles = 6;
+		const unsigned posAnd7 = scwxAnd7 + spx & 7;
+		
+		if (posAnd7 < 5) {
+			cycles = 11 - posAnd7;
+			
+			for (const unsigned char *b = a; b > start;) {
+				const unsigned bSpx = oamram_plus1[*--b];
+				
+				if (spx - bSpx > 4U)
+					break;
+				
+				if ((scwxAnd7 + bSpx & 7) < 4 || spx == bSpx) {
+					cycles = 6;
+					break;
+				}
+			}
+		}
+		
+		sum += cycles;
+	}
+	
+	*cycles_out += sum;
+	
+	return a;
+}
 
-unsigned M3ExtraCycles::operator()(const unsigned ly) const {
-	unsigned cycles = video.spriteMapper.spriteCycles(ly);
+void M3ExtraCycles::updateLine(const unsigned ly) const {
+	const bool windowEnabled = win.enabled(ly);
 	
-	cycles += video.scxReader.scxAnd7();
+	cycles[ly] = windowEnabled ? scxReader.scxAnd7() + 6 : scxReader.scxAnd7();
 	
-	if (video.we.value() && video.wxReader.wx() < 0xA7 && ly >= video.wyReg.value() && (video.weMasterChecker.weMaster() || ly == video.wyReg.value()))
-		cycles += 6;
+	const unsigned numSprites = spriteMapper.numSprites(ly);
 	
-	return cycles;
+	if (numSprites == 0)
+		return;
+	
+	unsigned char sortBuf[10];
+	const unsigned char *tmp = spriteMapper.sprites(ly);
+	
+	if (spriteMapper.isCgb()) {
+		std::memcpy(sortBuf, tmp, sizeof(sortBuf));
+		insertionSort(sortBuf, sortBuf + numSprites);
+		tmp = sortBuf;
+	}
+	
+	const unsigned char *const tmpend = tmp + numSprites;
+	const unsigned char *const oamram_plus1 = spriteMapper.oamram + 1;
+	
+	if (windowEnabled) {
+		addLineCycles(addLineCycles(tmp, tmpend, win.wxReader.wx(), scxReader.scxAnd7(), oamram_plus1, cycles + ly),
+				tmpend, 167, 7 - win.wxReader.wx(), oamram_plus1, cycles + ly);
+	} else
+		addLineCycles(tmp, tmpend, 167, scxReader.scxAnd7(), oamram_plus1, cycles + ly);
 }

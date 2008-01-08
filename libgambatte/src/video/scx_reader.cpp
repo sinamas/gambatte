@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,18 +19,21 @@
 #include "scx_reader.h"
 
 #include "../event_queue.h"
+#include "m3_extra_cycles.h"
 
 ScxReader::ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
 //                      VideoEvent &wyReader3_in,
                      VideoEvent &wxReader_in,
                      VideoEvent &weEnableChecker_in,
-                     VideoEvent &weDisableChecker_in) :
+                     VideoEvent &weDisableChecker_in,
+                     M3ExtraCycles &m3ExtraCycles) :
 	VideoEvent(1),
 	m3EventQueue(m3EventQueue_in),
 // 	wyReader3(wyReader3_in),
 	wxReader(wxReader_in),
 	weEnableChecker(weEnableChecker_in),
-	weDisableChecker(weDisableChecker_in)
+	weDisableChecker(weDisableChecker_in),
+	m3ExtraCycles(m3ExtraCycles)
 {
 	setDoubleSpeed(false);
 	setSource(0);
@@ -52,6 +55,8 @@ void ScxReader::doEvent() {
 	rescheduleEvent(wxReader, diff);
 	rescheduleEvent(weEnableChecker, diff);
 	rescheduleEvent(weDisableChecker, diff);
+	
+	m3ExtraCycles.invalidateCache();
 	
 	setTime(DISABLED_TIME);
 }

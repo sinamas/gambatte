@@ -19,14 +19,38 @@
 #ifndef VIDEO_M3_EXTRA_CYCLES_H
 #define VIDEO_M3_EXTRA_CYCLES_H
 
-class LCD;
+class ScxReader;
+class Window;
+class SpriteMapper;
+
+#include <cstring>
 
 class M3ExtraCycles {
-	const LCD &video;
+	enum { CYCLES_INVALID = 0xFF };
+	
+	mutable unsigned char cycles[144];
+	
+	const SpriteMapper &spriteMapper;
+	const ScxReader &scxReader;
+	const Window &win;
+	
+	void updateLine(unsigned ly) const;
 	
 public:
-	M3ExtraCycles(const LCD &video);
-	unsigned operator()(unsigned ly) const;
+	M3ExtraCycles(const SpriteMapper &spriteMapper,
+	              const ScxReader &scxReader_in,
+	              const Window &win);
+	
+	void invalidateCache() {
+		std::memset(cycles, CYCLES_INVALID, sizeof(cycles));
+	}
+	
+	unsigned operator()(const unsigned ly) const {
+		if (cycles[ly] == CYCLES_INVALID)
+			updateLine(ly);
+		
+		return cycles[ly];
+	}
 };
 
 #endif

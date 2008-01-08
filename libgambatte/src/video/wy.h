@@ -26,16 +26,16 @@ template<typename T, class Comparer> class event_queue;
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
+#include "m3_extra_cycles.h"
 
 class Wy {
+public:
 	class WyReader1 : public VideoEvent {
-		const LyCounter &lyCounter;
+		Wy &wy;
 		const WeMasterChecker &weMasterChecker;
-		unsigned char &wy;
-		const unsigned char &src;
 		
 	public:
-		WyReader1(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in, const WeMasterChecker &weMasterChecker);
+		WyReader1(Wy &wy, const WeMasterChecker &weMasterChecker);
 		
 		void doEvent();
 		
@@ -45,12 +45,10 @@ class Wy {
 	};
 	
 	class WyReader2 : public VideoEvent {
-		const LyCounter &lyCounter;
-		unsigned char &wy;
-		const unsigned char &src;
+		Wy &wy;
 		
 	public:
-		WyReader2(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in);
+		WyReader2(Wy &wy);
 		
 		void doEvent();
 		
@@ -59,28 +57,11 @@ class Wy {
 		}
 	};
 	
-	class WyReader4 : public VideoEvent {
-		unsigned char &wy;
-		const unsigned char &src;
-		
-	public:
-		WyReader4(unsigned char &wy_in, const unsigned char &src_in);
-		
-		void doEvent();
-		
-		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-			setTime(lyCounter.nextFrameCycle(lyCounter.isDoubleSpeed() * 4, cycleCounter));
-		}
-	};
-
-public:
 	class WyReader3 : public VideoEvent {
-		const LyCounter &lyCounter;
-		unsigned char &wy;
-		const unsigned char &src;
+		Wy &wy;
 		
 	public:
-		WyReader3(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in);
+		WyReader3(Wy &wy);
 		
 		void doEvent();
 		void schedule(unsigned wxSrc, const ScxReader &scxReader, unsigned long cycleCounter);
@@ -90,7 +71,27 @@ public:
 		//}
 	};
 	
+	class WyReader4 : public VideoEvent {
+		Wy &wy;
+		
+	public:
+		WyReader4(Wy &wy);
+		
+		void doEvent();
+		
+		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+			setTime(lyCounter.nextFrameCycle(lyCounter.isDoubleSpeed() * 4, cycleCounter));
+		}
+	};
+	
+	friend class WyReader1;
+	friend class WyReader2;
+	friend class WyReader3;
+	friend class WyReader4;
+	
 private:
+	const LyCounter &lyCounter;
+	M3ExtraCycles &m3ExtraCycles;
 	WyReader1 reader1_;
 	WyReader2 reader2_;
 	WyReader3 reader3_;
@@ -99,8 +100,15 @@ private:
 	unsigned char wy_;
 	unsigned char src_;
 	
+	void set(const unsigned char value) {
+		if (wy_ != value)
+			m3ExtraCycles.invalidateCache();
+		
+		wy_ = value;
+	}
+	
 public:
-	Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker);
+	Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker, M3ExtraCycles &m3ExtraCycles);
 	
 	WyReader1& reader1() {
 		return reader1_;
@@ -128,16 +136,16 @@ public:
 		src_ = src;
 	}
 	
-	void setValue(const unsigned val) {
-		wy_ = val;
-	}
+	//void setValue(const unsigned val) {
+	//	wy_ = val;
+	//}
 	
 	unsigned value() const {
 		return wy_;
 	}
 	
 	void weirdAssWeMasterEnableOnWyLineCase() {
-		++wy_;
+		set(wy_ + 1);
 	}
 };
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -339,8 +339,6 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			unsigned dmaDest = dmaDestination;
 			unsigned dmaLength = ((memory[0xFF55] & 0x7F) + 0x1) * 0x10;
 			
-			cycleCounter += (6 >> doubleSpeed) + doubleSpeed;
-			
 			unsigned length = hdma_transfer ? 0x10 : dmaLength;
 			
 			if (static_cast<unsigned long>(dmaDest) + length & 0x10000) {
@@ -352,6 +350,8 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			
 			if (!(memory[0xFF40] & 0x80))
 				dmaLength = 0;
+			
+			cycleCounter += 4;
 			
 			while (length--) {
 				write(0x8000 | dmaDest++ & 0x1FFF, read(dmaSrc++ & 0xFFFF, cycleCounter), cycleCounter);

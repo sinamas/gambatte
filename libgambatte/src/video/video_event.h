@@ -32,6 +32,7 @@ public:
 	static const unsigned long DISABLED_TIME = 0xFFFFFFFF;
 	
 	VideoEvent(const unsigned priority_in) :
+		time_(DISABLED_TIME),
 		priority_(priority_in)
 	{}
 	

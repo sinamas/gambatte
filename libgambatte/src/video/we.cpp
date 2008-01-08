@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,36 +18,35 @@
  ***************************************************************************/
 #include "we.h"
 
-We::WeEnableChecker::WeEnableChecker(bool &we_in, const bool &src_in) :
+We::WeEnableChecker::WeEnableChecker(We &we) :
 	VideoEvent(8),
-	we(we_in),
-	src(src_in)
+	we(we)
 {}
 
 void We::WeEnableChecker::doEvent() {
-	we = src;
+	we.set(we.src_);
 	
 	setTime(DISABLED_TIME);
 }
 
-We::WeDisableChecker::WeDisableChecker(bool &we_in, const bool &src_in) :
+We::WeDisableChecker::WeDisableChecker(We &we) :
 	VideoEvent(9),
-	we(we_in),
-	src(src_in)
+	we(we)
 {}
 
 void We::WeDisableChecker::doEvent() {
-	we = we && src;
+	we.set(we.we_ & we.src_);
 	
 	setTime(DISABLED_TIME);
 }
 
-We::We() :
-	enableChecker_(we_, src_),
-	disableChecker_(we_, src_)
+We::We(M3ExtraCycles &m3ExtraCycles) :
+	m3ExtraCycles_(m3ExtraCycles),
+	enableChecker_(*this),
+	disableChecker_(*this)
 {
 	setSource(false);
-	reset();
+	we_ = src_;
 }
 
 void We::reset() {

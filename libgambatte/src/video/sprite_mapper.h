@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,67 +23,63 @@
 //#include "video_event_comparer.h"
 #include "ly_counter.h"
 
-template<typename T, class Comparer> class event_queue;
-class SpriteSizeReader;
-class ScxReader;
+class M3ExtraCycles;
 
 class SpriteMapper : public VideoEvent {
-	enum { CYCLES_INVALID = 0xFF };
+	enum { NEED_SORTING_MASK = 0x80 };
 	
-	mutable unsigned short spritemap[144*10];
-	mutable unsigned char cycles[144];
-	unsigned char num[144];
+	mutable unsigned char spritemap[144*10];
+	mutable unsigned char num[144];
 	
-	const SpriteSizeReader &spriteSizeReader;
-	const ScxReader &scxReader;
+	M3ExtraCycles &m3ExtraCycles;
 	
 public:
 	const unsigned char *const oamram;
 
 private:
-	unsigned char timeDiff;
+	bool largeSprites_;
+	bool largeSpritesSrc_;
 	bool cgb;
 	
 	void clearMap();
 	void mapSprites();
-	void updateLine(unsigned ly) const;
+	void sortLine(unsigned ly) const;
 	
 public:
-	SpriteMapper(const SpriteSizeReader &spriteSizeReader_in,
-	             const ScxReader &scxReader_in,
+	SpriteMapper(M3ExtraCycles &m3ExtraCycles,
 	             const unsigned char *const oamram_in);
 	
 	void doEvent();
 	
+	bool isCgb() const {
+		return cgb;
+	}
+	
+	bool largeSprites() const {
+		return largeSprites_;
+	}
+	
+	unsigned numSprites(const unsigned ly) const {
+		return num[ly] & ~NEED_SORTING_MASK;
+	}
+	
 	void reset();
 	
 	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-		// synced to scxReader.
-		setTime(lyCounter.nextLineCycle(82 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
+		setTime(lyCounter.nextLineCycle(16 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
 	}
 	
 	void setCgb(const bool cgb_in) {
 		cgb = cgb_in;
 	}
 	
-	void setDoubleSpeed(const bool dS) {
-		timeDiff = dS ? 85 * 2 - 40 : (82 - 16);
+	void setLargeSpritesSource(const bool src) {
+		largeSpritesSrc_ = src;
 	}
 	
-	unsigned numSprites(const unsigned ly) const {
-		return num[ly];
-	}
-	
-	unsigned spriteCycles(const unsigned ly) const {
-		if (cycles[ly] == CYCLES_INVALID)
-			updateLine(ly);
-		
-		return cycles[ly];
-	}
-	
-	const unsigned short* sprites(const unsigned ly) const {
-		if (cycles[ly] == CYCLES_INVALID)
-			updateLine(ly);
+	const unsigned char* sprites(const unsigned ly) const {
+		if (num[ly] & NEED_SORTING_MASK)
+			sortLine(ly);
 		
 		return spritemap + ly * 10;
 	}

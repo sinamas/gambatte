@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,83 +22,77 @@
 #include "scx_reader.h"
 #include "../event_queue.h"
 
-Wy::WyReader1::WyReader1(unsigned char &wy, const unsigned char &src, const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker) :
+Wy::WyReader1::WyReader1(Wy &wy, const WeMasterChecker &weMasterChecker) :
 	VideoEvent(3),
-	lyCounter(lyCounter),
-	weMasterChecker(weMasterChecker),
 	wy(wy),
-	src(src)
+	weMasterChecker(weMasterChecker)
 {}
 
 void Wy::WyReader1::doEvent() {
-	if (src >= lyCounter.ly() && /*wy >= lyCounter.ly()*/ !weMasterChecker.weMaster()) {
-		wy = src;
-	}
+	if (wy.src_ >= wy.lyCounter.ly() && /*wy >= lyCounter.ly()*/ !weMasterChecker.weMaster())
+		wy.set(wy.src_);
 	
 	setTime(DISABLED_TIME);
 }
 
-Wy::WyReader2::WyReader2(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in) :
+Wy::WyReader2::WyReader2(Wy &wy) :
 	VideoEvent(4),
-	lyCounter(lyCounter_in),
-	wy(wy_in),
-	src(src_in)
+	wy(wy)
 {}
 
 void Wy::WyReader2::doEvent() {
-	if (wy == lyCounter.ly() + 1 - lyCounter.isDoubleSpeed() && src > wy)
-		wy = src;
+	if (wy.wy_ == wy.lyCounter.ly() + 1 - wy.lyCounter.isDoubleSpeed() && wy.src_ > wy.wy_)
+		wy.set(wy.src_);
 	
 	setTime(DISABLED_TIME);
 }
 
-Wy::WyReader3::WyReader3(unsigned char &wy_in, const unsigned char &src_in, const LyCounter &lyCounter_in) :
+Wy::WyReader3::WyReader3(Wy &wy) :
 	VideoEvent(5),
-	lyCounter(lyCounter_in),
-	wy(wy_in),
-	src(src_in)
+	wy(wy)
 {}
 
 void Wy::WyReader3::doEvent() {
-	if (src == lyCounter.ly() && wy > lyCounter.ly())
-		wy = src;
+	if (wy.src_ == wy.lyCounter.ly() && wy.wy_ > wy.lyCounter.ly())
+		wy.set(wy.src_);
 	
 	setTime(DISABLED_TIME);
 }
 
 void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const unsigned long cycleCounter) {
-	const unsigned curLineCycle = 456 - (lyCounter.time() - cycleCounter >> lyCounter.isDoubleSpeed());
-	const unsigned baseTime = 78 + lyCounter.isDoubleSpeed() * 6 + wxSrc;
+	const unsigned curLineCycle = 456 - (wy.lyCounter.time() - cycleCounter >> wy.lyCounter.isDoubleSpeed());
+	const unsigned baseTime = 78 + wy.lyCounter.isDoubleSpeed() * 6 + wxSrc;
 	
-	if (curLineCycle >= 82U + lyCounter.isDoubleSpeed() * 3) {
+	if (curLineCycle >= 82U + wy.lyCounter.isDoubleSpeed() * 3) {
 		if (baseTime + scxReader.scxAnd7() > curLineCycle)
-			setTime(lyCounter.time() + (baseTime + scxReader.scxAnd7() << lyCounter.isDoubleSpeed()) - lyCounter.lineTime());
+			setTime(wy.lyCounter.time() + (baseTime + scxReader.scxAnd7() << wy.lyCounter.isDoubleSpeed()) - wy.lyCounter.lineTime());
 		else
-			setTime(lyCounter.time() + (baseTime + scxReader.getSource() << lyCounter.isDoubleSpeed()));
+			setTime(wy.lyCounter.time() + (baseTime + scxReader.getSource() << wy.lyCounter.isDoubleSpeed()));
 	} else
-		setTime(lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter));
+		setTime(wy.lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter));
 }
 
-Wy::WyReader4::WyReader4(unsigned char &wy_in, const unsigned char &src_in) :
+Wy::WyReader4::WyReader4(Wy &wy) :
 	VideoEvent(6),
-	wy(wy_in),
-	src(src_in)
+	wy(wy)
 {}
 
 void Wy::WyReader4::doEvent() {
-	wy = src;
+	wy.set(wy.src_);
 	
 	setTime(DISABLED_TIME);
 }
 
-Wy::Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker) :
-	reader1_(wy_, src_, lyCounter, weMasterChecker),
-	reader2_(wy_, src_, lyCounter),
-	reader3_(wy_, src_, lyCounter),
-	reader4_(wy_, src_)
+Wy::Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker, M3ExtraCycles &m3ExtraCycles) :
+	lyCounter(lyCounter),
+	m3ExtraCycles(m3ExtraCycles),
+	reader1_(*this, weMasterChecker),
+	reader2_(*this),
+	reader3_(*this),
+	reader4_(*this)
 {
 	setSource(0);
-	reset();
+	wy_ = src_;
 }
 
 void Wy::reset() {
