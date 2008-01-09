@@ -354,7 +354,12 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			cycleCounter += 4;
 			
 			while (length--) {
-				write(0x8000 | dmaDest++ & 0x1FFF, read(dmaSrc++ & 0xFFFF, cycleCounter), cycleCounter);
+				const unsigned src = dmaSrc++ & 0xFFFF;
+				
+				write(0x8000 | dmaDest++ & 0x1FFF,
+						((src & 0xE000) == 0x8000 || src > 0xFDFF) ? 0xFF : read(src, cycleCounter),
+								cycleCounter);
+				
 				cycleCounter += 2 << doubleSpeed;
 			}
 			
