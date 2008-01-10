@@ -112,6 +112,8 @@ class Memory {
 	void rescheduleHdmaReschedule();
 	
 	void refreshPalettes(unsigned long cycleCounter);
+	
+	bool isDoubleSpeed() const { return (memory[0x0143] & memory[0xFF4D]) >> 7; }
 
 public:
 	Memory(const Interrupter &interrupter);
@@ -121,7 +123,6 @@ public:
 	void reload();
 
 	void speedChange(unsigned long cycleCounter);
-	bool isDoubleSpeed() const { return memory[0xFF4D] >> 7; }
 	bool isCgb() const { return memory[0x0143] >> 7; }
 	bool getIME() const { return IME; }
 	unsigned long getNextEventTime() const { return next_eventtime; }

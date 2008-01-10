@@ -643,14 +643,16 @@ unsigned char Memory::ff_read(const unsigned P, const unsigned long cycleCounter
 // 		printf("div read\n");
 		{
 			const unsigned long divcycles = cycleCounter - div_lastUpdate >> 8;
-			memory[P] = memory[P] + divcycles & 0xFF;
+			memory[0xFF04] = memory[0xFF04] + divcycles & 0xFF;
 			div_lastUpdate += divcycles << 8;
 		}
+		
 		break;
 	case 0x05:
 // 		printf("tima read\n");
 		if (memory[0xFF07] & 0x04)
 			update_tima(cycleCounter);
+		
 		break;
 	case 0x0F:
 		update_irqEvents(cycleCounter);
@@ -659,11 +661,12 @@ unsigned char Memory::ff_read(const unsigned P, const unsigned long cycleCounter
 		break;
 	case 0x26:
 // 		printf("sound status read\n");
-		if (memory[P] & 0x80) {
+		if (memory[0xFF26] & 0x80) {
 			sound.generate_samples(cycleCounter, isDoubleSpeed());
-			memory[P] = 0xF0 | sound.getStatus();
+			memory[0xFF26] = 0xF0 | sound.getStatus();
 		} else
-			memory[P] = 0x70;
+			memory[0xFF26] = 0x70;
+		
 		break;
 	case 0x30:
 	case 0x31:
@@ -684,22 +687,16 @@ unsigned char Memory::ff_read(const unsigned P, const unsigned long cycleCounter
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
 		return sound.waveRamRead(P & 0xF);
 	case 0x41:
-		return memory[P] | display.get_stat(memory[0xFF45], cycleCounter);
+		return memory[0xFF41] | display.get_stat(memory[0xFF45], cycleCounter);
 	case 0x44:
 		return display.getLyReg(cycleCounter/*+4*/);
 	case 0x69:
-		if(!isCgb())
-			break;
-		
-		if (display.cgbpAccessible(cycleCounter))
+		if (isCgb() && display.cgbpAccessible(cycleCounter))
 			return cgb_bgp_data[memory[0xFF68] & 0x3F];
 		
 		return 0xFF;
 	case 0x6B:
-		if(!isCgb())
-			break;
-		
-		if (display.cgbpAccessible(cycleCounter))
+		if (isCgb() && display.cgbpAccessible(cycleCounter))
 			return cgb_objp_data[memory[0xFF6A] & 0x3F];
 		
 		return 0xFF;
@@ -732,9 +729,8 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 // 	printf("mem[0x%X] = 0x%X\n", P, data);
 	switch (P & 0xFF) {
 	case 0x00:
-		memory[P] &= 0xCF;
-		memory[P] |= data & 0xF0;
-		return;
+		data = memory[0xFF00] & 0xCF | data & 0xF0;
+		break;
 	case 0x01:
 		update_irqEvents(cycleCounter);
 // 		if (IME) {
@@ -752,11 +748,12 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		}
 		
 		rescheduleIrq(cycleCounter);
+		data |= 0x7C;
 		break;
 		//If rom is trying to write to DIV register, reset it to 0.
 	case 0x04:
 // 		printf("DIV write\n");
-		memory[P] = 0;
+		memory[0xFF04] = 0;
 		div_lastUpdate = cycleCounter;
 		return;
 	case 0x05:
@@ -786,14 +783,16 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		break;
 	case 0x07:
 		// printf("tac write: %i\n", data);
-		if ((memory[P] ^ data) & 7) {
-			if (memory[P] & 0x04) {
+		data |= 0xF8;
+		
+		if (memory[0xFF07] ^ data) {
+			if (memory[0xFF07] & 0x04) {
 				update_irqEvents(cycleCounter);
 				update_tima(cycleCounter);
 				
-				tima_lastUpdate -= (1u << (timaClock[memory[P] & 3] - 1)) + 3;
-				tmatime -= (1u << (timaClock[memory[P] & 3] - 1)) + 3;
-				next_timatime -= (1u << (timaClock[memory[P] & 3] - 1)) + 3;
+				tima_lastUpdate -= (1u << (timaClock[memory[0xFF07] & 3] - 1)) + 3;
+				tmatime -= (1u << (timaClock[memory[0xFF07] & 3] - 1)) + 3;
+				next_timatime -= (1u << (timaClock[memory[0xFF07] & 3] - 1)) + 3;
 				set_irqEvent();
 				update_tima(cycleCounter);
 				update_irqEvents(cycleCounter);
@@ -807,15 +806,15 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 				next_timatime = tima_lastUpdate + (256u - memory[0xFF05] << timaClock[data & 3]) + 1;
 			}
 			
-			memory[P] = 0xF8 | data & 0x7;
 			set_irqEvent();
 			rescheduleIrq(cycleCounter);
 		}
-		return;
+		
+		break;
 	case 0x0F:
 		update_irqEvents(cycleCounter);
 		display.setIfReg(data, cycleCounter);
-		memory[P] = 0xE0 | data;
+		memory[0xFF0F] = 0xE0 | data;
 		rescheduleIrq(cycleCounter);
 		return;
 	case 0x10:
@@ -852,7 +851,6 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		sound.set_nr14(data);
 		data |= 0xBF;
 		break;
-	case 0x15: return;
 	case 0x16:
 		if(!sound.isEnabled()) {
 			if (isCgb())
@@ -915,7 +913,6 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		
 		data |= 0xBF;
 		break;
-	case 0x1F: return;
 	case 0x20:
 		if(!sound.isEnabled() && isCgb()) return;
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
@@ -948,7 +945,7 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		sound.map_so(data);
 		break;
 	case 0x26:
-		if ((memory[P] ^ data) & 0x80) {
+		if ((memory[0xFF26] ^ data) & 0x80) {
 			sound.generate_samples(cycleCounter, isDoubleSpeed());
 			
 			if (!(data & 0x80)) {
@@ -963,17 +960,8 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 			}
 		}
 		
-		data = data & 0x80 | memory[P] & 0x7F;
+		data = data & 0x80 | memory[0xFF26] & 0x7F;
 		break;
-	case 0x27:
-	case 0x28:
-	case 0x29:
-	case 0x2A:
-	case 0x2B:
-	case 0x2C:
-	case 0x2D:
-	case 0x2E:
-	case 0x2F: return;
 	case 0x30:
 	case 0x31:
 	case 0x32:
@@ -994,8 +982,8 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		sound.waveRamWrite(P & 0xF, data);
 		break;
 	case 0x40:
-		if (memory[P] != data) {
-			if ((memory[P] ^ data) & 0x80) {
+		if (memory[0xFF40] != data) {
+			if ((memory[0xFF40] ^ data) & 0x80) {
 				update_irqEvents(cycleCounter);
 				const unsigned lyc = display.get_stat(memory[0xFF45], cycleCounter) & 4;
 				display.enableChange(memory[0xFF41], cycleCounter);
@@ -1018,49 +1006,48 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 				set_event();
 			}
 			
-			if ((memory[P] ^ data) & 0x4) {
+			if ((memory[0xFF40] ^ data) & 0x4) {
 				display.spriteSizeChange(data & 0x4, cycleCounter);
 			}
 			
-			if ((memory[P] ^ data) & 0x20) {
+			if ((memory[0xFF40] ^ data) & 0x20) {
 // 				printf("%u: weChange to %u\n", CycleCounter, (data & 0x20) != 0);
 				display.weChange(data & 0x20, cycleCounter);
 			}
 			
-			if ((memory[P] ^ data) & 0x40)
+			if ((memory[0xFF40] ^ data) & 0x40)
 				display.wdTileMapSelectChange(data & 0x40, cycleCounter);
 			
-			if ((memory[P] ^ data) & 0x08)
+			if ((memory[0xFF40] ^ data) & 0x08)
 				display.bgTileMapSelectChange(data & 0x08, cycleCounter);
 			
-			if ((memory[P] ^ data) & 0x10)
+			if ((memory[0xFF40] ^ data) & 0x10)
 				display.bgTileDataSelectChange(data & 0x10, cycleCounter);
 			
-			if ((memory[P] ^ data) & 0x02)
+			if ((memory[0xFF40] ^ data) & 0x02)
 				display.spriteEnableChange(data & 0x02, cycleCounter);
 			
-			if ((memory[P] ^ data) & 0x01)
+			if ((memory[0xFF40] ^ data) & 0x01)
 				display.bgEnableChange(data & 0x01, cycleCounter);
 			
 			//scheduleM0Resc();
 			rescheduleIrq(cycleCounter);
 			rescheduleHdmaReschedule();
-			
-			memory[P] = data;
 		}
-		return;
+		
+		break;
 	case 0x41:
 		display.lcdstatChange(memory[0xFF41], data, cycleCounter);
-		memory[P] = memory[P] & 0x87 | data & 0x78;
 		rescheduleIrq(cycleCounter);
-		return;
+		data = memory[0xFF41] & 0x87 | data & 0x78;
+		break;
 	case 0x42:
-		if (memory[P] != data) {
+		if (memory[0xFF42] != data) {
 			display.scyChange(data, cycleCounter);
 		}
 		break;
 	case 0x43:
-		if (memory[P] != data) {
+		if (memory[0xFF43] != data) {
 			display.scxChange(data, cycleCounter);
 			//scheduleM0Resc();
 			rescheduleIrq(cycleCounter);
@@ -1071,7 +1058,7 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 	case 0x44:
 		std::printf("OMFG!!!! LY WRITE!!\n");
 // 		update_irqEvents(CycleCounter);
-		memory[P] = 0;
+		memory[0xFF44] = 0;
 		display.enableChange(memory[0xFF41], cycleCounter);
 		display.enableChange(memory[0xFF41], cycleCounter);
 		// lastModeIRQ=0xFF;
@@ -1098,26 +1085,26 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		rescheduleIrq(cycleCounter);
 		break;
 	case 0x46:
-		memory[P] = data;
+		memory[0xFF46] = data;
 		oamDma(cycleCounter);
 		return;
 	case 0x47:
-		if (!isCgb() && memory[P] != data) {
+		if (!isCgb() && memory[0xFF47] != data) {
 			display.dmgBgPaletteChange(data, cycleCounter);
 		}
 		break;
 	case 0x48:
-		if (!isCgb() && memory[P] != data) {
+		if (!isCgb() && memory[0xFF48] != data) {
 			display.dmgSpPalette1Change(data, cycleCounter);
 		}
 		break;
 	case 0x49:
-		if (!isCgb() && memory[P] != data) {
+		if (!isCgb() && memory[0xFF49] != data) {
 			display.dmgSpPalette2Change(data, cycleCounter);
 		}
 		break;
 	case 0x4A:
-		if (memory[P] != data) {
+		if (memory[0xFF4A] != data) {
 // 			printf("%u: wyChange to %u\n", CycleCounter, data);
 			display.wyChange(data, cycleCounter);
 // 			scheduleM0Resc();
@@ -1126,7 +1113,7 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		}
 		break;
 	case 0x4B:
-		if (memory[P] != data) {
+		if (memory[0xFF4B] != data) {
 // 			printf("%u: wxChange to %u\n", CycleCounter, data);
 			display.wxChange(data, cycleCounter);
 // 			scheduleM0Resc();
@@ -1137,7 +1124,9 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 
 		//cgb stuff:
 	case 0x4D:
-		memory[P] |= data & 0x01;
+		if (isCgb())
+			memory[0xFF4D] |= data & 0x01;
+		
 		return;
 		//Select vram bank
 	case 0x4F:
@@ -1145,42 +1134,31 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 			//cgb_vrambank = (data & 0x01);
 			mem[0x8] = vram + (data & 0x01) * 0x2000;
 			mem[0x9] = mem[0x8] + 0x1000;
+			memory[0xFF4F] = 0xFE | (data/*&0x01*/);
 		}
-		memory[P] = 0xFE | (data/*&0x01*/);
+		
 		return;
 	case 0x51:
-		if (!isCgb())
-			break;
-		
 		dmaSource = data << 8 | dmaSource & 0xFF;
 		return;
 	case 0x52:
-		if (!isCgb())
-			break;
-		
 		dmaSource = dmaSource & 0xFF00 | data & 0xF0;
 		return;
 	case 0x53:
-		if (!isCgb())
-			break;
-		
 		dmaDestination = data << 8 | dmaDestination & 0xFF;
 		return;
 	case 0x54:
-		if (!isCgb())
-			break;
-		
 		dmaDestination = dmaDestination & 0xFF00 | data & 0xF0;
 		return;
 	case 0x55:
 		if (!isCgb())
-			break;
+			return;
 		
-		memory[P] = data & 0x7F;
+		memory[0xFF55] = data & 0x7F;
 		
 		if (hdma_transfer) {
 			if (!(data & 0x80)) {
-				memory[P] |= 0x80;
+				memory[0xFF55] |= 0x80;
 				
 				if (next_dmatime > cycleCounter) {
 					hdma_transfer = 0;
@@ -1206,14 +1184,21 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		
 		set_event();
 		return;
+	case 0x56:
+		if (isCgb()) {
+			memory[0xFF56] = data | 0x3E; 
+		}
+		
+		return;
 		//Set bg palette index
-// 	case 0x68:
-// 		cgb_bgp_index = (data & 0x3F);
-// 		cgb_bgp_autoInc = (data & 0x80);
-// 		break;
+	case 0x68:
+		if (isCgb())
+			memory[0xFF68] = data | 0x40;
+		
+		return;
 		//Write to bg palette data
 	case 0x69:
-		{
+		if (isCgb()) {
 			const unsigned cgb_bgp_index = memory[0xFF68] & 0x3F;
 			
 			if (cgb_bgp_data[cgb_bgp_index] != data) {
@@ -1228,13 +1213,14 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		}
 		
 		return;
-// 	case 0x6A:
-// 		cgb_objp_index = (data & 0x3F);
-// 		cgb_objp_autoInc = (data & 0x80);
-// 		break;
+	case 0x6A:
+		if (isCgb())
+			memory[0xFF6A] = data | 0x40;
+		
+		return;
 		//Write to obj palette data.
 	case 0x6B:
-		{
+		if (isCgb()) {
 			const unsigned cgb_objp_index = memory[0xFF6A] & 0x3F;
 			
 			if (cgb_objp_data[cgb_objp_index] != data) {
@@ -1249,6 +1235,11 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 		}
 		
 		return;
+	case 0x6C:
+		if (isCgb())
+			memory[0xFF6C] = data | 0xFE;
+			
+		return;
 	case 0x70:
 		if (isCgb()) {
 			unsigned bank = data & 0x07;
@@ -1258,14 +1249,31 @@ void Memory::ff_write(const unsigned P, unsigned data, const unsigned long cycle
 			
 			mem[0xD] = cgb_wramdata + bank * 0x1000;
 			std::memcpy(mem[0xF], mem[0xD], 0xE00); //sync wram-mirror.
+			
+			memory[0xFF70] = data | 0xF8;
 		}
-		break;
-
+		
+		return;
+	case 0x72:
+	case 0x73:
+	case 0x74:
+		if (isCgb())
+			break;
+		
+		return;
+	case 0x75:
+		if (isCgb())
+			memory[0xFF75] = data | 0x8F;
+		
+		return;
 	case 0xFF:
-		memory[P] = data;
+		memory[0xFFFF] = data;
 		rescheduleIrq(cycleCounter);
-		break;
+		return;
 	default:
+		if (P < 0xFF80)
+			return;
+		
 		break;
 	}
 	
@@ -1421,7 +1429,7 @@ void Memory::write(const unsigned P, const unsigned data, const unsigned long cy
 	} else if (P >= 0xF000) {
 		if (P < 0xFE00)
 			mem[0xD][P & 0xFFF] = data;
-		else if (P < 0xFEA0) {
+		else if (P < 0xFF00) {
 			if (memory[P] != data) {
 				if (memory[0xFF40] & 0x80) {
 					if (!display.oamAccessible(cycleCounter)) { //mode2 or mode3.
@@ -1435,7 +1443,7 @@ void Memory::write(const unsigned P, const unsigned data, const unsigned long cy
 				rescheduleIrq(cycleCounter);
 				rescheduleHdmaReschedule();
 			}
-		} else if (P < 0xFF80 && P >= 0xFF00 || P == 0xFFFF) {
+		} else if (P < 0xFF80 || P == 0xFFFF) {
 			ff_write(P, data, cycleCounter);
 			return;
 		}
@@ -1483,23 +1491,6 @@ bool Memory::loadROM() {
 		mem[0xC] = &cgb_wramdata[0];
 		mem[0xD] = &cgb_wramdata[0x1000];
 		mem[0xE] = mem[0xC];
-		
-		memory[0xFF30] = 0x00;
-		memory[0xFF31] = 0xFF;
-		memory[0xFF32] = 0x00;
-		memory[0xFF33] = 0xFF;
-		memory[0xFF34] = 0x00;
-		memory[0xFF35] = 0xFF;
-		memory[0xFF36] = 0x00;
-		memory[0xFF37] = 0xFF;
-		memory[0xFF38] = 0x00;
-		memory[0xFF39] = 0xFF;
-		memory[0xFF3A] = 0x00;
-		memory[0xFF3B] = 0xFF;
-		memory[0xFF3C] = 0x00;
-		memory[0xFF3D] = 0xFF;
-		memory[0xFF3E] = 0x00;
-		memory[0xFF3F] = 0xFF;
 	} else {
 		memory[0xFF30] = 0xAC;
 		memory[0xFF31] = 0xDD;
@@ -1517,6 +1508,21 @@ bool Memory::loadROM() {
 		memory[0xFF3D] = 0xDD;
 		memory[0xFF3E] = 0xDA;
 		memory[0xFF3F] = 0x48;
+		
+		memory[0xFF4D] = 0xFF;
+		memory[0xFF4F] = 0xFF;
+		memory[0xFF56] = 0xFF;
+		memory[0xFF68] = 0xFF;
+		memory[0xFF6A] = 0xFF;
+		memory[0xFF6B] = 0xFF;
+		memory[0xFF6C] = 0xFF;
+		memory[0xFF70] = 0xFF;
+		memory[0xFF72] = 0xFF;
+		memory[0xFF73] = 0xFF;
+		memory[0xFF74] = 0xFF;
+		memory[0xFF75] = 0xFF;
+		memory[0xFF76] = 0xFF;
+		memory[0xFF77] = 0xFF;
 	}
 
 	std::memcpy(mem[0xF], mem[0xD], 0xE00); //Make sure the wram-mirror is synced.
