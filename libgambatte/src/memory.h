@@ -38,18 +38,19 @@ class Memory {
 	
 	static const unsigned long COUNTER_DISABLED = 0xFFFFFFFF;
 	
-	unsigned char memory[0x10000];
+	unsigned char ioamhram[0x200];
 	unsigned char vram[0x2000 * 2];
-	unsigned char rdisabled_ram[0x1000];
-	unsigned char wdisabled_ram[0x1000];
 	unsigned char *rmem[0x10];
 	unsigned char *wmem[0x10];
 	unsigned char cgb_bgp_data[8 * 8];
 	unsigned char cgb_objp_data[8 * 8];
 	
+	unsigned char *memchunk;
 	unsigned char *romdata[2];
 	unsigned char *wramdata[2];
 	unsigned char *rambankdata;
+	unsigned char *rdisabled_ram;
+	unsigned char *wdisabled_ram;
 	unsigned char *oamDmaSrc;
 	unsigned char *vrambank;
 	unsigned char *rsrambankptr;
@@ -97,6 +98,8 @@ class Memory {
 	unsigned char oamDmaArea2Upper;
 	unsigned char oamDmaPos;
 
+	bool cgb;
+	bool doubleSpeed;
 	bool IME;
 	bool enable_ram;
 	bool rambank_mode;
@@ -133,7 +136,7 @@ class Memory {
 	
 	void refreshPalettes(unsigned long cycleCounter);
 	
-	bool isDoubleSpeed() const { return (memory[0x0143] & memory[0xFF4D]) >> 7; }
+	bool isDoubleSpeed() const { return doubleSpeed; }
 
 public:
 	Memory(const Interrupter &interrupter);
@@ -143,7 +146,7 @@ public:
 	void reload();
 
 	void speedChange(unsigned long cycleCounter);
-	bool isCgb() const { return memory[0x0143] >> 7; }
+	bool isCgb() const { return cgb; }
 	bool getIME() const { return IME; }
 	unsigned long getNextEventTime() const { return next_eventtime; }
 	
@@ -163,11 +166,11 @@ public:
 	}
 
 	unsigned char ff_read(const unsigned P, const unsigned long cycleCounter) {
-		return P < 0xFF80 ? nontrivial_ff_read(P, cycleCounter) : memory[P];
+		return P < 0xFF80 ? nontrivial_ff_read(P, cycleCounter) : ioamhram[P - 0xFE00];
 	}
 
 	unsigned char read(const unsigned P, const unsigned long cycleCounter) {
-		return rmem[P >> 12] ? rmem[P >> 12][P & 0xFFF] : nontrivial_read(P, cycleCounter);
+		return rmem[P >> 12] ? rmem[P >> 12][P] : nontrivial_read(P, cycleCounter);
 	}
 	
 	unsigned char pc_read(const unsigned P, const unsigned long cycleCounter) {
@@ -176,7 +179,7 @@ public:
 
 	void write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
 		if (wmem[P >> 12])
-			wmem[P >> 12][P & 0xFFF] = data;
+			wmem[P >> 12][P] = data;
 		else
 			nontrivial_write(P, data, cycleCounter);
 	}
@@ -185,7 +188,7 @@ public:
 		if ((P + 1 & 0xFF) < 0x81)
 			nontrivial_ff_write(P, data, cycleCounter);
 		else
-			memory[P] = data;
+			ioamhram[P - 0xFE00] = data;
 	}
 
 	unsigned long event(unsigned long cycleCounter);
