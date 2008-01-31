@@ -40,17 +40,22 @@ class Memory {
 	
 	unsigned char memory[0x10000];
 	unsigned char vram[0x2000 * 2];
-	unsigned char disabled_ram[0x1000];
-	unsigned char *mem[0x10];
+	unsigned char rdisabled_ram[0x1000];
+	unsigned char wdisabled_ram[0x1000];
+	unsigned char *rmem[0x10];
+	unsigned char *wmem[0x10];
 	unsigned char cgb_bgp_data[8 * 8];
 	unsigned char cgb_objp_data[8 * 8];
 	
-	unsigned char *rombankptr;
+	unsigned char *romdata[2];
+	unsigned char *wramdata[2];
 	unsigned char *rambankdata;
-	unsigned char *cgb_wramdata;
+	unsigned char *oamDmaSrc;
+	unsigned char *vrambank;
+	unsigned char *rsrambankptr;
+	unsigned char *wsrambankptr;
 
 	char* romfile;
-	unsigned char *romdata;
 	char *savedir;
 	char *savename;
 	
@@ -69,6 +74,7 @@ class Memory {
 	unsigned long tmatime;
 	unsigned long next_serialtime;
 	unsigned long next_eventtime;
+	unsigned long lastOamDmaUpdate;
 	
 	LCD display;
 	PSG sound;
@@ -86,6 +92,10 @@ class Memory {
 	
 	unsigned char rambank;
 	unsigned char rambanks;
+	unsigned char oamDmaArea1Lower;
+	unsigned char oamDmaArea1Width;
+	unsigned char oamDmaArea2Upper;
+	unsigned char oamDmaPos;
 
 	bool IME;
 	bool enable_ram;
@@ -99,9 +109,19 @@ class Memory {
 	void save_rtc();
 	void updateInput();
 
-	void swap_rombank();
-	void oamDma(unsigned long cycleCounter);
+	void setRombank();
+	void setRambank();
+	void setBanks();
+	void updateOamDma(unsigned long cycleCounter);
+	void startOamDma(unsigned long cycleCounter);
+	void endOamDma(unsigned long cycleCounter);
+	void setOamDmaSrc();
+	
+	unsigned char nontrivial_ff_read(unsigned P, unsigned long cycleCounter);
+	unsigned char nontrivial_read(unsigned P, unsigned long cycleCounter);
+	void nontrivial_ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	void mbc_write(unsigned P, unsigned data);
+	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
 
 	void set_event();
 	void set_irqEvent();
@@ -134,29 +154,39 @@ public:
 	void di() {
 		IME = 0;
 		next_irqtime = COUNTER_DISABLED;
+		
 		if (next_event == INTERRUPTS)
 			set_event();
-//     next_eitime=0;
-//     if(next_event==EI) set_event();
+		
+// 		next_eitime=0;
+// 		if(next_event==EI) set_event();
 	}
 
+	unsigned char ff_read(const unsigned P, const unsigned long cycleCounter) {
+		return P < 0xFF80 ? nontrivial_ff_read(P, cycleCounter) : memory[P];
+	}
 
-	unsigned char ff_read(unsigned P, unsigned long cycleCounter);
-
-	unsigned char read(unsigned P, unsigned long cycleCounter);
+	unsigned char read(const unsigned P, const unsigned long cycleCounter) {
+		return rmem[P >> 12] ? rmem[P >> 12][P & 0xFFF] : nontrivial_read(P, cycleCounter);
+	}
 	
 	unsigned char pc_read(const unsigned P, const unsigned long cycleCounter) {
-		if (P < 0x4000)
-			return mem[0][P];
-		
-		if (P < 0x8000)
-			return rombankptr[P];
-		
 		return read(P, cycleCounter);
 	}
 
-	void write(unsigned P, unsigned data, unsigned long cycleCounter);
-	void ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
+	void write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
+		if (wmem[P >> 12])
+			wmem[P >> 12][P & 0xFFF] = data;
+		else
+			nontrivial_write(P, data, cycleCounter);
+	}
+	
+	void ff_write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
+		if ((P + 1 & 0xFF) < 0x81)
+			nontrivial_ff_write(P, data, cycleCounter);
+		else
+			memory[P] = data;
+	}
 
 	unsigned long event(unsigned long cycleCounter);
 	unsigned long resetCounters(unsigned long cycleCounter);

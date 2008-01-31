@@ -198,6 +198,7 @@ public:
 	void wxChange(unsigned newValue, unsigned long cycleCounter);
 	void wyChange(unsigned newValue, unsigned long cycleCounter);
 	void oamChange(unsigned long cycleCounter);
+	void oamChange(const unsigned char *oamram, unsigned long cycleCounter);
 	void scxChange(unsigned newScx, unsigned long cycleCounter);
 	void scyChange(unsigned newValue, unsigned long cycleCounter);
 	void spriteSizeChange(bool newLarge, unsigned long cycleCounter);

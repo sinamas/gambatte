@@ -96,7 +96,7 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	vEventQueue(5, VideoEventComparer()),
 	win(m3EventQueue, lyCounter, m3ExtraCycles),
 	scxReader(m3EventQueue, /*wyReg.reader3(),*/ win.wxReader, win.we.enableChecker(), win.we.disableChecker(), m3ExtraCycles),
-	spriteMapper(m3ExtraCycles, oamram),
+	spriteMapper(m3ExtraCycles, lyCounter, oamram),
 	m3ExtraCycles(spriteMapper, scxReader, win),
 	breakEvent(drawStartCycle, scReadOffset),
 	mode3Event(m3EventQueue, vEventQueue, mode0Irq, irqEvent),
@@ -383,11 +383,13 @@ void LCD::preResetCounter(const unsigned long cycleCounter) {
 void LCD::postResetCounter(const unsigned long oldCC, const unsigned long cycleCounter) {
 	enableDisplayM0Time = oldCC > enableDisplayM0Time ? 0 : (cycleCounter + enableDisplayM0Time - oldCC);
 	lastUpdate = cycleCounter - (oldCC - lastUpdate);
+	spriteMapper.resetCycleCounter(cycleCounter);
 	rescheduleEvents(cycleCounter);
 }
 
 void LCD::preSpeedChange(const unsigned long cycleCounter) {
 	update(cycleCounter);
+	spriteMapper.preCounterChange(cycleCounter);
 }
 
 void LCD::rescheduleEvents(const unsigned long cycleCounter) {
@@ -474,7 +476,6 @@ bool LCD::isLycIrqPeriod(const unsigned lycReg, const unsigned endCycles, const 
 		return lyCounter.ly() == lycReg && timeToNextLy > endCycles || lyCounter.ly() < 153 && lyCounter.ly() + 1 == lycReg && timeToNextLy <= 1;
 	else
 		return lyCounter.ly() == 153 && timeToNextLy <= ((456U - 8U) << doubleSpeed) + 1 || lyCounter.ly() == 0 && timeToNextLy > endCycles;
-
 }
 
 bool LCD::isMode1IrqPeriod(const unsigned long cycleCounter) {
@@ -507,9 +508,11 @@ unsigned long LCD::nextHdmaTime(const unsigned long cycleCounter) {
 	if (line < 144) {
 		m3ExCs = m3ExtraCycles(line) * 2;
 		next += m3ExCs;
+		
 		if (next <= 0) {
 			next += 456 * 2 - m3ExCs;
 			++line;
+			
 			if (line < 144) {
 				m3ExCs = m3ExtraCycles(line) * 2;
 				next += m3ExCs;
@@ -532,7 +535,8 @@ bool LCD::vramAccessible(const unsigned long cycleCounter) {
 	bool accessible = true;
 
 	if (enabled && lyCounter.ly() < 144) {
-		const unsigned lineCycles = 456 - ((lyCounter.time() - cycleCounter) >> doubleSpeed);
+		const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
+		
 		if (lineCycles > 79 && lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()))
 			accessible = false;
 	}
@@ -547,7 +551,8 @@ bool LCD::cgbpAccessible(const unsigned long cycleCounter) {
 	bool accessible = true;
 
 	if (enabled && lyCounter.ly() < 144) {
-		const unsigned lineCycles = 456 - ((lyCounter.time() - cycleCounter/* + 4*/) >> doubleSpeed);
+		const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
+		
 		if (lineCycles > 79U + doubleSpeed && lineCycles < 80U + 169U + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()) + 4U - doubleSpeed * 2)
 			accessible = false;
 	}
@@ -562,15 +567,15 @@ bool LCD::oamAccessible(const unsigned long cycleCounter) {
 		if (cycleCounter >= vEventQueue.top()->time())
 			update(cycleCounter);
 
-		const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
-
 		if (lyCounter.ly() < 144) {
-			const unsigned lineCycles = 456 - (timeToNextLy >> doubleSpeed);
+			const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
+			
 			if (lineCycles < 80) {
 				if (cycleCounter > enableDisplayM0Time)
 					accessible = false;
 			} else {
 				const unsigned m0start = 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly());
+				
 				if (lineCycles < m0start || !doubleSpeed && lineCycles >= 452)
 					accessible = false;
 			}
@@ -635,7 +640,7 @@ void LCD::scxChange(const unsigned newScx, const unsigned long cycleCounter) {
 	addEvent(mode3Event, vEventQueue);
 	
 	
-	const unsigned lineCycles = 456 - ((lyCounter.time() - cycleCounter) >> doubleSpeed);
+	const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
 	
 	breakEvent.setScxSource(newScx);
 	
@@ -663,6 +668,7 @@ void LCD::spriteSizeChange(const bool newLarge, const unsigned long cycleCounter
 	update(cycleCounter);
 	//printf("spriteSizeChange\n");
 	
+	spriteMapper.oamChange(cycleCounter);
 	spriteMapper.setLargeSpritesSource(newLarge);
 	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
 	
@@ -673,6 +679,17 @@ void LCD::oamChange(const unsigned long cycleCounter) {
 	update(cycleCounter);
 	//printf("oamChange\n");
 	
+	spriteMapper.oamChange(cycleCounter);
+	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
+	
+	addEvent(mode3Event, vEventQueue);
+}
+
+void LCD::oamChange(const unsigned char *const oamram, const unsigned long cycleCounter) {
+	update(cycleCounter);
+	//printf("oamChange\n");
+	
+	spriteMapper.oamChange(oamram, cycleCounter);
 	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
 	
 	addEvent(mode3Event, vEventQueue);
@@ -683,13 +700,13 @@ void LCD::wdTileMapSelectChange(const bool newValue, const unsigned long cycleCo
 	
 // 	printf("%u: wdTileMapSelectChange: 0x%X\n", videoCycles, newValue);
 	
-	wdTileMap = vram + (0x1800 | newValue * 0x400);
+	wdTileMap = vram + 0x1800 + newValue * 0x400;
 }
 
 void LCD::bgTileMapSelectChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
-	bgTileMap = vram + (0x1800 | newValue * 0x400);
+	bgTileMap = vram + 0x1800 + newValue * 0x400;
 }
 
 void LCD::bgTileDataSelectChange(const bool newValue, const unsigned long cycleCounter) {
@@ -887,11 +904,12 @@ unsigned LCD::get_stat(const unsigned lycReg, const unsigned long cycleCounter) 
 
 void LCD::do_update(unsigned cycles) {
 	if (lyCounter.ly() < 144) {
-		const unsigned lineCycles = 456 - (lyCounter.time() - lastUpdate >> doubleSpeed);
+		const unsigned lineCycles = lyCounter.lineCycles(lastUpdate);
 		const unsigned xpos = lineCycles < drawStartCycle ? 0 : lineCycles - drawStartCycle;
 		
 		const unsigned endLineCycles = lineCycles + cycles;
 		unsigned endX = endLineCycles < drawStartCycle ? 0 : endLineCycles - drawStartCycle;
+		
 		if (endX > 160)
 			endX = 160;
 		
@@ -905,6 +923,7 @@ void LCD::do_update(unsigned cycles) {
 	}
 	
 	videoCycles += cycles;
+	
 	if (videoCycles >= 70224U)
 		videoCycles -= 70224U;
 }
@@ -1247,15 +1266,15 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 	const unsigned char *const spriteMapLine = spriteMapper.sprites(ypos);
 	
 	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
-		const unsigned char *const spriteInfo = spriteMapper.oamram + spriteMapLine[i];
-		const unsigned spx = spriteInfo[1];
+		const unsigned spNrX2 = spriteMapLine[i];
+		const unsigned spx = spriteMapper.posbuf()[spNrX2 + 1];
 		
 		if (spx < 168 && spx) {
-			unsigned spLine = ypos + 16 - spriteInfo[0];
-			unsigned spTile = spriteInfo[2];
-			const unsigned attributes = spriteInfo[3];
+			unsigned spLine = ypos + 16 - spriteMapper.posbuf()[spNrX2];
+			unsigned spTile = spriteMapper.oamram()[spNrX2 * 2 + 2];
+			const unsigned attributes = spriteMapper.oamram()[spNrX2 * 2 + 3];
 
-			if (spriteMapper.largeSprites()) {
+			if (spriteMapper.largeSprites(spNrX2 >> 1)) {
 				if (attributes & 0x40) //yflip
 					spLine = 15 - spLine;
 				
@@ -1420,15 +1439,15 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 	const unsigned char *const spriteMapLine = spriteMapper.sprites(ypos);
 	
 	for (int i = spriteMapper.numSprites(ypos) - 1; i >= 0; --i) {
-		const unsigned char *const spriteInfo = spriteMapper.oamram + spriteMapLine[i];
-		const unsigned spx = spriteInfo[1];
+		const unsigned spNrX2 = spriteMapLine[i];
+		const unsigned spx = spriteMapper.posbuf()[spNrX2 + 1];
 		
 		if (spx < 168 && spx) {
-			unsigned spLine = ypos + 16 - spriteInfo[0];
-			unsigned spTile = spriteInfo[2];
-			const unsigned attributes = spriteInfo[3];
+			unsigned spLine = ypos + 16 - spriteMapper.posbuf()[spNrX2];
+			unsigned spTile = spriteMapper.oamram()[spNrX2 * 2 + 2];
+			const unsigned attributes = spriteMapper.oamram()[spNrX2 * 2 + 3];
 
-			if (spriteMapper.largeSprites()) {
+			if (spriteMapper.largeSprites(spNrX2 >> 1)) {
 				if (attributes & 0x40) //yflip
 					spLine = 15 - spLine;
 				

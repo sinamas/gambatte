@@ -33,13 +33,13 @@ M3ExtraCycles::M3ExtraCycles(const SpriteMapper &spriteMapper,
 }
 
 static const unsigned char* addLineCycles(const unsigned char *const start, const unsigned char *const end,
-		const unsigned maxSpx, const unsigned scwxAnd7, const unsigned char *const oamram_plus1, unsigned char *cycles_out) {
+		const unsigned maxSpx, const unsigned scwxAnd7, const unsigned char *const posbuf_plus1, unsigned char *cycles_out) {
 	unsigned sum = 0;
 	
 	const unsigned char *a = start; 
 	
 	for (; a < end; ++a) {
-		const unsigned spx = oamram_plus1[*a];
+		const unsigned spx = posbuf_plus1[*a];
 		
 		if (spx > maxSpx)
 			break;
@@ -51,7 +51,7 @@ static const unsigned char* addLineCycles(const unsigned char *const start, cons
 			cycles = 11 - posAnd7;
 			
 			for (const unsigned char *b = a; b > start;) {
-				const unsigned bSpx = oamram_plus1[*--b];
+				const unsigned bSpx = posbuf_plus1[*--b];
 				
 				if (spx - bSpx > 4U)
 					break;
@@ -86,16 +86,16 @@ void M3ExtraCycles::updateLine(const unsigned ly) const {
 	
 	if (spriteMapper.isCgb()) {
 		std::memcpy(sortBuf, tmp, sizeof(sortBuf));
-		insertionSort(sortBuf, sortBuf + numSprites);
+		insertionSort(sortBuf, sortBuf + numSprites, SpriteMapper::SpxLess(spriteMapper.posbuf()));
 		tmp = sortBuf;
 	}
 	
 	const unsigned char *const tmpend = tmp + numSprites;
-	const unsigned char *const oamram_plus1 = spriteMapper.oamram + 1;
+	const unsigned char *const posbuf_plus1 = spriteMapper.posbuf() + 1;
 	
 	if (windowEnabled) {
-		addLineCycles(addLineCycles(tmp, tmpend, win.wxReader.wx(), scxReader.scxAnd7(), oamram_plus1, cycles + ly),
-				tmpend, 167, 7 - win.wxReader.wx(), oamram_plus1, cycles + ly);
+		addLineCycles(addLineCycles(tmp, tmpend, win.wxReader.wx(), scxReader.scxAnd7(), posbuf_plus1, cycles + ly),
+				tmpend, 167, 7 - win.wxReader.wx(), posbuf_plus1, cycles + ly);
 	} else
-		addLineCycles(tmp, tmpend, 167, scxReader.scxAnd7(), oamram_plus1, cycles + ly);
+		addLineCycles(tmp, tmpend, 167, scxReader.scxAnd7(), posbuf_plus1, cycles + ly);
 }

@@ -26,19 +26,54 @@
 class M3ExtraCycles;
 
 class SpriteMapper : public VideoEvent {
-	enum { NEED_SORTING_MASK = 0x80 };
+	class OamReader {
+		unsigned char buf[80];
+		bool szbuf[40];
 	
+	public:
+		const LyCounter &lyCounter;
+	
+	private:
+		const unsigned char *oamram;
+		unsigned long lu;
+		unsigned char lastChange;
+		bool largeSpritesSrc;
+		
+	public:
+		OamReader(const LyCounter &lyCounter, const unsigned char *oamram);
+		void change(unsigned long cc);
+		void change(const unsigned char *oamram, unsigned long cc) { change(cc); this->oamram = oamram; }
+		bool changed() const { return lastChange != 0xFF; }
+		bool largeSprites(unsigned spNr) const { return szbuf[spNr]; }
+		const unsigned char *oam() const { return oamram; }
+		void reset();
+		void resetCycleCounter(const unsigned newCc) { lu = newCc; }
+		void setLargeSpritesSrc(const bool src) { largeSpritesSrc = src; }
+		void update(unsigned long cc);
+		const unsigned char *spritePosBuf() const { return buf; }
+	};
+	
+	enum { NEED_SORTING_MASK = 0x80 };
+
+public:
+	class SpxLess {
+		const unsigned char *const posbuf_plus1;
+		
+	public:
+		SpxLess(const unsigned char *const posbuf) : posbuf_plus1(posbuf + 1) {} 
+		
+		bool operator()(const unsigned char l, const unsigned char r) const {
+			return posbuf_plus1[l] < posbuf_plus1[r];
+		}
+	};
+
+private:
 	mutable unsigned char spritemap[144*10];
 	mutable unsigned char num[144];
 	
 	M3ExtraCycles &m3ExtraCycles;
+	OamReader oamReader;
 	
-public:
-	const unsigned char *const oamram;
-
-private:
-	bool largeSprites_;
-	bool largeSpritesSrc_;
 	bool cgb;
 	
 	void clearMap();
@@ -47,7 +82,8 @@ private:
 	
 public:
 	SpriteMapper(M3ExtraCycles &m3ExtraCycles,
-	             const unsigned char *const oamram_in);
+	             const LyCounter &lyCounter,
+	             const unsigned char *oamram_in);
 	
 	void doEvent();
 	
@@ -55,18 +91,42 @@ public:
 		return cgb;
 	}
 	
-	bool largeSprites() const {
-		return largeSprites_;
+	bool largeSprites(unsigned spNr) const {
+		return oamReader.largeSprites(spNr);
 	}
 	
 	unsigned numSprites(const unsigned ly) const {
 		return num[ly] & ~NEED_SORTING_MASK;
 	}
 	
+	void oamChange(const unsigned long cc) {
+		oamReader.change(cc);
+	}
+	
+	void oamChange(const unsigned char *oamram, const unsigned long cc) {
+		oamReader.change(oamram, cc);
+	}
+	
+	const unsigned char *oamram() const {
+		return oamReader.oam();
+	}
+	
+	const unsigned char *posbuf() const {
+		return oamReader.spritePosBuf();
+	}
+	
+	void preCounterChange(const unsigned long cc) {
+		oamReader.update(cc);
+	}
+	
 	void reset();
 	
+	void resetCycleCounter(const unsigned long newCc) {
+		oamReader.resetCycleCounter(newCc);
+	}
+	
 	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-		setTime(lyCounter.nextLineCycle(16 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
+		setTime(lyCounter.nextLineCycle(80, cycleCounter));
 	}
 	
 	void setCgb(const bool cgb_in) {
@@ -74,7 +134,7 @@ public:
 	}
 	
 	void setLargeSpritesSource(const bool src) {
-		largeSpritesSrc_ = src;
+		oamReader.setLargeSpritesSrc(src);
 	}
 	
 	const unsigned char* sprites(const unsigned ly) const {
