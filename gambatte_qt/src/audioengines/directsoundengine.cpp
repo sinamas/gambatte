@@ -60,7 +60,23 @@ void DirectSoundEngine::rejectSettings() {
 	globalBufBox->setChecked(useGlobalBuf);
 }
 
-int DirectSoundEngine::init(const int rate) {
+static unsigned nearestPowerOf2(const unsigned in) {
+	unsigned out = in;
+	
+	out |= out >> 1;
+	out |= out >> 2;
+	out |= out >> 4;
+	out |= out >> 8;
+	out |= out >> 16;
+	++out;
+	
+	if (!(out >> 2 & in))
+		out >>= 1;
+	
+	return out;
+}
+
+int DirectSoundEngine::init(const int rate, const unsigned latency) {
 	if (DirectSoundCreate(NULL, &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
 		goto fail;
@@ -76,14 +92,17 @@ int DirectSoundEngine::init(const int rate) {
 		dsbd.dwFlags |= useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0;
 		
 		{
-			int bufferSize = (((rate * 4389) / 262144) + 1) * 8 * 4;
+			/*int bufferSize = (((rate * 4389) / 262144) + 1) * 8 * 4;
 			
+			--bufferSize;
 			bufferSize |= bufferSize >> 1;
 			bufferSize |= bufferSize >> 2;
 			bufferSize |= bufferSize >> 4;
 			bufferSize |= bufferSize >> 8;
 			bufferSize |= bufferSize >> 16;
-			++bufferSize;
+			++bufferSize;*/
+			
+			int bufferSize = nearestPowerOf2(((rate * latency + 500) / 1000) * 4);
 			
 			if (bufferSize < DSBSIZE_MIN)
 				bufferSize = DSBSIZE_MIN;
@@ -201,7 +220,7 @@ const AudioEngine::BufferState DirectSoundEngine::bufferState() const {
 	DWORD pc, wc;
 	
 	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK) {
-		s.fromOverflow = s.fromUnderrun = bufSize >> 2;
+		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
 	} else if (offset > pc && offset < wc) {
 		s.fromUnderrun = 0;
 		s.fromOverflow = bufSize >> 2;

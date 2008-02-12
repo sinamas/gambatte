@@ -38,7 +38,7 @@ class DirectSoundEngine : public AudioEngine {
 public:
 	DirectSoundEngine(HWND hwnd);
 	~DirectSoundEngine();
-	int init(int rate);
+	int init(int rate, unsigned latency);
 	void uninit();
 	int write(void *buffer, unsigned frames);
 	const BufferState bufferState() const;

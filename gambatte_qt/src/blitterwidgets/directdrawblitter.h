@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -28,7 +28,6 @@ class QCheckBox;
 class VideoBufferReseter;
 
 class DirectDrawBlitter : public BlitterWidget {
-	VideoBufferReseter &resetVideoBuffer;
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
@@ -39,11 +38,10 @@ class DirectDrawBlitter : public BlitterWidget {
 	LPDIRECTDRAWSURFACE7 lpDDSSystem;
 	LPDIRECTDRAWSURFACE7 lpDDSVideo;
 	LPDIRECTDRAWCLIPPER lpClipper;
-	Gambatte::PixelBuffer pixb;
-	bool keepRatio;
-	bool integerScaling;
+	MediaSource::PixelFormat pixelFormat;
+	unsigned hz;
+	unsigned vblankHz;
 	bool vblank;
-	bool hz60;
 	bool videoSurface;
 	bool exclusive;
 	bool flipping;
@@ -66,13 +64,9 @@ public:
 	DirectDrawBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent = 0);
 	~DirectDrawBlitter();
 	void blit();
-	const Gambatte::PixelBuffer inBuffer();
 	void init();
-	void keepAspectRatio(bool enable);
-	bool keepsAspectRatio();
-	void scaleByInteger(bool enable);
-	bool scalesByInteger();
 	void setBufferDimensions(unsigned int w, unsigned int h);
+	void setFrameTime(Rational ft);
 	const Rational frameTime() const;
 	int sync(bool turbo);
 	void uninit();

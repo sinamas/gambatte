@@ -120,8 +120,8 @@ class Memory {
 	void endOamDma(unsigned long cycleCounter);
 	void setOamDmaSrc();
 	
-	unsigned char nontrivial_ff_read(unsigned P, unsigned long cycleCounter);
-	unsigned char nontrivial_read(unsigned P, unsigned long cycleCounter);
+	unsigned nontrivial_ff_read(unsigned P, unsigned long cycleCounter);
+	unsigned nontrivial_read(unsigned P, unsigned long cycleCounter);
 	void nontrivial_ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	void mbc_write(unsigned P, unsigned data);
 	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
@@ -165,16 +165,12 @@ public:
 // 		if(next_event==EI) set_event();
 	}
 
-	unsigned char ff_read(const unsigned P, const unsigned long cycleCounter) {
+	unsigned ff_read(const unsigned P, const unsigned long cycleCounter) {
 		return P < 0xFF80 ? nontrivial_ff_read(P, cycleCounter) : ioamhram[P - 0xFE00];
 	}
 
-	unsigned char read(const unsigned P, const unsigned long cycleCounter) {
+	unsigned read(const unsigned P, const unsigned long cycleCounter) {
 		return rmem[P >> 12] ? rmem[P >> 12][P] : nontrivial_read(P, cycleCounter);
-	}
-	
-	unsigned char pc_read(const unsigned P, const unsigned long cycleCounter) {
-		return read(P, cycleCounter);
 	}
 
 	void write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {

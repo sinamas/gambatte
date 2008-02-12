@@ -23,9 +23,11 @@
 
 class BlitterWidget;
 class FullResToggler;
+class VideoDialog;
 
 class BlitterContainer : public QWidget {
 	const FullResToggler &resToggler;
+	const VideoDialog *const videoDialog;
 	BlitterWidget *blitter;
 	
 	void doLayout(int w, int h);
@@ -35,7 +37,7 @@ protected:
 	void hideEvent(QHideEvent *event);
 	
 public:
-	BlitterContainer(const FullResToggler &fullResToggler, QWidget *parent = 0);
+	BlitterContainer(const FullResToggler &fullResToggler, const VideoDialog *videoDialog, QWidget *parent = 0);
 	~BlitterContainer();
 	void setBlitter(BlitterWidget *blitter);
 	void updateLayout() { doLayout(width(), height()); }

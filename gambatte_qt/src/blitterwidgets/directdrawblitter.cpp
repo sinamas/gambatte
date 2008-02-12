@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,9 +26,8 @@
 #include <iostream>
 #include <cstring>
 
-DirectDrawBlitter::DirectDrawBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
-	BlitterWidget("DirectDraw", parent),
-	resetVideoBuffer(resetVideoBuffer_in),
+DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
+	BlitterWidget(setPixelBuffer, "DirectDraw", parent),
 	confWidget(new QWidget),
 	vblankBox(new QCheckBox(QString("Sync to vertical blank in 60 Hz modes"))),
 	flippingBox(new QCheckBox(QString("Page flipping"))),
@@ -38,12 +37,11 @@ DirectDrawBlitter::DirectDrawBlitter(VideoBufferReseter &resetVideoBuffer_in, QW
 	lpDDSSystem(NULL),
 	lpDDSVideo(NULL),
 	lpClipper(NULL),
-	keepRatio(true),
-	integerScaling(false),
+	pixelFormat(MediaSource::RGB32),
+	hz(0),
+	vblankHz(60),
 	exclusive(false)
 {
-	pixb.pixels = NULL;
-	
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAttribute(Qt::WA_PaintOnScreen, true);
 	
@@ -123,13 +121,7 @@ void DirectDrawBlitter::blit() {
 	if (lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK, NULL) != DD_OK)
 		std::cout << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK, NULL) failed" << std::endl;
 	
-	pixb.pixels = ddsd.lpSurface;
-	pixb.pitch = pixb.format == Gambatte::PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2);
-	resetVideoBuffer();
-}
-
-const Gambatte::PixelBuffer DirectDrawBlitter::inBuffer() {
-	return pixb;
+	setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == MediaSource::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
 }
 
 bool DirectDrawBlitter::initPrimarySurface() {
@@ -241,22 +233,22 @@ bool DirectDrawBlitter::restoreSurfaces() {
 	return false;
 }
 
-static void setDdPf(DDPIXELFORMAT *const ddpf, Gambatte::PixelBuffer *const pixb, LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
+static void setDdPf(DDPIXELFORMAT *const ddpf, MediaSource::PixelFormat *const pixelFormat, LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
 	bool alpha = false;
 
 	ddpf->dwSize = sizeof(DDPIXELFORMAT);
 	
 	if (lpDDSPrimary && lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK && (ddpf->dwFlags & DDPF_RGB) && ddpf->dwRGBBitCount == 16) {
-		pixb->format = Gambatte::PixelBuffer::RGB16;
+		*pixelFormat = MediaSource::RGB16;
 	} else {
-		pixb->format = Gambatte::PixelBuffer::RGB32;
+		*pixelFormat = MediaSource::RGB32;
 		alpha = ddpf->dwFlags & DDPF_ALPHAPIXELS;
 	}
 	
 	std::memset(ddpf, 0, sizeof(DDPIXELFORMAT));
 	ddpf->dwFlags = DDPF_RGB;
 	
-	if (pixb->format == Gambatte::PixelBuffer::RGB16) {
+	if (*pixelFormat == MediaSource::RGB16) {
 		ddpf->dwRGBBitCount = 16;
 		ddpf->dwRBitMask = 0xF800;
 		ddpf->dwGBitMask = 0x07E0;
@@ -289,7 +281,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	}
 	
 	DDPIXELFORMAT ddpf;
-	setDdPf(&ddpf, &pixb, lpDDSPrimary);
+	setDdPf(&ddpf, &pixelFormat, lpDDSPrimary);
 	
 	DDSURFACEDESC2 ddsd;
 	std::memset(&ddsd, 0, sizeof(ddsd));
@@ -318,9 +310,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 		goto fail;
 	}
 	
-	pixb.pixels = ddsd.lpSurface;
-	pixb.pitch = pixb.format == Gambatte::PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2);
-	
+	setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == MediaSource::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
 	return;
 	
 fail:
@@ -352,14 +342,22 @@ void DirectDrawBlitter::uninit() {
 		lpDD->Release();
 		lpDD = NULL;
 	}
+}
 
-	pixb.pixels = NULL;
+void DirectDrawBlitter::setFrameTime(Rational ft) {
+	BlitterWidget::setFrameTime(ft);
+	
+	vblankHz = (ft.denominator + (ft.numerator >> 1)) / ft.numerator;
+	
+	QString text("Sync to vertical blank in ");
+	text += QString::number(vblankHz);
+	test += " Hz modes";
+	vblankBox->setText(text);
 }
 
 const BlitterWidget::Rational DirectDrawBlitter::frameTime() const {
-	if (vblank && hz60) {
-		Rational r = { 1, 60 };
-		return r;
+	if (vblank && hz == vblankHz) {
+		return Rational(1, hz);
 	}
 	
 	return BlitterWidget::frameTime();
@@ -375,14 +373,14 @@ int DirectDrawBlitter::sync(const bool turbo) {
 	GetWindowRect(winId(), &rcRectDest);
 	
 	if (!turbo) {
-		if (vblank && hz60) {
+		if (vblank && hz == vblankHz) {
 			if (!(exclusive && flipping))
 				lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
 		} else
 			BlitterWidget::sync(turbo);
 	}
 	
-	const bool dontwait = exclusive && flipping && !(vblank && hz60 && !turbo);
+	const bool dontwait = exclusive && flipping && !(vblank && hz == vblankHz && !turbo);
 	
 	HRESULT ddrval = lpDDSBack->Blt(&rcRectDest, lpDDSVideo, NULL, dontwait ? DDBLT_DONOTWAIT : DDBLT_WAIT, NULL);
 	
@@ -403,22 +401,6 @@ int DirectDrawBlitter::sync(const bool turbo) {
 	}
 	
 	return 0;
-}
-
-void DirectDrawBlitter::keepAspectRatio(const bool enable) {
-	keepRatio = enable;
-}
-
-bool DirectDrawBlitter::keepsAspectRatio() {
-	return keepRatio;
-}
-
-void DirectDrawBlitter::scaleByInteger(const bool enable) {
-	integerScaling = enable;
-}
-
-bool DirectDrawBlitter::scalesByInteger() {
-	return integerScaling;
 }
 
 void DirectDrawBlitter::acceptSettings() {
@@ -452,7 +434,7 @@ void DirectDrawBlitter::rejectSettings() {
 }
 
 void DirectDrawBlitter::rateChange(int hz) {
-	hz60 = hz == 60;
+	this->hz = hz;
 }
 
 void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {
@@ -506,8 +488,8 @@ void DirectDrawBlitter::reinit() {
 		lpDDSSystem->GetSurfaceDesc(&ddsd);
 		
 		uninit();
+		setPixelBuffer(NULL, MediaSource::RGB32, 0);
 		init();
 		setBufferDimensions(ddsd.dwWidth, ddsd.dwHeight);
-		resetVideoBuffer();
 	}
 }

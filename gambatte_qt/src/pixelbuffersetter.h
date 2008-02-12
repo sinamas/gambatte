@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,19 +16,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef VIDEOBUFFERRESETER_H
-#define VIDEOBUFFERRESETER_H
+#ifndef PIXELBUFFERSETTER_H
+#define PIXELBUFFERSETTER_H
 
-namespace Gambatte {
-class GB;
-}
+#include "mediasource.h"
 
-class VideoBufferReseter {
-	Gambatte::GB &gambatte;
+class PixelBufferSetter {
+	MediaSource *const source;
 	
 public:
-	VideoBufferReseter(Gambatte::GB &gambatte_in);
-	void operator()();
+	PixelBufferSetter(MediaSource *source) : source(source) {}
+	
+	void operator()(void *pixels, MediaSource::PixelFormat format, unsigned pitch) {
+		source->setPixelBuffer(pixels, format, pitch);
+	}
 };
 
 #endif

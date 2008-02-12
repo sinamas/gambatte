@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,42 +23,29 @@
 
 #include <memory>
 
-class VideoBufferReseter;
-
 class X11Blitter : public BlitterWidget {
 	class SubBlitter;
 	class ShmBlitter;
 	class PlainBlitter;
 	
-	VideoBufferReseter &resetVideoBuffer;
 	std::auto_ptr<SubBlitter> subBlitter;
 	char *buffer;
 	unsigned int inWidth, inHeight;
 	unsigned int scale;
-// 	bool init;
-// 	bool keepRatio;
-// 	bool integerScaling;
 	bool shm;
-// 	bool failed;
 	
 protected:
 	void paintEvent(QPaintEvent *event);
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	X11Blitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent = 0);
+	X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
 	~X11Blitter();
 	void init();
 	void uninit();
-// 	void init(const unsigned int srcW, const unsigned int srcH);
-	bool isUnusable();
-	void keepAspectRatio(const bool enable);
-	bool keepsAspectRatio();
-	void scaleByInteger(const bool enable);
-	bool scalesByInteger();
+	bool isUnusable() const;
 	int sync(bool turbo);
 	void setBufferDimensions(const unsigned width, const unsigned height);
-	const Gambatte::PixelBuffer inBuffer();
 	void blit();
 };
 

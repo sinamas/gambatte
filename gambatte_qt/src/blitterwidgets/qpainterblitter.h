@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,10 +25,8 @@
 
 class QPainter;
 class QImage;
-class VideoBufferReseter;
 
 class QPainterBlitter : public BlitterWidget {
-	VideoBufferReseter &resetVideoBuffer;
 	std::auto_ptr<QImage> image;
 	quint32 *buffer;
 	unsigned int inWidth, inHeight;
@@ -39,14 +37,9 @@ protected:
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	QPainterBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent = 0);
+	QPainterBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
 	~QPainterBlitter();
 	void blit();
-	const Gambatte::PixelBuffer inBuffer();
-	void keepAspectRatio(bool enable);
-	bool keepsAspectRatio();
-	void scaleByInteger(bool enable);
-	bool scalesByInteger();
 	void setBufferDimensions(unsigned int w, unsigned int h);
 	void uninit();
 };

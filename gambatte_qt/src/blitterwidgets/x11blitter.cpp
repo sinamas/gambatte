@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,7 +21,6 @@
 #include "x11blitter.h"
 
 #include "../scalebuffer.h"
-#include "../videobufferreseter.h"
 
 #include <QX11Info>
 #include <X11/Xlib.h>
@@ -37,8 +36,9 @@
 class X11Blitter::SubBlitter {
 public:
 	virtual void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h) = 0;
-	virtual bool failed() = 0;
-	virtual const Gambatte::PixelBuffer inBuffer() = 0;
+	virtual bool failed() const = 0;
+	virtual void* pixels() const = 0;
+	virtual unsigned pitch() const = 0;
 	virtual ~SubBlitter() {};
 };
 
@@ -49,8 +49,9 @@ class X11Blitter::ShmBlitter : public SubBlitter {
 public:
 	ShmBlitter(unsigned int width, unsigned int height);
 	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
-	bool failed();
-	const Gambatte::PixelBuffer inBuffer();
+	bool failed() const;
+	void* pixels() const;
+	unsigned pitch() const;
 	~ShmBlitter();
 };
 
@@ -88,17 +89,16 @@ void X11Blitter::ShmBlitter::blit(const Drawable drawable, const unsigned x, con
 	}
 }
 
-bool X11Blitter::ShmBlitter::failed() {
+bool X11Blitter::ShmBlitter::failed() const {
 	return ximage == NULL || shminfo.shmaddr == NULL;
 }
 
-const Gambatte::PixelBuffer X11Blitter::ShmBlitter::inBuffer() {
-	Gambatte::PixelBuffer pixb;
-	pixb.format = QX11Info::appDepth() == 16 ? Gambatte::PixelBuffer::RGB16 : Gambatte::PixelBuffer::RGB32;
-	pixb.pixels = ximage ? ximage->data : NULL;
-	pixb.pitch = ximage ? ximage->width : 0;
-	
-	return pixb;
+void* X11Blitter::ShmBlitter::pixels() const {
+	return ximage ? ximage->data : NULL;
+}
+
+unsigned X11Blitter::ShmBlitter::pitch() const {
+	return ximage ? ximage->width : 0;
 }
 
 class X11Blitter::PlainBlitter : public X11Blitter::SubBlitter {
@@ -107,8 +107,9 @@ class X11Blitter::PlainBlitter : public X11Blitter::SubBlitter {
 public:
 	PlainBlitter (unsigned int width, unsigned int height);
 	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
-	bool failed();
-	const Gambatte::PixelBuffer inBuffer();
+	bool failed() const;
+	void* pixels() const;
+	unsigned pitch() const;
 	~PlainBlitter ();
 };
 
@@ -136,22 +137,20 @@ void X11Blitter::PlainBlitter::blit(const Drawable drawable, const unsigned x, c
 	}
 }
 
-bool X11Blitter::PlainBlitter::failed() {
+bool X11Blitter::PlainBlitter::failed() const {
 	return ximage == NULL;
 }
 
-const Gambatte::PixelBuffer X11Blitter::PlainBlitter::inBuffer() {
-	Gambatte::PixelBuffer pixb;
-	pixb.format = QX11Info::appDepth() == 16 ? Gambatte::PixelBuffer::RGB16 : Gambatte::PixelBuffer::RGB32;
-	pixb.pixels = ximage ? ximage->data : NULL;
-	pixb.pitch = ximage ? ximage->width : 0;
-	
-	return pixb;
+void* X11Blitter::PlainBlitter::pixels() const {
+	return ximage ? ximage->data : NULL;
 }
 
-X11Blitter::X11Blitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
-BlitterWidget(QString("X11"), true, parent),
-resetVideoBuffer(resetVideoBuffer_in),
+unsigned X11Blitter::PlainBlitter::pitch() const {
+	return ximage ? ximage->width : 0;
+}
+
+X11Blitter::X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
+BlitterWidget(setPixelBuffer, QString("X11"), true, parent),
 buffer(NULL),
 inWidth(160),
 inHeight(144),
@@ -167,7 +166,7 @@ scale(0)
 	setAttribute(Qt::WA_PaintOnScreen, true);
 }
 
-bool X11Blitter::isUnusable() {
+bool X11Blitter::isUnusable() const {
 	return !(QX11Info::appDepth() == 16 || QX11Info::appDepth() == 24 || QX11Info::appDepth() == 32);
 }
 
@@ -195,22 +194,6 @@ int X11Blitter::sync(const bool turbo) {
 		return -1;
 	
 	return BlitterWidget::sync(turbo);
-}
-
-void X11Blitter::keepAspectRatio(const bool /*enable*/) {
-// 	keepRatio = enable;
-}
-
-bool X11Blitter::keepsAspectRatio() {
-	return true;
-}
-
-void X11Blitter::scaleByInteger(const bool /*enable*/) {
-// 	integerScaling = enable;
-}
-
-bool X11Blitter::scalesByInteger() {
-	return true;
 }
 
 /*
@@ -241,9 +224,6 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 	
 	uninit();
 	
-	if (scale > 1)
-		buffer = new char[w * h * (QX11Info::appDepth() == 16 ? 2 : 4)];
-	
 	if (shm) {
 		subBlitter.reset(new ShmBlitter(w * scale, h * scale));
 		
@@ -255,29 +235,20 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 	
 	if (!shm)
 		subBlitter.reset(new PlainBlitter (w * scale, h * scale));
-}
-
-const Gambatte::PixelBuffer X11Blitter::inBuffer() {
-	if (buffer) {
-		Gambatte::PixelBuffer pixb;
-		pixb.format = QX11Info::appDepth() == 16 ? Gambatte::PixelBuffer::RGB16 : Gambatte::PixelBuffer::RGB32;
-		pixb.pixels = buffer;
-		pixb.pitch = inWidth;
-		
-		return pixb;
-	}
 	
-	return subBlitter->inBuffer();
+	if (scale > 1) {
+		buffer = new char[w * h * (QX11Info::appDepth() == 16 ? 2 : 4)];
+		setPixelBuffer(buffer, QX11Info::appDepth() == 16 ? MediaSource::RGB16 : MediaSource::RGB32, w);
+	} else
+		setPixelBuffer(subBlitter->pixels(), QX11Info::appDepth() == 16 ? MediaSource::RGB16 : MediaSource::RGB32, subBlitter->pitch());
 }
 
 void X11Blitter::blit() {
 	if (buffer) {
-		const Gambatte::PixelBuffer &pb = subBlitter->inBuffer();
-		
 		if (QX11Info::appDepth() == 16) {
-			scaleBuffer(reinterpret_cast<quint16*>(buffer), reinterpret_cast<quint16*>(pb.pixels), inWidth, inHeight, scale);
+			scaleBuffer(reinterpret_cast<quint16*>(buffer), reinterpret_cast<quint16*>(subBlitter->pixels()), inWidth, inHeight, subBlitter->pitch(), scale);
 		} else {
-			scaleBuffer(reinterpret_cast<quint32*>(buffer), reinterpret_cast<quint32*>(pb.pixels), inWidth, inHeight, scale);
+			scaleBuffer(reinterpret_cast<quint32*>(buffer), reinterpret_cast<quint32*>(subBlitter->pixels()), inWidth, inHeight, subBlitter->pitch(), scale);
 		}
 	}
 	
@@ -291,9 +262,7 @@ void X11Blitter::resizeEvent(QResizeEvent */*event*/) {
 	if (newScale != scale) {
 		scale = newScale;
 		
-		if (subBlitter.get()) {
+		if (subBlitter.get())
 			setBufferDimensions(inWidth, inHeight);
-			resetVideoBuffer();
-		}
 	}
 }

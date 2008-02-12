@@ -19,7 +19,9 @@
 #include "cpu.h"
 #include "memory.h"
 
-CPU::CPU() : memory(Interrupter(SP, PC_, halted)), cycleCounter_(0x102A0) {}
+CPU::CPU() : memory(Interrupter(SP, PC_, halted)), cycleCounter_(0x102A0) {
+	init();
+}
 
 void CPU::init() {
 	cycleCounter_ = 0x102A0;
@@ -113,7 +115,7 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 
 #define READ(dest, addr) do { (dest) = memory.read(addr, cycleCounter); cycleCounter += 4; } while (0)
 // #define PC_READ(dest, addr) do { (dest) = memory.pc_read(addr, cycleCounter); cycleCounter += 4; } while (0)
-#define PC_READ(dest) do { (dest) = memory.pc_read(PC, cycleCounter); PC = PC + 1 & 0xFFFF; cycleCounter += 4; } while (0)
+#define PC_READ(dest) do { (dest) = memory.read(PC, cycleCounter); PC = PC + 1 & 0xFFFF; cycleCounter += 4; } while (0)
 #define FF_READ(dest, addr) do { (dest) = memory.ff_read(addr, cycleCounter); cycleCounter += 4; } while (0)
 
 #define WRITE(addr, data) do { memory.write(addr, data, cycleCounter); cycleCounter += 4; } while (0)

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -46,8 +46,6 @@ class XvBlitter : public BlitterWidget {
 	unsigned portIndex;
 	GC gc;
 // 	bool init;
-	bool keepRatio;
-	bool integerScaling;
 	bool shm;
 	bool portGrabbed;
 	bool failed;
@@ -60,19 +58,13 @@ protected:
 // 	void resizeEvent(QResizeEvent *event);
 
 public:
-	XvBlitter(QWidget *parent = 0);
+	XvBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
 	~XvBlitter();
 	void init();
 	void uninit();
-// 	void init(const unsigned int srcW, const unsigned int srcH);
-	bool isUnusable();
-	void keepAspectRatio(const bool enable);
-	bool keepsAspectRatio();
-	void scaleByInteger(const bool enable);
-	bool scalesByInteger();
+	bool isUnusable() const;
 	int sync(bool turbo);
 	void setBufferDimensions(const unsigned int width, const unsigned int height);
-	const Gambatte::PixelBuffer inBuffer();
 	void blit();
 	
 	QWidget* settingsWidget() { return confWidget.get(); }

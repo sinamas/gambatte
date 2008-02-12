@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,39 +19,48 @@
 #ifndef BLITTERWIDGET_H
 #define BLITTERWIDGET_H
 
+#include "pixelbuffersetter.h"
 #include <QWidget>
-#include <videoblitter.h>
 #include <QString>
+#include <memory>
 
 class QHBoxLayout;
 
-class BlitterWidget : public QWidget, public Gambatte::VideoBlitter {
+class BlitterWidget : public QWidget {
 	Q_OBJECT
+
+	class Impl;
+	
+	Impl *const impl;
 
 public:
 	struct Rational {
 		unsigned numerator;
 		unsigned denominator;
+		
+		Rational(unsigned num = 1, unsigned den = 60) : numerator(num), denominator(den) {}
 	};
 	
+protected:
+	PixelBufferSetter setPixelBuffer;
+	
+public:
 	const QString nameString;
 	const bool integerOnlyScaler;
-	const bool selfScaling;
 	
-	BlitterWidget(const QString &name, bool integerOnlyScaler_in = false, bool selfScaling_in = false, QWidget *parent = 0) :
-		QWidget(parent),
-		nameString(name),
-		integerOnlyScaler(integerOnlyScaler_in),
-		selfScaling(selfScaling_in)
-	{}
+	BlitterWidget(PixelBufferSetter setPixelBuffer,
+	              const QString &name,
+	              bool integerOnlyScaler = false,
+	              QWidget *parent = 0);
+	virtual ~BlitterWidget();
 	
 	virtual void init() {}
 	virtual void uninit() {}
-	virtual bool isUnusable() { return false; }
-	virtual void keepAspectRatio(const bool enable) = 0;
-	virtual bool keepsAspectRatio() = 0;
-	virtual void scaleByInteger(const bool enable) = 0;
-	virtual bool scalesByInteger() = 0;
+	virtual void blit() = 0;
+	virtual bool isUnusable() const { return false; }
+	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
+	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) { setGeometry(w - new_w >> 1, h - new_h >> 1, new_w, new_h); }
+	virtual void setFrameTime(Rational ft);
 	virtual const Rational frameTime() const;
 	virtual int sync(bool turbo);
 	virtual QWidget* settingsWidget() { return NULL; }

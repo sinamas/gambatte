@@ -23,6 +23,7 @@
 class AudioEngine;
 class QVBoxLayout;
 class QComboBox;
+class QSpinBox;
 
 #include <QDialog>
 #include <vector>
@@ -34,9 +35,11 @@ class SoundDialog : public QDialog {
 	QVBoxLayout *const topLayout;
 	QComboBox *const engineSelector;
 	QComboBox *const rateSelector;
+	QSpinBox *const latencySelector;
 	QWidget *engineWidget;
 	int engineIndex;
 	int rateIndex;
+	int latency;
 	
 	void store();
 	void restore();
@@ -45,10 +48,12 @@ private slots:
 	void engineChange(int index);
 	
 public:
-	SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *parent = 0);
+	SoundDialog(const std::vector<AudioEngine*> &engines, const std::vector<int> &rates, QWidget *parent = 0);
 	~SoundDialog();
 	int getEngineIndex() const { return engineIndex; }
 	int getRate() const;
+	int getLatency() const { return latency; };
+	void setRates(const std::vector<int> &rates);
 	
 public slots:
 	void accept();

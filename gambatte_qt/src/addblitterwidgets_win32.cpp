@@ -20,6 +20,6 @@
 
 #include "blitterwidgets/directdrawblitter.h"
 
-void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, VideoBufferReseter &resetVideoBuffer) {
-	blitters.push_back(new DirectDrawBlitter(resetVideoBuffer));
+void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, PixelBufferSetter setPixelBuffer) {
+	blitters.push_back(new DirectDrawBlitter(setPixelBuffer));
 }

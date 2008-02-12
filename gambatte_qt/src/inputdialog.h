@@ -32,39 +32,20 @@ class InputBox;
 class InputDialog : public QDialog {
 	Q_OBJECT
 	
-	InputBox *upBox;
-	InputBox *downBox;
-	InputBox *leftBox;
-	InputBox *rightBox;
-	InputBox *aBox;
-	InputBox *bBox;
-	InputBox *startBox;
-	InputBox *selectBox;
-	
-	SDL_Event upData;
-	SDL_Event downData;
-	SDL_Event leftData;
-	SDL_Event rightData;
-	SDL_Event aData;
-	SDL_Event bData;
-	SDL_Event startData;
-	SDL_Event selectData;
+	const std::vector<std::string> buttonLabels;
+	std::vector<InputBox*> inputBoxes;
+	std::vector<SDL_Event> eventData;
 	
 	void store();
 	void restore();
 	
 public:
-	InputDialog(QWidget *parent = 0);
+	InputDialog(const std::vector<std::string> &buttonLabels,
+	            const std::vector<int> &buttonDefaults,
+	            QWidget *parent = 0);
 	~InputDialog();
 	
-	const SDL_Event& getUpData() const { return upData; }
-	const SDL_Event& getDownData() const { return downData; }
-	const SDL_Event& getLeftData() const { return leftData; }
-	const SDL_Event& getRightData() const { return rightData; }
-	const SDL_Event& getAData() const { return aData; }
-	const SDL_Event& getBData() const { return bData; }
-	const SDL_Event& getStartData() const { return startData; }
-	const SDL_Event& getSelectData() const { return selectData; }
+	const std::vector<SDL_Event>& getData() const { return eventData; }
 	
 public slots:
 	void accept();

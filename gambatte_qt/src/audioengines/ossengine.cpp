@@ -37,7 +37,7 @@ OssEngine::~OssEngine() {
 	uninit();
 }
 
-int OssEngine::init(int speed) {
+int OssEngine::init(int speed, const unsigned latency) {
 	if ((audio_fd = open(conf.device(), O_WRONLY, 0)) == -1) {
 		perror(conf.device());
 		goto fail;
@@ -77,8 +77,10 @@ int OssEngine::init(int speed) {
 	}
 	
 	{
-		const int bytes = (((speed * 4389) / 262144) + 1) * 4;
-		int arg = 0x00040000 | std::min(static_cast<int>(log2(static_cast<float>(bytes))) + 1, 0xFFFF);
+		int arg = 0x00040000 | std::min(static_cast<int>(log2(static_cast<double>(speed * latency + 500) / 1000.0) + 0.5), 0xFFFF);
+		
+// 		const int bytes = (((speed * 4389) / 262144) + 1) * 4;
+// 		int arg = 0x00040000 | std::min(static_cast<int>(log2(static_cast<float>(bytes))) + 1, 0xFFFF);
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &arg) == -1) {
 			perror("SNDCTL_DSP_SETFRAGMENT");
@@ -94,7 +96,7 @@ int OssEngine::init(int speed) {
 			goto fail;
 		}
 		
-		bufSize = (info.fragstotal * info.fragsize) >> 2;
+		bufSize = info.fragstotal * info.fragsize >> 2;
 	}
 	
 	return speed;
@@ -123,7 +125,7 @@ const AudioEngine::BufferState OssEngine::bufferState() const {
 	audio_buf_info info;
 	
 	if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info) == -1 || info.bytes < 0) {
-		s.fromOverflow = s.fromUnderrun = bufSize;
+		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
 	} else {
 		s.fromUnderrun = bufSize - (info.bytes >> 2);
 		s.fromOverflow = info.bytes >> 2;

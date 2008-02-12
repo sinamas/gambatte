@@ -20,10 +20,10 @@
 #define ADD_BLITTER_WIDGETS_H
 
 class BlitterWidget;
-class VideoBufferReseter;
 
+#include "pixelbuffersetter.h"
 #include <vector>
 
-void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, VideoBufferReseter &resetVideoBuffer);
+void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, PixelBufferSetter setPixelBuffer);
 
 #endif

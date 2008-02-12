@@ -26,6 +26,7 @@ class QWidget;
 class AudioEngine {
 public:
 	struct BufferState {
+		enum { NOT_SUPPORTED = 0xFFFFFFFFu };
 		unsigned fromUnderrun;
 		unsigned fromOverflow;
 	};
@@ -34,10 +35,10 @@ public:
 	
 	AudioEngine(const QString &name) : nameString(name) {}
 	virtual ~AudioEngine() {}
-	virtual int init(int rate) = 0;
+	virtual int init(int rate, unsigned msLatency) = 0;
 	virtual void uninit() {}
 	virtual int write(void *buffer, unsigned samples) = 0;
-	virtual const BufferState bufferState() const { static const BufferState s = { 0xFFFFFFFF, 0xFFFFFFFF }; return s; }
+	virtual const BufferState bufferState() const { static const BufferState s = { BufferState::NOT_SUPPORTED, BufferState::NOT_SUPPORTED }; return s; }
 	virtual void pause() {}
 	virtual QWidget* settingsWidget() { return NULL; }
 	virtual void acceptSettings() {}

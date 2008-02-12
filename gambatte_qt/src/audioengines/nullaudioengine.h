@@ -24,7 +24,7 @@
 class NullAudioEngine : public AudioEngine {
 public:
 	NullAudioEngine() : AudioEngine("Null") {}
-	int init(int /*rate*/) { return 0; }
+	int init(int /*rate*/, unsigned /*latency*/) { return 0; }
 	int write(void */*buffer*/, unsigned /*samples*/) { return 0; }
 };
 

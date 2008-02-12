@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,14 +16,47 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef GAMBATTEMENUHANDLER_H
+#define GAMBATTEMENUHANDLER_H
 
-#include "videobufferreseter.h"
-#include <gambatte.h>
+#include <QObject>
 
-VideoBufferReseter::VideoBufferReseter(Gambatte::GB &gambatte_in) :
-	gambatte(gambatte_in)
-{}
+class MainWindow;
+class GambatteSource;
+class QAction;
+class PaletteDialog;
+class QString;
 
-void VideoBufferReseter::operator()() {
-	gambatte.videoBufferChange();
-}
+class GambatteMenuHandler : public QObject {
+	Q_OBJECT
+		
+	enum { MaxRecentFiles = 9 };
+	
+	MainWindow *const mw;
+	GambatteSource *const source;
+	QAction *recentFileActs[MaxRecentFiles];
+	QAction *separatorAct;
+	QAction *resetAct;
+	QAction *romPaletteAct;
+	PaletteDialog *globalPaletteDialog;
+	PaletteDialog *romPaletteDialog;
+	
+	void loadFile(const QString &fileName);
+	void setCurrentFile(const QString &fileName);
+	void setDmgPaletteColors();
+	void updateRecentFileActions();
+	
+private slots:
+	void open();
+	void openRecentFile();
+	void about();
+	void globalPaletteChange();
+	void romPaletteChange();
+	void execGlobalPaletteDialog();
+	void execRomPaletteDialog();
+	
+public:
+	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);
+};
+
+#endif

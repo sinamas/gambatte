@@ -19,11 +19,13 @@
 #include "sounddialog.h"
 
 #include <QComboBox>
+#include <QSpinBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QSettings>
+#include <cassert>
 
 #include "audioengine.h"
 
@@ -34,21 +36,24 @@ static int filterValue(const int value, const int upper, const int lower = 0, co
 	return value;
 }
 
-SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *parent) :
+SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::vector<int> &rates, QWidget *parent) :
 	QDialog(parent),
 	engines(engines),
 	topLayout(new QVBoxLayout),
 	engineSelector(new QComboBox(this)),
 	rateSelector(new QComboBox(this)),
+	latencySelector(new QSpinBox(this)),
 	engineWidget(NULL)
 {
-	setWindowTitle(tr("Sound settings"));
+	assert(!rates.empty());
+	
+	setWindowTitle(tr("Sound Settings"));
 	
 	QVBoxLayout *const mainLayout = new QVBoxLayout;
 	
 	{
 		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(new QLabel(tr("Sound engine:")));
+		hLayout->addWidget(new QLabel(tr("Sound Engine:")));
 	
 		for (std::size_t i = 0; i < engines.size(); ++i)
 			engineSelector->addItem(engines[i]->nameString);
@@ -59,10 +64,21 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *pare
 	
 	{
 		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(new QLabel(tr("Sample rate:")));
-		rateSelector->addItem("48000 Hz", 48000);
-		rateSelector->addItem("44100 Hz", 44100);
+		hLayout->addWidget(new QLabel(tr("Sample Rate:")));
+		
+		for (unsigned i = 0; i < rates.size(); ++i)
+			rateSelector->addItem(QString::number(rates[i]) + " Hz", rates[i]);
+		
 		hLayout->addWidget(rateSelector);
+		topLayout->addLayout(hLayout);
+	}
+	
+	{
+		QHBoxLayout *const hLayout = new QHBoxLayout;
+		hLayout->addWidget(new QLabel(tr("Buffer Latency:")));
+		latencySelector->setRange(4, 999);
+		latencySelector->setSuffix(" ms");
+		hLayout->addWidget(latencySelector);
 		topLayout->addLayout(hLayout);
 	}
 	
@@ -91,6 +107,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *pare
 	settings.beginGroup("sound");
 	engineIndex = filterValue(settings.value("engineIndex", 0).toInt(), engineSelector->count());
 	rateIndex = filterValue(settings.value("rateIndex", 0).toInt(), rateSelector->count());
+	latency = filterValue(settings.value("latency", 133).toInt(), latencySelector->maximum(), latencySelector->minimum());
 	settings.endGroup();
 	
 	engineChange(engineSelector->currentIndex());
@@ -104,6 +121,7 @@ SoundDialog::~SoundDialog() {
 	settings.beginGroup("sound");
 	settings.setValue("engineIndex", engineIndex);
 	settings.setValue("rateIndex", rateIndex);
+	settings.setValue("latency", latency);
 	settings.endGroup();
 }
 
@@ -123,6 +141,7 @@ void SoundDialog::store() {
 	
 	engineIndex = engineSelector->currentIndex();
 	rateIndex = rateSelector->currentIndex();
+	latency = latencySelector->value();
 }
 
 void SoundDialog::restore() {
@@ -131,6 +150,25 @@ void SoundDialog::restore() {
 	
 	engineSelector->setCurrentIndex(engineIndex);
 	rateSelector->setCurrentIndex(rateIndex);
+	latencySelector->setValue(latency);
+}
+
+void SoundDialog::setRates(const std::vector<int> &rates) {
+	restore();
+	
+	const int oldVal = rateSelector->itemData(rateIndex).toInt();
+	rateSelector->clear();
+	
+	for (unsigned i = 0; i < rates.size(); ++i)
+		rateSelector->addItem(QString::number(rates[i]) + " Hz", rates[i]);
+	
+	const int newIndex = rateSelector->findData(oldVal);
+	
+	if (newIndex >= 0)
+		rateSelector->setCurrentIndex(newIndex);
+	
+	store();
+	emit accepted();
 }
 
 void SoundDialog::accept() {

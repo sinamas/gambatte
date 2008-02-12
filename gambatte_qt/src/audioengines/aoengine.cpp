@@ -24,7 +24,7 @@ AoEngine::~AoEngine() {
 	uninit();
 }
 
-int AoEngine::init(const int rate) {
+int AoEngine::init(const int rate, unsigned /*latency*/) {
 	ao_initialize();
 	
 	aoDevice = NULL;

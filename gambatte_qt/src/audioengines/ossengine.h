@@ -30,7 +30,7 @@ class OssEngine : public AudioEngine {
 public:
 	OssEngine();
 	~OssEngine();
-	int init(int rate);
+	int init(int rate, unsigned latency);
 	void uninit();
 	int write(void *buffer, unsigned samples);
 	const BufferState bufferState() const;

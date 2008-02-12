@@ -29,7 +29,7 @@ AlsaEngine::~AlsaEngine() {
 	uninit();
 }
 
-int AlsaEngine::init(const int inrate) {
+int AlsaEngine::init(const int inrate, const unsigned latency) {
 	unsigned rate = inrate;
 	
 	if (snd_pcm_open(&pcm_handle, conf.device(), SND_PCM_STREAM_PLAYBACK, 0) < 0) {
@@ -52,16 +52,9 @@ int AlsaEngine::init(const int inrate) {
 			goto fail;
 		}
 		
-		{
-	#ifdef WORDS_BIGENDIAN
-			const snd_pcm_format_t format = SND_PCM_FORMAT_S16_BE;
-	#else
-			const snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
-	#endif
-			if (snd_pcm_hw_params_set_format(pcm_handle, hwparams, format) < 0) {
-				fprintf(stderr, "Error setting format.\n");
-				goto fail;
-			}
+		if (snd_pcm_hw_params_set_format(pcm_handle, hwparams, SND_PCM_FORMAT_S16) < 0) {
+			fprintf(stderr, "Error setting format.\n");
+			goto fail;
 		}
 		
 		if (snd_pcm_hw_params_set_rate_near(pcm_handle, hwparams, &rate, 0) < 0) {
@@ -74,30 +67,20 @@ int AlsaEngine::init(const int inrate) {
 			goto fail;
 		}
 		
-		/*if (snd_pcm_hw_params_set_periods(pcm_handle, hwparams, 2, 0) < 0) {
-			fprintf(stderr, "Error setting periods.\n");
-			goto fail;
-		}*/
-		
 		{
-			snd_pcm_uframes_t periodSize = ((rate * 4389) / 262144) + 1 << 1;
+			unsigned periods = 2;
 			
-			periodSize |= periodSize >> 1;
-			periodSize |= periodSize >> 2;
-			periodSize |= periodSize >> 4;
-			periodSize |= periodSize >> 8;
-			periodSize |= periodSize >> 16;
-			++periodSize;
-			
-			snd_pcm_uframes_t bSize = periodSize * 2;
-			
-			if (snd_pcm_hw_params_set_period_size_near(pcm_handle, hwparams, &periodSize, 0) < 0) {
-				fprintf(stderr, "Error setting period size %lu.\n", static_cast<unsigned long>(periodSize));
+			if (snd_pcm_hw_params_set_periods_near(pcm_handle, hwparams, &periods, 0) < 0) {
+				fprintf(stderr, "Error setting periods %u.\n", periods);
 				goto fail;
 			}
+		}
+		
+		{
+			snd_pcm_uframes_t bSize = (rate * latency + 500) / 1000;
 			
 			if (snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hwparams, &bSize) < 0) {
-				fprintf(stderr, "Error setting buffer size %u.\n", bufSize);
+				fprintf(stderr, "Error setting buffer size %u.\n", static_cast<unsigned>(bSize));
 				goto fail;
 			}
 			
@@ -134,12 +117,18 @@ int AlsaEngine::write(void *const buffer, const unsigned samples) {
 }
 
 const AudioEngine::BufferState AlsaEngine::bufferState() const {
-	const snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm_handle);
+	BufferState s;
+	snd_pcm_sframes_t avail;
 	
-	BufferState s = { bufSize - avail, avail };
-	
-	if (avail < 0)
-		s.fromOverflow = s.fromUnderrun = bufSize;
+	if (snd_pcm_delay(pcm_handle, &avail)) {
+		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
+	} else {
+		if (avail < 0)
+			avail = 0;
+		
+		s.fromUnderrun = avail;
+		s.fromOverflow = bufSize - avail;
+	}
 	
 	return s;
 }

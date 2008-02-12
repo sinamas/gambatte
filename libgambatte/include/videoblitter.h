@@ -27,6 +27,8 @@ struct PixelBuffer {
 	void *pixels;
 	Format format;
 	unsigned pitch;
+	
+	PixelBuffer() : pixels(0), format(RGB32), pitch(0) {}
 };
 
 class VideoBlitter {

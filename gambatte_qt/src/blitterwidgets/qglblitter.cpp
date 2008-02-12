@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -35,14 +35,19 @@
 #include "../x11getprocaddress.h"
 #endif
 
+#include "videodialog.h"
+
 class QGLBlitter::SubWidget : public QGLWidget {
+public:
+	int corrected_w;
+	int corrected_h;
+	
+private:
 	unsigned textureRes;
 	unsigned inWidth;
 	unsigned inHeight;
 	unsigned swapInterval;
 	bool initialized;
-	bool keepRatio;
-	bool integerScaling;
 	bool bf;
 	
 protected:
@@ -69,29 +74,10 @@ public:
 		return swapInterval;
 	}
 	
-	bool keepsRatio() {
-		return keepRatio;
-	}
-	
-	bool scalesByInteger() {
-		return integerScaling;
-	}
-	
 	void setBilinearFiltering(bool on);
 	void setBufferDimensions(unsigned w, unsigned h);
 	
-	void setIntegerScaling(const bool on) {
-		integerScaling = on;
-		
-		if (initialized) {
-			makeCurrent();
-			resizeGL(width(), height());
-		}
-	}
-	
-	void setKeepRatio(const bool on) {
-		keepRatio = on;
-		
+	void forcedResize() {
 		if (initialized) {
 			makeCurrent();
 			resizeGL(width(), height());
@@ -115,12 +101,12 @@ static const QGLFormat getQGLFormat(const unsigned swapInterval) {
 
 QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_in, QWidget *parent) :
 	QGLWidget(getQGLFormat(swapInterval_in), parent),
+	corrected_w(160),
+	corrected_h(144),
 	inWidth(160),
 	inHeight(144),
 	swapInterval(swapInterval_in),
 	initialized(false),
-	keepRatio(true),
-	integerScaling(false),
 	bf(bf_in)
 {
 	setAutoBufferSwap(false);
@@ -163,10 +149,10 @@ void QGLBlitter::SubWidget::initializeGL() {
 	
 	glNewList(1, GL_COMPILE);
 	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, -0.2); glVertex2f(0.0, -0.2);
+	glTexCoord2f(0.0, 0.0); glVertex2f(0.0, 0.0);
 	glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 1.0);
-	glTexCoord2f(1.2, 1.0); glVertex2f(1.2, 1.0);
-	glTexCoord2f(1.2, -0.2); glVertex2f(1.2, -0.2);
+	glTexCoord2f(1.0, 1.0); glVertex2f(1.0, 1.0);
+	glTexCoord2f(1.0, 0.0); glVertex2f(1.0, 0.0);
 	glEnd();
 	glEndList();
 	
@@ -203,8 +189,8 @@ void QGLBlitter::SubWidget::paintGL() {
 
 void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	glViewport(0, 0, w, h);
-
-	if (keepRatio) {
+	
+	if (corrected_w != w || corrected_h != h) {
 		{
 			GLint drawBuffer;
 			glGetIntegerv(GL_DRAW_BUFFER, &drawBuffer);
@@ -213,22 +199,7 @@ void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 			glDrawBuffer(drawBuffer);
 		}
 		
-		if (integerScaling) {
-			const unsigned int scale_factor = std::min(w / inWidth, h / inHeight);
-			
-			const int new_w = inWidth * scale_factor;
-			const int new_h = inHeight * scale_factor;
-			
-			glViewport(w - new_w >> 1, h - new_h >> 1, new_w, new_h);
-		} else {
-			if (w * 9 > h * 10) {
-				const int new_w = (h * 20 + 9) / 18;
-				glViewport(w - new_w >> 1, 0, new_w, h);
-			} else {
-				const int new_h = (w * 9 + 5) / 10;
-				glViewport(0, h - new_h >> 1, w, new_h);
-			}
-		}
+		glViewport(w - corrected_w >> 1, h - corrected_h >> 1, corrected_w, corrected_h);
 	}
 }
 
@@ -278,13 +249,15 @@ void QGLBlitter::SubWidget::updateTexture(quint32 *const buffer) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, textureRes - inHeight, inWidth, inHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
 }
 
-QGLBlitter::QGLBlitter(QWidget *parent) :
-	BlitterWidget(QString("OpenGL"), false, true, parent),
+QGLBlitter::QGLBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
+	BlitterWidget(setPixelBuffer, QString("OpenGL"), false, parent),
 	confWidget(new QWidget),
 	vsyncBox(new QCheckBox(QString("Sync to vertical blank in 60, 119 and 120 Hz modes"))),
 	bfBox(new QCheckBox(QString("Bilinear filtering"))),
 	buffer(NULL),
-	hz(0)
+	hz(0),
+	hz1(60),
+	hz2(119)
 {
 // 	setLayout(new QVBoxLayout);
 // 	layout()->setMargin(0);
@@ -320,7 +293,7 @@ QGLBlitter::~QGLBlitter() {
 }
 
 void QGLBlitter::resizeEvent(QResizeEvent *const event) {
-	subWidget->setGeometry(0, 0, event->size().width(), event->size().height());
+	subWidget->setGeometry(QRect(QPoint(0, 0), event->size()));
 }
 
 void QGLBlitter::uninit() {
@@ -330,24 +303,8 @@ void QGLBlitter::uninit() {
 	buffer = NULL;
 }
 
-bool QGLBlitter::isUnusable() {
+bool QGLBlitter::isUnusable() const {
 	return !subWidget->isValid();
-}
-
-void QGLBlitter::keepAspectRatio(const bool enable) {
-	subWidget->setKeepRatio(enable);
-}
-
-bool QGLBlitter::keepsAspectRatio() {
-	return subWidget->keepsRatio();
-}
-
-void QGLBlitter::scaleByInteger(const bool enable) {
-	subWidget->setIntegerScaling(enable);
-}
-
-bool QGLBlitter::scalesByInteger() {
-	return subWidget->scalesByInteger();
 }
 
 void QGLBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
@@ -355,15 +312,7 @@ void QGLBlitter::setBufferDimensions(const unsigned int width, const unsigned in
 	buffer = new quint32[width * height];
 	
 	subWidget->setBufferDimensions(width, height);
-}
-
-const Gambatte::PixelBuffer QGLBlitter::inBuffer() {
-	Gambatte::PixelBuffer pixb;
-	pixb.format = Gambatte::PixelBuffer::RGB32;
-	pixb.pixels = buffer;
-	pixb.pitch = subWidget->getInWidth();
-	
-	return pixb;
+	setPixelBuffer(buffer, MediaSource::RGB32, width);
 }
 
 void QGLBlitter::blit() {
@@ -373,10 +322,43 @@ void QGLBlitter::blit() {
 	}
 }
 
+void QGLBlitter::setCorrectedGeometry(int w, int h, int new_w, int new_h) {
+	subWidget->corrected_w = new_w;
+	subWidget->corrected_h = new_h;
+	
+	const QRect geo(0, 0, w, h);
+	
+	if (geometry() != geo)
+		setGeometry(geo);
+	else
+		subWidget->forcedResize();
+}
+
+void QGLBlitter::setFrameTime(Rational ft) {
+	BlitterWidget::setFrameTime(ft);
+	
+	hz1 = (ft.denominator + (ft.numerator >> 1)) / ft.numerator;
+	hz2 = (ft.denominator * 2 + (ft.numerator >> 1)) / ft.numerator;
+	
+	QString text("Sync to vertical blank in ");
+	text += QString::number(hz1);
+	
+	if (hz2 != hz1 * 2) {
+		text += ", ";
+		text += QString::number(hz2);
+	}
+	
+	text += " and ";
+	text += QString::number(hz1 * 2);
+	text += " Hz modes";
+	
+	vsyncBox->setText(text);
+	resetSubWidget();
+}
+
 const BlitterWidget::Rational QGLBlitter::frameTime() const {
 	if (subWidget->getSwapInterval()) {
-		Rational r = { subWidget->getSwapInterval(), hz };
-		return r;
+		return Rational(subWidget->getSwapInterval(), hz);
 	}
 	
 	return BlitterWidget::frameTime();
@@ -402,25 +384,25 @@ void QGLBlitter::resetSubWidget() {
 	unsigned swapInterval = 0;
 	
 	if (vsync) {
-		if (hz == 60)
+		if (hz == hz1)
 			swapInterval = 1;
-		else if (hz == 119 || hz == 120)
+		else if (hz == hz2 || hz == hz1 * 2)
 			swapInterval = 2;
 	}
 	
 	if (swapInterval == subWidget->getSwapInterval())
 		return;
 	
-	const bool keepRatio = subWidget->keepsRatio();
-	const bool integerScaling = subWidget->scalesByInteger();
+	const unsigned corrected_w = subWidget->corrected_w;
+	const unsigned corrected_h = subWidget->corrected_h;
 	const unsigned w = subWidget->getInWidth();
 	const unsigned h = subWidget->getInHeight();
 	
 // 	subWidget->hide();
 	delete subWidget;
 	subWidget = new SubWidget(swapInterval, bf, this);
-	subWidget->setKeepRatio(keepRatio);
-	subWidget->setIntegerScaling(integerScaling);
+	subWidget->corrected_w = corrected_w;
+	subWidget->corrected_h = corrected_h;
 	subWidget->setGeometry(0, 0, width(), height());
 	subWidget->show();
 	

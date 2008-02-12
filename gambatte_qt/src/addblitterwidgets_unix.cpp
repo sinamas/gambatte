@@ -21,7 +21,7 @@
 #include "blitterwidgets/x11blitter.h"
 #include "blitterwidgets/xvblitter.h"
 
-void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, VideoBufferReseter &resetVideoBuffer) {
-	blitters.push_back(new X11Blitter(resetVideoBuffer));
-	blitters.push_back(new XvBlitter);
+void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, PixelBufferSetter setPixelBuffer) {
+	blitters.push_back(new X11Blitter(setPixelBuffer));
+	blitters.push_back(new XvBlitter(setPixelBuffer));
 }

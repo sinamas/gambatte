@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,7 +19,6 @@
 #include "qpainterblitter.h"
 
 #include "../scalebuffer.h"
-#include "../videobufferreseter.h"
 
 #include <QPainter>
 #include <QImage>
@@ -27,9 +26,8 @@
 
 #include <algorithm>
 
-QPainterBlitter::QPainterBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent) :
-	BlitterWidget("QPainter", true, parent),
-	resetVideoBuffer(resetVideoBuffer_in),
+QPainterBlitter::QPainterBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
+	BlitterWidget(setPixelBuffer, "QPainter", true, parent),
 	buffer(NULL),
 	inWidth(160),
 	inHeight(144),
@@ -46,24 +44,9 @@ void QPainterBlitter::blit() {
 	repaint();
 }
 
-const Gambatte::PixelBuffer QPainterBlitter::inBuffer() {
-	Gambatte::PixelBuffer pixb;
-	pixb.format = Gambatte::PixelBuffer::RGB32;	
-	pixb.pixels = image->bits();
-	pixb.pitch = image->bytesPerLine() >> 2;
-	
-	if (buffer) {
-		pixb.pixels = buffer;
-		pixb.pitch = inWidth;
-	}
-	
-	return pixb;
-}
-
 void QPainterBlitter::paintEvent(QPaintEvent *const event) {
-	if (buffer) {
-		scaleBuffer(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, scale);
-	}
+	if (buffer)
+		scaleBuffer(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, image->bytesPerLine() >> 2, scale);
 	
 	QPainter painter(this);
 	painter.setClipRegion(event->region());
@@ -76,10 +59,8 @@ void QPainterBlitter::resizeEvent(QResizeEvent */*event*/) {
 	if (newScale != scale) {
 		scale = newScale;
 		
-		if (image.get()) {
+		if (image.get())
 			setBufferDimensions(inWidth, inHeight);
-			resetVideoBuffer();
-		}
 	}
 }
 
@@ -90,11 +71,13 @@ void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned i
 	scale = std::min(width() / w, height() / h);
 	
 	uninit();
-	
-	if (scale > 1)
-		buffer = new quint32[w * h];
-	
 	image.reset(new QImage(w * scale, h * scale, QImage::Format_RGB32));
+	
+	if (scale > 1) {
+		buffer = new quint32[w * h];
+		setPixelBuffer(buffer, MediaSource::RGB32, w);
+	} else
+		setPixelBuffer(image->bits(), MediaSource::RGB32, image->bytesPerLine() >> 2);
 }
 
 void QPainterBlitter::uninit() {
@@ -102,16 +85,4 @@ void QPainterBlitter::uninit() {
 	
 	delete []buffer;
 	buffer = NULL;
-}
-
-void QPainterBlitter::keepAspectRatio(const bool /*enable*/) {}
-
-bool QPainterBlitter::keepsAspectRatio() {
-	return true;
-}
-
-void QPainterBlitter::scaleByInteger(const bool /*enable*/) {}
-
-bool QPainterBlitter::scalesByInteger() {
-	return true;
 }

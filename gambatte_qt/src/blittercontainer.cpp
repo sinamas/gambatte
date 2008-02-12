@@ -20,11 +20,13 @@
 
 #include "blitterwidget.h"
 #include "fullrestoggler.h"
+#include "videodialog.h"
 #include <QResizeEvent>
 
-BlitterContainer::BlitterContainer(const FullResToggler &resToggler_in, QWidget *parent) :
+BlitterContainer::BlitterContainer(const FullResToggler &resToggler_in, const VideoDialog *videoDialog, QWidget *parent) :
 	QWidget(parent),
 	resToggler(resToggler_in),
+	videoDialog(videoDialog),
 	blitter(NULL)
 {
 	QPalette pal = palette();
@@ -41,23 +43,23 @@ void BlitterContainer::doLayout(const int w, const int h) {
 	if (!blitter)
 		return;
 	
-	if (blitter->keepsAspectRatio() && !blitter->selfScaling) {
-		if (blitter->scalesByInteger()) {
-			const int scale = std::min(w / minimumWidth(), h / minimumHeight());
-			const int new_w = minimumWidth() * scale;
-			const int new_h = minimumHeight() * scale;
-			blitter->setGeometry(w - new_w >> 1, h - new_h >> 1, new_w, new_h);
+	if (videoDialog->scalingType() == UNRESTRICTED)
+		blitter->setCorrectedGeometry(w, h, w, h);
+	else if (videoDialog->scalingType() == KEEP_RATIO) {
+		const QSize &ar = videoDialog->aspectRatio();
+		
+		if (w * (ar).height() > h * ar.width()) {
+			const int new_w = (h * ar.width() + (ar.height() >> 1)) / ar.height();
+			blitter->setCorrectedGeometry(w, h, new_w, h);
 		} else {
-			if (w * 9 > h * 10) {
-				const int new_w = (h * 20 + 9) / 18;
-				blitter->setGeometry(w - new_w >> 1, 0, new_w, h);
-			} else {
-				const int new_h = (w * 9 + 5) / 10;
-				blitter->setGeometry(0, h - new_h >> 1, w, new_h);
-			}
+			const int new_h = (w * ar.height() + (ar.width() >> 1)) / ar.width();
+			blitter->setCorrectedGeometry(w, h, w, new_h);
 		}
 	} else {
-		blitter->setGeometry(0, 0, w, h);
+		const int scale = std::min(w / minimumWidth(), h / minimumHeight());
+		const int new_w = minimumWidth() * scale;
+		const int new_h = minimumHeight() * scale;
+		blitter->setCorrectedGeometry(w, h, new_w, new_h);
 	}
 	
 	if (!resToggler.resVector().empty()) {

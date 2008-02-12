@@ -22,50 +22,112 @@
 
 class Freq {
 	LONGLONG value;
+	bool valid;
 	
 public:
 	Freq() {
 		LARGE_INTEGER li;
-		QueryPerformanceFrequency(&li);
-		value = li.QuadPart;
+		valid = QueryPerformanceFrequency(&li);
+		value = valid ? li.QuadPart : 1000;
 	}
 	
 	LONGLONG get() const { return value; }
+	bool isValid() const { return valid; }
 };
 
-const BlitterWidget::Rational BlitterWidget::frameTime() const {
-	Rational r = { 16743, 1000000 };
+static void getTime(LARGE_INTEGER *const t, const bool qpf) {
+	if (qpf)
+		QueryPerformanceCounter(t);
+	else
+		t->QuadPart = timeGetTime();
+}
+
+static Freq freq;
+
+class BlitterWidget::Impl {
+	struct Time {
+		DWORD sec;
+		DWORD rsec;
+	};
 	
-	return r;
+	Rational ft;
+	Time time;
+	
+	
+public:
+	Impl() { time.sec = time.rsec = 0; }
+	
+	void setFrameTime(Rational ft) {
+		this->ft = ft;
+	}
+	
+	const Rational frameTime() const {
+		return ft;
+	}
+	
+	int sync(const bool turbo) {
+		if (turbo)
+			return 0;
+		
+		const LONGLONG wtime = freq.get() * time.sec + freq.get() * time.rsec / ft.denominator;
+		const bool qpf = freq.isValid();
+		
+		LARGE_INTEGER t;
+		
+		getTime(&t, qpf);
+		
+		if (wtime > t.QuadPart && wtime - t.QuadPart <= inc) {
+			{
+				const DWORD tmp = ((wtime - t.QuadPart) * 1000) / freq.get();
+				
+				if (tmp > 1) {
+					Sleep(tmp - 1);
+				}
+			}
+			
+			do {
+				getTime(&t, qpf);
+			} while (wtime > t.QuadPart);
+		} else {
+			//quickfix:catches up to current time
+			time.sec = t.QuadPart / freq.get();
+			time.rsec = (t.QuadPart % freq.get()) * ft.denominator / freq.get();
+		}
+		
+		time.rsec += ft.numerator;
+		
+		if (time.rsec >= ft.denominator) {
+			time.rsec -= ft.denominator;
+			++time.sec;
+		}
+		
+		return 0;
+	}
+};
+
+BlitterWidget::BlitterWidget(PixelBufferSetter setPixelBuffer,
+                             const QString &name,
+                             bool integerOnlyScaler,
+                             QWidget *parent) :
+QWidget(parent),
+impl(new Impl),
+setPixelBuffer(setPixelBuffer),
+nameString(name),
+integerOnlyScaler(integerOnlyScaler)
+{}
+
+BlitterWidget::~BlitterWidget() {
+	delete impl;
+}
+
+void BlitterWidget::setFrameTime(Rational ft) {
+	impl->setFrameTime(ft);
+}
+
+const BlitterWidget::Rational BlitterWidget::frameTime() const {
+	return impl->frameTime();
 }
 
 int BlitterWidget::sync(const bool turbo) {
-	if (turbo)
-		return 0;
-	
-	static Freq freq;
-	static const LONGLONG inc = (freq.get() * 16743) / 1000000;
-	
-	LARGE_INTEGER t;
-	QueryPerformanceCounter(&t);
-	static LONGLONG time = t.QuadPart;
-
-	if (time > t.QuadPart) {
-		{
-			const DWORD tmp = ((time - t.QuadPart) * 1000) / freq.get();
-			
-			if (tmp > 1) {
-				Sleep(tmp - 1);
-			}
-		}
-
-		do {
-			QueryPerformanceCounter(&t);
-		} while (time > t.QuadPart);
-	} else
-		time = t.QuadPart; //quickfix:catches up to current time (The GUI tends to pause the run loop, so this function doesn't get called)
-
-	time += inc;
-	
-	return 0;
+	return impl->sync(turbo);
 }

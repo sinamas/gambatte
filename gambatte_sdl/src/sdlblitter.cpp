@@ -54,7 +54,7 @@ void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned in
 }
 
 const PixelBuffer SdlBlitter::inBuffer() {
-	PixelBuffer pb = { NULL, PixelBuffer::RGB32, 0 };
+	PixelBuffer pb;
 	
 	if (overlay) {
 		pb.pixels = overlay->pixels[0];
@@ -71,7 +71,7 @@ const PixelBuffer SdlBlitter::inBuffer() {
 
 template<typename T>
 inline void SdlBlitter::swScale() {
-	scaleBuffer<T>((T*)((Uint8*)(surface->pixels) + surface->offset), (T*)((Uint8*)(screen->pixels) + screen->offset), surface->w, surface->h, scale);
+	scaleBuffer<T>((T*)((Uint8*)(surface->pixels) + surface->offset), (T*)((Uint8*)(screen->pixels) + screen->offset), surface->w, surface->h, screen->pitch / screen->format->BytesPerPixel, scale);
 }
 
 void SdlBlitter::blit() {

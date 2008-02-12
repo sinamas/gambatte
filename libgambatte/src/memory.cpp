@@ -723,7 +723,7 @@ void Memory::update_tima(const unsigned long cycleCounter) {
 	ioamhram[0x105] = tmp;
 }
 
-unsigned char Memory::nontrivial_ff_read(const unsigned P, const unsigned long cycleCounter) {
+unsigned Memory::nontrivial_ff_read(const unsigned P, const unsigned long cycleCounter) {
 	if (lastOamDmaUpdate != COUNTER_DISABLED)
 		updateOamDma(cycleCounter);
 	
@@ -798,7 +798,7 @@ unsigned char Memory::nontrivial_ff_read(const unsigned P, const unsigned long c
 	return ioamhram[P - 0xFE00];
 }
 
-unsigned char Memory::nontrivial_read(const unsigned P, const unsigned long cycleCounter) {
+unsigned Memory::nontrivial_read(const unsigned P, const unsigned long cycleCounter) {
 	if (P < 0xFF80) {
 		if (lastOamDmaUpdate != COUNTER_DISABLED) {
 			updateOamDma(cycleCounter);

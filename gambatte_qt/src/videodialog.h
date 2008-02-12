@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,15 +26,14 @@
 class QVBoxLayout;
 class QHBoxLayout;
 class QComboBox;
-class QCheckBox;
+class QRadioButton;
 class BlitterWidget;
 class FullResToggler;
 
-namespace Gambatte {
-class FilterInfo;
-}
-
 #include "resinfo.h"
+#include "mediasource.h"
+
+enum ScalingType { UNRESTRICTED, KEEP_RATIO, INTEGER };
 
 class VideoDialog : public QDialog {
 	Q_OBJECT
@@ -49,38 +48,49 @@ class VideoDialog : public QDialog {
 	QComboBox *const fullResSelector;
 // 	QComboBox *fullResSelectorBackup;
 	QComboBox *const hzSelector;
-	QCheckBox *const keepRatioBox;
-	QCheckBox *const integerScalingBox;
-	QComboBox *const filterSelector;
+	QRadioButton *const unrestrictedScalingButton;
+	QRadioButton *const keepRatioButton;
+	QRadioButton *const integerScalingButton;
+	QComboBox *const sourceSelector;
+	ScalingType scaling;
+	QSize aspRatio;
+	unsigned defaultRes;
 	int engineIndex;
 	int winIndex;
 	int fullIndex;
 	int hzIndex;
-	int filterIndexStore;
-	bool keepRatio;
-	bool integerScaling;
+	int sourceIndexStore;
 	
-	void fillFullResSelector(const QSize &minimum);
+	void fillWinResSelector();
+	void fillFullResSelector();
 	void store();
 	void restore();
 
 private slots:
 	void engineChange(int index);
 	void fullresChange(int index);
-	void filterChange(int index);
-	void keepRatioChange(bool checked);
+	void sourceChange(int index);
 	void integerScalingChange(bool checked);
 
 public:
-	VideoDialog(const std::vector<BlitterWidget*> &engines, std::vector<const Gambatte::FilterInfo*> filterInfo, const FullResToggler &resHandler, QWidget *parent = 0);
+	VideoDialog(const std::vector<BlitterWidget*> &engines,
+	            const std::vector<MediaSource::VideoSourceInfo> &sourceInfos,
+	            const std::string &sourcesLabel,
+	            const FullResToggler &resHandler,
+	            const QSize &aspectRatio,
+	            QWidget *parent = 0);
 	~VideoDialog();
-	const int engine() const;
+	int engine() const;
 	const QSize winRes() const;
-	const unsigned fullMode() const;
-	const unsigned fullRate() const;
-	bool keepsRatio() const;
-	bool scalesByInteger() const;
-	const unsigned int filterIndex() const;
+	unsigned fullMode() const;
+	unsigned fullRate() const;
+	unsigned sourceIndex() const { return sourceIndexStore; }
+	const QSize sourceSize() const;
+	ScalingType scalingType() const { return scaling; }
+	const QSize& aspectRatio() const { return aspRatio; }
+	void setAspectRatio(const QSize &aspectRatio);
+	void setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos);
+	
 	
 public slots:
 	void accept();

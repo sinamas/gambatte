@@ -18,4 +18,4 @@
  ***************************************************************************/
 #include "addblitterwidgets.h"
 
-void addBlitterWidgets(std::vector<BlitterWidget*> &/*blitters*/, VideoBufferReseter &/*resetVideoBuffer*/) {}
+void addBlitterWidgets(std::vector<BlitterWidget*> &/*blitters*/, PixelBufferSetter /*setPixelBuffer*/) {}

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,91 +18,66 @@
  ***************************************************************************/
 #include "videodialog.h"
 
-#include <filterinfo.h>
 #include "blitterwidget.h"
 
 #include <QPushButton>
 #include <QComboBox>
-#include <QCheckBox>
+#include <QRadioButton>
 #include <QString>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QSettings>
+#include <QGroupBox>
 
-#include <iostream>
+// #include <iostream>
 
 #include "fullrestoggler.h"
 
-VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters, std::vector<const Gambatte::FilterInfo*> filterInfo, const FullResToggler& resHandler, QWidget *parent) :
+static int filterValue(const int value, const int upper, const int lower = 0, const int fallback = 0) {
+	if (value >= upper || value < lower)
+		return fallback;
+	
+	return value;
+}
+
+VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters,
+                         const std::vector<MediaSource::VideoSourceInfo> &sourceInfos,
+                         const std::string &sourcesLabel,
+                         const FullResToggler& resHandler,
+                         const QSize &aspectRatio,
+                         QWidget *parent) :
 QDialog(parent),
 engines(blitters),
 resVector(resHandler.resVector()),
 topLayout(new QVBoxLayout),
+engineWidget(NULL),
 engineSelector(new QComboBox),
 winResSelector(new QComboBox),
-winResSelectorBackup(new QComboBox),
 fullResSelector(new QComboBox),
 hzSelector(new QComboBox),
-keepRatioBox(new QCheckBox(QString("Keep aspect ratio"))),
-integerScalingBox(new QCheckBox(QString("Only scale by integer factors"))),
-filterSelector(new QComboBox),
+unrestrictedScalingButton(new QRadioButton(QString("None"))),
+keepRatioButton(new QRadioButton(QString("Keep aspect ratio"))),
+integerScalingButton(new QRadioButton(QString("Only scale by integer factors"))),
+sourceSelector(new QComboBox),
+scaling(KEEP_RATIO),
+aspRatio(aspectRatio),
+defaultRes(0),
 engineIndex(0),
 winIndex(0),
 fullIndex(0),
 hzIndex(0),
-filterIndexStore(0),
-keepRatio(true),
-integerScaling(false)
+sourceIndexStore(0)
 {
-	ResInfo currentRes;
-	if (resVector.empty()) {
-		currentRes.w = 1600;
-		currentRes.h = 1200;
-	} else
-		currentRes = resVector.at(resHandler.currentResIndex());
-	
-
-	std::cout << currentRes.w << "x" << currentRes.h << std::endl;
+	defaultRes = resHandler.currentResIndex();
 
 	QVBoxLayout *mainLayout = new QVBoxLayout;
 	setLayout(mainLayout);
-	
-	{
-		unsigned hres = 160;
-		unsigned vres = 144;
-		
-		while (hres <= currentRes.w && vres <= currentRes.h) {
-			winResSelector->addItem(QString::number(hres) + QString("x") + QString::number(vres), QVariant(QSize(hres, vres)));
-			winResSelectorBackup->addItem(QString::number(hres) + QString("x") + QString::number(vres), QVariant(QSize(hres, vres)));
-			hres += 160;
-			vres += 144;
-		}
-	}
-	
-	winResSelector->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
-// 	winResSelectorBackup->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
-	
-	fillFullResSelector(QSize(160, 144));
-	
-// 	fullResSelector->setCurrentIndex(fullIndex);
-	
-	for (unsigned int i = 0; i < currentRes.rates.size(); ++i)
-		hzSelector->addItem(QString::number(currentRes.rates[i]) + QString(" Hz"), i);
 
 	QHBoxLayout *hLayout = new QHBoxLayout;
-	hLayout->addWidget(new QLabel(tr("Video engine:")));
-	
-	for (unsigned int i = 0; i < engines.size(); ++i) {
-		engineSelector->addItem(engines[i]->nameString);
-	}
-	
+	hLayout->addWidget(new QLabel(tr("Video Engine:")));
 	hLayout->addWidget(engineSelector);
 	topLayout->addLayout(hLayout);
-	engineWidget = engines[0]->settingsWidget();
-	
-	if (engineWidget)
-		topLayout->addWidget(engineWidget);
 
 	hLayout = new QHBoxLayout;
 	hLayout->addWidget(new QLabel(QString(tr("Windowed resolution:"))));
@@ -110,45 +85,25 @@ integerScaling(false)
 	topLayout->addLayout(hLayout);
 
 	hLayout = new QHBoxLayout;
-	hLayout->addWidget(new QLabel(QString(tr("Full screen resolution:"))));
+	hLayout->addWidget(new QLabel(QString(tr("Full Screen mode:"))));
 	QHBoxLayout *hhLayout = new QHBoxLayout;
 	hhLayout->addWidget(fullResSelector);
 	hhLayout->addWidget(hzSelector);
 	hLayout->addLayout(hhLayout);
 	topLayout->addLayout(hLayout);
 
-	topLayout->addWidget(keepRatioBox);
-	topLayout->addWidget(integerScalingBox);
+	{
+		QGroupBox *f = new QGroupBox("Scaling restrictions");
+		f->setLayout(new QVBoxLayout);
+		f->layout()->addWidget(unrestrictedScalingButton);
+		f->layout()->addWidget(keepRatioButton);
+		f->layout()->addWidget(integerScalingButton);
+		topLayout->addWidget(f);
+	}
 
 	hLayout = new QHBoxLayout;
-	hLayout->addWidget(new QLabel(tr("Video filter:")));
-	
-	{
-		unsigned maxW = 0;
-		unsigned maxH = 0;
-		
-		for (unsigned i = 0, max = 0; i < resVector.size(); ++i) {
-			const unsigned cur = std::min(resVector[i].w * 9, resVector[i].h * 10);
-			
-			if (cur > max) {
-				max = cur;
-				maxW = resVector[i].w;
-				maxH = resVector[i].h;
-			}
-		}
-		
-		if (!maxW) {
-			maxW = 1600;
-			maxH = 1200;
-		}
-		
-		for (unsigned int i = 0; i < filterInfo.size(); ++i) {
-			if (filterInfo[i]->outWidth <= maxW && filterInfo[i]->outHeight <= maxH)
-				filterSelector->addItem(filterInfo[i]->handle.c_str(), QSize(filterInfo[i]->outWidth, filterInfo[i]->outHeight));
-		}
-	}
-	
-	hLayout->addWidget(filterSelector);
+	hLayout->addWidget(new QLabel(sourcesLabel.c_str()));
+	hLayout->addWidget(sourceSelector);
 	topLayout->addLayout(hLayout);
 
 	mainLayout->addLayout(topLayout);
@@ -165,45 +120,48 @@ integerScaling(false)
 
 	connect(engineSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(engineChange(int)));
 	connect(fullResSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(fullresChange(int)));
-	connect(keepRatioBox, SIGNAL(toggled(bool)), this, SLOT(keepRatioChange(bool)));
-	connect(integerScalingBox, SIGNAL(toggled(bool)), this, SLOT(integerScalingChange(bool)));
-	connect(filterSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(filterChange(int)));
+	connect(integerScalingButton, SIGNAL(toggled(bool)), this, SLOT(integerScalingChange(bool)));
+	connect(sourceSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
 	connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
-// 	connect(this, SIGNAL(accepted()), this, SLOT(store()));
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-// 	connect(this, SIGNAL(rejected()), this, SLOT(restore()));
+	
+	for (std::size_t i = 0; i < sourceInfos.size(); ++i) {
+		sourceSelector->addItem(sourceInfos[i].handle.c_str(), QSize(sourceInfos[i].width, sourceInfos[i].height));
+	}
+	
+	for (std::size_t i = 0; i < engines.size(); ++i) {
+		engineSelector->addItem(engines[i]->nameString);
+	}
+	
+	keepRatioButton->click();
 	
 	QSettings settings;
 	settings.beginGroup("video");
 	
-	if (static_cast<unsigned>(fullIndex = settings.value("fullIndex", resHandler.currentResIndex()).toInt()) >= static_cast<unsigned>(fullResSelector->count()))
-		fullIndex = resHandler.currentResIndex();
+	engineIndex = filterValue(settings.value("engineIndex", 0).toInt(), engineSelector->count());
+	sourceIndexStore = filterValue(settings.value("sourceIndexStore", 0).toInt(), sourceSelector->count());
 	
-	if (static_cast<unsigned>(filterIndexStore = settings.value("filterIndexStore", 0).toInt()) >= static_cast<unsigned>(filterSelector->count()))
-		filterIndexStore = 0;
-	
-	if (static_cast<unsigned>(engineIndex = settings.value("engineIndex", 0).toInt()) >= static_cast<unsigned>(engineSelector->count()))
-		engineIndex = 0;
-	
-	restore();
-	store();
-	
-	if (static_cast<unsigned>(winIndex = settings.value("winIndex", winResSelector->count() - 1).toInt()) >= static_cast<unsigned>(winResSelector->count()))
-		winIndex = winResSelector->count() - 1;
-	
-	if (static_cast<unsigned>(hzIndex = settings.value("hzIndex", resHandler.currentRateIndex()).toInt()) >= static_cast<unsigned>(hzSelector->count()))
-		hzIndex = resHandler.currentRateIndex();
-	
-	keepRatio = settings.value("keepRatio", true).toBool();
-	integerScaling = settings.value("integerScaling", false).toBool();
+	switch (settings.value("scalingType", KEEP_RATIO).toInt()) {
+	case UNRESTRICTED: scaling = UNRESTRICTED; break;
+	case INTEGER: scaling = INTEGER; break;
+	default: scaling = KEEP_RATIO; break;
+	}
 	
 	restore();
-	engineChange(engineIndex);
+	
+	fullIndex = filterValue(fullResSelector->findText(settings.value("fullRes").toString()), fullResSelector->count(), 0, resHandler.currentResIndex());
+	winIndex = filterValue(settings.value("winIndex", winResSelector->count() - 1).toInt(), winResSelector->count(), 0, winResSelector->count() - 1);
+	
+	restore();
+	
+	hzIndex = filterValue(hzSelector->findData(settings.value("hz").toUInt()), hzSelector->count(), 0, resHandler.currentRateIndex());
+	
+	restore();
 	store();
 	
 	settings.endGroup();
 
-	setWindowTitle(tr("Video settings"));
+	setWindowTitle(tr("Video Settings"));
 }
 
 VideoDialog::~VideoDialog() {
@@ -211,55 +169,126 @@ VideoDialog::~VideoDialog() {
 	
 	QSettings settings;
 	settings.beginGroup("video");
-	settings.setValue("fullIndex", fullIndex);
+	settings.setValue("fullRes", fullResSelector->itemText(fullIndex));
 	settings.setValue("winIndex", winIndex);
-	settings.setValue("hzIndex", hzIndex);
-	settings.setValue("keepRatio", keepRatio);
-	settings.setValue("integerScaling", integerScaling);
-	settings.setValue("filterIndexStore", filterIndexStore);
+	settings.setValue("hz", fullRate());
+	settings.setValue("scalingType", (int)scaling);
+	settings.setValue("sourceIndexStore", sourceIndexStore);
 	settings.setValue("engineIndex", engineIndex);
 	settings.endGroup();
 }
 
-void VideoDialog::fillFullResSelector(const QSize &minimumRes) {
-	while (fullResSelector->count())
-		fullResSelector->removeItem(0);
+void VideoDialog::fillWinResSelector() {
+	const QString oldtext(winResSelector->itemText(winResSelector->currentIndex()));
 	
-	for (std::size_t i = 0; i < resVector.size(); ++i) {
+	winResSelector->clear();
+	
+	const QSize &sourceSize = sourceSelector->itemData(sourceSelector->currentIndex()).toSize();
+	QSize basesz(integerScalingButton->isChecked() ? sourceSize : aspRatio);
+	
+	/*if (!integerScalingButton->isChecked()) {
+		const unsigned scale = std::max(sourceSize.width() / aspRatio.width(), sourceSize.height() / aspRatio.height());
+		
+		basesz = QSize(aspRatio.width() * scale, aspRatio.height() * scale);
+		
+		if (basesz.width() < sourceSize.width() || basesz.height() < sourceSize.height())
+			basesz += aspRatio;
+	}*/
+	
+	QSize sz(basesz);
+	
+	const int maxW = resVector.empty() ? 1600 : resVector[defaultRes].w;
+	const int maxH = resVector.empty() ? 1200 : resVector[defaultRes].h;
+	
+	while (sz.width() <= maxW && sz.height() <= maxH) {
+		if (sz.width() >= sourceSize.width() && sz.height() >= sourceSize.height())
+			winResSelector->addItem(QString::number(sz.width()) + "x" + QString::number(sz.height()), sz);
+		
+		sz += basesz;
+	}
+	
+	winResSelector->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
+	
+	const int newIndex = winResSelector->findText(oldtext);
+	
+	if (newIndex >= 0)
+		winResSelector->setCurrentIndex(newIndex);
+}
+
+void VideoDialog::fillFullResSelector() {
+	const QString oldtext(fullResSelector->itemText(fullResSelector->currentIndex()));
+	const int oldHzIndex = hzSelector->currentIndex();
+	
+	fullResSelector->clear();
+	
+	const QSize &sourceSize = sourceSelector->itemData(sourceSelector->currentIndex()).toSize();
+	
+	unsigned maxArea = 0;
+	unsigned maxAreaI = 0;
+	
+	for (unsigned i = 0; i < resVector.size(); ++i) {
 		const int hres = resVector[i].w;
 		const int vres = resVector[i].h;
 		
-		if (hres >= minimumRes.width() && vres >= minimumRes.height())
-			fullResSelector->addItem(QString::number(hres) + QString("x") + QString::number(vres), (uint)i);
+		if (hres >= sourceSize.width() && vres >= sourceSize.height()) {
+			fullResSelector->addItem(QString::number(hres) + QString("x") + QString::number(vres), i);
+		} else {
+			const unsigned area = std::min(hres, sourceSize.width()) * std::min(vres, sourceSize.height());
+			
+			if (area > maxArea) {
+				maxArea = area;
+				maxAreaI = i;
+			}
+		}
+	}
+	
+	//add resolution giving maximal area if all resolutions are too small.
+	if (fullResSelector->count() < 1 && maxArea)
+		fullResSelector->addItem(QString::number(resVector[maxAreaI].w) + "x" + QString::number(resVector[maxAreaI].h), maxAreaI);
+	
+	const int newIndex = fullResSelector->findText(oldtext);
+	
+	if (newIndex >= 0) {
+		fullResSelector->setCurrentIndex(newIndex);
+		hzSelector->setCurrentIndex(oldHzIndex);
 	}
 }
 
 void VideoDialog::store() {
-	engineIndex = engineSelector->currentIndex();
-	
-	for (unsigned int i = 0; i < engines.size(); ++i)
+	for (std::size_t i = 0; i < engines.size(); ++i)
 		engines[i]->acceptSettings();
 	
-	hzIndex = hzSelector->currentIndex();
+	engineIndex = engineSelector->currentIndex();
+	
+	if (unrestrictedScalingButton->isChecked())
+		scaling = UNRESTRICTED;
+	else if (keepRatioButton->isChecked())
+		scaling = KEEP_RATIO;
+	else
+		scaling = INTEGER;
+	
+	sourceIndexStore = sourceSelector->currentIndex();
 	winIndex = winResSelector->currentIndex();
 	fullIndex = fullResSelector->currentIndex();
-	keepRatio = keepRatioBox->checkState() != Qt::Unchecked;
-	integerScaling = integerScalingBox->checkState() != Qt::Unchecked;
-	filterIndexStore = filterSelector->currentIndex();
+	hzIndex = hzSelector->currentIndex();
 }
 
 void VideoDialog::restore() {
-	keepRatioBox->setChecked(keepRatio);
-	integerScalingBox->setChecked(integerScaling);
-	filterSelector->setCurrentIndex(filterIndexStore);
-	winResSelector->setCurrentIndex(winIndex);
-	fullResSelector->setCurrentIndex(fullIndex);
-	hzSelector->setCurrentIndex(hzIndex);
-	
-	for (unsigned int i = 0;i < engines.size();++i)
+	for (std::size_t i = 0; i < engines.size(); ++i)
 		engines[i]->rejectSettings();
 	
 	engineSelector->setCurrentIndex(engineIndex);
+	
+	switch (scaling) {
+	case UNRESTRICTED: unrestrictedScalingButton->click(); break;
+	case KEEP_RATIO: keepRatioButton->click(); break;
+	case INTEGER: integerScalingButton->click(); break;
+	}
+	
+	sourceSelector->setCurrentIndex(sourceIndexStore);
+	winResSelector->setCurrentIndex(winIndex);
+	fullResSelector->setCurrentIndex(fullIndex);
+	hzSelector->setCurrentIndex(hzIndex);
 }
 
 void VideoDialog::engineChange(int index) {
@@ -274,21 +303,19 @@ void VideoDialog::engineChange(int index) {
 		topLayout->insertWidget(1, engineWidget);
 	
 	if (engines[index]->integerOnlyScaler) {
-		keepRatioBox->setChecked(true);
-		integerScalingBox->setChecked(true);
-		keepRatioBox->setEnabled(false);
-		integerScalingBox->setEnabled(false);
+		integerScalingButton->click();
+		keepRatioButton->setEnabled(false);
+		integerScalingButton->setEnabled(false);
+		unrestrictedScalingButton->setEnabled(false);
 	} else {
-		keepRatioBox->setEnabled(true);
-		
-		if (keepRatioBox->checkState() != Qt::Unchecked)
-			integerScalingBox->setEnabled(true);
+		keepRatioButton->setEnabled(true);
+		integerScalingButton->setEnabled(true);
+		unrestrictedScalingButton->setEnabled(true);
 	}
 }
 
 void VideoDialog::fullresChange(int index) {
-	while (hzSelector->count())
-		hzSelector->removeItem(0);
+	hzSelector->clear();
 
 	if (index >= 0) {
 		const std::vector<short> &v = resVector[index].rates;
@@ -298,95 +325,57 @@ void VideoDialog::fullresChange(int index) {
 	}
 }
 
-void VideoDialog::filterChange(int index) {
-	const QSize filterSize = filterSelector->itemData(index).toSize();
-
-	{
-		QString oldtext = winResSelector->itemText(winResSelector->currentIndex());
-		
-		while (winResSelector->count())
-			winResSelector->removeItem(0);
-
-		if (integerScalingBox->checkState() != Qt::Unchecked) {
-			QSize fSize = filterSize;
-			
-			for (int i = 0;i < winResSelectorBackup->count();++i) {
-				QSize s = winResSelectorBackup->itemData(i).toSize();
-				
-				if (s == fSize) {
-					winResSelector->addItem(winResSelectorBackup->itemText(i), s);
-					fSize += filterSize;
-				}
-			}
-		} else {
-			for (int i = 0;i < winResSelectorBackup->count();++i) {
-				QSize s = winResSelectorBackup->itemData(i).toSize();
-				
-				if (s.width() >= filterSize.width() && s.height() >= filterSize.height())
-					winResSelector->addItem(winResSelectorBackup->itemText(i), s);
-			}
-		}
-		winResSelector->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
-		int newIndex = winResSelector->findText(oldtext);
-		
-		if (newIndex >= 0)
-			winResSelector->setCurrentIndex(newIndex);
-	}
-
-	{
-		QString oldtext = fullResSelector->itemText(fullResSelector->currentIndex());
-		int oldHzIndex = hzSelector->currentIndex();
-		
-		fillFullResSelector(filterSize);
-		
-		int newIndex = fullResSelector->findText(oldtext);
-		
-		if (newIndex >= 0) {
-			fullResSelector->setCurrentIndex(newIndex);
-			hzSelector->setCurrentIndex(oldHzIndex);
-		}
-	}
-}
-
-void VideoDialog::keepRatioChange(bool checked) {
-	if (integerScalingBox->checkState() != Qt::Unchecked)
-		integerScalingBox->setChecked(checked);
-	
-	integerScalingBox->setEnabled(checked);
+void VideoDialog::sourceChange(int /*index*/) {
+	fillWinResSelector();
+	fillFullResSelector();
 }
 
 void VideoDialog::integerScalingChange(bool /*checked*/) {
-	filterChange(filterSelector->currentIndex());
+	sourceChange(sourceSelector->currentIndex());
 }
 
-const int VideoDialog::engine() const {
-	return engineSelector->currentIndex();
+int VideoDialog::engine() const {
+	return engineIndex;
 }
 
 const QSize VideoDialog::winRes() const {
-	return winResSelector->itemData(winResSelector->currentIndex()).toSize();
+	return winResSelector->itemData(winIndex).toSize();
 }
 
-const unsigned VideoDialog::fullMode() const {
+unsigned VideoDialog::fullMode() const {
 	//return fullResSelector->currentIndex();
 // 	return fullResSelectorBackup->findText(fullResSelector->itemText(fullResSelector->currentIndex()));
-	return fullResSelector->itemData(fullResSelector->currentIndex()).toUInt();
+	return fullResSelector->itemData(fullIndex).toUInt();
 }
 
-const unsigned VideoDialog::fullRate() const {
-	return hzSelector->itemData(hzSelector->currentIndex()).toUInt();
+unsigned VideoDialog::fullRate() const {
+	return hzSelector->itemData(hzIndex).toUInt();
 }
 
-bool VideoDialog::keepsRatio() const {
-	return keepRatio;
+const QSize VideoDialog::sourceSize() const {
+	return sourceSelector->itemData(sourceIndex()).toSize();
 }
 
-bool VideoDialog::scalesByInteger() const {
-	return integerScaling;
+void VideoDialog::setAspectRatio(const QSize &aspectRatio) {
+	restore();
+	aspRatio = aspectRatio;
+	fillWinResSelector();
+	store();
+	emit accepted();
 }
 
-const unsigned int VideoDialog::filterIndex() const {
-	return filterSelector->currentIndex();
+void VideoDialog::setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos) {
+	restore();
+	disconnect(sourceSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
+	sourceSelector->clear();
+	
+	for (std::size_t i = 0; i < sourceInfos.size(); ++i)
+		sourceSelector->addItem(sourceInfos[i].handle.c_str(), QSize(sourceInfos[i].width, sourceInfos[i].height));
+	
+	connect(sourceSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
+	sourceChange(sourceSelector->currentIndex());
+	store();
+	emit accepted();
 }
 
 void VideoDialog::accept() {
