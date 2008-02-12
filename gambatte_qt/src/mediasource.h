@@ -109,7 +109,7 @@ public:
 	  * Obviously, if the sample rate selected for a fixed sample rate source is wrong, you can
 	  * expect the number of samples requested to be way off.
 	  *
-	  * @param samples The number of samples that should be written to sampleBuffer.
+	  * @param samples The number of stereo samples that should be written to sampleBuffer.
 	  */
 	virtual void update(unsigned samples) = 0;
 	virtual ~MediaSource() {}
