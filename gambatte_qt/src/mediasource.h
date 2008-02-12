@@ -81,9 +81,13 @@ public:
 	/**
 	  * Called by MainWindow to set the buffer to output audio samples to (always in native endian
 	  * signed 16-bit interleaved stereo for now.) Can be assumed to be big enough to have space
-	  * for the number of samples requested on each update call.
+	  * for the number of samples requested on each update call. Also gives the currently active
+	  * sample rate. which may differ slightly from the alternatives given to MainWindow, since
+	  * some engines set a near sample rate if they can't give an exact native one. sampleRate
+	  * may be somewhat redundant information, since the number of samples wanted pr frame is given to
+	  * the update method, but it's there for convenience (mainly for fixed sample rate sources).
 	  */
-	virtual void setSampleBuffer(qint16 *sampleBuffer) = 0;
+	virtual void setSampleBuffer(qint16 *sampleBuffer, unsigned sampleRate) = 0;
 	
 	/**
 	  * Sets video source to the one indicated by the corresponding index of the VideoSourceInfos
@@ -97,7 +101,7 @@ public:
 	  * Called at a time interval given by the frameTime given to MainWindow. Approximately one
 	  * frame of video should be generated in the pixel buffer (followed by a call to MainWindow::blit)
 	  * pr update for best results. The number of audio samples requested should be outputted to the
-	  * (start of the) sample buffer. It's adviced to adjust how much you update according to how many
+	  * (start of the) sample buffer. It's advised to adjust how much you update according to how many
 	  * samples are requested, rather than strictly doing one frame of video pr update, unless you
 	  * do resampling or dynamically generate samples in a way that allows you to always output the
 	  * right number of samples pr video frame. If the number of video frames generated pr update is

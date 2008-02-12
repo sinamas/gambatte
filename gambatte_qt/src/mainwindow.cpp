@@ -407,7 +407,7 @@ void MainWindow::setSamplesPrFrame() {
 	if (old != samplesPrFrame) {
 		delete []sndBuffer;
 		sndBuffer = new qint16[(samplesPrFrame + 4) * 2];
-		source->setSampleBuffer(sndBuffer);
+		source->setSampleBuffer(sndBuffer, sampleRate);
 		samplesCalc.setBaseSamples(samplesPrFrame);
 	}
 }

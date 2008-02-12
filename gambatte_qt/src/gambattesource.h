@@ -70,7 +70,7 @@ public:
 	void buttonPressEvent(unsigned buttonIndex);
 	void buttonReleaseEvent(unsigned buttonIndex);
 	void setPixelBuffer(void *pixels, PixelFormat format, unsigned pitch);
-	void setSampleBuffer(qint16 *sampleBuffer) { this->sampleBuffer = sampleBuffer; }
+	void setSampleBuffer(qint16 *sampleBuffer, unsigned /*sampleRate*/) { this->sampleBuffer = sampleBuffer; }
 	void setVideoSource(unsigned videoSourceIndex) { gb.setVideoFilter(videoSourceIndex); }
 	void update(unsigned samples);
 	
