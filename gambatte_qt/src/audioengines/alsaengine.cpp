@@ -110,7 +110,6 @@ void AlsaEngine::uninit() {
 int AlsaEngine::write(void *const buffer, const unsigned samples) {
 	while (snd_pcm_writei(pcm_handle, buffer, samples) < 0) {
 		snd_pcm_prepare(pcm_handle);
-// 		fprintf(stderr, "<<<<<<<<<<<<<<< Buffer Underrun >>>>>>>>>>>>>>>\n");
 	}
 	
 	return 0;
