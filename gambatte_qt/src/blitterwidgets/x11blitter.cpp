@@ -115,7 +115,7 @@ public:
 
 X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned int height) {
 	std::cout << "creating ximage...\n";
-	ximage = XCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(QX11Info::appVisual()), QX11Info::appDepth(), ZPixmap, 0, NULL, width, height, QX11Info::appDepth(), 0);
+	ximage = XCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(QX11Info::appVisual()), QX11Info::appDepth(), ZPixmap, 0, NULL, width, height, QX11Info::appDepth() == 16 ? 16 : 32, 0);
 	
 	if (ximage == NULL) {
 		std::cout << "failed to create ximage\n";
