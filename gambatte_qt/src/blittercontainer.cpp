@@ -56,9 +56,10 @@ void BlitterContainer::doLayout(const int w, const int h) {
 			blitter->setCorrectedGeometry(w, h, w, new_h);
 		}
 	} else {
-		const int scale = std::min(w / minimumWidth(), h / minimumHeight());
-		const int new_w = minimumWidth() * scale;
-		const int new_h = minimumHeight() * scale;
+		const QSize &src = videoDialog->sourceSize();
+		const int scale = std::min(w / src.width(), h / src.height());
+		const int new_w = src.width() * scale;
+		const int new_h = src.height() * scale;
 		blitter->setCorrectedGeometry(w, h, new_w, new_h);
 	}
 	
