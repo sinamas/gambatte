@@ -22,7 +22,7 @@
 #include <cstring>
 
 template<typename T>
-static void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
+void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
 	unsigned long vppos = 0;
 	unsigned h = inHeight;
 	
@@ -54,7 +54,7 @@ static void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, c
 }
 
 template<typename T, const T c13mask, const T c2mask, const unsigned c13distance>
-static void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
+void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
 	struct Colorsum {
 		unsigned long c13,c2;
 	};
