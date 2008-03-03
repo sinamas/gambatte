@@ -46,7 +46,8 @@ SDL_Joystick/src/SDL_sysjoystick.h \
  gambattesource.h \
  pixelbuffersetter.h \
  gambattemenuhandler.h \
- mainwindow.h
+ mainwindow.h \
+ swscale.h
 
 TEMPLATE = app
 CONFIG += warn_on \

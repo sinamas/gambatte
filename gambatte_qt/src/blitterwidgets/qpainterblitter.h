@@ -20,17 +20,19 @@
 #define QPAINTERBLITTER_H
 
 #include "../blitterwidget.h"
-#include <stdint.h>
 #include <memory>
 
 class QPainter;
 class QImage;
+class QCheckBox;
 
 class QPainterBlitter : public BlitterWidget {
+	const std::auto_ptr<QWidget> confWidget;
 	std::auto_ptr<QImage> image;
+	QCheckBox *const bfBox;
 	quint32 *buffer;
 	unsigned int inWidth, inHeight;
-	unsigned int scale;
+	bool bf;
 	
 protected:
 	void paintEvent(QPaintEvent *event);
@@ -42,6 +44,9 @@ public:
 	void blit();
 	void setBufferDimensions(unsigned int w, unsigned int h);
 	void uninit();
+	QWidget* settingsWidget() { return confWidget.get(); }
+	void acceptSettings();
+	void rejectSettings();
 };
 
 #endif

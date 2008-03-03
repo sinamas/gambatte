@@ -23,16 +23,21 @@
 
 #include <memory>
 
+class QCheckBox;
+
 class X11Blitter : public BlitterWidget {
 	class SubBlitter;
 	class ShmBlitter;
 	class PlainBlitter;
 	
+	const std::auto_ptr<QWidget> confWidget;
 	std::auto_ptr<SubBlitter> subBlitter;
+	QCheckBox *const bfBox;
 	char *buffer;
 	unsigned int inWidth, inHeight;
-	unsigned int scale;
+// 	unsigned int scale;
 	bool shm;
+	bool bf;
 	
 protected:
 	void paintEvent(QPaintEvent *event);
@@ -47,6 +52,9 @@ public:
 	int sync(bool turbo);
 	void setBufferDimensions(const unsigned width, const unsigned height);
 	void blit();
+	QWidget* settingsWidget() { return confWidget.get(); }
+	void acceptSettings();
+	void rejectSettings();
 };
 
 #endif
