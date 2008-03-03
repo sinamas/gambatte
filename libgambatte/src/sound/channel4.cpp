@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "channel4.h"
+#include "../savestate.h"
 
 static unsigned long toPeriod(const unsigned nr3) {
 	unsigned s = (nr3 >> 4) + 3;
@@ -29,6 +30,13 @@ static unsigned long toPeriod(const unsigned nr3) {
 	
 	return r << s;
 }
+
+Channel4::Lfsr::Lfsr() :
+backupCounter(COUNTER_DISABLED),
+reg(0xFF),
+nr3(0),
+master(false)
+{}
 
 void Channel4::Lfsr::updateBackupCounter(const unsigned long cc) {
 	/*if (backupCounter <= cc) {
@@ -127,7 +135,7 @@ void Channel4::Lfsr::nr4Init(unsigned long cc) {
 // 	counter = backupCounter + toPeriod(nr3) * (nextStateDistance[reg & 0x3F] - 1);
 }
 
-void Channel4::Lfsr::init(const unsigned long cc) {
+void Channel4::Lfsr::reset(const unsigned long cc) {
 	nr3 = 0;
 	disableMaster();
 	backupCounter = cc + toPeriod(nr3);
@@ -139,12 +147,31 @@ void Channel4::Lfsr::resetCounters(const unsigned long oldCc) {
 	SoundUnit::resetCounters(oldCc);
 }
 
+void Channel4::Lfsr::saveState(SaveState &state, const unsigned long cc) {
+	updateBackupCounter(cc);
+	state.spu.ch4.lfsr.counter = backupCounter;
+	state.spu.ch4.lfsr.reg = reg;
+}
+
+void Channel4::Lfsr::loadState(const SaveState &state) {
+	counter = backupCounter = state.spu.ch4.lfsr.counter;
+	reg = state.spu.ch4.lfsr.reg;
+	master = state.spu.ch4.master;
+	nr3 = state.mem.ioamhram.get()[0x122];
+}
+
 Channel4::Channel4() :
 	staticOutputTest(*this, lfsr),
 	disableMaster(master, lfsr),
 	lengthCounter(disableMaster, 0x3F),
-	envelopeUnit(staticOutputTest)
-{}
+	envelopeUnit(staticOutputTest),
+	cycleCounter(0),
+	soMask(0),
+	nr4(0),
+	master(false)
+{
+	setEvent();
+}
 
 void Channel4::setEvent() {
 	nextEventUnit = &lfsr;
@@ -204,18 +231,27 @@ void Channel4::reset() {
 	setEvent();
 }
 
-void Channel4::init(const unsigned long cc, const bool cgb) {
-	nr4 = 0;
-	
-	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
-	
-	lfsr.init(cycleCounter);
+void Channel4::init(const bool cgb) {
 	lengthCounter.init(cgb);
-	envelopeUnit.init(false, cycleCounter);
+}
+
+void Channel4::saveState(SaveState &state) {
+	lfsr.saveState(state, cycleCounter);
+	envelopeUnit.saveState(state.spu.ch4.env);
+	lengthCounter.saveState(state.spu.ch4.lcounter);
 	
-	disableMaster();
+	state.spu.ch4.nr4 = nr4;
+	state.spu.ch4.master = master;
+}
+
+void Channel4::loadState(const SaveState &state) {
+	lfsr.loadState(state);
+	envelopeUnit.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121]);
+	lengthCounter.loadState(state.spu.ch4.lcounter);
 	
-	setEvent();
+	cycleCounter = state.spu.cycleCounter;
+	nr4 = state.spu.ch4.nr4;
+	master = state.spu.ch4.master;
 }
 
 void Channel4::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {

@@ -20,6 +20,7 @@
 
 #include "../event_queue.h"
 #include "m3_extra_cycles.h"
+#include "../savestate.h"
 
 ScxReader::ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
 //                      VideoEvent &wyReader3_in,
@@ -37,11 +38,11 @@ ScxReader::ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_i
 {
 	setDoubleSpeed(false);
 	setSource(0);
-	reset();
+	scxAnd7_ = src;
 }
 
-void ScxReader::rescheduleEvent(VideoEvent& event, const unsigned long diff) {
-	if (event.time() != DISABLED_TIME) {
+static void rescheduleEvent(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue, VideoEvent& event, const unsigned long diff) {
+	if (event.time() != VideoEvent::DISABLED_TIME) {
 		event.setTime(event.time() + diff);
 		(diff & 0x10) ? m3EventQueue.dec(&event, &event) : m3EventQueue.inc(&event, &event);
 	}
@@ -51,12 +52,20 @@ void ScxReader::doEvent() {
 	const unsigned long diff = static_cast<unsigned long>(src) - static_cast<unsigned long>(scxAnd7_) << dS;
 	scxAnd7_ = src;
 	
-// 	rescheduleEvent(wyReader3, diff);
-	rescheduleEvent(wxReader, diff);
-	rescheduleEvent(weEnableChecker, diff);
-	rescheduleEvent(weDisableChecker, diff);
+// 	rescheduleEvent(m3EventQueue, wyReader3, diff);
+	rescheduleEvent(m3EventQueue, wxReader, diff);
+	rescheduleEvent(m3EventQueue, weEnableChecker, diff);
+	rescheduleEvent(m3EventQueue, weDisableChecker, diff);
 	
 	m3ExtraCycles.invalidateCache();
 	
 	setTime(DISABLED_TIME);
+}
+
+void ScxReader::saveState(SaveState &state) const {
+	state.ppu.scxAnd7 = scxAnd7_;
+}
+
+void ScxReader::loadState(const SaveState &state) {
+	scxAnd7_ = state.ppu.scxAnd7;
 }

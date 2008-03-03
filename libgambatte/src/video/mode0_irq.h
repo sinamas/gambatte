@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -30,21 +30,13 @@ class Mode0Irq : public VideoEvent {
 	const M3ExtraCycles &m3ExtraCycles;
 	unsigned char &ifReg;
 	
-	unsigned char lastM3ExtraCycles;
-	
 public:
 	Mode0Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in,
 	         const M3ExtraCycles &m3ExtraCycles_in, unsigned char &ifReg_in);
 	
 	void doEvent();
-	
 	void mode3CyclesChange();
-	
-	void reset() {
-		setTime(DISABLED_TIME);
-	}
-	
-	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);
+	static unsigned long schedule(unsigned statReg, const M3ExtraCycles &m3ExtraCycles, const LyCounter &lyCounter, unsigned long cycleCounter);
 };
 
 #endif

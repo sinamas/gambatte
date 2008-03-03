@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -30,71 +30,66 @@ Mode0Irq::Mode0Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in,
 	m3ExtraCycles(m3ExtraCycles_in),
 	ifReg(ifReg_in)
 {
-	reset();
+}
+
+static unsigned baseCycle(const bool ds) {
+	return 80 + 169 + ds * 3 + 1 - ds;
 }
 
 void Mode0Irq::doEvent() {
 	if (lycIrq.time() == DISABLED_TIME || lyCounter.ly() != lycIrq.lycReg())
 		ifReg |= 2;
 	
-	unsigned m3ec;
+	unsigned long nextTime = lyCounter.time();
+	unsigned nextLy = lyCounter.ly() + 1;
 	
-	if (lyCounter.ly() == 143) {
-		m3ec = m3ExtraCycles(0);
-		setTime(time() + lyCounter.lineTime() * 11);
-	} else {
-		m3ec = m3ExtraCycles(lyCounter.ly() + 1);
-		setTime(time() + lyCounter.lineTime());
+	if (nextLy == 144) {
+		nextLy = 0;
+		nextTime += lyCounter.lineTime() * 10;
 	}
 	
-	m3ec <<= lyCounter.isDoubleSpeed();
-	setTime(time() + m3ec - lastM3ExtraCycles);
-	lastM3ExtraCycles = m3ec;
+	nextTime += baseCycle(lyCounter.isDoubleSpeed()) + m3ExtraCycles(nextLy) << lyCounter.isDoubleSpeed();
+	
+	setTime(nextTime);
 }
 
 void Mode0Irq::mode3CyclesChange() {
-	unsigned ly = lyCounter.ly();
+	unsigned long nextTime = lyCounter.time() - lyCounter.lineTime();
+	unsigned nextLy = lyCounter.ly();
 	
-	if (time() >= lyCounter.time()) {
-		++ly;
+	if (time() > lyCounter.time()) {
+		nextTime += lyCounter.lineTime();
+		++nextLy;
 		
-		if (ly > 143)
-			ly = 0;
-	}
-	
-	const unsigned m3ec = m3ExtraCycles(ly) << lyCounter.isDoubleSpeed();
-	
-	setTime(time() + m3ec - lastM3ExtraCycles);
-	lastM3ExtraCycles = m3ec;
-}
-
-void Mode0Irq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-	const int lineCycles = 456 * 2 - ((lyCounter.time() - cycleCounter) << (1 ^ lyCounter.isDoubleSpeed()));
-	unsigned line = lyCounter.ly();
-	int next = static_cast<int>((169 + lyCounter.isDoubleSpeed() * 3 + 80 + 1 - lyCounter.isDoubleSpeed()) * 2 - lyCounter.isDoubleSpeed()) - lineCycles;
-	unsigned m3ExCs;
-	
-	if (line < 144) {
-		m3ExCs = m3ExtraCycles(line) * 2;
-		next += m3ExCs;
-		
-		if (next <= 0) {
-			next += 456 * 2 - m3ExCs;
-			++line;
-			
-			if (line < 144) {
-				m3ExCs = m3ExtraCycles(line) * 2;
-				next += m3ExCs;
-			}
+		if (nextLy > 143) {
+			nextTime += lyCounter.lineTime() * (154 - nextLy);
+			nextLy = 0;
 		}
 	}
 	
-	if (line > 143) {
-		m3ExCs = m3ExtraCycles(0) * 2;
-		next += (154 - line) * 456 * 2 + m3ExCs;
+	nextTime += baseCycle(lyCounter.isDoubleSpeed()) + m3ExtraCycles(nextLy) << lyCounter.isDoubleSpeed();
+	
+	setTime(nextTime);
+}
+
+unsigned long Mode0Irq::schedule(const unsigned statReg, const M3ExtraCycles &m3ExtraCycles, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+	if (!(statReg & 0x08))
+		return DISABLED_TIME;
+	
+	unsigned line = lyCounter.ly();
+	int next = static_cast<int>(baseCycle(lyCounter.isDoubleSpeed())) - static_cast<int>(lyCounter.lineCycles(cycleCounter));
+	
+	if (line < 144 && next + static_cast<int>(m3ExtraCycles(line)) <= 0) {
+		next += 456;
+		++line;
 	}
 	
-	lastM3ExtraCycles = m3ExCs >> (1 ^ lyCounter.isDoubleSpeed());
+	if (line > 143) {
+		next += (154 - line) * 456;
+		line = 0;
+	}
 	
-	setTime(cycleCounter + (static_cast<unsigned>(next) >> (1 ^ lyCounter.isDoubleSpeed())));
+	next += m3ExtraCycles(line);
+	
+	return cycleCounter + (static_cast<unsigned>(next) << lyCounter.isDoubleSpeed());
 }

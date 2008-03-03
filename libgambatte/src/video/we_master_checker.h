@@ -21,6 +21,7 @@
 
 template<typename T, class Comparer> class event_queue;
 class Wy;
+class SaveState;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
@@ -50,16 +51,11 @@ public:
 	
 	void doEvent();
 	
-	void reset() {
-		unset();
-		setTime(DISABLED_TIME);
-	}
-	
-	void schedule(const unsigned wy, const bool we, const unsigned long cycleCounter) {
-		if (we && wy < 143)
-			setTime(lyCounter.nextFrameCycle(wy * 456ul + 448 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
+	static unsigned long schedule(const unsigned wySrc, const bool weSrc, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+		if (weSrc && wySrc < 143)
+			return lyCounter.nextFrameCycle(wySrc * 456ul + 448 + lyCounter.isDoubleSpeed() * 4, cycleCounter);
 		else
-			setTime(DISABLED_TIME);
+			return DISABLED_TIME;
 	}
 	
 	void unset() {
@@ -69,8 +65,9 @@ public:
 	bool weMaster() const {
 		return weMaster_;
 	}
+	
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 };
-
-void addEvent(WeMasterChecker &event, unsigned wy, bool we, unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,6 +18,8 @@
  ***************************************************************************/
 #ifndef RTC_H
 #define RTC_H
+
+class SaveState;
 
 #include <ctime>
 
@@ -57,7 +59,7 @@ public:
 	
 	void setBaseTime(const std::time_t baseTime) {
 		this->baseTime = baseTime;
-		doLatch();
+// 		doLatch();
 	}
 	
 	void latch(const unsigned data) {
@@ -67,7 +69,8 @@ public:
 		lastLatchData = data;
 	}
 	
-	void reset();
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state, bool enabled);
 	
 	void setEnabled(const bool enabled) {
 		this->enabled = enabled;

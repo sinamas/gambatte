@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 1999 Derek Liauw Kie Fa (Kreed)                         *
@@ -68,13 +68,12 @@ static inline unsigned long qInterpolate(const unsigned long a, const unsigned l
 	return a + b + c + d - lowBits >> 2;
 }
 
-template<class PixelPutter>
-static void filter(typename PixelPutter::pixel_t *dstPtr, const unsigned dstPitch, PixelPutter putPixel,
+static void filter(Gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
 		   const Gambatte::uint_least32_t *srcPtr, const unsigned srcPitch, const unsigned width, unsigned height)
 {
 	while (height--) {
 		const Gambatte::uint_least32_t *bP = srcPtr;
-		typename PixelPutter::pixel_t *dP = dstPtr;
+		Gambatte::uint_least32_t *dP = dstPtr;
 		
 		for (unsigned finish = width; finish--;) {
 			register unsigned long colorA, colorB;
@@ -191,10 +190,10 @@ static void filter(typename PixelPutter::pixel_t *dstPtr, const unsigned dstPitc
 					               product1 = interpolate(colorA, colorC);
 				               }
 			}
-			putPixel(dP, colorA);
-			putPixel(dP + 1, product);
-			putPixel(dP + dstPitch, product1);
-			putPixel(dP + dstPitch + 1, product2);
+			*dP = colorA;
+			*(dP + 1) = product;
+			*(dP + dstPitch) = product1;
+			*(dP + dstPitch + 1) = product2;
 			
 			++bP;
 			dP += 2;
@@ -239,14 +238,6 @@ unsigned Kreed_2xSaI::inPitch() {
 	return 161;
 }
 
-void Kreed_2xSaI::filter(Rgb32Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb32Putter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer, 161, 160, 144);
-}
-
-void Kreed_2xSaI::filter(Rgb16Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb16Putter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer, 161, 160, 144);
-}
-
-void Kreed_2xSaI::filter(UyvyPutter::pixel_t *const dbuffer, const unsigned pitch, UyvyPutter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer, 161, 160, 144);
+void Kreed_2xSaI::filter(Gambatte::uint_least32_t *const dbuffer, const unsigned pitch) {
+	::filter(dbuffer, pitch, buffer, 161, 160, 144);
 }

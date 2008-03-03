@@ -21,6 +21,7 @@
 #include "we_master_checker.h"
 #include "scx_reader.h"
 #include "../event_queue.h"
+#include "../savestate.h"
 
 Wy::WyReader1::WyReader1(Wy &wy, const WeMasterChecker &weMasterChecker) :
 	VideoEvent(3),
@@ -59,17 +60,17 @@ void Wy::WyReader3::doEvent() {
 	setTime(DISABLED_TIME);
 }
 
-void Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const unsigned long cycleCounter) {
-	const unsigned curLineCycle = 456 - (wy.lyCounter.time() - cycleCounter >> wy.lyCounter.isDoubleSpeed());
-	const unsigned baseTime = 78 + wy.lyCounter.isDoubleSpeed() * 6 + wxSrc;
+unsigned long Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+	const unsigned curLineCycle = 456 - (lyCounter.time() - cycleCounter >> lyCounter.isDoubleSpeed());
+	const unsigned baseTime = 78 + lyCounter.isDoubleSpeed() * 6 + wxSrc;
 	
-	if (curLineCycle >= 82U + wy.lyCounter.isDoubleSpeed() * 3) {
+	if (curLineCycle >= 82U + lyCounter.isDoubleSpeed() * 3) {
 		if (baseTime + scxReader.scxAnd7() > curLineCycle)
-			setTime(wy.lyCounter.time() + (baseTime + scxReader.scxAnd7() << wy.lyCounter.isDoubleSpeed()) - wy.lyCounter.lineTime());
+			return lyCounter.time() + (baseTime + scxReader.scxAnd7() << lyCounter.isDoubleSpeed()) - lyCounter.lineTime();
 		else
-			setTime(wy.lyCounter.time() + (baseTime + scxReader.getSource() << wy.lyCounter.isDoubleSpeed()));
+			return lyCounter.time() + (baseTime + scxReader.getSource() << lyCounter.isDoubleSpeed());
 	} else
-		setTime(wy.lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter));
+		return lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter);
 }
 
 Wy::WyReader4::WyReader4(Wy &wy) :
@@ -95,26 +96,10 @@ Wy::Wy(const LyCounter &lyCounter, const WeMasterChecker &weMasterChecker, M3Ext
 	wy_ = src_;
 }
 
-void Wy::reset() {
-	reader1_.doEvent();
-	reader2_.doEvent();
-	reader3_.doEvent();
-	reader4_.doEvent();
+void Wy::saveState(SaveState &state) const {
+	state.ppu.wy = wy_;
 }
 
-void addEvent(Wy::WyReader3 &event, const unsigned wxSrc, const ScxReader &scxReader,
-		const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
-{
-	const unsigned long oldTime = event.time();
-	
-	event.schedule(wxSrc, scxReader, cycleCounter);
-	
-	if (oldTime == VideoEvent::DISABLED_TIME)
-		queue.push(&event);
-	else if (oldTime != event.time()) {
-		if (event.time() > oldTime)
-			queue.inc(&event, &event);
-		else
-			queue.dec(&event, &event);
-	}
+void Wy::loadState(const SaveState &state) {
+	wy_ = state.ppu.wy;
 }

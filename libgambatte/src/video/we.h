@@ -19,11 +19,15 @@
 #ifndef WE_H
 #define WE_H
 
+class SaveState;
+
 #include "video_event.h"
 #include "ly_counter.h"
 #include "m3_extra_cycles.h"
+#include "basic_add_event.h"
 
 class We {
+public:
 	class WeEnableChecker : public VideoEvent {
 		We &we;
 		
@@ -32,8 +36,8 @@ class We {
 		
 		void doEvent();
 		
-		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned long cycleCounter) {
-			setTime(lyCounter.nextLineCycle(scxAnd7 + 82 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter));
+		static unsigned long schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+			return lyCounter.nextLineCycle(scxAnd7 + 82 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter);
 		}
 	};
 	
@@ -45,14 +49,15 @@ class We {
 		
 		void doEvent();
 		
-		void schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned long cycleCounter) {
-			setTime(lyCounter.nextLineCycle(scxAnd7 + 88 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter));
+		static unsigned long schedule(const unsigned scxAnd7, const unsigned wx, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+			return lyCounter.nextLineCycle(scxAnd7 + 88 + wx + lyCounter.isDoubleSpeed() * 3, cycleCounter);
 		}
 	};
 	
 	friend class WeEnableChecker;
 	friend class WeDisableChecker;
 	
+private:
 	M3ExtraCycles &m3ExtraCycles_;
 	WeEnableChecker enableChecker_;
 	WeDisableChecker disableChecker_;
@@ -82,8 +87,6 @@ public:
 		return src_;
 	}
 	
-	void reset();
-	
 	void setSource(const bool src) {
 		src_ = src;
 	}
@@ -91,6 +94,25 @@ public:
 	bool value() const {
 		return we_;
 	}
+	
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 };
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, We::WeEnableChecker *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, We::WeEnableChecker *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, We::WeDisableChecker *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, We::WeDisableChecker *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

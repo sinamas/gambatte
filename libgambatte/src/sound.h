@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,8 @@
 #ifndef SOUND_H
 #define SOUND_H
 
+class SaveState;
+
 #include "int.h"
 
 #include "sound/channel1.h"
@@ -32,7 +34,7 @@ class PSG {
 	Channel3 ch3;
 	Channel4 ch4;
 		
-	Gambatte::uint_least32_t *buffer;
+	Gambatte::uint_least32_t *const buffer;
 	unsigned long lastUpdate;
 	unsigned long soVol;
 	
@@ -43,10 +45,13 @@ class PSG {
 	void accumulate_channels(unsigned long cycles);
 
 public:
-	void init(const unsigned char *ioram, bool cgb);
-	void reset();
 	PSG();
 	~PSG();
+	void init(bool cgb);
+	void reset();
+	void setStatePtrs(SaveState &state);
+	void saveState(SaveState &state);
+	void loadState(const SaveState &state);
 
 	void generate_samples(unsigned long cycleCounter, unsigned doubleSpeed);
 	void resetCounter(unsigned long newCc, unsigned long oldCc, unsigned doubleSpeed);

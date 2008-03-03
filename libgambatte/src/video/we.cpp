@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "we.h"
+#include "../savestate.h"
 
 We::WeEnableChecker::WeEnableChecker(We &we) :
 	VideoEvent(8),
@@ -49,7 +50,10 @@ We::We(M3ExtraCycles &m3ExtraCycles) :
 	we_ = src_;
 }
 
-void We::reset() {
-	enableChecker_.doEvent();
-	disableChecker_.doEvent();
+void We::saveState(SaveState &state) const {
+	state.ppu.lcdc = state.ppu.lcdc & ~0x20 | we_ << 5;
+}
+
+void We::loadState(const SaveState &state) {
+	we_ = state.ppu.lcdc >> 5 & 1;
 }

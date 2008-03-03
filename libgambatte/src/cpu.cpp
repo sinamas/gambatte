@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,31 +18,27 @@
  ***************************************************************************/
 #include "cpu.h"
 #include "memory.h"
+#include "savestate.h"
 
-CPU::CPU() : memory(Interrupter(SP, PC_, halted)), cycleCounter_(0x102A0) {
-	init();
-}
-
-void CPU::init() {
-	cycleCounter_ = 0x102A0;
-	PC_ = 0x100;
-	SP = 0xFFFE;
-	A_ = 0x1;
-	F = 0xB0;
-	B = 0;
-	C = 0x13;
-	D = 0;
-	E = 0xD8;
-	H = 0x1;
-	L = 0x4D;
-	halted = 0;
-	ZF = 0;
-	HF2 = HF1 = 0xF;
-	CF = 0x100;
-	skip = false;
-
-	if (memory.isCgb()) A_ = 0x11;
-}
+CPU::CPU() :
+memory(Interrupter(SP, PC_, halted)),
+cycleCounter_(0),
+PC_(0x100),
+SP(0xFFFE),
+HF1(0xF),
+HF2(0xF),
+ZF(0),
+CF(0x100),
+A_(0x01),
+B(0x00),
+C(0x13),
+D(0x00),
+E(0xD8),
+H(0x01),
+L(0x4D),
+skip(false),
+halted(false)
+{}
 
 void CPU::runFor(const unsigned long cycles) {
 	process(cycles/* << memory.isDoubleSpeed()*/);
@@ -51,15 +47,8 @@ void CPU::runFor(const unsigned long cycles) {
 		cycleCounter_ = memory.resetCounters(cycleCounter_);
 }
 
-void CPU::reset() {
-	memory.reload();
-	init();
-}
-
 bool CPU::load(const char* romfile) {
-	memory.reset();
 	bool tmp = memory.loadROM(romfile);
-	init();
 	
 	return tmp;
 }
@@ -92,7 +81,7 @@ bool CPU::load(const char* romfile) {
 // (HF2 & 0x400) marks the subtract flag.
 // (HF2 & 0x800) is set for inc/dec.
 // (HF2 & 0x100) is set if there's a carry to add.
-static inline void calcHF(const unsigned HF1, unsigned& HF2) {
+static void calcHF(const unsigned HF1, unsigned& HF2) {
 	unsigned arg1 = HF1 & 0xF;
 	unsigned arg2 = (HF2 & 0xF) + (HF2 >> 8 & 1);
 	
@@ -107,6 +96,58 @@ static inline void calcHF(const unsigned HF1, unsigned& HF2) {
 		arg1 = arg1 + arg2 << 5;
 	
 	HF2 |= arg1 & 0x200;
+}
+
+#define F() ((HF2 & 0x600 | CF & 0x100) >> 4 | ((ZF & 0xFF) ? 0 : 0x80))
+
+#define FROM_F(f_in) do { \
+	unsigned from_f_var = f_in; \
+\
+	ZF = ~from_f_var & 0x80; \
+	HF2 = from_f_var << 4 & 0x600; \
+	CF = from_f_var << 4 & 0x100; \
+} while (0)
+
+void CPU::setStatePtrs(SaveState &state) {
+	memory.setStatePtrs(state);
+}
+
+void CPU::saveState(SaveState &state) {
+	cycleCounter_ = memory.saveState(state, cycleCounter_);
+	
+	calcHF(HF1, HF2);
+	
+	state.cpu.cycleCounter = cycleCounter_;
+	state.cpu.PC = PC_;
+	state.cpu.SP = SP;
+	state.cpu.A = A_;
+	state.cpu.B = B;
+	state.cpu.C = C;
+	state.cpu.D = D;
+	state.cpu.E = E;
+	state.cpu.F = F();
+	state.cpu.H = H;
+	state.cpu.L = L;
+	state.cpu.skip = skip;
+	state.cpu.halted = halted;
+}
+
+void CPU::loadState(const SaveState &state) {
+	memory.loadState(state, cycleCounter_);
+	
+	cycleCounter_ = state.cpu.cycleCounter;
+	PC_ = state.cpu.PC;
+	SP = state.cpu.SP;
+	A_ = state.cpu.A;
+	B = state.cpu.B;
+	C = state.cpu.C;
+	D = state.cpu.D;
+	E = state.cpu.E;
+	FROM_F(state.cpu.F);
+	H = state.cpu.H;
+	L = state.cpu.L;
+	skip = state.cpu.skip;
+	halted = state.cpu.halted;
 }
 
 #define BC() ( B << 8 | C )
@@ -2685,10 +2726,7 @@ void CPU::process(const unsigned long cycles) {
 					
 					pop_rr(A, F);
 					
-					ZF = (F & 0x80) ^ 0x80;
-					F <<= 4;
-					HF2 = F & 0x600;
-					CF = F & 0x100;
+					FROM_F(F);
 				}
 				break;
 
@@ -2709,12 +2747,7 @@ void CPU::process(const unsigned long cycles) {
 				calcHF(HF1, HF2);
 				
 				{
-					unsigned F = HF2 & 0x600;
-					F |= CF & 0x100;
-					F >>= 4;
-					
-					if (!(ZF & 0xFF))
-						F |= 0x80;
+					unsigned F = F();
 					
 					push_rr(A, F);
 				}

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,6 +26,7 @@ class LycIrq : public VideoEvent {
 	unsigned long frameTime;
 	unsigned char lycReg_;
 	bool m2IrqEnabled;
+	bool skip;
 	
 public:
 	LycIrq(unsigned char &ifReg_in);
@@ -36,13 +37,7 @@ public:
 		return lycReg_;
 	}
 	
-	void lycRegSchedule(const LyCounter &lyCounter, unsigned long cycleCounter);
-	
-	void reset() {
-		setTime(DISABLED_TIME);
-	}
-	
-	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);
+	static unsigned long schedule(unsigned statReg, unsigned lycReg, const LyCounter &lyCounter, unsigned long cycleCounter);
 	
 	void setDoubleSpeed(const bool ds) {
 		frameTime = 70224 << ds;
@@ -54,6 +49,18 @@ public:
 	
 	void setM2IrqEnabled(const bool enabled) {
 		m2IrqEnabled = enabled;
+	}
+	
+	void setSkip(const bool skip) {
+		this->skip = skip;
+	}
+	
+	bool skips() const {
+		return skip;
+	}
+	
+	bool isSkipPeriod(const unsigned long cycleCounter, const bool doubleSpeed) const {
+		return lycReg_ > 0 && time() - cycleCounter > 4U >> doubleSpeed && time() - cycleCounter < 9;
 	}
 };
 

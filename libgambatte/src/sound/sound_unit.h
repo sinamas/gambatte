@@ -23,9 +23,9 @@ class SoundUnit {
 protected:
 	unsigned long counter;
 public:
-	static const unsigned long COUNTER_DISABLED = 0xFFFFFFFF;
-	static const unsigned long COUNTER_MAX = 0x80000000;
+	enum { COUNTER_MAX = 0x80000000u, COUNTER_DISABLED = 0xFFFFFFFFu };
 	
+	SoundUnit() : counter(COUNTER_DISABLED) {}
 	virtual ~SoundUnit() {}
 	virtual void event() = 0;
 	unsigned long getCounter() const { return counter; }

@@ -21,6 +21,7 @@
 
 #include "sound_unit.h"
 #include "master_disabler.h"
+#include "../savestate.h"
 
 class DutyUnit : public SoundUnit {
 	unsigned long nextPosUpdate;
@@ -35,13 +36,15 @@ class DutyUnit : public SoundUnit {
 	void updatePos(unsigned long cc);
 
 public:
+	DutyUnit();
 	void event();
 	bool isHighState() const { return high; }
 	void nr1Change(unsigned newNr1, unsigned long cc);
 	void nr3Change(unsigned newNr3, unsigned long cc);
 	void nr4Change(unsigned newNr4, unsigned long cc);
-	void init(unsigned long cc);
 	void reset();
+	void saveState(SaveState::SPU::Duty &dstate, unsigned long cc);
+	void loadState(const SaveState::SPU::Duty &dstate, unsigned nr1, unsigned nr4);
 	void resetCounters(unsigned long oldCc);
 	void killCounter();
 	void reviveCounter(unsigned long cc);

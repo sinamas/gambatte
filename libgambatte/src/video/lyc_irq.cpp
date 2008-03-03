@@ -18,8 +18,6 @@
  ***************************************************************************/
 #include "lyc_irq.h"
 
-#include "ly_counter.h"
-
 LycIrq::LycIrq(unsigned char &ifReg_in) :
 	VideoEvent(1),
 	ifReg(ifReg_in)
@@ -27,30 +25,18 @@ LycIrq::LycIrq(unsigned char &ifReg_in) :
 	setDoubleSpeed(false);
 	setM2IrqEnabled(false);
 	setLycReg(0);
-	reset();
+	setSkip(false);
 }
 
 void LycIrq::doEvent() {
-	if (!m2IrqEnabled || lycReg_ > 143 || lycReg_ == 0)
+	if (!skip && (!m2IrqEnabled || lycReg_ > 143 || lycReg_ == 0))
 		ifReg |= 0x2;
+	
+	skip = false;
 	
 	setTime(time() + frameTime);
 }
 
-void LycIrq::lycRegSchedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-	schedule(lyCounter, cycleCounter);
-	
-	if (lycReg_ > 0 && time() - cycleCounter > (4U >> lyCounter.isDoubleSpeed()) && time() - cycleCounter < 8)
-		setTime(time() + frameTime);
-}
-
-void LycIrq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-	//setTime(lyCounter.nextFrameCycle(lycReg_ ? lycReg_ * 456 - 1 : (153 * 456 + 7), cycleCounter));
-	
-	unsigned long next = lyCounter.time() + ((153u - lyCounter.ly()) * 456ul + (lycReg_ ? lycReg_ * 456ul : (153 * 456ul + 8)) << lyCounter.isDoubleSpeed()) - 1;
-	
-	if (next - cycleCounter > frameTime)
-		next -= frameTime;
-	
-	setTime(next);
+unsigned long LycIrq::schedule(const unsigned statReg, const unsigned lycReg, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+	return ((statReg & 0x40) && lycReg < 154) ? lyCounter.nextFrameCycle(lycReg ? lycReg * 456 : 153 * 456 + 8, cycleCounter) : static_cast<unsigned long>(DISABLED_TIME);
 }

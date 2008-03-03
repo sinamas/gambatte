@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,6 +18,8 @@
  ***************************************************************************/
 #ifndef SOUND_CHANNEL1_H
 #define SOUND_CHANNEL1_H
+
+class SaveState;
 
 #include "int.h"
 
@@ -42,8 +44,9 @@ class Channel1 {
 		void event();
 		void nr0Change(unsigned newNr0);
 		void nr4Init(unsigned long cycleCounter);
-		void init();
 		void reset();
+		void saveState(SaveState &state) const;
+		void loadState(const SaveState &state);
 	};
 	
 	friend class StaticOutputTester<Channel1,DutyUnit>;
@@ -79,7 +82,9 @@ public:
 	void update(Gambatte::uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	
 	void reset();
-	void init(unsigned long cc, bool cgb);
+	void init(bool cgb);
+	void saveState(SaveState &state);
+	void loadState(const SaveState &state);
 };
 
 #endif

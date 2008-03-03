@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,8 +17,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "gambatte.h"
-
 #include "cpu.h"
+#include "savestate.h"
+#include "statesaver.h"
+#include "initstate.h"
 
 namespace Gambatte {
 GB::GB() : z80(new CPU) {}
@@ -32,7 +34,15 @@ void GB::runFor(const unsigned long cycles) {
 }
 
 void GB::reset() {
-	z80->reset();
+	z80->saveSavedata();
+	
+	SaveState state;
+	z80->setStatePtrs(state);
+	setInitState(state, z80->isCgb());
+	z80->loadState(state);
+	z80->loadSavedata();
+	
+// 	z80->reset();
 }
 
 void GB::setVideoBlitter(VideoBlitter *vb) {
@@ -68,7 +78,15 @@ void GB::set_savedir(const char *sdir) {
 }
 
 bool GB::load(const char* romfile) {
-	return z80->load(romfile);
+	const bool failed = z80->load(romfile);
+	
+	SaveState state;
+	z80->setStatePtrs(state);
+	setInitState(state, z80->isCgb());
+	z80->loadState(state);
+	z80->loadSavedata();
+	
+	return failed;
 }
 
 void GB::fill_buffer(uint_least16_t *const stream, const unsigned samples) {
@@ -81,5 +99,19 @@ bool GB::isCgb() const {
 
 void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
 	z80->setDmgPaletteColor(palNum, colorNum, rgb32);
+}
+
+void GB::saveState() {
+	SaveState state;
+	z80->setStatePtrs(state);
+	z80->saveState(state);
+	StateSaver::saveState(state, "test.gqs");
+}
+
+void GB::loadState() {
+	SaveState state;
+	z80->setStatePtrs(state);
+	StateSaver::loadState(state, "test.gqs");
+	z80->loadState(state);
 }
 }

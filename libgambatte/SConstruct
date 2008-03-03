@@ -7,12 +7,15 @@ env = Environment(CPPPATH = ['src', 'include'],
                   CXXFLAGS = global_cxxflags + global_defines)
 
 sourceFiles = Split('''
+			src/colorconversion.cpp
 			src/cpu.cpp
 			src/gambatte.cpp
+			src/initstate.cpp
 			src/interrupter.cpp
 			src/memory.cpp
 			src/rtc.cpp
 			src/sound.cpp
+			src/statesaver.cpp
 			src/video.cpp
 			src/sound/channel1.cpp
 			src/sound/channel2.cpp
@@ -21,6 +24,7 @@ sourceFiles = Split('''
 			src/sound/duty_unit.cpp
 			src/sound/envelope_unit.cpp
 			src/sound/length_counter.cpp
+			src/video/basic_add_event.cpp
 			src/video/break_event.cpp
 			src/video/irq_event.cpp
 			src/video/ly_counter.cpp

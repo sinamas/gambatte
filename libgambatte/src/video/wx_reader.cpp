@@ -20,6 +20,7 @@
 
 #include "../event_queue.h"
 #include "m3_extra_cycles.h"
+#include "../savestate.h"
 
 WxReader::WxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue,
                    VideoEvent &weEnableChecker,
@@ -33,11 +34,11 @@ m3ExtraCycles(m3ExtraCycles)
 {
 	setDoubleSpeed(false);
 	setSource(0);
-	reset();
+	wx_ = src_;
 }
 
-void WxReader::rescheduleEvent(VideoEvent& event, const unsigned long diff) {
-	if (event.time() != DISABLED_TIME) {
+static void rescheduleEvent(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue, VideoEvent& event, const unsigned long diff) {
+	if (event.time() != VideoEvent::DISABLED_TIME) {
 		event.setTime(event.time() + diff);
 		(diff & 0x200) ? m3EventQueue.dec(&event, &event) : m3EventQueue.inc(&event, &event);
 	}
@@ -47,27 +48,18 @@ void WxReader::doEvent() {
 	const unsigned long diff = static_cast<unsigned long>(src_) - static_cast<unsigned long>(wx_) << dS;
 	wx_ = src_;
 	
-	rescheduleEvent(weEnableChecker, diff);
-	rescheduleEvent(weDisableChecker, diff);
+	rescheduleEvent(m3EventQueue, weEnableChecker, diff);
+	rescheduleEvent(m3EventQueue, weDisableChecker, diff);
 	
 	m3ExtraCycles.invalidateCache();
 	
 	setTime(DISABLED_TIME);
 }
 
-void addEvent(WxReader &event, const unsigned scxAnd7, const LyCounter &lyCounter,
-		const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue)
-{
-	const unsigned long oldTime = event.time();
-	
-	event.schedule(scxAnd7, lyCounter, cycleCounter);
-	
-	if (oldTime == VideoEvent::DISABLED_TIME)
-		queue.push(&event);
-	else if (oldTime != event.time()) {
-		if (event.time() > oldTime)
-			queue.inc(&event, &event);
-		else
-			queue.dec(&event, &event);
-	}
+void WxReader::saveState(SaveState &state) const {
+	state.ppu.wx = wx_;
+}
+
+void WxReader::loadState(const SaveState &state) {
+	wx_ = state.ppu.wx;
 }

@@ -24,22 +24,10 @@ Mode1Irq::Mode1Irq(unsigned char &ifReg_in) :
 {
 	setDoubleSpeed(false);
 	setM1StatIrqEnabled(false);
-	reset();
 }
 
 void Mode1Irq::doEvent() {
 	ifReg |= flags;
 	
 	setTime(time() + frameTime);
-}
-
-void Mode1Irq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-	//setTime(lyCounter.nextFrameCycle(144 * 456 - 1, cycleCounter));
-	
-	unsigned long next = lyCounter.time() + (153u + 144u - lyCounter.ly()) * lyCounter.lineTime() - 1;
-	
-	if (next - cycleCounter > frameTime)
-		next -= frameTime;
-	
-	setTime(next);
 }

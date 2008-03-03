@@ -24,27 +24,15 @@
 #include "video/filters/kreed2xsai.h"
 #include "video/filters/maxsthq2x.h"
 #include "filterinfo.h"
-
+#include "savestate.h"
 #include "video/basic_add_event.h"
 
-/*
-const uint32_t LCD::dmgColorsRgb32[4] = { 3 * 85 * 0x010101, 2 * 85 * 0x010101, 1 * 85 * 0x010101, 0 * 85 * 0x010101 };
-const uint32_t LCD::dmgColorsRgb16[4] = { 3 * 10 * 0x0841, 2 * 10 * 0x0841, 1 * 10 * 0x0841, 0 * 10 * 0x0841 };
-
-#ifdef WORDS_BIGENDIAN
-const uint32_t LCD::dmgColorsUyvy[4] = {
-		0x80008000 | (16 + 73 * 3) * 0x00010001U,
-		0x80008000 | (16 + 73 * 2) * 0x00010001U,
-		0x80008000 | (16 + 73 * 1) * 0x00010001U,
-		0x80008000 | (16 + 73 * 0) * 0x00010001U };
-#else
-const uint32_t LCD::dmgColorsUyvy[4] = {
-		0x00800080 | (16 + 73 * 3) * 0x01000100U,
-		0x00800080 | (16 + 73 * 2) * 0x01000100U,
-		0x00800080 | (16 + 73 * 1) * 0x01000100U,
-		0x00800080 | (16 + 73 * 0) * 0x01000100U };
-#endif
-*/
+static void addEventIfActivated(event_queue<VideoEvent*,VideoEventComparer> &q, VideoEvent *const e, const unsigned long newTime) {
+	e->setTime(newTime);
+	
+	if (newTime != VideoEvent::DISABLED_TIME)
+		q.push(e);
+}
 
 void LCD::setDmgPalette(unsigned long *const palette, const unsigned long *const dmgColors, const unsigned data) {
 	palette[0] = dmgColors[data & 3];
@@ -91,6 +79,20 @@ unsigned long LCD::gbcToUyvy(const unsigned bgr15) {
 
 LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) :
 	vram(vram_in),
+	bgTileData(vram),
+	bgTileMap(vram + 0x1800),
+	wdTileMap(bgTileMap),
+	vBlitter(NULL),
+	filter(NULL),
+	dbuffer(NULL),
+	draw(NULL),
+	gbcToFormat(gbcToRgb32),
+	dmgColors(dmgColorsRgb32),
+	lastUpdate(0),
+	videoCycles(0),
+	enableDisplayM0Time(0),
+	dpitch(0),
+	winYPos(0),
 	m3EventQueue(11, VideoEventComparer()),
 	irqEventQueue(4, VideoEventComparer()),
 	vEventQueue(5, VideoEventComparer()),
@@ -104,14 +106,18 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	mode0Irq(lyCounter, lycIrq, m3ExtraCycles, ifReg),
 	mode1Irq(ifReg),
 	mode2Irq(lyCounter, lycIrq, ifReg),
-	irqEvent(irqEventQueue)
+	irqEvent(irqEventQueue),
+	drawStartCycle(90),
+	scReadOffset(90),
+	ifReg(0),
+	tileIndexSign(0),
+	statReg(0),
+	doubleSpeed(false),
+	enabled(false),
+	cgb(false),
+	bgEnable(false),
+	spriteEnable(false)
 {
-	vBlitter = NULL;
-	filter = 0;
-	pb.pixels = 0;
-	pb.format = Gambatte::PixelBuffer::RGB32;
-	pb.pitch = 0;
-	
 	for (unsigned i = 0; i < sizeof(dmgColorsRgb32) / sizeof(unsigned long); ++i) {
 		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
 	}
@@ -122,11 +128,9 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	filters.push_back(new Kreed_2xSaI);
 	filters.push_back(new MaxSt_Hq2x);
 	
-	//for (uint16_t* i = &spritemap[10];i < &spritemap[144*12];i += 12)
-	//	i[1] = i[0] = 0;
-	// for (uint32_t i = 0;i < 256;i++)
-	// 	xflipt[i] = ((i & 0x1) << 7) | ((i & 0x2) << 5) | ((i & 0x4) << 3) | ((i & 0x8) << 1) | ((i & 0x10) >> 1) | ((i & 0x20) >> 3) | ((i & 0x40) >> 5) | ((i & 0x80) >> 7);
 	reset(false);
+	setDoubleSpeed(false);
+	
 	setVideoFilter(0);
 }
 
@@ -140,35 +144,40 @@ void LCD::reset(const bool cgb_in) {
 	cgb = cgb_in;
 	spriteMapper.setCgb(cgb_in);
 	setDBuffer();
-	ifReg = 0;
-	setDoubleSpeed(false);
-	enabled = true;
-	bgEnable = true;
-	spriteEnable = false;
-	wdTileMap = bgTileMap = vram + 0x1800;
-	bgTileData = vram;
-	tileIndexSign = 0;
-	/*drawStartCycle = 90;
-	scReadOffset = 90; 
-	scxAnd7 = 0;
-	largeSprites = false;
-	we = false;*/
+}
+
+void LCD::resetVideoState(const unsigned long cycleCounter) {
+	vEventQueue.clear();
+	m3EventQueue.clear();
+	irqEventQueue.clear();
 	
-	scxReader.setSource(0);
-	win.wxReader.setSource(0);
-	win.wyReg.setSource(0);
-	spriteMapper.setLargeSpritesSource(false);
-	win.we.setSource(false);
-// 	weMasterChecker.setSource(false);
-	scReader.setScxSource(0);
-	scReader.setScySource(0);
-	breakEvent.setScxSource(0);
-	lycIrq.setM2IrqEnabled(false);
-	lycIrq.setLycReg(0);
-	mode1Irq.setM1StatIrqEnabled(false);
+	lyCounter.reset(videoCycles, lastUpdate);
+	vEventQueue.push(&lyCounter);
 	
-	resetVideoState(0x80, 0x102A0 - (144*456ul + 164));
-	//setEvent();
+	spriteMapper.resetCycleCounter(cycleCounter);
+	spriteMapper.oamChange(cycleCounter);
+	m3ExtraCycles.invalidateCache();
+	
+	addEventIfActivated(m3EventQueue, &scxReader, ScxReader::schedule(lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.wxReader, WxReader::schedule(scxReader.scxAnd7(), lyCounter, win.wxReader, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.wyReg.reader1(), Wy::WyReader1::schedule(lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.wyReg.reader2(), Wy::WyReader2::schedule(lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.wyReg.reader3(), Wy::WyReader3::schedule(win.wxReader.getSource(), scxReader, lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.wyReg.reader4(), Wy::WyReader4::schedule(lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &spriteMapper, SpriteMapper::schedule(lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.we.enableChecker(), We::WeEnableChecker::schedule(scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.we.disableChecker(), We::WeDisableChecker::schedule(scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter));
+	addEventIfActivated(m3EventQueue, &win.weMasterChecker, WeMasterChecker::schedule(win.wyReg.getSource(), win.we.getSource(), lyCounter, cycleCounter));
+	
+	addEventIfActivated(irqEventQueue, &lycIrq, LycIrq::schedule(statReg, lycIrq.lycReg(), lyCounter, cycleCounter));
+	addEventIfActivated(irqEventQueue, &mode0Irq, Mode0Irq::schedule(statReg, m3ExtraCycles, lyCounter, cycleCounter));
+	addEventIfActivated(irqEventQueue, &mode1Irq, Mode1Irq::schedule(lyCounter, cycleCounter));
+	addEventIfActivated(irqEventQueue, &mode2Irq, Mode2Irq::schedule(statReg, lyCounter, cycleCounter));
+	
+	addEventIfActivated(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
+	addEventIfActivated(vEventQueue, &irqEvent, IrqEvent::schedule(irqEventQueue));
+	addEventIfActivated(vEventQueue, &scReader, ScReader::schedule(lastUpdate, videoCycles, scReadOffset, doubleSpeed));
+	addEventIfActivated(vEventQueue, &breakEvent, BreakEvent::schedule(lyCounter));
 }
 
 void LCD::setDoubleSpeed(const bool ds) {
@@ -182,99 +191,94 @@ void LCD::setDoubleSpeed(const bool ds) {
 	mode1Irq.setDoubleSpeed(doubleSpeed);
 }
 
-template<class T>
-static inline void rescheduleIfActive(T &event, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	if (event.time() != VideoEvent::DISABLED_TIME) {
-		event.schedule(lyCounter, cycleCounter);
-		queue.push(&event);
-	}
+void LCD::setStatePtrs(SaveState &state) {
+	state.ppu.bgpData.set(bgpData, sizeof bgpData);
+	state.ppu.objpData.set(objpData, sizeof objpData);
+	spriteMapper.setStatePtrs(state);
 }
 
-template<class T>
-static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	if (event.time() != VideoEvent::DISABLED_TIME) {
-		event.schedule(scxReader.scxAnd7(), lyCounter, cycleCounter);
-		queue.push(&event);
-	}
+void LCD::saveState(SaveState &state) const {
+	state.ppu.videoCycles = videoCycles;
+	state.ppu.enableDisplayM0Time = enableDisplayM0Time;
+	state.ppu.winYPos = winYPos;
+	state.ppu.drawStartCycle = drawStartCycle;
+	state.ppu.scReadOffset = scReadOffset;
+	state.ppu.lcdc = enabled << 7 | wdTileMap - vram - 0x1800 >> 4 | (tileIndexSign ^ 0x80) >> 3 | bgTileMap - vram - 0x1800 >> 7 | spriteEnable << 1 | bgEnable;
+	state.ppu.lycIrqSkip = lycIrq.skips();
+	
+	scReader.saveState(state);
+	scxReader.saveState(state);
+	win.weMasterChecker.saveState(state);
+	win.wxReader.saveState(state);
+	win.wyReg.saveState(state);
+	win.we.saveState(state);
 }
 
-template<class T>
-static inline void rescheduleIfActive(T &event, const ScxReader &scxReader, const WxReader &wxReader, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	if (event.time() != VideoEvent::DISABLED_TIME) {
-		event.schedule(scxReader.scxAnd7(), wxReader.wx(), lyCounter, cycleCounter);
-		queue.push(&event);
-	}
+void LCD::loadState(const SaveState &state, const unsigned char *oamram) {
+	statReg = state.mem.ioamhram.get()[0x141];
+	ifReg = 0;
+	
+	setDoubleSpeed(cgb & state.mem.ioamhram.get()[0x14D] >> 7);
+	
+	lastUpdate = state.cpu.cycleCounter;
+	videoCycles = state.ppu.videoCycles;
+	enableDisplayM0Time = state.ppu.enableDisplayM0Time;
+	winYPos = state.ppu.winYPos;
+	drawStartCycle = state.ppu.drawStartCycle;
+	scReadOffset = state.ppu.scReadOffset;
+	enabled = state.ppu.lcdc >> 7 & 1;
+	wdTileMap = vram + 0x1800 + (state.ppu.lcdc >> 6 & 1) * 0x400;
+	tileIndexSign = ((state.ppu.lcdc >> 4 & 1) ^ 1) * 0x80;
+	bgTileData = vram + ((state.ppu.lcdc >> 4 & 1) ^ 1) * 0x1000;
+	bgTileMap = vram + 0x1800 + (state.ppu.lcdc >> 3 & 1) * 0x400;
+	spriteEnable = state.ppu.lcdc >> 1 & 1;
+	bgEnable = state.ppu.lcdc & 1;
+	
+	lycIrq.setM2IrqEnabled(statReg >> 5 & 1);
+	lycIrq.setLycReg(state.mem.ioamhram.get()[0x145]);
+	lycIrq.setSkip(state.ppu.lycIrqSkip);
+	mode1Irq.setM1StatIrqEnabled(statReg >> 4 & 1);
+	
+	win.we.setSource(state.mem.ioamhram.get()[0x140] >> 5 & 1);
+	spriteMapper.setLargeSpritesSource(state.mem.ioamhram.get()[0x140] >> 2 & 1);
+	scReader.setScySource(state.mem.ioamhram.get()[0x142]);
+	scxReader.setSource(state.mem.ioamhram.get()[0x143]);
+	breakEvent.setScxSource(state.mem.ioamhram.get()[0x143]);
+	scReader.setScxSource(state.mem.ioamhram.get()[0x143]);
+	win.wyReg.setSource(state.mem.ioamhram.get()[0x14A]);
+	win.wxReader.setSource(state.mem.ioamhram.get()[0x14B]);
+	
+	scReader.loadState(state);
+	scxReader.loadState(state);
+	win.weMasterChecker.loadState(state);
+	win.wxReader.loadState(state);
+	win.wyReg.loadState(state);
+	win.we.loadState(state);
+	
+	resetVideoState(lastUpdate);
+	spriteMapper.oamChange(oamram, lastUpdate);
+	refreshPalettes();
 }
 
-void LCD::resetVideoState(const unsigned statReg, const unsigned long cycleCounter) {
-	videoCycles = 0;
-	lastUpdate = cycleCounter;
-	enableDisplayM0Time = cycleCounter + 159;
-	winYPos = 0xFF;
-	
-	m3EventQueue.clear();
-	irqEventQueue.clear();
-	vEventQueue.clear();
-	
-	lyCounter.resetLy();
-	lyCounter.setTime(lastUpdate + (456U << doubleSpeed));
-	vEventQueue.push(&lyCounter);
-	
-	scxReader.reset();
-	win.wxReader.reset();
-	win.wyReg.reset();
-	spriteMapper.reset();
-	win.we.reset();
-	scReader.reset();
-	breakEvent.reset();
-	
-	mode3Event.reset();
-	
-	win.weMasterChecker.reset();
-	win.weMasterChecker.schedule(win.wyReg.getSource(), win.we.getSource(), cycleCounter);
-	
-	if (win.weMasterChecker.time() != VideoEvent::DISABLED_TIME) {
-		m3EventQueue.push(&win.weMasterChecker);
-		mode3Event.schedule();
-		vEventQueue.push(&mode3Event);
+void LCD::refreshPalettes() {
+	if (cgb) {
+		for (unsigned i = 0; i < 8 * 8; i += 2) {
+			bgPalette[i >> 1] = (*gbcToFormat)(bgpData[i] | bgpData[i + 1] << 8);
+			spPalette[i >> 1] = (*gbcToFormat)(objpData[i] | objpData[i + 1] << 8);
+		}
+	} else {
+		setDmgPalette(bgPalette, dmgColors, bgpData[0]);
+		setDmgPalette(spPalette, dmgColors + 4, objpData[0]);
+		setDmgPalette(spPalette + 4, dmgColors + 8, objpData[1]);
 	}
-	
-	lycIrq.reset();
-	mode0Irq.reset();
-	mode2Irq.reset();
-	
-	if ((statReg & 0x40) && lycIrq.lycReg() < 154) {
-		lycIrq.schedule(lyCounter, cycleCounter);
-		irqEventQueue.push(&lycIrq);
-	}
-	
-	if (statReg & 0x08) {
-		mode0Irq.schedule(lyCounter, cycleCounter);
-		irqEventQueue.push(&mode0Irq);
-	} else if (statReg & 0x20) {
-		mode2Irq.schedule(lyCounter, cycleCounter);
-		irqEventQueue.push(&mode2Irq);
-	}
-	
-	mode1Irq.schedule(lyCounter, cycleCounter);
-	irqEventQueue.push(&mode1Irq);
-	
-	irqEvent.schedule();
-	vEventQueue.push(&irqEvent);
-	
-	m3ExtraCycles.invalidateCache();
 }
-
-// static VideoBlitter *vBlitter = NULL;
-// static PixelBuffer pb = { 0, 0, 0 };
 
 void LCD::setVideoBlitter(Gambatte::VideoBlitter *vb) {
 	vBlitter = vb;
+	
 	if (vBlitter) {
 		vBlitter->setBufferDimensions(filter ? filter->info().outWidth : 160, filter ? filter->info().outHeight : 144);
 		pb = vBlitter->inBuffer();
-// 		memory.update_bgpalette = 1;
-// 		memory.update_objpalette = 1;
 	}
 	
 	setDBuffer();
@@ -330,23 +334,27 @@ unsigned int LCD::videoHeight() const {
 
 void LCD::updateScreen(const unsigned long cycleCounter) {
 	update(cycleCounter);
-
-	if (filter && pb.pixels) {
-		switch (pb.format) {
-		case Gambatte::PixelBuffer::RGB32:
-			filter->filter(static_cast<Rgb32Putter::pixel_t*>(pb.pixels), pb.pitch, Rgb32Putter());
-			break;
-		case Gambatte::PixelBuffer::RGB16:
-			filter->filter(static_cast<Rgb16Putter::pixel_t*>(pb.pixels), pb.pitch, Rgb16Putter());
-			break;
-		case Gambatte::PixelBuffer::UYVY:
-			filter->filter(static_cast<UyvyPutter::pixel_t*>(pb.pixels), pb.pitch, UyvyPutter());
-			break;
+	
+	if (pb.pixels) {
+		if (filter) {
+			filter->filter(static_cast<Gambatte::uint_least32_t*>(tmpbuf ? tmpbuf : pb.pixels), pb.pitch);
+			
+			if (tmpbuf) {
+				switch (pb.format) {
+				case Gambatte::PixelBuffer::RGB16:
+					rgb32ToRgb16(tmpbuf, static_cast<Gambatte::uint_least16_t*>(pb.pixels), filter->info().outWidth, filter->info().outHeight, pb.pitch);
+					break;
+				case Gambatte::PixelBuffer::UYVY:
+					rgb32ToUyvy(tmpbuf, static_cast<Gambatte::uint_least32_t*>(pb.pixels), filter->info().outWidth, filter->info().outHeight, pb.pitch);
+					break;
+				default: break;
+				}
+			}
 		}
+		
+		if (vBlitter)
+			vBlitter->blit();
 	}
-
-	if (vBlitter)
-		vBlitter->blit();
 }
 
 template<typename T>
@@ -359,10 +367,20 @@ static void clear(T *buf, const unsigned long color, const unsigned dpitch) {
 	}
 }
 
-void LCD::enableChange(const unsigned statReg, const unsigned long cycleCounter) {
+void LCD::enableChange(const unsigned long cycleCounter) {
 	update(cycleCounter);
 	enabled = !enabled;
-	resetVideoState(statReg, cycleCounter);
+	
+	if (enabled) {
+		lycIrq.setSkip(false);
+		videoCycles = 0;
+		lastUpdate = cycleCounter;
+		enableDisplayM0Time = cycleCounter + 159;
+		winYPos = 0xFF;
+		win.weMasterChecker.unset();
+		
+		resetVideoState(cycleCounter);
+	}
 	
 	if (!enabled && dbuffer) {
 		const unsigned long color = cgb ? (*gbcToFormat)(0xFFFF) : dmgColors[0];
@@ -383,8 +401,7 @@ void LCD::preResetCounter(const unsigned long cycleCounter) {
 void LCD::postResetCounter(const unsigned long oldCC, const unsigned long cycleCounter) {
 	enableDisplayM0Time = oldCC > enableDisplayM0Time ? 0 : (cycleCounter + enableDisplayM0Time - oldCC);
 	lastUpdate = cycleCounter - (oldCC - lastUpdate);
-	spriteMapper.resetCycleCounter(cycleCounter);
-	rescheduleEvents(cycleCounter);
+	resetVideoState(cycleCounter);
 }
 
 void LCD::preSpeedChange(const unsigned long cycleCounter) {
@@ -392,60 +409,10 @@ void LCD::preSpeedChange(const unsigned long cycleCounter) {
 	spriteMapper.preCounterChange(cycleCounter);
 }
 
-void LCD::rescheduleEvents(const unsigned long cycleCounter) {
-	vEventQueue.clear();
-	m3EventQueue.clear();
-	irqEventQueue.clear();
-	
-	lyCounter.setTime(lastUpdate + (456 - (videoCycles - lyCounter.ly() * 456ul) << doubleSpeed));
-	vEventQueue.push(&lyCounter);
-	
-	rescheduleIfActive(scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(win.wxReader, scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(win.wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(win.wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
-// 	rescheduleIfActive(wyReg.reader3(), scxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(win.wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(win.we.disableChecker(), scxReader, win.wxReader, lyCounter, cycleCounter, m3EventQueue);
-	rescheduleIfActive(win.we.enableChecker(), scxReader, win.wxReader, lyCounter, cycleCounter, m3EventQueue);
-	
-	if (win.wyReg.reader3().time() != VideoEvent::DISABLED_TIME) {
-		win.wyReg.reader3().schedule(win.wxReader.getSource(), scxReader, cycleCounter);
-		m3EventQueue.push(&win.wyReg.reader3());
-	}
-	
-	if (win.weMasterChecker.time() != VideoEvent::DISABLED_TIME) {
-		win.weMasterChecker.schedule(win.wyReg.getSource(), win.we.getSource(), cycleCounter);
-		m3EventQueue.push(&win.weMasterChecker);
-	}
-	
-	if (scReader.time() != VideoEvent::DISABLED_TIME) {
-		scReader.schedule(lastUpdate, videoCycles, scReadOffset);
-		vEventQueue.push(&scReader);
-	}
-	
-	rescheduleIfActive(breakEvent, lyCounter, cycleCounter, vEventQueue);
-	
-	if (!m3EventQueue.empty()) {
-		mode3Event.schedule();
-		vEventQueue.push(&mode3Event);
-	}
-	
-	rescheduleIfActive(lycIrq, lyCounter, cycleCounter, irqEventQueue);
-	rescheduleIfActive(mode0Irq, lyCounter, cycleCounter, irqEventQueue);
-	mode1Irq.schedule(lyCounter, cycleCounter);
-	irqEventQueue.push(&mode1Irq);
-	rescheduleIfActive(mode2Irq, lyCounter, cycleCounter, irqEventQueue);
-	
-	irqEvent.schedule();
-	vEventQueue.push(&irqEvent);
-}
-
 void LCD::postSpeedChange(const unsigned long cycleCounter) {
 	setDoubleSpeed(!doubleSpeed);
 	
-	rescheduleEvents(cycleCounter);
+	resetVideoState(cycleCounter);
 }
 
 bool LCD::isMode0IrqPeriod(const unsigned long cycleCounter) {
@@ -454,7 +421,7 @@ bool LCD::isMode0IrqPeriod(const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed) << doubleSpeed) + doubleSpeed && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= 456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed) << doubleSpeed && timeToNextLy > 4;
 }
 
 bool LCD::isMode2IrqPeriod(const unsigned long cycleCounter) {
@@ -463,7 +430,7 @@ bool LCD::isMode2IrqPeriod(const unsigned long cycleCounter) {
 
 	const unsigned nextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */(lyCounter.ly() < 143 && nextLy <= 5 || lyCounter.ly() == 153 && nextLy <= 1);
+	return /*memory.enable_display && */lyCounter.ly() < 143 && nextLy <= 4;
 }
 
 bool LCD::isLycIrqPeriod(const unsigned lycReg, const unsigned endCycles, const unsigned long cycleCounter) {
@@ -472,10 +439,7 @@ bool LCD::isLycIrqPeriod(const unsigned lycReg, const unsigned endCycles, const 
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	if (lycReg)
-		return lyCounter.ly() == lycReg && timeToNextLy > endCycles || lyCounter.ly() < 153 && lyCounter.ly() + 1 == lycReg && timeToNextLy <= 1;
-	else
-		return lyCounter.ly() == 153 && timeToNextLy <= ((456U - 8U) << doubleSpeed) + 1 || lyCounter.ly() == 0 && timeToNextLy > endCycles;
+	return lyCounter.ly() == lycReg && timeToNextLy > endCycles || lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy <= 456U - 8U << doubleSpeed;
 }
 
 bool LCD::isMode1IrqPeriod(const unsigned long cycleCounter) {
@@ -500,32 +464,22 @@ unsigned long LCD::nextHdmaTime(const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
-	const unsigned lineCycles = 456 * 2 - ((lyCounter.time() - cycleCounter) << (1 ^ doubleSpeed));
 	unsigned line = lyCounter.ly();
-	int next = static_cast<int>((169 + doubleSpeed * 3 + 80 + 2 - doubleSpeed) * 2) - lineCycles;
-	unsigned m3ExCs;
+	int next = static_cast<int>(169 + doubleSpeed * 3 + 80 + 2 - doubleSpeed) - static_cast<int>(lyCounter.lineCycles(cycleCounter));
 	
-	if (line < 144) {
-		m3ExCs = m3ExtraCycles(line) * 2;
-		next += m3ExCs;
-		
-		if (next <= 0) {
-			next += 456 * 2 - m3ExCs;
-			++line;
-			
-			if (line < 144) {
-				m3ExCs = m3ExtraCycles(line) * 2;
-				next += m3ExCs;
-			}
-		}
+	if (line < 144 && next + static_cast<int>(m3ExtraCycles(line)) <= 0) {
+		next += 456;
+		++line;
 	}
 	
 	if (line > 143) {
-		m3ExCs = m3ExtraCycles(0) * 2;
-		next += (154 - line) * 456 * 2 + m3ExCs;
+		next += (154 - line) * 456;
+		line = 0;
 	}
 	
-	return cycleCounter + (static_cast<unsigned>(next) >> (1 ^ doubleSpeed));
+	next += m3ExtraCycles(line);
+	
+	return cycleCounter + (static_cast<unsigned>(next) << doubleSpeed);
 }
 
 bool LCD::vramAccessible(const unsigned long cycleCounter) {
@@ -586,119 +540,103 @@ bool LCD::oamAccessible(const unsigned long cycleCounter) {
 }
 
 void LCD::weChange(const bool newValue, const unsigned long cycleCounter) {
-	update(cycleCounter);
-// 	printf("%u: weChange: %u\n", videoCycles, newValue);
-	
-	addEvent(win.weMasterChecker, win.wyReg.getSource(), newValue, cycleCounter, m3EventQueue);
-// 	addEvent(weMasterChecker, lyCounter, cycleCounter, m3EventQueue);
+	if (cycleCounter >= vEventQueue.top()->time())
+		update(cycleCounter);
 	
 	win.we.setSource(newValue);
-	addEvent(win.we.disableChecker(), scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(win.we.enableChecker(), scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter, m3EventQueue);
-	
-	addEvent(mode3Event, vEventQueue);
+	addFixedtimeEvent(m3EventQueue, &win.weMasterChecker, WeMasterChecker::schedule(win.wyReg.getSource(), newValue, lyCounter, cycleCounter));
+	addFixedtimeEvent(m3EventQueue, &win.we.disableChecker(), We::WeDisableChecker::schedule(scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter));
+	addFixedtimeEvent(m3EventQueue, &win.we.enableChecker(), We::WeEnableChecker::schedule(scxReader.scxAnd7(), win.wxReader.wx(), lyCounter, cycleCounter));
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 }
 
 void LCD::wxChange(const unsigned newValue, const unsigned long cycleCounter) {
-	update(cycleCounter);
-// 	printf("%u: wxChange: 0x%X\n", videoCycles, newValue);
+	if (cycleCounter >= vEventQueue.top()->time())
+		update(cycleCounter);
 	
 	win.wxReader.setSource(newValue);
-	addEvent(win.wxReader, scxReader.scxAnd7(), lyCounter, cycleCounter, m3EventQueue);
+	addEvent(m3EventQueue, &win.wxReader, WxReader::schedule(scxReader.scxAnd7(), lyCounter, win.wxReader, cycleCounter));
 	
 	if (win.wyReg.reader3().time() != VideoEvent::DISABLED_TIME)
-		addEvent(win.wyReg.reader3(), win.wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
+		addEvent(m3EventQueue, &win.wyReg.reader3(), Wy::WyReader3::schedule(win.wxReader.getSource(), scxReader, lyCounter, cycleCounter));
 	
-	addEvent(mode3Event, vEventQueue);
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 }
 
 void LCD::wyChange(const unsigned newValue, const unsigned long cycleCounter) {
-	update(cycleCounter);
-// 	printf("%u: wyChange: 0x%X\n", videoCycles, newValue);
+	if (cycleCounter >= vEventQueue.top()->time())
+		update(cycleCounter);
 	
 	win.wyReg.setSource(newValue);
-	addEvent(win.wyReg.reader1(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(win.wyReg.reader2(), lyCounter, cycleCounter, m3EventQueue);
-	addEvent(win.wyReg.reader3(), win.wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
-	addEvent(win.wyReg.reader4(), lyCounter, cycleCounter, m3EventQueue);
-	
-	addEvent(win.weMasterChecker, newValue, win.we.getSource(), cycleCounter, m3EventQueue);
-	
-	addEvent(mode3Event, vEventQueue);
+	addFixedtimeEvent(m3EventQueue, &win.wyReg.reader1(), Wy::WyReader1::schedule(lyCounter, cycleCounter));
+	addFixedtimeEvent(m3EventQueue, &win.wyReg.reader2(), Wy::WyReader2::schedule(lyCounter, cycleCounter));
+	addFixedtimeEvent(m3EventQueue, &win.wyReg.reader3(), Wy::WyReader3::schedule(win.wxReader.getSource(), scxReader, lyCounter, cycleCounter));
+	addFixedtimeEvent(m3EventQueue, &win.wyReg.reader4(), Wy::WyReader4::schedule(lyCounter, cycleCounter));
+	addEvent(m3EventQueue, &win.weMasterChecker, WeMasterChecker::schedule(win.wyReg.getSource(), win.we.getSource(), lyCounter, cycleCounter));
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 }
 
 void LCD::scxChange(const unsigned newScx, const unsigned long cycleCounter) {
 	update(cycleCounter);
-	//printf("scxChange\n");
 	
 	scxReader.setSource(newScx);
-	addEvent(scxReader, lyCounter, cycleCounter, m3EventQueue);
+	breakEvent.setScxSource(newScx);
+	scReader.setScxSource(newScx);
+	
+	addFixedtimeEvent(m3EventQueue, &scxReader, ScxReader::schedule(lyCounter, cycleCounter));
 	
 	if (win.wyReg.reader3().time() != VideoEvent::DISABLED_TIME)
-		addEvent(win.wyReg.reader3(), win.wxReader.getSource(), scxReader, cycleCounter, m3EventQueue);
+		addEvent(m3EventQueue, &win.wyReg.reader3(), Wy::WyReader3::schedule(win.wxReader.getSource(), scxReader, lyCounter, cycleCounter));
 	
-	addEvent(mode3Event, vEventQueue);
-	
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 	
 	const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
-	
-	breakEvent.setScxSource(newScx);
 	
 	if (lineCycles < 82U + doubleSpeed * 4)
 		drawStartCycle = 90 + doubleSpeed * 4 + (newScx & 7);
 	else
-		addEvent(breakEvent, lyCounter, cycleCounter, vEventQueue);
+		addFixedtimeEvent(vEventQueue, &breakEvent, BreakEvent::schedule(lyCounter));
 	
 	if (lineCycles < 86U + doubleSpeed * 2)
 		scReadOffset = std::max(drawStartCycle - (newScx & 7), 90U + doubleSpeed * 4);
 	
-	scReader.setScxSource(newScx);
-	addEvent(scReader, lastUpdate, videoCycles, scReadOffset, vEventQueue);
+	addEvent(vEventQueue, &scReader, ScReader::schedule(lastUpdate, videoCycles, scReadOffset, doubleSpeed));
 }
 
 void LCD::scyChange(const unsigned newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
-	//printf("scyChange\n");
 	
 	scReader.setScySource(newValue);
-	addEvent(scReader, lastUpdate, videoCycles, scReadOffset, vEventQueue);
+	addFixedtimeEvent(vEventQueue, &scReader, ScReader::schedule(lastUpdate, videoCycles, scReadOffset, doubleSpeed));
 }
 
 void LCD::spriteSizeChange(const bool newLarge, const unsigned long cycleCounter) {
 	update(cycleCounter);
-	//printf("spriteSizeChange\n");
 	
 	spriteMapper.oamChange(cycleCounter);
 	spriteMapper.setLargeSpritesSource(newLarge);
-	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
-	
-	addEvent(mode3Event, vEventQueue);
+	addFixedtimeEvent(m3EventQueue, &spriteMapper, SpriteMapper::schedule(lyCounter, cycleCounter));
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 }
 
 void LCD::oamChange(const unsigned long cycleCounter) {
 	update(cycleCounter);
-	//printf("oamChange\n");
 	
 	spriteMapper.oamChange(cycleCounter);
-	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
-	
-	addEvent(mode3Event, vEventQueue);
+	addFixedtimeEvent(m3EventQueue, &spriteMapper, SpriteMapper::schedule(lyCounter, cycleCounter));
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 }
 
 void LCD::oamChange(const unsigned char *const oamram, const unsigned long cycleCounter) {
 	update(cycleCounter);
-	//printf("oamChange\n");
 	
 	spriteMapper.oamChange(oamram, cycleCounter);
-	addEvent(spriteMapper, lyCounter, cycleCounter, m3EventQueue);
-	
-	addEvent(mode3Event, vEventQueue);
+	addFixedtimeEvent(m3EventQueue, &spriteMapper, SpriteMapper::schedule(lyCounter, cycleCounter));
+	addUnconditionalEvent(vEventQueue, &mode3Event, Mode3Event::schedule(m3EventQueue));
 }
 
 void LCD::wdTileMapSelectChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
-	
-// 	printf("%u: wdTileMapSelectChange: 0x%X\n", videoCycles, newValue);
 	
 	wdTileMap = vram + 0x1800 + newValue * 0x400;
 }
@@ -711,8 +649,6 @@ void LCD::bgTileMapSelectChange(const bool newValue, const unsigned long cycleCo
 
 void LCD::bgTileDataSelectChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
-	
-// 	printf("%u: bgTileDataSelectChange: 0x%X\n", videoCycles, newValue);
 	
 	tileIndexSign = (newValue ^ 1) * 0x80;
 	bgTileData = vram + (newValue ^ 1) * 0x1000;
@@ -727,15 +663,15 @@ void LCD::spriteEnableChange(const bool newValue, const unsigned long cycleCount
 void LCD::bgEnableChange(const bool newValue, const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
-// 	printf("%u: bgEnableChange: %u\n", videoCycles, newValue);
-	
 	bgEnable = newValue;
 }
 
-void LCD::lcdstatChange(const unsigned old, const unsigned data, const unsigned long cycleCounter) {
+void LCD::lcdstatChange(const unsigned data, const unsigned long cycleCounter) {
 	if (cycleCounter >= vEventQueue.top()->time())
 		update(cycleCounter);
 	
+	const unsigned old = statReg;
+	statReg = data;
 	mode1Irq.setM1StatIrqEnabled(data & 0x10);
 	lycIrq.setM2IrqEnabled(data & 0x20);
 	
@@ -748,23 +684,13 @@ void LCD::lcdstatChange(const unsigned old, const unsigned data, const unsigned 
 		if (data & 0x40) {
 			if (lycIrqPeriod)
 				ifReg |= 2;
-			
-			lycIrq.schedule(lyCounter, cycleCounter);
-			irqEventQueue.push(&lycIrq);
 		} else {
-			if (!doubleSpeed && lycIrq.time() - cycleCounter < 4 && (!(old & 0x20) || lycIrq.lycReg() > 143 || lycIrq.lycReg() == 0))
+			if (!doubleSpeed && lycIrq.time() - cycleCounter < 5 && (!(old & 0x20) || lycIrq.lycReg() > 143 || lycIrq.lycReg() == 0))
 				ifReg |= 2;
-			
-			lycIrq.reset();
-			irqEventQueue.remove(&lycIrq);
 		}
+		
+		addFixedtimeEvent(irqEventQueue, &lycIrq, LycIrq::schedule(data, lycIrq.lycReg(), lyCounter, cycleCounter));
 	}
-	
-	/*if (data & 0x8) {
-		if (!(old & 0x8) && !((old & 0x40) && lycIrqPeriod) && isMode0IrqPeriod(cycleCounter))
-			ifReg |= 2;
-	} else if ((data & 0x20) && !(old & 0x20) && isMode2IrqPeriod(cycleCounter))
-		ifReg |= 2;*/
 	
 	if (((data & 0x10) && !(old & 0x10) || !cgb) && !((old & 0x40) && lycIrqPeriod) && isMode1IrqPeriod(cycleCounter))
 		ifReg |= 2;
@@ -773,42 +699,24 @@ void LCD::lcdstatChange(const unsigned old, const unsigned data, const unsigned 
 		if (data & 0x08) {
 			if (!((old & 0x40) && lycIrqPeriod) && isMode0IrqPeriod(cycleCounter))
 				ifReg |= 2;
-			
-			mode0Irq.schedule(lyCounter, cycleCounter);
-			irqEventQueue.push(&mode0Irq);
 		} else {
 			if (mode0Irq.time() - cycleCounter < 3 && (lycIrq.time() == VideoEvent::DISABLED_TIME || lyCounter.ly() != lycIrq.lycReg()))
 				ifReg |= 2;
-			
-			mode0Irq.reset();
-			irqEventQueue.remove(&mode0Irq);
 		}
+		
+		addFixedtimeEvent(irqEventQueue, &mode0Irq, Mode0Irq::schedule(data, m3ExtraCycles, lyCounter, cycleCounter));
 	}
 	
-	if ((data & 0x28) == 0x20) {
-		if ((old & 0x28) != 0x20) {
-			if (isMode2IrqPeriod(cycleCounter))
-				ifReg |= 2;
-			
-			mode2Irq.schedule(lyCounter, cycleCounter);
-			irqEventQueue.push(&mode2Irq);
-		}
-	} else if ((old & 0x28) == 0x20) {
-		mode2Irq.reset();
-		irqEventQueue.remove(&mode2Irq);
+	if ((data & 0x28) == 0x20 && (old & 0x28) != 0x20 && isMode2IrqPeriod(cycleCounter)) {
+		ifReg |= 2;
 	}
 	
-	/*if ((old ^ data) & 0x28) {
-		if (mode0Irq.time() - cycleCounter < 3 && (lycIrq.time() == uint32_t(-1) || lyCounter.ly() != lycIrq.lycReg()))
-			ifReg |= 2;
-
-		schedule_mode();
-	}*/
+	addFixedtimeEvent(irqEventQueue, &mode2Irq, Mode2Irq::schedule(data, lyCounter, cycleCounter));
 	
-	modifyEvent(irqEvent, vEventQueue);
+	addEvent(vEventQueue, &irqEvent, IrqEvent::schedule(irqEventQueue));
 }
 
-void LCD::lycRegChange(const unsigned data, const unsigned statReg, const unsigned long cycleCounter) {
+void LCD::lycRegChange(const unsigned data, const unsigned long cycleCounter) {
 	if (data == lycIrq.lycReg())
 		return;
 	
@@ -821,28 +729,20 @@ void LCD::lycRegChange(const unsigned data, const unsigned statReg, const unsign
 	if (!(enabled && (statReg & 0x40)))
 		return;
 	
-	if (!doubleSpeed && lycIrq.time() - cycleCounter < 4 && (!(statReg & 0x20) || old > 143 || old == 0))
+	if (!doubleSpeed && lycIrq.time() - cycleCounter < 5 && (!(statReg & 0x20) || old > 143 || old == 0))
 		ifReg |= 2;
+	
+	addEvent(irqEventQueue, &lycIrq, LycIrq::schedule(statReg, lycIrq.lycReg(), lyCounter, cycleCounter));
 	
 	if (data < 154) {
 		if (isLycIrqPeriod(data, data == 153 ? lyCounter.lineTime() - doubleSpeed * 8 : 8, cycleCounter))
 			ifReg |= 2;
 		
-		const unsigned long oldTime = lycIrq.time();
-		lycIrq.lycRegSchedule(lyCounter, cycleCounter);
-		
-		if (oldTime == VideoEvent::DISABLED_TIME) {
-			irqEventQueue.push(&lycIrq);
-		} else if (lycIrq.time() > oldTime)
-			irqEventQueue.inc(&lycIrq, &lycIrq);
-		else
-			irqEventQueue.dec(&lycIrq, &lycIrq);
-	} else if (old < 154) {
-		lycIrq.reset();
-		irqEventQueue.remove(&lycIrq);
+		if (lycIrq.isSkipPeriod(cycleCounter, doubleSpeed))
+			lycIrq.setSkip(true);
 	}
 	
-	modifyEvent(irqEvent, vEventQueue);
+	addEvent(vEventQueue, &irqEvent, IrqEvent::schedule(irqEventQueue));
 }
 
 unsigned long LCD::nextIrqEvent() const {
@@ -962,6 +862,8 @@ void LCD::setDBuffer() {
 		dpitch = pb.pitch;
 	}
 	
+	tmpbuf.reset(filter && pb.format != Gambatte::PixelBuffer::RGB32 ? filter->info().outWidth * filter->info().outHeight : 0);
+	
 	/*if (filter || pb.bpp == 16)
 		draw = memory.cgb ? &LCD::cgb_draw<uint16_t> : &LCD::dmg_draw<uint16_t>;
 	else
@@ -992,12 +894,14 @@ void LCD::setDBuffer() {
 	
 	if (dbuffer == NULL)
 		draw = &LCD::null_draw;
+	
+	refreshPalettes();
 }
 
 void LCD::setDmgPaletteColor(const unsigned index, const unsigned long rgb32) {
 	dmgColorsRgb32[index] = rgb32;
-	dmgColorsRgb16[index] = Rgb16Putter::toRgb16(rgb32);
-	dmgColorsUyvy[index] = UyvyPutter::toUyvy(rgb32);
+	dmgColorsRgb16[index] = rgb32ToRgb16(rgb32);
+	dmgColorsUyvy[index] = ::rgb32ToUyvy(rgb32);
 }
 
 void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, const unsigned long rgb32) {
@@ -1005,6 +909,7 @@ void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, con
 		return;
 	
 	setDmgPaletteColor(palNum * 4 | colorNum, rgb32);
+	refreshPalettes();
 }
 
 void LCD::null_draw(unsigned /*xpos*/, const unsigned ypos, const unsigned endX) {

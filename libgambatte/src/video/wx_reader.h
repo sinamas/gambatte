@@ -21,10 +21,13 @@
 
 template<typename T, class Comparer> class event_queue;
 class M3ExtraCycles;
+class SaveState;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
+#include "basic_add_event.h"
+#include <algorithm>
 
 class WxReader : public VideoEvent {
 	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
@@ -35,8 +38,6 @@ class WxReader : public VideoEvent {
 	unsigned char wx_;
 	unsigned char src_;
 	bool dS;
-	
-	void rescheduleEvent(VideoEvent& event, unsigned long diff);
 	
 public:
 	WxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
@@ -50,12 +51,8 @@ public:
 		return src_;
 	}
 	
-	unsigned char wx() const {
+	unsigned wx() const {
 		return wx_;
-	}
-	
-	void reset() {
-		doEvent();
 	}
 	
 	void setDoubleSpeed(const bool dS_in) {
@@ -66,13 +63,21 @@ public:
 		src_ = src;
 	}
 	
-	void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned long cycleCounter) {
-		setTime(lyCounter.nextLineCycle(scxAnd7 + 82 + lyCounter.isDoubleSpeed() * 3 + (src_ < wx_ ? src_ : wx_), cycleCounter));
+	static unsigned long schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const WxReader &wxReader, const unsigned long cycleCounter) {
+		return lyCounter.nextLineCycle(scxAnd7 + 82 + lyCounter.isDoubleSpeed() * 3 + std::min(wxReader.getSource(), wxReader.wx()), cycleCounter);
 		//setTime(lyCounter.nextLineCycle(scxAnd7 + 89 + lyCounter.isDoubleSpeed() * 3, cycleCounter));
 	}
+	
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 };
 
-void addEvent(WxReader &event, unsigned scxAnd7, const LyCounter &lyCounter,
-		unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, WxReader *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, WxReader *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

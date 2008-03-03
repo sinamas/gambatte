@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,13 +23,8 @@ class VideoEvent {
 	unsigned long time_;
 	const unsigned char priority_;
 	
-protected:
-	void setTime(const unsigned long time_in) {
-		time_ = time_in;
-	}
-	
 public:
-	static const unsigned long DISABLED_TIME = 0xFFFFFFFF;
+	enum { DISABLED_TIME = 0xFFFFFFFFu };
 	
 	VideoEvent(const unsigned priority_in) :
 		time_(DISABLED_TIME),
@@ -47,8 +42,9 @@ public:
 		return time_;
 	}
 	
-	friend class ScxReader;
-	friend class WxReader;
+	void setTime(const unsigned long time_in) {
+		time_ = time_in;
+	}
 };
 
 #endif

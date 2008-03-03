@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,11 +17,15 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "channel1.h"
+#include "../savestate.h"
 #include <algorithm>
 
 Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit) :
 	disableMaster(disabler),
-	dutyUnit(dutyUnit)
+	dutyUnit(dutyUnit),
+	shadow(0),
+	nr0(0),
+	negging(false)
 {}
 
 unsigned Channel1::SweepUnit::calcFreq() {
@@ -79,15 +83,22 @@ void Channel1::SweepUnit::nr4Init(const unsigned long cc) {
 		calcFreq();
 }
 
-void Channel1::SweepUnit::init() {
-	nr0 = 0;
-	shadow = 0;
-	negging = false;
+void Channel1::SweepUnit::reset() {
 	counter = COUNTER_DISABLED;
 }
 
-void Channel1::SweepUnit::reset() {
-	counter = COUNTER_DISABLED;
+void Channel1::SweepUnit::saveState(SaveState &state) const {
+	state.spu.ch1.sweep.counter = counter;
+	state.spu.ch1.sweep.shadow = shadow;
+	state.spu.ch1.sweep.nr0 = nr0;
+	state.spu.ch1.sweep.negging = negging;
+}
+
+void Channel1::SweepUnit::loadState(const SaveState &state) {
+	counter = state.spu.ch1.sweep.counter;
+	shadow = state.spu.ch1.sweep.shadow;
+	nr0 = state.spu.ch1.sweep.nr0;
+	negging = state.spu.ch1.sweep.negging;
 }
 
 Channel1::Channel1() :
@@ -95,8 +106,14 @@ Channel1::Channel1() :
 	disableMaster(master, dutyUnit),
 	lengthCounter(disableMaster, 0x3F),
 	envelopeUnit(staticOutputTest),
-	sweepUnit(disableMaster, dutyUnit)
-{}
+	sweepUnit(disableMaster, dutyUnit),
+	cycleCounter(0),
+	soMask(0),
+	nr4(0),
+	master(false)
+{
+	setEvent();
+}
 
 void Channel1::setEvent() {
 	nextEventUnit = &dutyUnit;
@@ -168,20 +185,30 @@ void Channel1::reset() {
 	setEvent();
 }
 
-void Channel1::init(const unsigned long cc, const bool cgb) {
-	nr4 = 0;
-	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
-	
-	dutyUnit.init(cycleCounter);
-	dutyUnit.nr1Change(0x80, cycleCounter);
+void Channel1::init(const bool cgb) {
 	lengthCounter.init(cgb);
-	envelopeUnit.init(true, cycleCounter);
-	sweepUnit.init();
+}
+
+void Channel1::saveState(SaveState &state) {
+	sweepUnit.saveState(state);
+	dutyUnit.saveState(state.spu.ch1.duty, cycleCounter);
+	envelopeUnit.saveState(state.spu.ch1.env);
+	lengthCounter.saveState(state.spu.ch1.lcounter);
 	
-	master = true;
-	staticOutputTest(cycleCounter);
+	state.spu.cycleCounter = cycleCounter;
+	state.spu.ch1.nr4 = nr4;
+	state.spu.ch1.master = master;
+}
+
+void Channel1::loadState(const SaveState &state) {
+	sweepUnit.loadState(state);
+	dutyUnit.loadState(state.spu.ch1.duty, state.mem.ioamhram.get()[0x111], state.spu.ch1.nr4);
+	envelopeUnit.loadState(state.spu.ch1.env, state.mem.ioamhram.get()[0x112]);
+	lengthCounter.loadState(state.spu.ch1.lcounter);
 	
-	setEvent();
+	cycleCounter = state.spu.cycleCounter;
+	nr4 = state.spu.ch1.nr4;
+	master = state.spu.ch1.master;
 }
 
 void Channel1::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {

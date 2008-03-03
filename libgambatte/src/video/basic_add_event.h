@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,11 +19,12 @@
 #ifndef BASIC_ADD_EVENT_H
 #define BASIC_ADD_EVENT_H
 
-#include "ly_counter.h"
-#include "video_event_comparer.h"
-#include "../event_queue.h"
+template<typename T, class Comparer> class event_queue;
 
-template<class T>
+#include "video_event.h"
+#include "video_event_comparer.h"
+
+/*template<class T>
 static inline void addEvent(T &event, const LyCounter &lyCounter, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
 	if (event.time() == VideoEvent::DISABLED_TIME) {
 		event.schedule(lyCounter, cycleCounter);
@@ -45,6 +46,11 @@ static inline void addEvent(T &event, const unsigned data1, const unsigned data2
 		event.schedule(data1, data2, lyCounter, cycleCounter);
 		queue.push(&event);
 	}
-}
+}*/
+
+void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, VideoEvent *e, unsigned long newTime);
+void addUnconditionalEvent(event_queue<VideoEvent*,VideoEventComparer> &q, VideoEvent *e, unsigned long newTime);
+void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, VideoEvent *e, unsigned long newTime);
+void addUnconditionalFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, VideoEvent *e, unsigned long newTime);
 
 #endif

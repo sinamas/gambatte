@@ -21,10 +21,12 @@
 
 template<typename T, class Comparer> class event_queue;
 class M3ExtraCycles;
+class SaveState;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
+#include "basic_add_event.h"
 
 class ScxReader : public VideoEvent {
 	event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue;
@@ -37,8 +39,6 @@ class ScxReader : public VideoEvent {
 	unsigned char scxAnd7_;
 	unsigned char src;
 	bool dS;
-	
-	void rescheduleEvent(VideoEvent& event, unsigned long diff);
 	
 public:
 	ScxReader(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
@@ -54,13 +54,8 @@ public:
 		return src;
 	}
 	
-	void reset() {
-		scxAnd7_ = src;
-		setTime(DISABLED_TIME);
-	}
-	
-	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-		setTime(lyCounter.nextLineCycle(82 + dS * 3, cycleCounter));
+	static unsigned long schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+		return lyCounter.nextLineCycle(82 + lyCounter.isDoubleSpeed() * 3, cycleCounter);
 	}
 	
 	unsigned scxAnd7() const {
@@ -74,6 +69,17 @@ public:
 	void setSource(const unsigned scxSrc) {
 		src = scxSrc & 7;
 	}
+	
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 };
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, ScxReader *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, ScxReader *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

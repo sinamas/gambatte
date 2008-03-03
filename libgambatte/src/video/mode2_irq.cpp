@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -28,11 +28,10 @@ Mode2Irq::Mode2Irq(const LyCounter &lyCounter_in, const LycIrq &lycIrq_in,
 	lycIrq(lycIrq_in),
 	ifReg(ifReg_in)
 {
-	reset();
 }
 
 void Mode2Irq::doEvent() {
-	const unsigned ly = lyCounter.ly() == 153 ? 0 : (lyCounter.ly() + 1);
+	const unsigned ly = lyCounter.time() - time() < 8 ? (lyCounter.ly() == 153 ? 0 : lyCounter.ly() + 1) : lyCounter.ly();
 	
 	if (lycIrq.time() == DISABLED_TIME || (lycIrq.lycReg() != 0 && ly != (lycIrq.lycReg() + 1U)) || (lycIrq.lycReg() == 0 && ly > 1))
 		ifReg |= 2;
@@ -45,22 +44,20 @@ void Mode2Irq::doEvent() {
 		setTime(time() + lyCounter.lineTime() * 10 + 4);
 }
 
-void Mode2Irq::schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+unsigned long Mode2Irq::schedule(const unsigned statReg, const LyCounter &lyCounter, const unsigned long cycleCounter) {
+	if ((statReg & 0x28) != 0x20)
+		return DISABLED_TIME;
+	
 	unsigned next = lyCounter.time() - cycleCounter;
 	
-	if (lyCounter.ly() >= 143 || lyCounter.ly() == 142 && next <= 5) {
+	if (lyCounter.ly() >= 143 || lyCounter.ly() == 142 && next <= 4) {
 		next += (153u - lyCounter.ly()) * lyCounter.lineTime();
-		
-		if (next <= 1)
-			next += lyCounter.lineTime();
-		
-		next -= 1;
 	} else {
-		if (next <= 5)
+		if (next <= 4)
 			next += lyCounter.lineTime();
 		
-		next -= 5;
+		next -= 4;
 	}
 	
-	setTime(cycleCounter + next);
+	return cycleCounter + next;
 }

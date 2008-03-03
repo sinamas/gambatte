@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,10 +19,12 @@
 #ifndef SC_READER_H
 #define SC_READER_H
 
+class SaveState;
 template<typename T, class Comparer> class event_queue;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
+#include "basic_add_event.h"
 
 class ScReader : public VideoEvent {
 	unsigned char scx_[2];
@@ -38,8 +40,6 @@ public:
 	
 	void doEvent();
 	
-	void reset();
-	
 	unsigned scx() const {
 		return scx_[0] & ~0x7 | scxSrc & 0x7;
 	}
@@ -48,7 +48,9 @@ public:
 		return scy_[0];
 	}
 	
-	void schedule(unsigned long lastUpdate, unsigned long videoCycles, unsigned scReadOffset);
+	static unsigned long schedule(const unsigned long lastUpdate, const unsigned long videoCycles, const unsigned scReadOffset, const bool dS) {
+		return lastUpdate + (8u - (videoCycles - scReadOffset & 7) << dS);
+	}
 	
 	void setDoubleSpeed(bool dS_in);
 	
@@ -59,9 +61,17 @@ public:
 	void setScySource(const unsigned scySrc_in) {
 		scySrc = scySrc_in;
 	}
+	
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 };
 
-void addEvent(ScReader &event, unsigned long lastUpdate, unsigned long videoCycles,
-              unsigned scReadOffset, event_queue<VideoEvent*,VideoEventComparer> &queue);
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, ScReader *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, ScReader *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

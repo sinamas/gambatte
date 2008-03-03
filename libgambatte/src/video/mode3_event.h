@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -39,15 +39,9 @@ public:
 	
 	void doEvent();
 	
-	void reset() {
-		setTime(DISABLED_TIME);
-	}
-	
-	void schedule() {
-		setTime(m3EventQueue.top()->time());
+	static unsigned long schedule(const event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue) {
+		return m3EventQueue.empty() ? static_cast<unsigned long>(DISABLED_TIME) : m3EventQueue.top()->time();
 	}
 };
-
-void addEvent(Mode3Event &event, event_queue<VideoEvent*,VideoEventComparer> &queue);
 
 #endif

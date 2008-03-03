@@ -21,6 +21,7 @@
 
 #include "video_event.h"
 #include "ly_counter.h"
+#include "basic_add_event.h"
 
 class BreakEvent : public VideoEvent {
 	unsigned char &drawStartCycle;
@@ -34,12 +35,8 @@ public:
 	
 	void doEvent();
 	
-	void reset() {
-		doEvent();
-	}
-	
-	void schedule(const LyCounter &lyCounter, unsigned long) {
-		setTime(lyCounter.time());
+	static unsigned long schedule(const LyCounter &lyCounter) {
+		return lyCounter.time();
 	}
 	
 	void setDoubleSpeed(const bool dS) {
@@ -50,5 +47,13 @@ public:
 		scxSrc = scxSrc_in;
 	}
 };
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, BreakEvent *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, BreakEvent *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

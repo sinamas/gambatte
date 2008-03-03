@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,11 +17,23 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "rtc.h"
+#include "savestate.h"
 
 using namespace std;
 
-Rtc::Rtc() {
-	reset();
+Rtc::Rtc() :
+activeData(NULL),
+activeSet(NULL),
+baseTime(0),
+haltTime(0),
+index(5),
+dataDh(0),
+dataDl(0),
+dataH(0),
+dataM(0),
+dataS(0),
+enabled(false),
+lastLatchData(false) {
 }
 
 void Rtc::doLatch() {
@@ -75,17 +87,32 @@ void Rtc::doSwapActive() {
 	}
 }
 
-void Rtc::reset() {
-	activeData = NULL;
-	activeSet = NULL;
-	index = 5;
-	dataDh = 0;
-	dataDl = 0;
-	dataH = 0;
-	dataM = 0;
-	dataS = 0;
-	enabled = false;
-	lastLatchData = false;
+void Rtc::saveState(SaveState &state) const {
+	state.rtc.baseTime = baseTime;
+	state.rtc.haltTime = haltTime;
+	state.rtc.index = index;
+	state.rtc.dataDh = dataDh;
+	state.rtc.dataDl = dataDl;
+	state.rtc.dataH = dataH;
+	state.rtc.dataM = dataM;
+	state.rtc.dataS = dataS;
+	state.rtc.lastLatchData = lastLatchData;
+}
+
+void Rtc::loadState(const SaveState &state, const bool enabled) {
+	this->enabled = enabled;
+	
+	baseTime = state.rtc.baseTime;
+	haltTime = state.rtc.haltTime;
+	index = state.rtc.index;
+	dataDh = state.rtc.dataDh;
+	dataDl = state.rtc.dataDl;
+	dataH = state.rtc.dataH;
+	dataM = state.rtc.dataM;
+	dataS = state.rtc.dataS;
+	lastLatchData = state.rtc.lastLatchData;
+	
+	doSwapActive();
 }
 
 void Rtc::setDh(const unsigned new_dh) {

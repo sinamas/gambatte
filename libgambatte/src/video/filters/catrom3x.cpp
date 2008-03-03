@@ -24,8 +24,7 @@ struct Colorsum {
 	Gambatte::uint_least32_t r, g, b;
 };
 
-template<class PixelPutter>
-static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *sums, PixelPutter putPixel) {
+static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) {
 	unsigned w = 160;
 	
 	while (w--) {
@@ -80,7 +79,7 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 			if(gsum>0x00FF00) gsum=0x00FF00;
 			if(bsum>0x0000FF) bsum=0x0000FF;*/
 
-			putPixel(dest++, rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum);
+			*dest++ = rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum;
 		}
 		{
 			Gambatte::uint_least32_t rsum = sums[1].r * 21;
@@ -146,7 +145,7 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 			if(gsum>0x00FF00) gsum=0x00FF00;
 			if(bsum>0x0000FF) bsum=0x0000FF;*/
 
-			putPixel(dest++, rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum);
+			*dest++ = rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum;
 		}
 		{
 			Gambatte::uint_least32_t rsum = sums[1].r * 9;
@@ -212,14 +211,13 @@ static void merge_columns(typename PixelPutter::pixel_t *dest, const Colorsum *s
 			if(gsum>0x00FF00) gsum=0x00FF00;
 			if(bsum>0x0000FF) bsum=0x0000FF;*/
 
-			putPixel(dest++, rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum);
+			*dest++ = rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum;
 		}
 		++sums;
 	}
 }
 
-template<class PixelPutter>
-static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, PixelPutter putPixel, const Gambatte::uint_least32_t *sline) {
+static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const Gambatte::uint_least32_t *sline) {
 	Colorsum sums[163];
 
 	for (unsigned h = 144; h--;) {
@@ -239,7 +237,7 @@ static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, P
 			}
 		}
 		
-		merge_columns(dline, sums, putPixel);
+		merge_columns(dline, sums);
 		dline += pitch;
 
 		{
@@ -278,7 +276,7 @@ static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, P
 			}
 		}
 		
-		merge_columns(dline, sums, putPixel);
+		merge_columns(dline, sums);
 		dline += pitch;
 
 		{
@@ -317,7 +315,7 @@ static void filter(typename PixelPutter::pixel_t *dline, const unsigned pitch, P
 			}
 		}
 		
-		merge_columns(dline, sums, putPixel);
+		merge_columns(dline, sums);
 		dline += pitch;
 		sline += 163;
 	}
@@ -357,14 +355,6 @@ unsigned Catrom3x::inPitch() {
 	return 163;
 }
 
-void Catrom3x::filter(Rgb32Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb32Putter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer + 163);
-}
-
-void Catrom3x::filter(Rgb16Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb16Putter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer + 163);
-}
-
-void Catrom3x::filter(UyvyPutter::pixel_t *const dbuffer, const unsigned pitch, UyvyPutter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer + 163);
+void Catrom3x::filter(Gambatte::uint_least32_t *const dbuffer, const unsigned pitch) {
+	::filter(dbuffer, pitch, buffer + 163);
 }

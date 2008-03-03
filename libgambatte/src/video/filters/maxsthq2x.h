@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -32,9 +32,7 @@ public:
 	void init();
 	void outit();
 	const Gambatte::FilterInfo& info();
-	void filter(Rgb32Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb32Putter putPixel);
-	void filter(Rgb16Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb16Putter putPixel);
-	void filter(UyvyPutter::pixel_t *const dbuffer, const unsigned pitch, UyvyPutter putPixel);
+	void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch);
 	Gambatte::uint_least32_t* inBuffer();
 	unsigned inPitch();
 };

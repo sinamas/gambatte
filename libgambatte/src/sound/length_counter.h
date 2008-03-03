@@ -20,6 +20,7 @@
 #define LENGTH_COUNTER_H
 
 #include "sound_unit.h"
+#include "../savestate.h"
 
 class MasterDisabler;
 
@@ -36,6 +37,8 @@ public:
 	void nr4Change(unsigned oldNr4, unsigned newNr4, unsigned long cycleCounter);
 // 	void reset();
 	void init(bool cgb);
+	void saveState(SaveState::SPU::LCounter &lstate) const;
+	void loadState(const SaveState::SPU::LCounter &lstate);
 };
 
 #endif

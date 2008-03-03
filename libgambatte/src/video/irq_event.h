@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,6 +22,7 @@
 #include "../event_queue.h"
 #include "video_event.h"
 #include "video_event_comparer.h"
+#include "basic_add_event.h"
 
 class IrqEvent : public VideoEvent {
 	event_queue<VideoEvent*,VideoEventComparer> &irqEventQueue;
@@ -31,8 +32,8 @@ public:
 	
 	void doEvent();
 	
-	void reset() {
-		setTime(DISABLED_TIME);
+	static unsigned long schedule(const event_queue<VideoEvent*,VideoEventComparer> &irqEventQueue) {
+		return irqEventQueue.top()->time();
 	}
 	
 	void schedule() {
@@ -40,6 +41,12 @@ public:
 	}
 };
 
-void modifyEvent(IrqEvent &event, event_queue<VideoEvent*,VideoEventComparer> &queue);
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, IrqEvent *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, IrqEvent *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

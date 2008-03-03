@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,8 @@
 #ifndef CPU_H
 #define CPU_H
 
+class SaveState;
+
 #include "int.h"
 #include "memory.h"
 
@@ -29,10 +31,10 @@ class CPU {
 
 	unsigned short PC_;
 	unsigned short SP;
-
-	unsigned char A_, B, C, D, E, F, H, L;
-
+	
 	unsigned HF1, HF2, ZF, CF;
+
+	unsigned char A_, B, C, D, E, /*F,*/ H, L;
 
 	bool skip;
 	bool halted;
@@ -42,20 +44,24 @@ class CPU {
 public:
 	
 	CPU();
-	void init();
 // 	void halt();
 
 // 	unsigned interrupt(unsigned address, unsigned cycleCounter);
 	
 	void runFor(unsigned long cycles);
-	void reset();
+	void setStatePtrs(SaveState &state);
+	void saveState(SaveState &state);
+	void loadState(const SaveState &state);
+	
+	void loadSavedata() { memory.loadSavedata(); }
+	void saveSavedata() { memory.saveSavedata(); }
 	
 	void setVideoBlitter(Gambatte::VideoBlitter *vb) {
-		memory.setVideoBlitter(vb, cycleCounter_);
+		memory.setVideoBlitter(vb);
 	}
 	
 	void videoBufferChange() {
-		memory.videoBufferChange(cycleCounter_);
+		memory.videoBufferChange();
 	}
 	
 	unsigned int videoWidth() const {
@@ -67,7 +73,7 @@ public:
 	}
 	
 	void setVideoFilter(const unsigned int n) {
-		memory.setVideoFilter(n, cycleCounter_);
+		memory.setVideoFilter(n);
 	}
 	
 	std::vector<const Gambatte::FilterInfo*> filterInfo() const {
@@ -91,7 +97,7 @@ public:
 	bool isCgb() const { return memory.isCgb(); }
 	
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
-		memory.setDmgPaletteColor(palNum, colorNum, rgb32, cycleCounter_);
+		memory.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 };
 

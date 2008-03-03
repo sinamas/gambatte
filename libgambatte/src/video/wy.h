@@ -22,11 +22,13 @@
 class WeMasterChecker;
 class ScxReader;
 template<typename T, class Comparer> class event_queue;
+class SaveState;
 
 #include "video_event.h"
 #include "video_event_comparer.h"
 #include "ly_counter.h"
 #include "m3_extra_cycles.h"
+#include "basic_add_event.h"
 
 class Wy {
 public:
@@ -39,8 +41,8 @@ public:
 		
 		void doEvent();
 		
-		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-			setTime(lyCounter.nextLineCycle(448 + lyCounter.isDoubleSpeed() * 4, cycleCounter));
+		static unsigned long schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+			return lyCounter.nextLineCycle(448 + lyCounter.isDoubleSpeed() * 4, cycleCounter);
 		}
 	};
 	
@@ -52,8 +54,8 @@ public:
 		
 		void doEvent();
 		
-		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-			setTime(lyCounter.isDoubleSpeed() ? lyCounter.time() : lyCounter.nextLineCycle(452, cycleCounter));
+		static unsigned long schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+			return lyCounter.isDoubleSpeed() ? lyCounter.time() : lyCounter.nextLineCycle(452, cycleCounter);
 		}
 	};
 	
@@ -64,7 +66,7 @@ public:
 		WyReader3(Wy &wy);
 		
 		void doEvent();
-		void schedule(unsigned wxSrc, const ScxReader &scxReader, unsigned long cycleCounter);
+		static unsigned long schedule(unsigned wxSrc, const ScxReader &scxReader, const LyCounter &lyCounter, unsigned long cycleCounter);
 		
 		//void schedule(const unsigned scxAnd7, const LyCounter &lyCounter, const unsigned cycleCounter) {
 		//	setTime(lyCounter.nextLineCycle(scxAnd7 + 85 + lyCounter.isDoubleSpeed() * 6, cycleCounter));
@@ -79,8 +81,8 @@ public:
 		
 		void doEvent();
 		
-		void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-			setTime(lyCounter.nextFrameCycle(lyCounter.isDoubleSpeed() * 4, cycleCounter));
+		static unsigned long schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+			return lyCounter.nextFrameCycle(lyCounter.isDoubleSpeed() * 4, cycleCounter);
 		}
 	};
 	
@@ -130,8 +132,6 @@ public:
 		return src_;
 	}
 	
-	void reset();
-	
 	void setSource(const unsigned src) {
 		src_ = src;
 	}
@@ -147,9 +147,41 @@ public:
 	void weirdAssWeMasterEnableOnWyLineCase() {
 		set(wy_ + 1);
 	}
+	
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 };
 
-void addEvent(Wy::WyReader3 &event, unsigned wxSrc, const ScxReader &scxReader,
-		unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue);
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader1 *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader1 *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader2 *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader2 *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader3 *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader3 *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader4 *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Wy::WyReader4 *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

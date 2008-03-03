@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,7 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "channel3.h"
-
+#include "../savestate.h"
 #include <cstring>
 
 static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
@@ -26,7 +26,19 @@ static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
 
 Channel3::Channel3() :
 	disableMaster(master, waveCounter),
-	lengthCounter(disableMaster, 0xFF)
+	lengthCounter(disableMaster, 0xFF),
+	cycleCounter(0),
+	soMask(0),
+	waveCounter(SoundUnit::COUNTER_DISABLED),
+	lastReadTime(0),
+	nr0(0),
+	nr3(0),
+	nr4(0),
+	wavePos(0),
+	rShift(4),
+	sampleBuf(0),
+	master(false),
+	cgb(false)
 {}
 
 void Channel3::setNr0(const unsigned data) {
@@ -75,22 +87,41 @@ void Channel3::reset() {
 	sampleBuf = 0;
 }
 
-void Channel3::init(const unsigned long cc, const bool cgb) {
+void Channel3::init(const bool cgb) {
 	this->cgb = cgb;
-
-	nr0 = 0;
-	nr3 = 0;
-	nr4 = 0;
-	
-	sampleBuf = 0;
-	
-	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
-	
-	setNr2(0);
-	
 	lengthCounter.init(cgb);
+}
+
+void Channel3::setStatePtrs(SaveState &state) {
+	state.spu.ch3.waveRam.set(waveRam, sizeof waveRam);
+}
+
+void Channel3::saveState(SaveState &state) const {
+	lengthCounter.saveState(state.spu.ch3.lcounter);
 	
-	disableMaster();
+	state.spu.ch3.waveCounter = waveCounter;
+	state.spu.ch3.lastReadTime = lastReadTime;
+	state.spu.ch3.nr3 = nr3;
+	state.spu.ch3.nr4 = nr4;
+	state.spu.ch3.wavePos = wavePos;
+	state.spu.ch3.sampleBuf = sampleBuf;
+	state.spu.ch3.master = master;
+}
+
+void Channel3::loadState(const SaveState &state) {
+	lengthCounter.loadState(state.spu.ch3.lcounter);
+	
+	cycleCounter = state.spu.cycleCounter;
+	waveCounter = state.spu.ch3.waveCounter;
+	lastReadTime = state.spu.ch3.lastReadTime;
+	nr3 = state.spu.ch3.nr3;
+	nr4 = state.spu.ch3.nr4;
+	wavePos = state.spu.ch3.wavePos;
+	sampleBuf = state.spu.ch3.sampleBuf;
+	master = state.spu.ch3.master;
+	
+	nr0 = state.mem.ioamhram.get()[0x11A] & 0x80;
+	setNr2(state.mem.ioamhram.get()[0x11C]);
 }
 
 void Channel3::updateWaveCounter(const unsigned long cc) {

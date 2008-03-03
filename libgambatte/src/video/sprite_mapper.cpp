@@ -19,6 +19,7 @@
 #include "sprite_mapper.h"
 #include "m3_extra_cycles.h"
 #include "../insertion_sort.h"
+#include "../savestate.h"
 #include <cstring>
 
 #include <algorithm>
@@ -26,10 +27,6 @@
 SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned char *oamram)
 : lyCounter(lyCounter), oamram(oamram) {
 	setLargeSpritesSrc(false);
-	reset();
-}
-
-void SpriteMapper::OamReader::reset() {
 	lu = 0xFFFFFFFF;
 	lastChange = 0xFF;
 	std::fill_n(szbuf, 40, largeSpritesSrc);
@@ -94,6 +91,11 @@ void SpriteMapper::OamReader::change(const unsigned long cc) {
 	lastChange = std::min(toPosCycles(cc, lyCounter), 40u);
 }
 
+void SpriteMapper::OamReader::setStatePtrs(SaveState &state) {
+	state.ppu.oamReaderBuf.set(buf, sizeof buf);
+	state.ppu.oamReaderSzbuf.set(szbuf, sizeof(szbuf) / sizeof(bool));
+}
+
 SpriteMapper::SpriteMapper(M3ExtraCycles &m3ExtraCycles,
                            const LyCounter &lyCounter,
                            const unsigned char *const oamram) :
@@ -150,29 +152,5 @@ void SpriteMapper::sortLine(const unsigned ly) const {
 void SpriteMapper::doEvent() {
 	oamReader.update(time());
 	mapSprites();
-	setTime(oamReader.changed() ? time() + oamReader.lyCounter.lineTime() : DISABLED_TIME);
+	setTime(oamReader.changed() ? time() + oamReader.lyCounter.lineTime() : static_cast<unsigned long>(DISABLED_TIME));
 }
-
-void SpriteMapper::reset() {
-	oamReader.reset();
-	mapSprites();
-	setTime(DISABLED_TIME);
-}
-
-/*void SpriteMapper::schedule() {
-	if (spriteSizeReader.time() < scxReader.time())
-		setTime(spriteSizeReader.time() + timeDiff);
-	else
-		setTime(scxReader.time());
-}
-
-void addEvent(SpriteMapper &event, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned oldTime = event.time();
-	event.schedule();
-	
-	if (oldTime == DISABLED_TIME)
-		queue.push(&event);
-	else if (oldTime > event.time()) {
-		queue.dec(&event, &event);
-	}
-}*/

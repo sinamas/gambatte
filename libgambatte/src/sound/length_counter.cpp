@@ -24,6 +24,7 @@ LengthCounter::LengthCounter(MasterDisabler &disabler, const unsigned mask) :
 	lengthMask(mask)
 {
 	init(false);
+	nr1Change(0, 0, 0);
 }
 
 void LengthCounter::event() {
@@ -34,7 +35,7 @@ void LengthCounter::event() {
 
 void LengthCounter::nr1Change(const unsigned newNr1, const unsigned nr4, const unsigned long cycleCounter) {
 	lengthCounter = (~newNr1 & lengthMask) + 1;
-	counter = (nr4 & 0x40) ? (cycleCounter >> 13) + lengthCounter << 13 : COUNTER_DISABLED;
+	counter = (nr4 & 0x40) ? (cycleCounter >> 13) + lengthCounter << 13 : static_cast<unsigned long>(COUNTER_DISABLED);
 }
 
 void LengthCounter::nr4Change(const unsigned oldNr4, const unsigned newNr4, const unsigned long cycleCounter) {
@@ -72,5 +73,14 @@ void LengthCounter::nr4Change(const unsigned oldNr4, const unsigned newNr4, cons
 
 void LengthCounter::init(const bool cgb) {
 	this->cgb = cgb;
-	nr1Change(0, 0, 0);
+}
+
+void LengthCounter::saveState(SaveState::SPU::LCounter &lstate) const {
+	lstate.counter = counter;
+	lstate.lengthCounter = lengthCounter;
+}
+
+void LengthCounter::loadState(const SaveState::SPU::LCounter &lstate) {
+	counter = lstate.counter;
+	lengthCounter = lstate.lengthCounter;
 }

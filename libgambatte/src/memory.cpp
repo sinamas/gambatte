@@ -21,188 +21,185 @@
 #include "sound.h"
 #include "inputstate.h"
 #include "inputstategetter.h"
+#include "savestate.h"
 #include "file/file.h"
 #include <cstring>
 
 // static const uint32_t timaClock[4]={ 1024, 16, 64, 256 };
 static const unsigned char timaClock[4] = { 10, 4, 6, 8 };
 
-/*
-static const uint8_t soundRegInitValues[0x17] = { 0x80, 0x3F, 0x00, 0xFF, 0xBF,
-						  0xFF, 0x3F, 0x00, 0xFF, 0xBF,
-						  0x7F, 0xFF, 0x9F, 0xFF, 0xBF,
-						  0xFF, 0xFF, 0x00, 0x00, 0xBF,
-						  0x00, 0x00, 0x70 };
-*/
-
-static const unsigned char feaxDump[0x60] = {
-	0x18, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD, 
-	0x18, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD, 
-	0x18, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD, 
-	0x18, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD, 
-	0x00, 0x90, 0xF7, 0x7F, 0xC0, 0xB1, 0xB4, 0xFB, 
-	0x00, 0x90, 0xF7, 0x7F, 0xC0, 0xB1, 0xB4, 0xFB, 
-	0x00, 0x90, 0xF7, 0x7F, 0xC0, 0xB1, 0xB4, 0xFB, 
-	0x00, 0x90, 0xF7, 0x7F, 0xC0, 0xB1, 0xB4, 0xFB, 
-	0x24, 0x1B, 0xFD, 0x3A, 0x10, 0x12, 0xAD, 0x45, 
-	0x24, 0x1B, 0xFD, 0x3A, 0x10, 0x12, 0xAD, 0x45, 
-	0x24, 0x1B, 0xFD, 0x3A, 0x10, 0x12, 0xAD, 0x45, 
-	0x24, 0x1B, 0xFD, 0x3A, 0x10, 0x12, 0xAD, 0x45
-};
-
-static const unsigned char ffxxDump[0x100] = {
-	0xCF, 0x00, 0x7C, 0xFF, 0x43, 0x00, 0x00, 0xF8, 
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xE1, 
-	0x80, 0xBF, 0xF3, 0xFF, 0xBF, 0xFF, 0x3F, 0x00, 
-	0xFF, 0xBF, 0x7F, 0xFF, 0x9F, 0xFF, 0xBF, 0xFF, 
-	0xFF, 0x00, 0x00, 0xBF, 0x77, 0xF3, 0xF1, 0xFF, 
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 
-	0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 
-	0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 
-	0x00, 0x00, 0x00, 0x00, 0xFF, 0x7E, 0xFF, 0xFE, 
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3E, 0xFF, 
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	0xC0, 0xFF, 0xC1, 0x00, 0xFE, 0xFF, 0xFF, 0xFF, 
-	0xF8, 0xFF, 0x00, 0x00, 0x00, 0x8F, 0x00, 0x00, 
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-	0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 
-	0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D, 
-	0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 
-	0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 
-	0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 
-	0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E, 
-	0x45, 0xEC, 0x52, 0xFA, 0x08, 0xB7, 0x07, 0x5D, 
-	0x01, 0xFD, 0xC0, 0xFF, 0x08, 0xFC, 0x00, 0xE5, 
-	0x0B, 0xF8, 0xC2, 0xCE, 0xF4, 0xF9, 0x0F, 0x7F, 
-	0x45, 0x6D, 0x3D, 0xFE, 0x46, 0x97, 0x33, 0x5E, 
-	0x08, 0xEF, 0xF1, 0xFF, 0x86, 0x83, 0x24, 0x74, 
-	0x12, 0xFC, 0x00, 0x9F, 0xB4, 0xB7, 0x06, 0xD5, 
-	0xD0, 0x7A, 0x00, 0x9E, 0x04, 0x5F, 0x41, 0x2F, 
-	0x1D, 0x77, 0x36, 0x75, 0x81, 0xAA, 0x70, 0x3A, 
-	0x98, 0xD1, 0x71, 0x02, 0x4D, 0x01, 0xC1, 0xFF, 
-	0x0D, 0x00, 0xD3, 0x05, 0xF9, 0x00, 0x0B, 0x00
-};
-
-static const unsigned char cgbObjpDump[0x40] = {
-	0x00, 0x00, 0xF2, 0xAB, 
-	0x61, 0xC2, 0xD9, 0xBA, 
-	0x88, 0x6E, 0xDD, 0x63, 
-	0x28, 0x27, 0xFB, 0x9F, 
-	0x35, 0x42, 0xD6, 0xD4, 
-	0x50, 0x48, 0x57, 0x5E, 
-	0x23, 0x3E, 0x3D, 0xCA, 
-	0x71, 0x21, 0x37, 0xC0, 
-	0xC6, 0xB3, 0xFB, 0xF9, 
-	0x08, 0x00, 0x8D, 0x29, 
-	0xA3, 0x20, 0xDB, 0x87, 
-	0x62, 0x05, 0x5D, 0xD4, 
-	0x0E, 0x08, 0xFE, 0xAF, 
-	0x20, 0x02, 0xD7, 0xFF, 
-	0x07, 0x6A, 0x55, 0xEC, 
-	0x83, 0x40, 0x0B, 0x77
-};
-
-Memory::Memory(const Interrupter &interrupter_in): display(ioamhram, vram), interrupter(interrupter_in) {
-	memchunk = NULL;
-	romdata[0] = NULL;
-	rambankdata = NULL;
-	wramdata[0] = NULL;
-	rdisabled_ram = NULL;
-	wdisabled_ram = NULL;
-	romfile = NULL;
-	savedir = NULL;
-	savename = NULL;
-	getInput = NULL;
-	init();
-}
-
-void Memory::init() {
-	next_timatime = COUNTER_DISABLED;
-	tmatime = COUNTER_DISABLED;
-	next_unhalttime = COUNTER_DISABLED;
-	next_endtime = 0x102A0;
-	next_dmatime = COUNTER_DISABLED;
-	next_hdmaReschedule = COUNTER_DISABLED;
-	next_blittime = 0x102A0 + 144 * 456ul - 1;
-	next_irqtime = COUNTER_DISABLED;
-	div_lastUpdate = 0;
-	tima_lastUpdate = 0;
-	hdma_transfer = 0;
-	dmaSource = 0;
-	dmaDestination = 0;
-	std::memset(cgb_bgp_data, 0xFF, sizeof(cgb_bgp_data));
-	battery = false;
-	rtcRom = false;
-	enable_ram = false;
-	rambank_mode = false;
-	rambank = 0;
-	rombank = 1;
-	next_serialtime = COUNTER_DISABLED;
-	rombanks = 1;
-	IME = false;
-	cgb = false;
-	doubleSpeed = false;
-	oamDmaSrc = NULL;
-	vrambank = vram;
-	lastOamDmaUpdate = COUNTER_DISABLED;
-	oamDmaArea1Lower = 0x00;
-	oamDmaArea1Width = 0x00;
-	oamDmaArea2Upper = 0x00;
-	oamDmaPos = 0xFE;
-	set_irqEvent();
-	set_event();
-	rtc.reset();
-
-	std::memset(ioamhram, 0x00, sizeof(ioamhram));
-	std::memset(vram, 0, 0x4000);
-	
-	std::memcpy(ioamhram + 0xA0, feaxDump, sizeof(feaxDump));
-	std::memcpy(ioamhram + 0x100, ffxxDump, sizeof(ffxxDump));
-	
-	ioamhram[0x104] = 0x1C;
-	ioamhram[0x10F] = 0xE0;
-	ioamhram[0x140] = 0x91;
-	ioamhram[0x141] = 0x80;
-	ioamhram[0x144] = 0x00;
-	
+Memory::Memory(const Interrupter &interrupter_in) :
+memchunk(NULL),
+rambankdata(NULL),
+rdisabled_ram(NULL),
+wdisabled_ram(NULL),
+oamDmaSrc(NULL),
+vrambank(vram),
+rsrambankptr(NULL),
+wsrambankptr(NULL),
+romfile(NULL),
+savedir(NULL),
+savename(NULL),
+getInput(NULL),
+div_lastUpdate(0),
+tima_lastUpdate(0),
+next_timatime(COUNTER_DISABLED),
+next_blittime(144*456ul),
+nextIntTime(COUNTER_DISABLED),
+minIntTime(0),
+next_dmatime(COUNTER_DISABLED),
+next_hdmaReschedule(COUNTER_DISABLED),
+next_unhalttime(COUNTER_DISABLED),
+next_endtime(0),
+tmatime(COUNTER_DISABLED),
+next_serialtime(COUNTER_DISABLED),
+lastOamDmaUpdate(COUNTER_DISABLED),
+nextOamEventTime(COUNTER_DISABLED),
+display(ioamhram, vram),
+interrupter(interrupter_in),
+romtype(plain),
+rombanks(1),
+rombank(1),
+dmaSource(0),
+dmaDestination(0),
+rambank(0),
+rambanks(1),
+oamDmaArea1Lower(0),
+oamDmaArea1Width(0),
+oamDmaArea2Upper(0),
+oamDmaPos(0xFE),
+cgb(false),
+doubleSpeed(false),
+IME(false),
+enable_ram(false),
+rambank_mode(false),
+battery(false),
+rtcRom(false),
+hdma_transfer(false),
+active(false)
+{
+	romdata[1] = romdata[0] = NULL;
+	wramdata[1] = wramdata[0] = NULL;
 	std::fill_n(rmem, 0x10, static_cast<unsigned char*>(NULL));
 	std::fill_n(wmem, 0x10, static_cast<unsigned char*>(NULL));
+	set_irqEvent();
+	set_event();
+}
+
+void Memory::setStatePtrs(SaveState &state) {
+	state.mem.vram.set(vram, sizeof vram);
+	state.mem.sram.set(rambankdata, rambanks * 0x2000ul);
+	state.mem.wram.set(wramdata[0], isCgb() ? 0x8000 : 0x2000);
+	state.mem.ioamhram.set(ioamhram, sizeof ioamhram);
 	
-	for (unsigned i = 0x00; i < 0x40; i += 0x02) {
-		cgb_bgp_data[i] = 0xFF;
-		cgb_bgp_data[i + 1] = 0x7F;
-	}
+	display.setStatePtrs(state);
+	sound.setStatePtrs(state);
+}
+
+unsigned long Memory::saveState(SaveState &state, unsigned long cycleCounter) {
+	cycleCounter = resetCounters(cycleCounter);
+	nontrivial_ff_read(0xFF0F, cycleCounter);
+	nontrivial_ff_read(0xFF26, cycleCounter);
 	
-	std::memcpy(cgb_objp_data, cgbObjpDump, sizeof(cgbObjpDump));
+	state.mem.div_lastUpdate = div_lastUpdate;
+	state.mem.tima_lastUpdate = tima_lastUpdate;
+	state.mem.tmatime = tmatime;
+	state.mem.next_serialtime = next_serialtime;
+	state.mem.lastOamDmaUpdate = lastOamDmaUpdate;
+	state.mem.minIntTime = minIntTime;
+	state.mem.rombank = rombank;
+	state.mem.dmaSource = dmaSource;
+	state.mem.dmaDestination = dmaDestination;
+	state.mem.rambank = rambank;
+	state.mem.oamDmaPos = oamDmaPos;
+	state.mem.IME = IME;
+	state.mem.enable_ram = enable_ram;
+	state.mem.rambank_mode = rambank_mode;
+	state.mem.hdma_transfer = hdma_transfer;
+	
+	rtc.saveState(state);
+	display.saveState(state);
+	sound.saveState(state);
+	
+	return cycleCounter;
 }
 
-void Memory::reset() {
-	if (battery) saveram();
-	init();
-}
+void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
+	sound.loadState(state);
+	display.loadState(state, state.mem.oamDmaPos < 0xA0 ? rdisabled_ram : ioamhram);
+	rtc.loadState(state, rtcRom ? state.mem.enable_ram : false);
+	
+	div_lastUpdate = state.mem.div_lastUpdate;
+	tima_lastUpdate = state.mem.tima_lastUpdate;
+	tmatime = state.mem.tmatime;
+	next_serialtime = state.mem.next_serialtime;
+	lastOamDmaUpdate = state.mem.lastOamDmaUpdate;
+	minIntTime = state.mem.minIntTime;
+	rombank = state.mem.rombank;
+	dmaSource = state.mem.dmaSource;
+	dmaDestination = state.mem.dmaDestination;
+	rambank = state.mem.rambank;
+	oamDmaPos = state.mem.oamDmaPos;
+	IME = state.mem.IME;
+	enable_ram = state.mem.enable_ram;
+	rambank_mode = state.mem.rambank_mode;
+	hdma_transfer = state.mem.hdma_transfer;
+	
+	const bool oldDs = doubleSpeed;
+	doubleSpeed = isCgb() & ioamhram[0x14D] >> 7;
+	oamDmaArea2Upper = oamDmaArea1Width = oamDmaArea1Lower = 0;
+	vrambank = vram + (ioamhram[0x14F] & 0x01 & isCgb()) * 0x2000;
+	wramdata[1] = wramdata[0] + ((isCgb() && (ioamhram[0x170] & 0x07)) ? (ioamhram[0x170] & 0x07) : 1) * 0x1000;
+	std::fill_n(rmem, 0x10, static_cast<unsigned char*>(NULL));
+	std::fill_n(wmem, 0x10, static_cast<unsigned char*>(NULL));
+	setBanks();
 
-void Memory::reload() {
-	reset();
-	loadROM();
-}
-
-void Memory::refreshPalettes(const unsigned long cycleCounter) {
-	if (isCgb()) {
-		for (unsigned i = 0; i < 8 * 8; i += 2) {
-			display.cgbBgColorChange(i >> 1, cgb_bgp_data[i] | cgb_bgp_data[i + 1] << 8, cycleCounter);
-			display.cgbSpColorChange(i >> 1, cgb_objp_data[i] | cgb_objp_data[i + 1] << 8, cycleCounter);
+	if (lastOamDmaUpdate != COUNTER_DISABLED) {
+		oamDmaInitSetup();
+		
+		unsigned oamEventPos = 0x100;
+		
+		if (oamDmaPos < 0xA0) {
+			setOamDmaArea();
+			oamEventPos = 0xA0;
 		}
-	} else {
-		display.dmgBgPaletteChange(ioamhram[0x147], cycleCounter);
-		display.dmgSpPalette1Change(ioamhram[0x148], cycleCounter);
-		display.dmgSpPalette2Change(ioamhram[0x149], cycleCounter);
+		
+		nextOamEventTime = lastOamDmaUpdate + (oamEventPos - oamDmaPos) * 4;
+		setOamDmaSrc();
 	}
+	
+	if (!IME && state.cpu.halted)
+		schedule_unhalt();
+	
+	next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
+	
+	const unsigned long cycleCounter = state.cpu.cycleCounter;
+	
+	if (hdma_transfer) {
+		next_dmatime = display.nextHdmaTime(cycleCounter);
+		next_hdmaReschedule = display.nextHdmaTimeInvalid();
+	} else {
+		next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
+	}
+	
+	next_timatime = (ioamhram[0x107] & 4) ? tima_lastUpdate + (256u - ioamhram[0x105] << timaClock[ioamhram[0x107] & 3]) + 1 : static_cast<unsigned long>(COUNTER_DISABLED);
+	set_irqEvent();
+	rescheduleIrq(cycleCounter);
+	
+	if (oldDs != isDoubleSpeed())
+		next_endtime = cycleCounter - (isDoubleSpeed() ? oldCc - next_endtime << 1 : oldCc - next_endtime >> 1);
+	else
+		next_endtime = cycleCounter - (oldCc - next_endtime);
+	
+// 	set_event();
 }
 
 void Memory::schedule_unhalt() {
-	next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent()) + isCgb() * 4;
+	next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent());
+	
+	if (next_unhalttime != COUNTER_DISABLED)
+		next_unhalttime += isCgb() * 4;
+	
 	set_event();
 }
 
@@ -210,14 +207,17 @@ void Memory::rescheduleIrq(const unsigned long cycleCounter) {
 	if (IME) {
 		ioamhram[0x10F] |= display.getIfReg(cycleCounter) & 3;
 		
-		next_irqtime = (ioamhram[0x10F] & ioamhram[0x1FF] & 0x1F) ? cycleCounter : std::min(next_irqEventTime, display.nextIrqEvent());
+		nextIntTime = (ioamhram[0x10F] & ioamhram[0x1FF] & 0x1F) ? cycleCounter : std::min(next_irqEventTime, display.nextIrqEvent());
+		
+		if (nextIntTime < minIntTime)
+			nextIntTime = minIntTime;
 		
 		set_event();
 	}
 }
 
 void Memory::rescheduleHdmaReschedule() {
-	if (hdma_transfer) {
+	if (hdma_transfer && (ioamhram[0x140] & 0x80)) {
 		const unsigned long newTime = display.nextHdmaTimeInvalid();
 		
 		if (newTime < next_hdmaReschedule) {
@@ -233,15 +233,8 @@ void Memory::rescheduleHdmaReschedule() {
 
 void Memory::ei(const unsigned long cycleCounter) {
 	IME = 1;
-	ioamhram[0x10F] |= display.getIfReg(cycleCounter);
-	
-	const unsigned long nextScheduled = std::min(next_irqEventTime, display.nextIrqEvent());
-	next_irqtime = (((ioamhram[0x10F] & ioamhram[0x1FF] & 0x1F) || nextScheduled < cycleCounter) ? cycleCounter : nextScheduled) + 1;
-	
-	if (next_irqtime < next_eventtime) {
-		next_eventtime = next_irqtime;
-		next_event = INTERRUPTS;
-	}
+	minIntTime = cycleCounter + 1;
+	rescheduleIrq(cycleCounter);
 }
 
 void Memory::inc_endtime(const unsigned long inc) {
@@ -281,7 +274,7 @@ void Memory::update_irqEvents(const unsigned long cc) {
 
 void Memory::set_event() {
 	next_event = INTERRUPTS;
-	next_eventtime = next_irqtime;
+	next_eventtime = nextIntTime;
 	if (next_hdmaReschedule < next_eventtime) {
 		next_eventtime = next_hdmaReschedule;
 		next_event = HDMA_RESCHEDULE;
@@ -293,6 +286,10 @@ void Memory::set_event() {
 	if (next_unhalttime < next_eventtime) {
 		next_eventtime = next_unhalttime;
 		next_event = UNHALT;
+	}
+	if (nextOamEventTime < next_eventtime) {
+		next_eventtime = nextOamEventTime;
+		next_event = OAM;
 	}
 	if (next_blittime < next_eventtime) {
 		next_event = BLIT;
@@ -443,7 +440,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			}
 		}
 		
-		next_irqtime = IME ? std::min(next_irqEventTime, display.nextIrqEvent()) : COUNTER_DISABLED;
+		nextIntTime = IME ? std::min(next_irqEventTime, display.nextIrqEvent()) : static_cast<unsigned long>(COUNTER_DISABLED);
 		break;
 	case BLIT:
 // 		printf("blit\n");
@@ -467,10 +464,23 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent()) + isCgb() * 4;
 		
 		break;
+	case OAM:
+		nextOamEventTime = lastOamDmaUpdate == COUNTER_DISABLED ? static_cast<unsigned long>(COUNTER_DISABLED) : nextOamEventTime + 0xA0 * 4;
+		break;
 	case END:
-// 		printf("end\n");
-		active = false;
-		return cycleCounter;
+		{
+			const unsigned long endtime = next_endtime;
+			next_endtime = COUNTER_DISABLED;
+			set_event();
+			
+			while (cycleCounter >= next_eventtime)
+				cycleCounter = event(cycleCounter);
+			
+			next_endtime = endtime;
+			active = false;
+		}
+		
+		break;
 	}
 	
 	set_event();
@@ -496,7 +506,7 @@ void Memory::speedChange(const unsigned long cycleCounter) {
 			next_hdmaReschedule = display.nextHdmaTimeInvalid();
 		}
 		
-		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : COUNTER_DISABLED;
+		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
 		next_endtime = cycleCounter + (isDoubleSpeed() ? next_endtime - cycleCounter << 1 : (next_endtime - cycleCounter >> 1));
 		set_irqEvent();
 		rescheduleIrq(cycleCounter);
@@ -526,7 +536,7 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 		update_tima(cycleCounter);
 	}
 	
-	const unsigned dec = 0x80000000 - 1024;
+	const unsigned long dec = cycleCounter < 0x10000 ? 0 : (cycleCounter & ~0x7FFFul) - 0x8000;
 
 	div_lastUpdate -= dec;
 	
@@ -536,6 +546,11 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 	if (lastOamDmaUpdate != COUNTER_DISABLED)
 		lastOamDmaUpdate -= dec;
 	
+	if (minIntTime < cycleCounter)
+		minIntTime = 0;
+	else
+		minIntTime -= dec;
+	
 	next_eventtime -= dec;
 	if (next_irqEventTime != COUNTER_DISABLED)
 		next_irqEventTime -= dec;
@@ -543,10 +558,12 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 		next_timatime -= dec;
 	if (next_blittime != COUNTER_DISABLED)
 		next_blittime -= dec;
+	if (nextOamEventTime != COUNTER_DISABLED)
+		nextOamEventTime -= dec;
 	next_endtime -= dec;
 	if (next_dmatime != COUNTER_DISABLED) next_dmatime -= dec;
 	if (next_hdmaReschedule != COUNTER_DISABLED) next_hdmaReschedule -= dec;
-	if (next_irqtime != COUNTER_DISABLED) next_irqtime -= dec;
+	if (nextIntTime != COUNTER_DISABLED) nextIntTime -= dec;
 	if (next_serialtime != COUNTER_DISABLED) next_serialtime -= dec;
 	if (tmatime != COUNTER_DISABLED)
 		tmatime -= dec;
@@ -650,7 +667,7 @@ void Memory::updateOamDma(const unsigned long cycleCounter) {
 	}
 }
 
-void Memory::startOamDma(const unsigned long cycleCounter) {
+void Memory::setOamDmaArea() {
 	if (ioamhram[0x146] < 0xC0) {
 		if ((ioamhram[0x146] & 0xE0) != 0x80)
 			oamDmaArea2Upper = 0x80;
@@ -658,10 +675,23 @@ void Memory::startOamDma(const unsigned long cycleCounter) {
 		oamDmaArea1Width = 0x20;
 	} else if (ioamhram[0x146] < 0xE0)
 		oamDmaArea1Width = 0x3E;
-	
-	display.oamChange(rdisabled_ram, cycleCounter);
-	rescheduleIrq(cycleCounter);
-	rescheduleHdmaReschedule();
+}
+
+void Memory::oamDmaInitSetup() {
+	if (ioamhram[0x146] < 0xC0) {
+		if ((ioamhram[0x146] & 0xE0) == 0x80) {
+			oamDmaArea1Lower = 0x80;
+		} else {
+			oamDmaArea1Lower = 0xA0;
+			std::fill_n(rmem, 0x8, static_cast<unsigned char*>(NULL));
+			rmem[0xB] = rmem[0xA] = NULL;
+			wmem[0xB] = wmem[0xA] = NULL;
+		}
+	} else if (ioamhram[0x146] < 0xE0) {
+		oamDmaArea1Lower = 0xC0;
+		rmem[0xE] = rmem[0xD] = rmem[0xC] = NULL;
+		wmem[0xE] = wmem[0xD] = wmem[0xC] = NULL;
+	}
 }
 
 void Memory::setOamDmaSrc() {
@@ -682,12 +712,29 @@ void Memory::setOamDmaSrc() {
 		oamDmaSrc = rdisabled_ram;
 }
 
+void Memory::startOamDma(const unsigned long cycleCounter) {
+	setOamDmaArea();
+	display.oamChange(rdisabled_ram, cycleCounter);
+	
+	if (next_unhalttime != COUNTER_DISABLED)
+		schedule_unhalt();
+	else
+		rescheduleIrq(cycleCounter);
+	
+	rescheduleHdmaReschedule();
+}
+
 void Memory::endOamDma(const unsigned long cycleCounter) {
 	oamDmaArea2Upper = oamDmaArea1Width = oamDmaArea1Lower = 0;
 	oamDmaPos = 0xFE;
 	setBanks();
 	display.oamChange(ioamhram, cycleCounter);
-	rescheduleIrq(cycleCounter);
+	
+	if (next_unhalttime != COUNTER_DISABLED)
+		schedule_unhalt();
+	else
+		rescheduleIrq(cycleCounter);
+	
 	rescheduleHdmaReschedule();
 }
 
@@ -749,7 +796,7 @@ unsigned Memory::nontrivial_ff_read(const unsigned P, const unsigned long cycleC
 	case 0x0F:
 		update_irqEvents(cycleCounter);
 		ioamhram[0x10F] |= display.getIfReg(cycleCounter) & 3;
-		rescheduleIrq(cycleCounter);
+// 		rescheduleIrq(cycleCounter);
 		break;
 	case 0x26:
 // 		printf("sound status read\n");
@@ -783,15 +830,9 @@ unsigned Memory::nontrivial_ff_read(const unsigned P, const unsigned long cycleC
 	case 0x44:
 		return display.getLyReg(cycleCounter/*+4*/);
 	case 0x69:
-		if (isCgb() && display.cgbpAccessible(cycleCounter))
-			return cgb_bgp_data[ioamhram[0x168] & 0x3F];
-		
-		return 0xFF;
+		return display.cgbBgColorRead(ioamhram[0x168] & 0x3F, cycleCounter);
 	case 0x6B:
-		if (isCgb() && display.cgbpAccessible(cycleCounter))
-			return cgb_objp_data[ioamhram[0x16A] & 0x3F];
-		
-		return 0xFF;
+		return display.cgbSpColorRead(ioamhram[0x16A] & 0x3F, cycleCounter);
 	default: break;
 	}
 	
@@ -1089,7 +1130,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			if ((ioamhram[0x140] ^ data) & 0x80) {
 				update_irqEvents(cycleCounter);
 				const unsigned lyc = display.get_stat(ioamhram[0x145], cycleCounter) & 4;
-				display.enableChange(ioamhram[0x141], cycleCounter);
+				display.enableChange(cycleCounter);
 				ioamhram[0x144] = 0;
 // 				enable_display = bool(data & 0x80);
 				ioamhram[0x141] &= 0xF8;
@@ -1133,13 +1174,14 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			if ((ioamhram[0x140] ^ data) & 0x01)
 				display.bgEnableChange(data & 0x01, cycleCounter);
 			
+			ioamhram[0x140] = data;
 			rescheduleIrq(cycleCounter);
 			rescheduleHdmaReschedule();
 		}
 		
-		break;
+		return;
 	case 0x41:
-		display.lcdstatChange(ioamhram[0x141], data, cycleCounter);
+		display.lcdstatChange(data, cycleCounter);
 		rescheduleIrq(cycleCounter);
 		data = ioamhram[0x141] & 0x87 | data & 0x78;
 		break;
@@ -1155,9 +1197,9 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 	case 0x44:
 		std::printf("ly write\n");
 		ioamhram[0x144] = 0;
-		display.enableChange(ioamhram[0x141], cycleCounter);
-		display.enableChange(ioamhram[0x141], cycleCounter);
-		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : COUNTER_DISABLED;
+		display.enableChange(cycleCounter);
+		display.enableChange(cycleCounter);
+		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
 		
 		if (hdma_transfer) {
 			next_dmatime = display.nextHdmaTime(cycleCounter);
@@ -1168,30 +1210,17 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		rescheduleIrq(cycleCounter);
 		return;
 	case 0x45:
-		display.lycRegChange(data, ioamhram[0x141], cycleCounter);
+		display.lycRegChange(data, cycleCounter);
 		rescheduleIrq(cycleCounter);
 		break;
 	case 0x46:
 		if (lastOamDmaUpdate != COUNTER_DISABLED)
 			endOamDma(cycleCounter);
 		
-		if (data < 0xC0) {
-			if ((data & 0xE0) == 0x80) {
-				oamDmaArea1Lower = 0x80;
-			} else {
-				oamDmaArea1Lower = 0xA0;
-				std::fill_n(rmem, 0x8, static_cast<unsigned char*>(NULL));
-				rmem[0xB] = rmem[0xA] = NULL;
-				wmem[0xB] = wmem[0xA] = NULL;
-			}
-		} else if (data < 0xE0) {
-			oamDmaArea1Lower = 0xC0;
-			rmem[0xE] = rmem[0xD] = rmem[0xC] = NULL;
-			wmem[0xE] = wmem[0xD] = wmem[0xC] = NULL;
-		}
-		
 		lastOamDmaUpdate = cycleCounter;
+		nextOamEventTime = cycleCounter + 8;
 		ioamhram[0x146] = data;
+		oamDmaInitSetup();
 		setOamDmaSrc();
 		return;
 	case 0x47:
@@ -1303,17 +1332,11 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		//Write to bg palette data
 	case 0x69:
 		if (isCgb()) {
-			const unsigned cgb_bgp_index = ioamhram[0x168] & 0x3F;
+			const unsigned index = ioamhram[0x168] & 0x3F;
 			
-			if (cgb_bgp_data[cgb_bgp_index] != data) {
-				if (display.cgbpAccessible(cycleCounter)) {
-					cgb_bgp_data[cgb_bgp_index] = data;
-					display.cgbBgColorChange(cgb_bgp_index >> 1, cgb_bgp_data[cgb_bgp_index & ~1] | (cgb_bgp_data[cgb_bgp_index | 1] << 8), cycleCounter);
-				} /*else
-					printf("palette write during mode3 at line %i. Next mode0: %u\n", display.get_ly(CycleCounter), display.next_mode0(CycleCounter));*/
-			}
+			display.cgbBgColorChange(index, data, cycleCounter);
 			
-			ioamhram[0x168] = ioamhram[0x168] & ~0x3F | cgb_bgp_index + (ioamhram[0x168] >> 7) & 0x3F;
+			ioamhram[0x168] = ioamhram[0x168] & ~0x3F | index + (ioamhram[0x168] >> 7) & 0x3F;
 		}
 		
 		return;
@@ -1325,17 +1348,11 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		//Write to obj palette data.
 	case 0x6B:
 		if (isCgb()) {
-			const unsigned cgb_objp_index = ioamhram[0x16A] & 0x3F;
+			const unsigned index = ioamhram[0x16A] & 0x3F;
 			
-			if (cgb_objp_data[cgb_objp_index] != data) {
-				if (display.cgbpAccessible(cycleCounter)) { //fixes color panel demo/lego racers
-					cgb_objp_data[cgb_objp_index] = data;
-					display.cgbSpColorChange(cgb_objp_index >> 1, cgb_objp_data[cgb_objp_index & ~1] | (cgb_objp_data[cgb_objp_index | 1] << 8), cycleCounter);
-				} /*else
-					printf("palette write during mode3 at line %i. Next mode0: %u\n", display.get_ly(CycleCounter), display.next_mode0(CycleCounter));*/
-			}
+			display.cgbSpColorChange(index, data, cycleCounter);
 			
-			ioamhram[0x16A] = ioamhram[0x16A] & ~0x3F | cgb_objp_index + (ioamhram[0x16A] >> 7) & 0x3F;
+			ioamhram[0x16A] = ioamhram[0x16A] & ~0x3F | index + (ioamhram[0x16A] >> 7) & 0x3F;
 		}
 		
 		return;
@@ -1692,7 +1709,7 @@ bool Memory::loadROM() {
 		printf("rombanks: %u\n", rombanks);*/
 		
 		switch (header[0x0149]) {
-	//     case 0x00: /*cout << "No RAM\n";*/ rambankrom=0; break;
+		case 0x00: /*cout << "No RAM\n"; rambankrom=0; break;*/
 		case 0x01: /*cout << "2kB RAM\n";*/ /*rambankrom=1; break;*/
 		case 0x02: /*cout << "8kB RAM\n";*/
 			rambanks = 1;
@@ -1732,62 +1749,6 @@ bool Memory::loadROM() {
 	rom.rewind();
 	rom.read(reinterpret_cast<char*>(romdata[0]), rombanks * 0x4000ul);
 	rom.close();
-	
-	std::memset(rambankdata, 0xFF, rambanks * 0x2000ul);
-	
-	for (unsigned addr = 0x0000; addr < 0x0800; addr += 0x10) {
-		std::memset(wramdata[0] + addr + 0x00, 0xFF, 0x08);
-		std::memset(wramdata[0] + addr + 0x08, 0x00, 0x08);
-	}
-	
-	for (unsigned addr = 0x0800; addr < 0x1000; addr += 0x10) {
-		std::memset(wramdata[0] + addr + 0x00, 0x00, 0x08);
-		std::memset(wramdata[0] + addr + 0x08, 0xFF, 0x08);
-	}
-	
-	for (unsigned addr = 0x0E00; addr < 0x1000; addr += 0x10) {
-		wramdata[0][addr + 0x02] = 0xFF;
-		wramdata[0][addr + 0x0A] = 0x00;
-	}
-	
-	std::memcpy(wramdata[0] + 0x1000, wramdata[0], 0x1000);
-	
-	if (isCgb()) {
-		std::memcpy(wramdata[0] + 0x2000, wramdata[0], 0x2000);
-		std::memcpy(wramdata[0] + 0x4000, wramdata[0], 0x4000);
-	} else {
-		ioamhram[0x130] = 0xAC;
-		ioamhram[0x131] = 0xDD;
-		ioamhram[0x132] = 0xDA;
-		ioamhram[0x133] = 0x48;
-		ioamhram[0x134] = 0x36;
-		ioamhram[0x135] = 0x02;
-		ioamhram[0x136] = 0xCF;
-		ioamhram[0x137] = 0x16;
-		ioamhram[0x138] = 0x2C;
-		ioamhram[0x139] = 0x04;
-		ioamhram[0x13A] = 0xE5;
-		ioamhram[0x13B] = 0x2C;
-		ioamhram[0x13C] = 0xAC;
-		ioamhram[0x13D] = 0xDD;
-		ioamhram[0x13E] = 0xDA;
-		ioamhram[0x13F] = 0x48;
-		
-		ioamhram[0x14D] = 0xFF;
-		ioamhram[0x14F] = 0xFF;
-		ioamhram[0x156] = 0xFF;
-		ioamhram[0x168] = 0xFF;
-		ioamhram[0x16A] = 0xFF;
-		ioamhram[0x16B] = 0xFF;
-		ioamhram[0x16C] = 0xFF;
-		ioamhram[0x170] = 0xFF;
-		ioamhram[0x172] = 0xFF;
-		ioamhram[0x173] = 0xFF;
-		ioamhram[0x174] = 0xFF;
-		ioamhram[0x175] = 0xFF;
-		ioamhram[0x176] = 0xFF;
-		ioamhram[0x177] = 0xFF;
-	}
 
 	{
 		char *tmp = std::strrchr(romfile, '/');
@@ -1804,6 +1765,13 @@ bool Memory::loadROM() {
 		savename[namelen] = '\0';
 	}
 
+	sound.init(isCgb());
+	display.reset(isCgb());
+
+	return 0;
+}
+
+void Memory::loadSavedata() {
 	if (battery) {
 		char *savefile;
 		
@@ -1814,37 +1782,17 @@ bool Memory::loadROM() {
 			savefile = new char[5 + std::strlen(savename)];
 			std::sprintf(savefile, "%s.sav", savename);
 		}
-
+		
 		std::ifstream load(savefile, std::ios::binary | std::ios::in);
 		
 		if (load.is_open()) {
-			unsigned size;
-			
-			switch (romdata[0][0x0149]) {
-			case 0x00:
-				size = 0;
-				break;
-			case 0x01:
-				size = 0x800;
-				break;
-			case 0x02:
-				size = 0x2000;
-				break;
-			case 0x03:
-				size = 0x8000;
-				break;
-			default:
-				size = 0x20000;
-				break;
-			}
-			
-			load.read(reinterpret_cast<char*>(rambankdata), size);
+			load.read(reinterpret_cast<char*>(rambankdata), rambanks * 0x2000ul);
 			load.close();
 		}
 		//else cout << "No savefile available\n";
 		delete []savefile;
 	}
-
+	
 	if (rtcRom) {
 		char *savefile;
 		
@@ -1855,30 +1803,63 @@ bool Memory::loadROM() {
 			savefile = new char[5 + std::strlen(savename)];
 			std::sprintf(savefile, "%s.rtc", savename);
 		}
-
+		
 		std::ifstream load(savefile, std::ios::binary | std::ios::in);
 		
-		std::time_t basetime;
-		
 		if (load.is_open()) {
+			std::time_t basetime;
 			load.read(reinterpret_cast<char*>(&basetime), sizeof(basetime));
 			load.close();
-		} else
-			basetime = time(NULL);
+			rtc.setBaseTime(basetime);
+		}
 		
 		delete []savefile;
+	}
+}
+
+void Memory::saveSavedata() {
+	if (battery) {
+		char *savefile;
 		
-		rtc.setBaseTime(basetime);
+		if (savedir != NULL) {
+			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
+			std::sprintf(savefile, "%s%s.sav", savedir, savename);
+		} else {
+			savefile = new char[5 + std::strlen(savename)];
+			std::sprintf(savefile, "%s.sav", savename);
+		}
+		
+		std::ofstream save(savefile, std::ios::binary | std::ios::out);
+		
+		if (save.is_open()) {
+			save.write(reinterpret_cast<char*>(rambankdata), rambanks * 0x2000ul);
+			save.close();
+		}  /*else cout << "Saving ramdata failed\n";*/
+		
+		delete []savefile;
 	}
 	
-	setBanks();
-
-	sound.init(ioamhram + 0x100, isCgb());
-	display.reset(isCgb());
-	refreshPalettes(0x102A0);
-	next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : COUNTER_DISABLED;
-
-	return 0;
+	if (rtcRom) {
+		char *savefile;
+		
+		if (savedir != NULL) {
+			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
+			std::sprintf(savefile, "%s%s.rtc", savedir, savename);
+		} else {
+			savefile = new char[5 + std::strlen(savename)];
+			std::sprintf(savefile, "%s.rtc", savename);
+		}
+		
+		std::ofstream save(savefile, std::ios::binary | std::ios::out);
+		
+		if (save.is_open()) {
+			std::time_t basetime = rtc.getBaseTime();
+			save.write(reinterpret_cast<char*>(&basetime), sizeof(basetime));
+			save.close();
+		}  /*else cout << "Saving rtcdata failed\n";*/
+		
+		delete []savefile;
+	}
 }
 
 void Memory::set_savedir(const char *dir) {
@@ -1896,100 +1877,29 @@ void Memory::set_savedir(const char *dir) {
 	}
 }
 
-void Memory::saveram() {
-	char *savefile;
-	
-	if (savedir != NULL) {
-		savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
-		std::sprintf(savefile, "%s%s.sav", savedir, savename);
-	} else {
-		savefile = new char[5 + std::strlen(savename)];
-		std::sprintf(savefile, "%s.sav", savename);
-	}
-
-	std::ofstream save(savefile, std::ios::binary | std::ios::out);
-	
-	if (save.is_open()) {
-		unsigned size/*=0x2000*/;
-		
-		switch (romdata[0][0x0149]) {
-		case 0x00:
-			size = 0;
-			break;
-		case 0x01:
-			size = 0x800;
-			break;
-		case 0x02:
-			size = 0x2000;
-			break;
-		case 0x03:
-			size = 0x8000;
-			break;
-		default:
-			size = 0x20000;
-			break;
-		}
-		
-		save.write(reinterpret_cast<char*>(rambankdata), size);
-		save.close();
-	}  /*else cout << "Saving ramdata failed\n";*/
-	
-	delete []savefile;
-}
-
-void Memory::save_rtc() {
-	char *savefile;
-	
-	if (savedir != NULL) {
-		savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
-		std::sprintf(savefile, "%s%s.rtc", savedir, savename);
-	} else {
-		savefile = new char[5 + std::strlen(savename)];
-		std::sprintf(savefile, "%s.rtc", savename);
-	}
-
-	std::ofstream save(savefile, std::ios::binary | std::ios::out);
-	
-	if (save.is_open()) {
-		std::time_t basetime = rtc.getBaseTime();
-		save.write(reinterpret_cast<char*>(&basetime), sizeof(basetime));
-		save.close();
-	}  /*else cout << "Saving rtcdata failed\n";*/
-	
-	delete []savefile;
-}
-
 void Memory::sound_fill_buffer(Gambatte::uint_least16_t *const stream, const unsigned samples, const unsigned long cycleCounter) {
 	sound.generate_samples(cycleCounter, isDoubleSpeed());
 	sound.fill_buffer(stream, samples);
 }
 
-void Memory::setVideoBlitter(Gambatte::VideoBlitter *const vb, const unsigned long cycleCounter) {
+void Memory::setVideoBlitter(Gambatte::VideoBlitter *const vb) {
 	display.setVideoBlitter(vb);
-	refreshPalettes(cycleCounter);
 }
 
-void Memory::videoBufferChange(const unsigned long cycleCounter) {
+void Memory::videoBufferChange() {
 	display.videoBufferChange();
-	refreshPalettes(cycleCounter);
 }
 
-void Memory::setVideoFilter(const unsigned int n, const unsigned long cycleCounter) {
+void Memory::setVideoFilter(const unsigned int n) {
 	display.setVideoFilter(n);
-	refreshPalettes(cycleCounter);
 }
 
-void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32, unsigned long cycleCounter) {
+void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
 	display.setDmgPaletteColor(palNum, colorNum, rgb32);
-	refreshPalettes(cycleCounter);
 }
 
 Memory::~Memory() {
-	if (battery)
-		saveram();
-	
-	if (rtcRom)
-		save_rtc();
+	saveSavedata();
 	
 	delete []romfile;
 	delete []savedir;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,6 +18,8 @@
  ***************************************************************************/
 #ifndef SOUND_CHANNEL3_H
 #define SOUND_CHANNEL3_H
+
+class SaveState;
 
 #include "int.h"
 
@@ -59,7 +61,10 @@ public:
 	Channel3();
 	bool isActive() const { return master; }
 	void reset();
-	void init(unsigned long cc, bool cgb);
+	void init(bool cgb);
+	void setStatePtrs(SaveState &state);
+	void saveState(SaveState &state) const;
+	void loadState(const SaveState &state);
 	void setNr0(unsigned data);
 	void setNr1(unsigned data) { lengthCounter.nr1Change(data, nr4, cycleCounter); }
 	void setNr2(unsigned data);

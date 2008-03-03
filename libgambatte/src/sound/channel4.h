@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,8 @@
 #ifndef SOUND_CHANNEL4_H
 #define SOUND_CHANNEL4_H
 
+class SaveState;
+
 #include "int.h"
 
 #include "master_disabler.h"
@@ -36,13 +38,14 @@ class Channel4 {
 		void updateBackupCounter(unsigned long cc);
 		
 	public:
-		Lfsr() {}
+		Lfsr();
 		void event();
 		bool isHighState() const { return ~reg & 1; }
 		void nr3Change(unsigned newNr3, unsigned long cc);
 		void nr4Init(unsigned long cc);
-		void init(unsigned long cc);
-		void reset(unsigned long cc) { init(cc); }
+		void reset(unsigned long cc);
+		void saveState(SaveState &state, const unsigned long cc);
+		void loadState(const SaveState &state);
 		void resetCounters(unsigned long oldCc);
 		void disableMaster() { killCounter(); master = false; reg = 0xFF; }
 		void killCounter() { counter = COUNTER_DISABLED; }
@@ -87,7 +90,9 @@ public:
 	void update(Gambatte::uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	
 	void reset();
-	void init(unsigned long cc, bool cgb);
+	void init(bool cgb);
+	void saveState(SaveState &state);
+	void loadState(const SaveState &state);
 };
 
 #endif

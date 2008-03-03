@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,7 +22,6 @@ IrqEvent::IrqEvent(event_queue<VideoEvent*,VideoEventComparer> &irqEventQueue_in
 	VideoEvent(11),
 	irqEventQueue(irqEventQueue_in)
 {
-	reset();
 }
 
 void IrqEvent::doEvent() {
@@ -33,17 +32,5 @@ void IrqEvent::doEvent() {
 	else
 		irqEventQueue.modify_root(irqEventQueue.top());
 	
-	schedule();
-}
-
-void modifyEvent(IrqEvent &event, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned long oldTime = event.time();
-	event.schedule();
-	
-	if (oldTime != event.time()) {
-		if (event.time() > oldTime)
-			queue.inc(&event, &event);
-		else
-			queue.dec(&event, &event);
-	}
+	setTime(schedule(irqEventQueue));
 }

@@ -22,8 +22,10 @@
 #include "video_event.h"
 //#include "video_event_comparer.h"
 #include "ly_counter.h"
+#include "basic_add_event.h"
 
 class M3ExtraCycles;
+class SaveState;
 
 class SpriteMapper : public VideoEvent {
 	class OamReader {
@@ -46,11 +48,11 @@ class SpriteMapper : public VideoEvent {
 		bool changed() const { return lastChange != 0xFF; }
 		bool largeSprites(unsigned spNr) const { return szbuf[spNr]; }
 		const unsigned char *oam() const { return oamram; }
-		void reset();
 		void resetCycleCounter(const unsigned newCc) { lu = newCc; }
 		void setLargeSpritesSrc(const bool src) { largeSpritesSrc = src; }
 		void update(unsigned long cc);
 		const unsigned char *spritePosBuf() const { return buf; }
+		void setStatePtrs(SaveState &state);
 	};
 	
 	enum { NEED_SORTING_MASK = 0x80 };
@@ -119,14 +121,12 @@ public:
 		oamReader.update(cc);
 	}
 	
-	void reset();
-	
 	void resetCycleCounter(const unsigned long newCc) {
 		oamReader.resetCycleCounter(newCc);
 	}
 	
-	void schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
-		setTime(lyCounter.nextLineCycle(80, cycleCounter));
+	static unsigned long schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
+		return lyCounter.nextLineCycle(80, cycleCounter);
 	}
 	
 	void setCgb(const bool cgb_in) {
@@ -143,8 +143,16 @@ public:
 		
 		return spritemap + ly * 10;
 	}
+	
+	void setStatePtrs(SaveState &state) { oamReader.setStatePtrs(state); }
 };
 
-//void addEvent(SpriteMapper &event, event_queue<VideoEvent*,VideoEventComparer> &queue);
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, SpriteMapper *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, SpriteMapper *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

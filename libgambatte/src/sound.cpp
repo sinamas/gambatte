@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include "sound.h"
 
+#include "savestate.h"
 #include <cstring>
 #include <algorithm>
 
@@ -42,18 +43,24 @@ S) start step on sound power on.
 
 static const unsigned bufferSize = 35112 + 16 + 2048; //FIXME: DMA can prevent process from returning for up to 4096 cycles.
 
-void PSG::init(const unsigned char *const ioram, const bool cgb) {
-	bufferPos = 0;
-	lastUpdate = 0x102A0;
-	enabled = true;
-	map_so(ioram[0x25]);
-	set_so_volume(ioram[0x24]);
-	ch1.init(lastUpdate >> 1, cgb);
-	ch2.init(lastUpdate >> 1, cgb);
-	ch3.init(lastUpdate >> 1, cgb);
-	for (unsigned i = 0; i < 0x10; ++i)
-		ch3.waveRamWrite(i, ioram[0x30 | i]);
-	ch4.init(lastUpdate >> 1, cgb);
+PSG::PSG() :
+buffer(new Gambatte::uint_least32_t[bufferSize]),
+lastUpdate(0),
+soVol(0),
+bufferPos(0),
+enabled(false)
+{}
+
+PSG::~PSG() {
+	delete[] buffer;
+}
+
+void PSG::init(const bool cgb) {
+// 	bufferPos = 0;
+	ch1.init(cgb);
+	ch2.init(cgb);
+	ch3.init(cgb);
+	ch4.init(cgb);
 }
 
 void PSG::reset() {
@@ -63,12 +70,27 @@ void PSG::reset() {
 	ch4.reset();
 }
 
-PSG::PSG() {
-	buffer = new Gambatte::uint_least32_t[bufferSize];
+void PSG::setStatePtrs(SaveState &state) {
+	ch3.setStatePtrs(state);
 }
 
-PSG::~PSG() {
-	delete[] buffer;
+void PSG::saveState(SaveState &state) {
+	ch1.saveState(state);
+	ch2.saveState(state);
+	ch3.saveState(state);
+	ch4.saveState(state);
+}
+
+void PSG::loadState(const SaveState &state) {
+	ch1.loadState(state);
+	ch2.loadState(state);
+	ch3.loadState(state);
+	ch4.loadState(state);
+	
+	lastUpdate = state.cpu.cycleCounter;
+	set_so_volume(state.mem.ioamhram.get()[0x124]);
+	map_so(state.mem.ioamhram.get()[0x125]);
+	enabled = state.mem.ioamhram.get()[0x126] >> 7 & 1;
 }
 
 void PSG::accumulate_channels(const unsigned long cycles) {

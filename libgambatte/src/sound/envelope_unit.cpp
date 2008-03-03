@@ -78,17 +78,23 @@ bool EnvelopeUnit::nr4Init(const unsigned long cc) {
 	return !(nr2 & 0xF8);
 }
 
+EnvelopeUnit::EnvelopeUnit(VolOnOffEvent &volOnOffEvent) :
+volOnOffEvent(volOnOffEvent),
+nr2(0),
+volume(0)
+{}
+
 void EnvelopeUnit::reset() {
 	counter = COUNTER_DISABLED;
 }
 
-void EnvelopeUnit::init(const bool ch1, const unsigned long cc) {
-	volume = 0;
-	counter = cc - (cc - 0x1000 & 0x7FFF) + 8ul * 0x8000;
-	nr2 = 0;
-	
-	if (ch1) {
-		nr2 = 0xF3;
-		counter = COUNTER_DISABLED;
-	}
+void EnvelopeUnit::saveState(SaveState::SPU::Env &estate) const {
+	estate.counter = counter;
+	estate.volume = volume;
+}
+
+void EnvelopeUnit::loadState(const SaveState::SPU::Env &estate, const unsigned nr2) {
+	counter = estate.counter;
+	volume = estate.volume;
+	this->nr2 = nr2;
 }

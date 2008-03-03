@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,35 +16,21 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef ENVELOPE_UNIT_H
-#define ENVELOPE_UNIT_H
+#ifndef ARRAY_H
+#define ARRAY_H
 
-#include "sound_unit.h"
-#include "../savestate.h"
-
-class EnvelopeUnit : public SoundUnit {
-public:
-	struct VolOnOffEvent {
-		virtual ~VolOnOffEvent() {}
-		virtual void operator()(unsigned long /*cc*/) {}
-	};
+template<typename T>
+class Array {
+	T *a;
 	
-private:
-	static VolOnOffEvent nullEvent;
-	VolOnOffEvent &volOnOffEvent;
-	unsigned char nr2;
-	unsigned char volume;
+	Array(const Array &ar);
 	
 public:
-	EnvelopeUnit(VolOnOffEvent &volOnOffEvent = nullEvent);
-	void event();
-	bool dacIsOn() const { return nr2 & 0xF8; }
-	unsigned getVolume() const { return volume; }
-	bool nr2Change(unsigned newNr2);
-	bool nr4Init(unsigned long cycleCounter);
-	void reset();
-	void saveState(SaveState::SPU::Env &estate) const;
-	void loadState(const SaveState::SPU::Env &estate, unsigned nr2);
+	Array(const std::size_t size = 0) : a(size ? new T[size] : 0) {}
+	~Array() { delete []a; }
+	void reset(const std::size_t size) { delete []a; a = size ? new T[size] : 0; }
+	operator T*() { return a; }
+	operator const T*() const { return a; }
 };
 
 #endif

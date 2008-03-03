@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -29,7 +29,6 @@ Mode3Event::Mode3Event(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue
 	mode0Irq(mode0Irq_in),
 	irqEvent(irqEvent_in)
 {
-	reset();
 }
 
 void Mode3Event::doEvent() {
@@ -59,20 +58,5 @@ void Mode3Event::doEvent() {
 		}
 	}
 	
-	setTime(m3EventQueue.empty() ? DISABLED_TIME : m3EventQueue.top()->time());
-}
-
-void addEvent(Mode3Event &event, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned long oldTime = event.time();
-	
-	event.schedule();
-	
-	if (oldTime == VideoEvent::DISABLED_TIME)
-		queue.push(&event);
-	else if (oldTime != event.time()) {
-		if (event.time() > oldTime)
-			queue.inc(&event, &event);
-		else
-			queue.dec(&event, &event);
-	}
+	setTime(schedule(m3EventQueue));
 }

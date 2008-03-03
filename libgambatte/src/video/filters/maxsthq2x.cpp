@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 2003 MaxSt                                              *
@@ -902,8 +902,7 @@ static void buildLut() {
 }
 
 // void hq2x_32( const unsigned char * pIn, unsigned char * pOut, int Xres, int Yres, int BpL ) {
-template<class PixelPutter>
-static void filter(typename PixelPutter::pixel_t *pOut, const unsigned dstPitch, PixelPutter putPixel,
+static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 		   const Gambatte::uint_least32_t *pIn, const unsigned Xres, const unsigned Yres)
 {
 	//   +----+----+----+
@@ -977,10 +976,10 @@ static void filter(typename PixelPutter::pixel_t *pOut, const unsigned dstPitch,
 // 				printf("pattern: %u\n", pattern);
 				pixelop* op = lut + pattern * 4;
 				
-				putPixel(pOut, (*op++)(w));
-				putPixel(pOut + 1, (*op++)(w));
-				putPixel(pOut + dstPitch, (*op++)(w));
-				putPixel(pOut + dstPitch + 1, (*op)(w));
+				*pOut = (*op++)(w);
+				*(pOut + 1) = (*op++)(w);
+				*(pOut + dstPitch) = (*op++)(w);
+				*(pOut + dstPitch + 1) = (*op)(w);
 			}
 			
 			++pIn;
@@ -1022,14 +1021,6 @@ unsigned MaxSt_Hq2x::inPitch() {
 	return 160;
 }
 
-void MaxSt_Hq2x::filter(Rgb32Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb32Putter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer, 160, 144);
-}
-
-void MaxSt_Hq2x::filter(Rgb16Putter::pixel_t *const dbuffer, const unsigned pitch, Rgb16Putter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer, 160, 144);
-}
-
-void MaxSt_Hq2x::filter(UyvyPutter::pixel_t *const dbuffer, const unsigned pitch, UyvyPutter putPixel) {
-	::filter(dbuffer, pitch, putPixel, buffer, 160, 144);
+void MaxSt_Hq2x::filter(Gambatte::uint_least32_t *const dbuffer, const unsigned pitch) {
+	::filter(dbuffer, pitch, buffer, 160, 144);
 }

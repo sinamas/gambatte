@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,8 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
+class SaveState;
+
 #include "int.h"
 #include "video.h"
 #include "sound.h"
@@ -32,18 +34,18 @@ class FilterInfo;
 }
 
 class Memory {
-	enum cartridgetype { plain, mbc1, mbc2, mbc3, mbc5 };
-	enum events { HDMA_RESCHEDULE, DMA, INTERRUPTS, BLIT, UNHALT, END };
-	enum irqEvents { /*MODE0, MODE1, MODE2, LYC,*/ TIMA, /*M0RESC,*/ SERIAL };
+public:
+	enum { COUNTER_DISABLED = 0xFFFFFFFFu };
 	
-	static const unsigned long COUNTER_DISABLED = 0xFFFFFFFF;
+private:
+	enum cartridgetype { plain, mbc1, mbc2, mbc3, mbc5 };
+	enum events { HDMA_RESCHEDULE, DMA, INTERRUPTS, BLIT, UNHALT, OAM, END };
+	enum irqEvents { /*MODE0, MODE1, MODE2, LYC,*/ TIMA, /*M0RESC,*/ SERIAL };
 	
 	unsigned char ioamhram[0x200];
 	unsigned char vram[0x2000 * 2];
 	unsigned char *rmem[0x10];
 	unsigned char *wmem[0x10];
-	unsigned char cgb_bgp_data[8 * 8];
-	unsigned char cgb_objp_data[8 * 8];
 	
 	unsigned char *memchunk;
 	unsigned char *romdata[2];
@@ -56,7 +58,7 @@ class Memory {
 	unsigned char *rsrambankptr;
 	unsigned char *wsrambankptr;
 
-	char* romfile;
+	char *romfile;
 	char *savedir;
 	char *savename;
 	
@@ -66,7 +68,8 @@ class Memory {
 	unsigned long tima_lastUpdate;
 	unsigned long next_timatime;
 	unsigned long next_blittime;
-	unsigned long next_irqtime;
+	unsigned long nextIntTime;
+	unsigned long minIntTime;
 	unsigned long next_dmatime;
 	unsigned long next_hdmaReschedule;
 	unsigned long next_unhalttime;
@@ -76,6 +79,7 @@ class Memory {
 	unsigned long next_serialtime;
 	unsigned long next_eventtime;
 	unsigned long lastOamDmaUpdate;
+	unsigned long nextOamEventTime;
 	
 	LCD display;
 	PSG sound;
@@ -107,14 +111,13 @@ class Memory {
 	bool hdma_transfer;
 	bool active;
 
-	void init();
-	void saveram();
-	void save_rtc();
 	void updateInput();
 
 	void setRombank();
 	void setRambank();
 	void setBanks();
+	void oamDmaInitSetup();
+	void setOamDmaArea();
 	void updateOamDma(unsigned long cycleCounter);
 	void startOamDma(unsigned long cycleCounter);
 	void endOamDma(unsigned long cycleCounter);
@@ -134,7 +137,7 @@ class Memory {
 	void rescheduleIrq(unsigned long cycleCounter);
 	void rescheduleHdmaReschedule();
 	
-	void refreshPalettes(unsigned long cycleCounter);
+	bool loadROM();
 	
 	bool isDoubleSpeed() const { return doubleSpeed; }
 
@@ -142,8 +145,11 @@ public:
 	Memory(const Interrupter &interrupter);
 	~Memory();
 
-	void reset();
-	void reload();
+	void setStatePtrs(SaveState &state);
+	unsigned long saveState(SaveState &state, unsigned long cc);
+	void loadState(const SaveState &state, unsigned long oldCc);
+	void loadSavedata();
+	void saveSavedata();
 
 	void speedChange(unsigned long cycleCounter);
 	bool isCgb() const { return cgb; }
@@ -156,7 +162,7 @@ public:
 
 	void di() {
 		IME = 0;
-		next_irqtime = COUNTER_DISABLED;
+		nextIntTime = COUNTER_DISABLED;
 		
 		if (next_event == INTERRUPTS)
 			set_event();
@@ -190,7 +196,6 @@ public:
 	unsigned long event(unsigned long cycleCounter);
 	unsigned long resetCounters(unsigned long cycleCounter);
 
-	bool loadROM();
 	bool loadROM(const char* romfile);
 	void set_savedir(const char *dir);
 
@@ -202,10 +207,10 @@ public:
 	void inc_endtime(unsigned long inc);
 	
 	void sound_fill_buffer(Gambatte::uint_least16_t *stream, unsigned samples, unsigned long cycleCounter);
-	void setVideoBlitter(Gambatte::VideoBlitter * vb, unsigned long cycleCounter);
-	void setVideoFilter(unsigned int n, unsigned long cycleCounter);
+	void setVideoBlitter(Gambatte::VideoBlitter * vb);
+	void setVideoFilter(unsigned int n);
 	
-	void videoBufferChange(unsigned long cycleCounter);
+	void videoBufferChange();
 	
 	unsigned videoWidth() const {
 		return display.videoWidth();
@@ -219,7 +224,7 @@ public:
 		return display.filterInfo();
 	}
 	
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32, unsigned long cycleCounter);
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
 };
 
 #endif

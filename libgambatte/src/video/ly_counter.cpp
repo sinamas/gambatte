@@ -17,10 +17,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "ly_counter.h"
+#include "../savestate.h"
 
 LyCounter::LyCounter() : VideoEvent(0) {
 	setDoubleSpeed(false);
-	resetLy();
+	reset(0, 0);
 }
 
 void LyCounter::doEvent() {
@@ -48,6 +49,11 @@ unsigned long LyCounter::nextFrameCycle(const unsigned long frameCycle, const un
 		tmp -= 70224U << ds;
 	
 	return tmp;
+}
+
+void LyCounter::reset(const unsigned long videoCycles, const unsigned long lastUpdate) {
+	ly_ = videoCycles / 456;
+	setTime(lastUpdate + (456 - (videoCycles - ly_ * 456ul) << isDoubleSpeed()));
 }
 
 void LyCounter::setDoubleSpeed(const bool ds_in) {

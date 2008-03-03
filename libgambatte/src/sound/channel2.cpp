@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,13 +17,20 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "channel2.h"
+#include "../savestate.h"
 
 Channel2::Channel2() :
 	staticOutputTest(*this, dutyUnit),
 	disableMaster(master, dutyUnit),
 	lengthCounter(disableMaster, 0x3F),
-	envelopeUnit(staticOutputTest)
-{}
+	envelopeUnit(staticOutputTest),
+	cycleCounter(0),
+	soMask(0),
+	nr4(0),
+	master(false)
+{
+	setEvent();
+}
 
 void Channel2::setEvent() {
 	nextEventUnit = &dutyUnit;
@@ -86,17 +93,27 @@ void Channel2::reset() {
 	setEvent();
 }
 
-void Channel2::init(const unsigned long cc, const bool cgb) {
-	nr4 = 0;
-	cycleCounter = 0x1000 | cc & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
-	master = false;
-	
-	dutyUnit.init(cycleCounter);
+void Channel2::init(const bool cgb) {
 	lengthCounter.init(cgb);
-	envelopeUnit.init(false, cycleCounter);
-	dutyUnit.killCounter();
+}
+
+void Channel2::saveState(SaveState &state) {
+	dutyUnit.saveState(state.spu.ch2.duty, cycleCounter);
+	envelopeUnit.saveState(state.spu.ch2.env);
+	lengthCounter.saveState(state.spu.ch2.lcounter);
 	
-	setEvent();
+	state.spu.ch2.nr4 = nr4;
+	state.spu.ch2.master = master;
+}
+
+void Channel2::loadState(const SaveState &state) {
+	dutyUnit.loadState(state.spu.ch2.duty, state.mem.ioamhram.get()[0x116], state.spu.ch2.nr4);
+	envelopeUnit.loadState(state.spu.ch2.env, state.mem.ioamhram.get()[0x117]);
+	lengthCounter.loadState(state.spu.ch2.lcounter);
+	
+	cycleCounter = state.spu.cycleCounter;
+	nr4 = state.spu.ch2.nr4;
+	master = state.spu.ch2.master;
 }
 
 void Channel2::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {

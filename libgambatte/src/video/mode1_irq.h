@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@
 #define VIDEO_MODE1_IRQ_H
 
 #include "ly_counter.h"
+#include "basic_add_event.h"
 
 class Mode1Irq : public VideoEvent {
 	unsigned char &ifReg;
@@ -31,11 +32,9 @@ public:
 	
 	void doEvent();
 	
-	void reset() {
-		setTime(DISABLED_TIME);
+	static unsigned long schedule(const LyCounter &lyCounter, unsigned long cycleCounter) {
+		return lyCounter.nextFrameCycle(144 * 456, cycleCounter);
 	}
-	
-	void schedule(const LyCounter &lyCounter, unsigned long cycleCounter);
 	
 	void setDoubleSpeed(const bool ds) {
 		frameTime = 70224 << ds;
@@ -45,5 +44,13 @@ public:
 		flags = enabled * 2 | 1;
 	}
 };
+
+static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Mode1Irq *const e, const unsigned long newTime) {
+	addUnconditionalEvent(q, e, newTime);
+}
+
+static inline void addFixedtimeEvent(event_queue<VideoEvent*,VideoEventComparer> &q, Mode1Irq *const e, const unsigned long newTime) {
+	addUnconditionalFixedtimeEvent(q, e, newTime);
+}
 
 #endif

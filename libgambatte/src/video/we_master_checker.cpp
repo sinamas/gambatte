@@ -21,6 +21,7 @@
 #include "event_queue.h"
 #include "wy.h"
 #include "basic_add_event.h"
+#include "../savestate.h"
 
 WeMasterChecker::WeMasterChecker(event_queue<VideoEvent*,VideoEventComparer> &m3EventQueue_in,
                 Wy &wy_in,
@@ -39,7 +40,7 @@ void WeMasterChecker::doEvent() {
 // 	if (wy.value() >= lyCounter.ly()) {
 		if (!weMaster_ /*&& src */&& wy.value() == lyCounter.ly()) {
 			wy.weirdAssWeMasterEnableOnWyLineCase();
-			addEvent(wy.reader4(), lyCounter, time(), m3EventQueue);
+			addEvent(m3EventQueue, &wy.reader4(), Wy::WyReader4::schedule(lyCounter, time()));
 		}
 		
 		set(true);
@@ -48,19 +49,10 @@ void WeMasterChecker::doEvent() {
 	setTime(time() + (70224U << lyCounter.isDoubleSpeed()));
 }
 
-void addEvent(WeMasterChecker &event, const unsigned wy, const bool we, const unsigned long cycleCounter, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned long oldTime = event.time();
-	
-	event.schedule(wy, we, cycleCounter);
-	
-	if (oldTime != event.time()) {
-		if (oldTime == VideoEvent::DISABLED_TIME)
-			queue.push(&event);
-		else if (event.time() == VideoEvent::DISABLED_TIME)
-			queue.remove(&event);
-		else if (event.time() > oldTime)
-			queue.inc(&event, &event);
-		else
-			queue.dec(&event, &event);
-	}
+void WeMasterChecker::saveState(SaveState &state) const {
+	state.ppu.weMaster = weMaster_;
+}
+
+void WeMasterChecker::loadState(const SaveState &state) {
+	weMaster_ = state.ppu.weMaster;
 }

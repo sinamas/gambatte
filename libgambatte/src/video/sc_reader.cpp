@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,12 +19,14 @@
 #include "sc_reader.h"
 
 #include "../event_queue.h"
+#include "../savestate.h"
 
 ScReader::ScReader() : VideoEvent(2) {
 	setDoubleSpeed(false);
 	setScxSource(0);
 	setScySource(0);
-	reset();
+	scx_[1] = scx_[0] = scxSrc;
+	scy_[1] = scy_[0] = scySrc;
 }
 
 void ScReader::doEvent() {
@@ -40,33 +42,21 @@ void ScReader::doEvent() {
 	
 }
 
-void ScReader::reset() {
-	scx_[1] = scx_[0] = scxSrc;
-	scy_[1] = scy_[0] = scySrc;
-	setTime(DISABLED_TIME);
+void ScReader::saveState(SaveState &state) const {
+	state.ppu.scx[0] = scx_[0];
+	state.ppu.scx[1] = scx_[1];
+	state.ppu.scy[0] = scy_[0];
+	state.ppu.scy[1] = scy_[1];
 }
 
-void ScReader::schedule(const unsigned long lastUpdate, const unsigned long videoCycles, const unsigned scReadOffset) {
-	setTime(lastUpdate + ((8u - ((videoCycles - scReadOffset) & 7)) << dS));
+void ScReader::loadState(const SaveState &state) {
+	scx_[0] = state.ppu.scx[0];
+	scx_[1] = state.ppu.scx[1];
+	scy_[0] = state.ppu.scy[0];
+	scy_[1] = state.ppu.scy[1];
 }
 
 void ScReader::setDoubleSpeed(const bool dS_in) {
 	dS = dS_in;
 	incCycles = 8u << dS_in;
-}
-
-void addEvent(ScReader &event, const unsigned long lastUpdate, const unsigned long videoCycles,
-              const unsigned scReadOffset, event_queue<VideoEvent*,VideoEventComparer> &queue) {
-	const unsigned long oldTime = event.time();
-	
-	event.schedule(lastUpdate, videoCycles, scReadOffset);
-	
-	if (oldTime == VideoEvent::DISABLED_TIME)
-		queue.push(&event);
-	else if (oldTime != event.time()) {
-		if (event.time() > oldTime)
-			queue.inc(&event, &event);
-		else
-			queue.dec(&event, &event);
-	}
 }
