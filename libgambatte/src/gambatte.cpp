@@ -78,6 +78,8 @@ void GB::set_savedir(const char *sdir) {
 }
 
 bool GB::load(const char* romfile) {
+	z80->saveSavedata();
+	
 	const bool failed = z80->load(romfile);
 	
 	SaveState state;
@@ -109,6 +111,8 @@ void GB::saveState() {
 }
 
 void GB::loadState() {
+	z80->saveSavedata();
+	
 	SaveState state;
 	z80->setStatePtrs(state);
 	StateSaver::loadState(state, "test.gqs");
