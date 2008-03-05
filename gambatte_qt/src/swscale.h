@@ -20,7 +20,6 @@
 #define SWSCALE_H
 
 #include <cstring>
-#include <iostream>
 
 template<typename T>
 void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
