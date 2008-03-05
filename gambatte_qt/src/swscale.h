@@ -20,6 +20,7 @@
 #define SWSCALE_H
 
 #include <cstring>
+#include <iostream>
 
 template<typename T>
 void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
@@ -59,12 +60,19 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		unsigned long c13,c2;
 	};
 	
-	Colorsum *const sums = new Colorsum[inWidth + 1];
-	unsigned char *const hcoeffs = new unsigned char[outWidth];
+	Colorsum *const sums = new Colorsum[inWidth];
+	unsigned char *const hcoeffs = new unsigned char[outWidth - 1];
 	
 	{
-		unsigned long hppos = 0;
-		unsigned w = inWidth;
+		unsigned long hppos = outWidth + inWidth >> 1;
+		
+		while (hppos < outWidth) {
+			hppos += inWidth;
+		}
+		
+		hppos -= outWidth;
+		
+		unsigned w = inWidth - 1;
 		unsigned char *coeff = hcoeffs;
 		
 		do {
@@ -77,63 +85,79 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		} while (--w);
 	}
 	
-	unsigned srcPitch = inWidth;
-	unsigned long vppos = 0;
+	unsigned long vppos = outHeight + inHeight >> 1;
+	unsigned srcPitch = 0;
 	unsigned h = inHeight;
+	unsigned hn = 2;
 	
 	do {
 		do {
-			{
-				const unsigned coeff = (vppos << c13distance) / outHeight;
-				const T *s = src;
-				Colorsum *sum = sums;
-				unsigned n = inWidth;
-				
-				do {
-					const T p1c13 = *s & c13mask;
-					const T p1c2 = *s & c2mask;
-					const T p2c13 = *(s+srcPitch) & c13mask;
-					const T p2c2 = *(s+srcPitch) & c2mask;
+			while (vppos < outHeight) {
+				{
+					const unsigned coeff = (vppos << c13distance) / outHeight;
+					const T *s = src;
+					Colorsum *sum = sums;
+					unsigned n = inWidth;
 					
-					sum->c13 = p1c13 + ((p2c13 - p1c13) * coeff >> c13distance) & c13mask;
-					sum->c2 = (p1c2 << c13distance) + (p2c2 - p1c2) * coeff;
-					
-					++sum;
-					++s;
-				} while (--n);
-				
-				*sum = *(sum-1);
-			}
-			
-			{
-				unsigned long hppos = 0;
-				const Colorsum *sum = sums;
-				const unsigned char *coeff = hcoeffs;
-				unsigned w = inWidth;
-				
-				do {
 					do {
-						*dst++ = sum->c13 + (((sum+1)->c13 - sum->c13) * *coeff >> c13distance) & c13mask |
-						         (sum->c2 << c13distance) + ((sum+1)->c2 - sum->c2) * *coeff >> c13distance * 2 & c2mask;
+						const T p1c13 = *s & c13mask;
+						const T p1c2 = *s & c2mask;
+						const T p2c13 = *(s+srcPitch) & c13mask;
+						const T p2c2 = *(s+srcPitch) & c2mask;
+						
+						sum->c13 = p1c13 + ((p2c13 - p1c13) * coeff >> c13distance) & c13mask;
+						sum->c2 = (p1c2 << c13distance) + (p2c2 - p1c2) * coeff;
+						
+						++sum;
+						++s;
+					} while (--n);
+				}
+				
+				{
+					const Colorsum *sum = sums;
+					unsigned long hppos = outWidth + inWidth >> 1;
+					
+					while (hppos < outWidth) {
+						*dst++ = sum->c13 | sum->c2 >> c13distance & c2mask;
 						hppos += inWidth;
-						++coeff;
-					} while (hppos < outWidth);
+					}
 					
 					hppos -= outWidth;
-					++sum;
-				} while (--w);
+					
+					const unsigned char *coeff = hcoeffs;
+					unsigned w = inWidth - 1;
+					
+					do {
+						do {
+							*dst++ = sum->c13 + (((sum+1)->c13 - sum->c13) * *coeff >> c13distance) & c13mask |
+								(sum->c2 << c13distance) + ((sum+1)->c2 - sum->c2) * *coeff >> c13distance * 2 & c2mask;
+							hppos += inWidth;
+							++coeff;
+						} while (hppos < outWidth);
+						
+						hppos -= outWidth;
+						++sum;
+					} while (--w);
+					
+					do {
+						*dst++ = sum->c13 | sum->c2 >> c13distance & c2mask;
+						hppos += inWidth;
+					} while (hppos < outWidth + inWidth >> 1);
+				}
+				
+				dst += dstPitch - outWidth;
+				vppos += inHeight;
 			}
 			
-			dst += dstPitch - outWidth;
-			vppos += inHeight;
-		} while (vppos < outHeight);
+			vppos -= outHeight;
+			src += srcPitch;
+			srcPitch = inWidth;
+		} while (--h);
 		
-		vppos -= outHeight;
-		src += srcPitch;
-		
-		if (h == 2)
-			srcPitch = 0;
-	} while (--h);
+		h = 1;
+		srcPitch = 0;
+		vppos += outHeight - (outHeight + inHeight >> 1);
+	} while (--hn);
 	
 	delete []sums;
 	delete []hcoeffs;
