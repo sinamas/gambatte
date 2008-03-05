@@ -59,26 +59,19 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		unsigned long c13,c2;
 	};
 	
-	Colorsum *const sums = new Colorsum[inWidth];
+	Colorsum *const sums = new Colorsum[inWidth + 1];
 	unsigned char *const hcoeffs = new unsigned char[outWidth - 1];
 	
 	{
 		unsigned long hppos = outWidth + inWidth >> 1;
-		
-		while (hppos < outWidth) {
-			hppos += inWidth;
-		}
-		
-		hppos -= outWidth;
-		
-		unsigned w = inWidth - 1;
+		unsigned w = inWidth;
 		unsigned char *coeff = hcoeffs;
 		
 		do {
-			do {
+			while (hppos < outWidth) {
 				*coeff++ = (hppos << c13distance) / outWidth;
 				hppos += inWidth;
-			} while (hppos < outWidth);
+			}
 			
 			hppos -= outWidth;
 		} while (--w);
@@ -95,7 +88,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 				{
 					const unsigned coeff = (vppos << c13distance) / outHeight;
 					const T *s = src;
-					Colorsum *sum = sums;
+					Colorsum *sum = sums + 1;
 					unsigned n = inWidth;
 					
 					do {
@@ -110,29 +103,23 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 						++sum;
 						++s;
 					} while (--n);
+					
+					sums[0] = sums[1];
 				}
 				
 				{
 					const Colorsum *sum = sums;
 					unsigned long hppos = outWidth + inWidth >> 1;
-					
-					while (hppos < outWidth) {
-						*dst++ = sum->c13 | sum->c2 >> c13distance & c2mask;
-						hppos += inWidth;
-					}
-					
-					hppos -= outWidth;
-					
 					const unsigned char *coeff = hcoeffs;
-					unsigned w = inWidth - 1;
+					unsigned w = inWidth;
 					
 					do {
-						do {
+						while (hppos < outWidth) {
 							*dst++ = sum->c13 + (((sum+1)->c13 - sum->c13) * *coeff >> c13distance) & c13mask |
 								(sum->c2 << c13distance) + ((sum+1)->c2 - sum->c2) * *coeff >> c13distance * 2 & c2mask;
 							hppos += inWidth;
 							++coeff;
-						} while (hppos < outWidth);
+						}
 						
 						hppos -= outWidth;
 						++sum;
