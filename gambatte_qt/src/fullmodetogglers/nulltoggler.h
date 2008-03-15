@@ -16,51 +16,33 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef X11BLITTER_H
-#define X11BLITTER_H
+#ifndef NULLTOGGLER_H
+#define NULLTOGGLER_H
 
-#include "../blitterwidget.h"
+#include "../fullmodetoggler.h"
+#include <QWidget>
 
-#include <memory>
-
-class QCheckBox;
-
-class X11Blitter : public BlitterWidget {
-	class SubBlitter;
-	class ShmBlitter;
-	class PlainBlitter;
+class NullToggler : public FullModeToggler {
+	Q_OBJECT
 	
-	struct VisInfo {
-		void *visual;
-		unsigned depth;
-	};
-	
-	const std::auto_ptr<QWidget> confWidget;
-	std::auto_ptr<SubBlitter> subBlitter;
-	QCheckBox *const bfBox;
-	char *buffer;
-	unsigned int inWidth, inHeight;
-	VisInfo visInfo;
-// 	unsigned int scale;
-	bool shm;
-	bool bf;
-	
-protected:
-	void paintEvent(QPaintEvent *event);
-	void resizeEvent(QResizeEvent *event);
+	const std::vector<ResInfo> nullVector;
+	bool fullRes;
 	
 public:
-	X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
-	~X11Blitter();
-	void init();
-	void uninit();
-	bool isUnusable() const;
-	int sync(bool turbo);
-	void setBufferDimensions(const unsigned width, const unsigned height);
-	void blit();
-	QWidget* settingsWidget() { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings();
+	NullToggler() : fullRes(false) {}
+	unsigned currentResIndex(unsigned /*screen*/) const { return 0; }
+	unsigned currentRateIndex(unsigned /*screen*/) const { return 0; }
+	bool isFullMode() const { return fullRes; }
+	void setMode(unsigned /*screen*/, unsigned /*resIndex*/, unsigned /*rateIndex*/) {}
+	void setFullMode(bool enable) { fullRes = enable; }
+	void emitRate() { emit rateChange(0); }
+	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return nullVector; }
+	void setScreen(const QWidget */*widget*/) {}
+	unsigned screen() const { return 0; }
+	unsigned screens() const { return 0; }
+	
+signals:
+	void rateChange(int newHz);
 };
 
 #endif

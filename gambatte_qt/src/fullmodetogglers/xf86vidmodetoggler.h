@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,42 +16,47 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef XRANDRTOGGLER_H
-#define XRANDRTOGGLER_H
+#ifndef XF86VIDMODETOGGLER_H
+#define XF86VIDMODETOGGLER_H
 
-#include "../fullrestoggler.h"
-
+#include <QCoreApplication>
+#include "../fullmodetoggler.h"
 #include <QObject>
 #include <vector>
-
 #include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
-
+#include <X11/extensions/xf86vmode.h>
 #include "../resinfo.h"
 
-class XRandRToggler : public FullResToggler {
+class Xf86VidModeToggler : public FullModeToggler {
 	Q_OBJECT
-		
+	
+	XF86VidModeModeInfo **modesinfo;
+	XF86VidModeModeInfo originalMode;
 	std::vector<ResInfo> infoVector;
-// 	XRRScreenConfiguration *config;
-	unsigned originalResIndex;
+	int modecount;
 	unsigned fullResIndex;
-	Rotation rotation;
-	unsigned originalRateIndex;
 	unsigned fullRateIndex;
+	int originalvportx;
+	int originalvporty;
+	WId winId;
 	bool isFull;
 	
 public:
 	static bool isUsable();
-	XRandRToggler();
-	~XRandRToggler();
-	unsigned currentResIndex() const { return fullResIndex; }
-	unsigned currentRateIndex() const { return fullRateIndex; }
-	bool isFullRes() const;
-	void setMode(unsigned resIndex, unsigned rateIndex);
-	void setFullRes(bool enable);
+	Xf86VidModeToggler(WId winId);
+	~Xf86VidModeToggler();
+	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
+	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
+	const QRect fullScreenRect(const QWidget *w) const;
+	bool isFullMode() const { return isFull; }
+	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
+	void setFullMode(bool enable);
 	void emitRate();
-	const std::vector<ResInfo>& resVector() const { return infoVector; }
+	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
+	void setScreen(const QWidget */*widget*/) {}
+	unsigned screen() const { return 0; }
+	unsigned screens() const { return 1; }
+	bool eventFilter(QObject *obj, QEvent *ev);
 	
 signals:
 	void rateChange(int newHz);

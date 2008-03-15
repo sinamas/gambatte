@@ -17,7 +17,7 @@ SOURCES += main.cpp \
  mainwindow.cpp
 
 HEADERS += blitterwidget.h \
-fullrestoggler.h \
+fullmodetoggler.h \
 videodialog.h \
 blittercontainer.h \
 resinfo.h \
@@ -26,10 +26,10 @@ audioengine.h \
 samplescalculator.h \
 addaudioengines.h \
 addblitterwidgets.h \
-getfullrestoggler.h \
+getfullmodetoggler.h \
 blitterwidgets/qglblitter.h \
 blitterwidgets/qpainterblitter.h \
-fullrestogglers/nulltoggler.h \
+fullmodetogglers/nulltoggler.h \
 SDL_Joystick/include/SDL_config.h \
 SDL_Joystick/include/SDL_error.h \
 SDL_Joystick/include/SDL_event.h \
@@ -59,31 +59,32 @@ TARGET = ../bin/gambatte_qt
 INCLUDEPATH += ../../libgambatte/include SDL_Joystick/include
 LIBS += -L../../libgambatte -lgambatte -lz
 DEFINES += HAVE_STDINT_H
+#QMAKE_CXXFLAGS = -g
 
 macx {
-    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
-    SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c
-    HEADERS += audioengines/aoengine.h
-    CONFIG += link_pkgconfig
-    PKGCONFIG += ao
-    LIBS += -framework IOKit
+    SOURCES += addaudioengines_macx.cpp addblitterwidgets.cpp getfullmodetoggler_macx.cpp blitterwidget.cpp
+    SOURCES += SDL_Joystick/src/darwin/SDL_sysjoystick.c audioengines/openalengine.cpp fullmodetogglers/quartztoggler.cpp
+    HEADERS += audioengines/openalengine.h fullmodetogglers/quartztoggler.h
+    LIBS += -framework IOKit -framework OpenAL
 }else : unix {
         DEFINES += PLATFORM_UNIX
 
         SOURCES += blitterwidget.cpp \
                x11getprocaddress.cpp \
                addblitterwidgets_unix.cpp \
-               getfullrestoggler_unix.cpp \
+               getfullmodetoggler_unix.cpp \
                audioengines/ossengine.cpp \
                blitterwidgets/xvblitter.cpp \
                blitterwidgets/x11blitter.cpp \
-               fullrestogglers/xrandrtoggler.cpp
+               fullmodetogglers/xrandrtoggler.cpp \
+               fullmodetogglers/xf86vidmodetoggler.cpp
 
         HEADERS += x11getprocaddress.h \
                audioengines/ossengine.h \
                blitterwidgets/xvblitter.h \
                blitterwidgets/x11blitter.h \
-               fullrestogglers/xrandrtoggler.h
+               fullmodetogglers/xrandrtoggler.h \
+               fullmodetogglers/xf86vidmodetoggler.h
 
         LIBS += -L/usr/X11R6/lib -lXv -lXrandr
 
@@ -109,22 +110,22 @@ macx {
     }else : win32 {
         DEFINES += PLATFORM_WIN32
 
-        SOURCES += getfullrestoggler_win32.cpp \
+        SOURCES += getfullmodetoggler_win32.cpp \
                blitterwidget_win32.cpp \
                addaudioengines_win32.cpp \
                addblitterwidgets_win32.cpp \
                audioengines/directsoundengine.cpp \
                blitterwidgets/directdrawblitter.cpp \
-               fullrestogglers/gditoggler.cpp \
+               fullmodetogglers/gditoggler.cpp \
                SDL_Joystick/src/win32/SDL_mmjoystick.c
 
         HEADERS += audioengines/directsoundengine.h \
                blitterwidgets/directdrawblitter.h \
-               fullrestogglers/gditoggler.h
+               fullmodetogglers/gditoggler.h
 
         LIBS += -lwinmm -lddraw -ldxguid -ldsound
     }else {
-    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullrestoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
+    SOURCES += addaudioengines.cpp addblitterwidgets.cpp getfullmodetoggler.cpp blitterwidget.cpp audioengines/aoengine.cpp
     SOURCES += SDL_Joystick/src/dummy/SDL_sysjoystick.c
     HEADERS += audioengines/aoengine.h
     CONFIG += link_pkgconfig

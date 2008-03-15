@@ -28,7 +28,7 @@ class QHBoxLayout;
 class QComboBox;
 class QRadioButton;
 class BlitterWidget;
-class FullResToggler;
+class FullModeToggler;
 
 #include "resinfo.h"
 #include "mediasource.h"
@@ -39,26 +39,25 @@ class VideoDialog : public QDialog {
 	Q_OBJECT
 
 	const std::vector<BlitterWidget*> &engines;
-	const std::vector<ResInfo>& resVector;
+	const FullModeToggler *const resHandler;
 	QVBoxLayout *const topLayout;
 	QWidget *engineWidget;
 	QComboBox *const engineSelector;
 	QComboBox *const winResSelector;
 	const std::auto_ptr<QComboBox> winResSelectorBackup;
-	QComboBox *const fullResSelector;
-// 	QComboBox *fullResSelectorBackup;
-	QComboBox *const hzSelector;
+	std::vector<QComboBox*> fullResSelector;
+	std::vector<QComboBox*> hzSelector;
 	QRadioButton *const unrestrictedScalingButton;
 	QRadioButton *const keepRatioButton;
 	QRadioButton *const integerScalingButton;
 	QComboBox *const sourceSelector;
 	ScalingType scaling;
 	QSize aspRatio;
-	unsigned defaultRes;
+	const QSize defaultRes;
+	std::vector<int> fullIndex;
+	std::vector<int> hzIndex;
 	int engineIndex;
 	int winIndex;
-	int fullIndex;
-	int hzIndex;
 	int sourceIndexStore;
 	
 	void fillWinResSelector();
@@ -76,14 +75,14 @@ public:
 	VideoDialog(const std::vector<BlitterWidget*> &engines,
 	            const std::vector<MediaSource::VideoSourceInfo> &sourceInfos,
 	            const std::string &sourcesLabel,
-	            const FullResToggler &resHandler,
+	            const FullModeToggler *resHandler,
 	            const QSize &aspectRatio,
 	            QWidget *parent = 0);
 	~VideoDialog();
 	int engine() const;
 	const QSize winRes() const;
-	unsigned fullMode() const;
-	unsigned fullRate() const;
+	unsigned fullMode(unsigned screen) const;
+	unsigned fullRate(unsigned screen) const;
 	unsigned sourceIndex() const { return sourceIndexStore; }
 	const QSize sourceSize() const;
 	ScalingType scalingType() const { return scaling; }

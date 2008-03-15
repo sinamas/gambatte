@@ -16,14 +16,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "getfullrestoggler.h"
+#ifndef GET_FULL_MODE_TOGGLER_H
+#define GET_FULL_MODE_TOGGLER_H
 
-#include "fullrestogglers/nulltoggler.h"
-#include "fullrestogglers/xrandrtoggler.h"
+#include <memory>
+#include <QWidget>
 
-std::auto_ptr<FullResToggler> getFullResToggler() {
-	if (XRandRToggler::isUsable())
-		return std::auto_ptr<FullResToggler>(new XRandRToggler);
-	
-	return std::auto_ptr<FullResToggler>(new NullToggler);
-}
+class FullModeToggler;
+
+std::auto_ptr<FullModeToggler> getFullModeToggler(WId winId);
+
+#endif

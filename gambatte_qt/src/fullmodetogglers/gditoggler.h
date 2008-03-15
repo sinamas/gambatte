@@ -31,8 +31,9 @@ class GdiToggler : public FullResToggler {
 	Q_OBJECT
 		
 	std::vector<ResInfo> infoVector;
-	unsigned originalResIndex;
-	unsigned originalRateIndex;
+	unsigned originalWidth;
+	unsigned originalHeight;
+	unsigned originalRate;
 	unsigned fullResIndex;
 	unsigned fullRateIndex;
 	bool isFull;
@@ -40,13 +41,17 @@ class GdiToggler : public FullResToggler {
 public:
 	GdiToggler();
 	~GdiToggler();
-	unsigned currentResIndex() const { return fullResIndex; }
-	unsigned currentRateIndex() const { return fullRateIndex; }
-	bool isFullRes() const;
-	void setMode(unsigned resIndex, unsigned rateIndex);
-	void setFullRes(bool enable);
+	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
+	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
+	const QRect fullScreenRect(const QWidget *w) const;
+	bool isFullMode() const { return isFull; }
+	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
+	void setFullMode(bool enable);
 	void emitRate();
-	const std::vector<ResInfo>& resVector() const { return infoVector; }
+	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
+	void setScreen(const QWidget */*widget*/) {}
+	unsigned screen() const { return 0; }
+	unsigned screens() const { return 1; }
 	
 signals:
 	void rateChange(int newHz);

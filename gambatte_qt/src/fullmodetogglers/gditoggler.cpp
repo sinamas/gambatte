@@ -18,15 +18,11 @@
  ***************************************************************************/
 #include "gditoggler.h"
 
+#include <QApplication>
+#include <QDesktopWidget>
 #include <algorithm>
+#include <functional>
 #include <windows.h>
-
-template<typename T>
-struct greater {
-	bool operator()(const T &l, const T &r) const {
-		return l > r;
-	}
-};
 
 static inline bool operator!=(const ResInfo &l, const ResInfo &r) {
 	return l.w != r.w || l.h != r.h;
@@ -36,7 +32,37 @@ static inline bool operator>(const ResInfo &l, const ResInfo &r) {
 	return l.w > r.w || (l.w == r.w && l.h > r.h);
 }
 
+static void addMode(const DEVMODE &devmode, std::vector<ResInfo> &infoVector, unsigned *resIndex, unsigned *rateIndex) {
+	ResInfo info;
+	short rate;
+	
+	info.w = devmode.dmPelsWidth;
+	info.h = devmode.dmPelsHeight;
+	rate = devmode.dmDisplayFrequency;
+	
+	std::vector<ResInfo>::iterator it = std::lower_bound(infoVector.begin(), infoVector.end(), info, std::greater<ResInfo>());
+	
+	if (it == infoVector.end() || *it != info)
+		it = infoVector.insert(it, info);
+	
+	std::vector<short>::iterator rateIt = std::lower_bound(it->rates.begin(), it->rates.end(), rate, std::greater<short>());
+	
+	if (rateIt == it->rates.end() || *rateIt != rate)
+		rateIt = it->rates.insert(rateIt, rate);
+	
+	if (resIndex)
+		*resIndex = std::distance(infoVector.begin(), it);
+	
+	if (rateIndex)
+		*rateIndex = std::distance(it->rates.begin(), rateIt);
+}
+
 GdiToggler::GdiToggler() :
+originalWidth(0),
+originalHeight(0),
+originalRate(0),
+fullResIndex(0),
+fullRateIndex(0),
 isFull(false)
 {
 	DEVMODE devmode;
@@ -44,68 +70,43 @@ isFull(false)
 	devmode.dmDriverExtra = 0;
 	
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);
-	const unsigned originalWidth = devmode.dmPelsWidth;
-	const unsigned originalHeight = devmode.dmPelsHeight;
-	const short originalRate = devmode.dmDisplayFrequency;
+	originalWidth = devmode.dmPelsWidth;
+	originalHeight = devmode.dmPelsHeight;
+	originalRate = devmode.dmDisplayFrequency;
+	
 	const unsigned bpp = devmode.dmBitsPerPel;
 	
 	int n = 0;
 	
 	while (EnumDisplaySettings(NULL, n++, &devmode)) {
-		if (devmode.dmBitsPerPel != bpp)
-			continue;
-		
-		ResInfo info;
-		info.w = devmode.dmPelsWidth;
-		info.h = devmode.dmPelsHeight;
-		
-		std::vector<ResInfo>::iterator it = std::lower_bound(infoVector.begin(), infoVector.end(), info, greater<ResInfo>());
-		
-		if (it == infoVector.end() || *it != info)
-			it = infoVector.insert(it, info);
-		
-		std::vector<short>::iterator rateIt = std::lower_bound(it->rates.begin(), it->rates.end(), devmode.dmDisplayFrequency, greater<short>());
-		
-		if (rateIt == it->rates.end() || *rateIt != static_cast<short>(devmode.dmDisplayFrequency))
-			it->rates.insert(rateIt, devmode.dmDisplayFrequency);
+		if (devmode.dmBitsPerPel == bpp)
+			addMode(devmode, infoVector, NULL, NULL);
 	}
 	
-	{
-		unsigned i = 0;
-		
-		while (i < infoVector.size() && (infoVector[i].w != originalWidth || infoVector[i].h != originalHeight))
-			++i;
-		
-		fullResIndex = originalResIndex = i < infoVector.size() ? i : 0;
-	}
+	devmode.dmPelsWidth = originalWidth;
+	devmode.dmPelsHeight = originalHeight;
+	devmode.dmDisplayFrequency = originalRate;
 	
-	{
-		unsigned i = 0;
-		
-		while (i < infoVector[fullResIndex].rates.size() && infoVector[fullResIndex].rates[i] != originalRate)
-			++i;
-		
-		fullRateIndex = originalRateIndex = i < infoVector[fullResIndex].rates.size() ? i : 0;
-	}
+	addMode(devmode, infoVector, &fullResIndex, &fullRateIndex);
 }
 
 GdiToggler::~GdiToggler() {
-	setFullRes(false);
+	setFullMode(false);
 }
 
-bool GdiToggler::isFullRes() const {
-	return isFull;
+const QRect GdiToggler::fullScreenRect(const QWidget */*wdgt*/) const {
+	return QApplication::desktop()->screenGeometry(/*wdgt*/);
 }
 
-void GdiToggler::setMode(const unsigned resIndex, const unsigned rateIndex) {
+void GdiToggler::setMode(unsigned /*screen*/, const unsigned resIndex, const unsigned rateIndex) {
 	fullResIndex = resIndex;
 	fullRateIndex = rateIndex;
 	
-	if (isFullRes())
-		setFullRes(true);
+	if (isFullMode())
+		setFullMode(true);
 }
 
-void GdiToggler::setFullRes(const bool enable) {
+void GdiToggler::setFullMode(const bool enable) {
 	DEVMODE devmode;
 	devmode.dmSize = sizeof(DEVMODE);
 	devmode.dmDriverExtra = 0;
@@ -115,18 +116,26 @@ void GdiToggler::setFullRes(const bool enable) {
 	const unsigned currentHeight = devmode.dmPelsHeight;
 	const unsigned currentRate = devmode.dmDisplayFrequency;
 	
-	{
-		const ResInfo &info = infoVector[enable ? fullResIndex : originalResIndex];
+	if (enable) {
+		const ResInfo &info = infoVector[fullResIndex];
 		devmode.dmPelsWidth = info.w;
 		devmode.dmPelsHeight = info.h;
-		devmode.dmDisplayFrequency = info.rates[enable ? fullRateIndex : originalRateIndex];
+		devmode.dmDisplayFrequency = info.rates[fullRateIndex];
+		
+		if (!isFull) {
+			originalWidth = currentWidth;
+			originalHeight = currentHeight;
+			originalRate = currentRate;
+		}
+	} else {
+		devmode.dmPelsWidth = originalWidth;
+		devmode.dmPelsHeight = originalHeight;
+		devmode.dmDisplayFrequency = originalRate;
 	}
 	
 	if (devmode.dmPelsWidth != currentWidth || devmode.dmPelsHeight != currentHeight || devmode.dmDisplayFrequency != currentRate) {
 		devmode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY;
 		ChangeDisplaySettings(&devmode, CDS_FULLSCREEN);
-		
-		//emit modeChange();
 		
 		if (devmode.dmDisplayFrequency != currentRate)
 			emit rateChange(devmode.dmDisplayFrequency);

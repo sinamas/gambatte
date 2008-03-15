@@ -23,6 +23,8 @@
 #include <QtGui>
 #include <cstring>
 #include <cassert>
+#include <QApplication>
+#include <QTimer>
 
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
@@ -33,13 +35,18 @@
 
 #include "addaudioengines.h"
 #include "addblitterwidgets.h"
-#include "getfullrestoggler.h"
+#include "getfullmodetoggler.h"
 #include "audioengine.h"
 #include "audioengines/nullaudioengine.h"
-#include "fullrestoggler.h"
+#include "fullmodetoggler.h"
 
 #ifdef PLATFORM_WIN32
 #include <windows.h>
+#endif
+
+#ifdef Q_WS_X11
+#include <QX11Info>
+#include <X11/Xlib.h>
 #endif
 
 #include "SDL_Joystick/include/SDL_joystick.h"
@@ -120,15 +127,20 @@ MainWindow::MainWindow(MediaSource *source,
 	source(source),
 	buttonHandlers(buttonDefaults.size(), ButtonHandler(0, 0)),
 	blitter(NULL),
-	fullResToggler(getFullResToggler()),
+	fullModeToggler(getFullModeToggler(winId())),
 	sndBuffer(NULL),
 	ae(NULL),
+	cursorTimer(NULL),
 	samplesPrFrame(0),
+	ftNum(1),
+	ftDenom(60),
+	paused(0),
 	sampleRate(0),
 	timerId(0),
 	running(false),
 	turbo(false),
-	pauseOnDialogExec(true)
+	pauseOnDialogExec(true),
+	cursorHidden(false)
 {
 	assert(!videoSourceInfos.empty());
 	
@@ -166,10 +178,10 @@ MainWindow::MainWindow(MediaSource *source,
 			++it;
 	}
 
-	videoDialog = new VideoDialog(blitters, videoSourceInfos, videoSourceLabel, *fullResToggler, aspectRatio, this);
+	videoDialog = new VideoDialog(blitters, videoSourceInfos, videoSourceLabel, fullModeToggler.get(), aspectRatio, this);
 	connect(videoDialog, SIGNAL(accepted()), this, SLOT(videoSettingsChange()));
 	
-	blitterContainer = new BlitterContainer(*fullResToggler, videoDialog);
+	blitterContainer = new BlitterContainer(videoDialog, this);
 	blitterContainer->setMinimumSize(160, 144);
 	setCentralWidget(blitterContainer);
 	
@@ -179,8 +191,13 @@ MainWindow::MainWindow(MediaSource *source,
 	inputSettingsChange();
 	soundSettingsChange();
 	
-	setFrameTime(1, 60);
+	setFrameTime(ftNum, ftDenom);
 	
+	cursorTimer = new QTimer(this);
+	cursorTimer->setSingleShot(true);
+	cursorTimer->setInterval(2500);
+	connect(cursorTimer, SIGNAL(timeout()), this, SLOT(hideCursor()));
+	setMouseTracking(true);
 	setFocus();
 }
 
@@ -203,7 +220,9 @@ void MainWindow::resetWindowSize(const QSize &s) {
 	if (s == QSize(-1, -1)) {
 		centralWidget()->setMinimumSize(videoDialog->sourceSize());
 		layout()->setSizeConstraint(QLayout::SetMinimumSize);
-		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
+		setMinimumSize(1, 1); // needed on macx
+		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
+		resize(size()); // needed on macx
 	} else {
 		centralWidget()->setMinimumSize(s.width(), s.height());
 		layout()->setSizeConstraint(QLayout::SetFixedSize);
@@ -219,27 +238,35 @@ static void saveWindowSize(const QSize &s) {
 }
 
 void MainWindow::toggleFullScreen() {
-	if (fullResToggler->isFullRes()) {
-		fullResToggler->setFullRes(false);
+	if (isFullScreen()) {
+		fullModeToggler->setFullMode(false);
 		showNormal();
 		resetWindowSize(videoDialog->winRes());
+		activateWindow();
 	} else {
-		fullResToggler->setFullRes(true);
+		fullModeToggler->setFullMode(true);
 		saveWindowSize(size());
 		resetWindowSize(QSize(-1, -1));
 		showFullScreen();
+		
+		const QRect &screenRect = fullModeToggler->fullScreenRect(this);
+		
+		if (geometry() != screenRect)
+			setGeometry(screenRect);
 	}
 }
 
 void MainWindow::toggleMenuHidden() {
+#ifdef Q_WS_MAC
+	if (isFullScreen())
+		toggleFullScreen();
+#else
 	menuBar()->setVisible(!menuBar()->isVisible());
 	
-	if (menuBar()->isVisible())
-		centralWidget()->unsetCursor();
-	else
-		centralWidget()->setCursor(Qt::BlankCursor);
-	
-// 	resetWindowSize();
+	if (!menuBar()->isVisible()) {
+		hideCursor();
+	}
+#endif
 }
 
 void MainWindow::clearInputVectors() {
@@ -296,7 +323,7 @@ void MainWindow::videoSettingsChange() {
 			if (blitter) {
 				updatesEnabled = blitter->updatesEnabled();
 				visible = blitter->isVisible();
-				disconnect(fullResToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
+				disconnect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
 				
 				if (running) {
 					uninitBlitter();
@@ -309,8 +336,8 @@ void MainWindow::videoSettingsChange() {
 			blitter->setVisible(false);
 			blitter->setUpdatesEnabled(updatesEnabled);
 			//connect(fullResToggler, SIGNAL(modeChange()), blitter, SLOT(modeChange()));
-			connect(fullResToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
-			fullResToggler->emitRate();
+			connect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
+			fullModeToggler->emitRate();
 			blitterContainer->setBlitter(blitter);
 			blitter->setVisible(visible);
 			
@@ -327,16 +354,20 @@ void MainWindow::videoSettingsChange() {
 	
 	resetWindowSize(videoDialog->winRes());
 	
-	if (fullResToggler->currentResIndex() != videoDialog->fullMode() ||
-			fullResToggler->currentRateIndex() != videoDialog->fullRate()) {
-		fullResToggler->setMode(videoDialog->fullMode(), videoDialog->fullRate());
-		
-#ifdef PLATFORM_WIN32
-		if (fullResToggler->isFullRes()) {
-			showNormal();
-			showFullScreen();
+	const unsigned screens = fullModeToggler->screens();
+	
+	for (unsigned i = 0; i < screens; ++i) {
+		if (fullModeToggler->currentResIndex(i) != videoDialog->fullMode(i) ||
+				fullModeToggler->currentRateIndex(i) != videoDialog->fullRate(i)) {
+			fullModeToggler->setMode(i, videoDialog->fullMode(i), videoDialog->fullRate(i));
+			
+			if (fullModeToggler->isFullMode() && i == fullModeToggler->screen()) {
+				const QRect &screenRect = fullModeToggler->fullScreenRect(this);
+				
+				if (geometry() != screenRect)
+					setGeometry(screenRect);
+			}
 		}
-#endif
 	}
 	
 	setSamplesPrFrame();
@@ -345,15 +376,19 @@ void MainWindow::videoSettingsChange() {
 }
 
 void MainWindow::execDialog(QDialog *const dialog) {
-	const bool paused = pauseOnDialogExec;
+	const bool pausing = pauseOnDialogExec;
+	
+	paused += pausing << 1;
 	
 	if (paused)
-		pause();
+		doPause();
 	
 	dialog->exec();
 	
-	if (paused)
-		unpause();
+	paused -= pausing << 1;
+	
+	if (!paused)
+		doUnpause();
 }
 
 void MainWindow::execVideoDialog() {
@@ -384,6 +419,13 @@ void MainWindow::setVideoSources(const std::vector<MediaSource::VideoSourceInfo>
 	videoDialog->setVideoSources(sourceInfos);
 }
 
+void MainWindow::doSetFrameTime(unsigned num, unsigned denom) {
+	for (unsigned i = 0; i < blitters.size(); ++i)
+		blitters[i]->setFrameTime(BlitterWidget::Rational(num, denom));
+	
+	setSamplesPrFrame();
+}
+
 void MainWindow::setFrameTime(unsigned num, unsigned denom) {
 	if (!num) {
 		num = 1;
@@ -392,11 +434,12 @@ void MainWindow::setFrameTime(unsigned num, unsigned denom) {
 		num = 0xFFFF;
 		denom = 1;
 	}
+
+	ftNum = num;
+	ftDenom = denom;
 	
-	for (unsigned i = 0; i < blitters.size(); ++i)
-		blitters[i]->setFrameTime(BlitterWidget::Rational(num, denom));
-	
-	setSamplesPrFrame();
+	if (!turbo)
+		doSetFrameTime(num, denom);
 }
 
 void MainWindow::setSamplesPrFrame() {
@@ -483,7 +526,8 @@ void MainWindow::run() {
 	blitter->init();
 	blitter->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
 	
-	timerId = startTimer(0);
+	if (!paused)
+		timerId = startTimer(0);
 }
 
 void MainWindow::stop() {
@@ -492,7 +536,10 @@ void MainWindow::stop() {
 	
 	running = false;
 	
-	killTimer(timerId);
+	if (timerId) {
+		killTimer(timerId);
+		timerId = 0;
+	}
 	
 	uninitBlitter();
 	blitter->setVisible(false);
@@ -505,7 +552,7 @@ void MainWindow::stop() {
 #endif
 }
 
-void MainWindow::pause() {
+void MainWindow::doPause() {
 	if (!running || !timerId)
 		return;
 	
@@ -516,25 +563,55 @@ void MainWindow::pause() {
 	timerId = 0;
 }
 
-void MainWindow::unpause() {
+void MainWindow::doUnpause() {
 	if (!running || timerId)
 		return;
 	
 	timerId = startTimer(0);
 }
 
+void MainWindow::pause() {
+	paused |= 1;
+	doPause();
+}
+
+void MainWindow::unpause() {
+	paused &= ~1;
+	
+	if (!paused)
+		doUnpause();
+}
+
 void MainWindow::setTurbo(bool enable) {
 	if (enable != turbo) {
 		turbo = enable;
 		
-		if (enable && ae) {
-			ae->pause();
-		}
+		if (enable) {
+			if (ae)
+				ae->pause();
+			
+			doSetFrameTime(1, 0xFFFF);
+		} else
+			doSetFrameTime(ftNum, ftDenom);
 	}
 }
 
 void MainWindow::toggleTurbo() {
 	setTurbo(!turbo);
+}
+
+void MainWindow::hideCursor() {
+	if (!cursorHidden)
+		centralWidget()->setCursor(Qt::BlankCursor);
+	
+	cursorHidden = true;
+}
+
+void MainWindow::showCursor() {
+	if (cursorHidden)
+		centralWidget()->unsetCursor();
+	
+	cursorHidden = false;
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *e) {
@@ -543,9 +620,13 @@ void MainWindow::keyPressEvent(QKeyEvent *e) {
 	{
 		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
-		for (keymap_t::iterator it = range.first; it != range.second; ++it)
-			(it->second)->pressEvent();
+		while (range.first != range.second) {
+			(range.first->second)->pressEvent();
+			++range.first;
+		}
 	}
+	
+	hideCursor();
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *e) {
@@ -554,23 +635,45 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e) {
 	{
 		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
-		for (keymap_t::iterator it = range.first; it != range.second; ++it)
-			(it->second)->releaseEvent();
+		while (range.first != range.second) {
+			(range.first->second)->releaseEvent();
+			++range.first;
+		}
 	}
 }
 
 void MainWindow::updateJoysticks() {
-	SDL_ClearEvents();
-	SDL_JoystickUpdate();
-	
-	SDL_Event ev;
-	
-	while (SDL_PollEvent(&ev)) {
-		std::pair<joymap_t::iterator,joymap_t::iterator> range = joyInputs.equal_range(ev.id);
+	if (hasFocus() || QApplication::desktop()->numScreens() != 1) {
+		bool hit = false;
 		
-		for (joymap_t::iterator it = range.first; it != range.second; ++it)
-			(it->second)->valueChanged(ev.value);
+		SDL_ClearEvents();
+		SDL_JoystickUpdate();
+		
+		SDL_Event ev;
+		
+		while (SDL_PollEvent(&ev)) {
+			std::pair<joymap_t::iterator,joymap_t::iterator> range = joyInputs.equal_range(ev.id);
+			
+			while (range.first != range.second) {
+				(range.first->second)->valueChanged(ev.value);
+				++range.first;
+			}
+			
+			hit = true;
+		}
+		
+		if (hit) {
+#ifdef Q_WS_X11
+			XResetScreenSaver(QX11Info::display());
+#endif
+			hideCursor();
+		}
 	}
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent */*e*/) {
+	showCursor();
+	cursorTimer->start();
 }
 
 void MainWindow::closeEvent(QCloseEvent *e) {
@@ -586,6 +689,41 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 void MainWindow::showEvent(QShowEvent *event) {
 	QMainWindow::showEvent(event);
 	resetWindowSize(videoDialog->winRes()); // some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
+}
+
+void MainWindow::moveEvent(QMoveEvent *event) {
+	QMainWindow::moveEvent(event);
+	fullModeToggler->setScreen(this);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event) {
+	QMainWindow::resizeEvent(event);
+	fullModeToggler->setScreen(this);
+}
+
+void MainWindow::focusOutEvent(QFocusEvent */*event*/) {
+#ifndef Q_WS_MAC // Minimize is ugly on mac (especially full screen windows) and there doesn't seem to be a "qApp->hide()" which would be more appropriate.
+	if (isFullScreen() && fullModeToggler->isFullMode() && !qApp->activeWindow() && QApplication::desktop()->numScreens() == 1) {
+		fullModeToggler->setFullMode(false);
+		showMinimized();
+	}
+#endif
+	
+	showCursor();
+	cursorTimer->stop();
+}
+
+void MainWindow::focusInEvent(QFocusEvent */*event*/) {
+	if (isFullScreen() && !fullModeToggler->isFullMode()) {
+		fullModeToggler->setFullMode(true);
+		
+		const QRect &screenRect = fullModeToggler->fullScreenRect(this);
+		
+		if (geometry() != screenRect)
+			setGeometry(screenRect);
+	}
+	
+	cursorTimer->start();
 }
 
 void MainWindow::blit() {

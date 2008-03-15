@@ -19,7 +19,9 @@
 #include "addaudioengines.h"
 
 #include "audioengines/aoengine.h"
+#include "audioengines/openalengine.h"
 
 void addAudioEngines(std::vector<AudioEngine*> &audioEngines, WId /*winId*/) {
 	audioEngines.push_back(new AoEngine);
+	audioEngines.push_back(new OpenAlEngine);
 }

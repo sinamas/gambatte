@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,25 +16,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef NULLTOGGLER_H
-#define NULLTOGGLER_H
+#include "getfullmodetoggler.h"
 
-#include "../fullrestoggler.h"
+#include "fullmodetogglers/quartztoggler.h"
 
-class NullToggler : public FullResToggler {
-	const std::vector<ResInfo> nullVector;
-	bool fullRes;
-	
-public:
-	NullToggler() : fullRes(false) {}
-	
-	unsigned currentResIndex() const { return 0; }
-	unsigned currentRateIndex() const { return 0; }
-	bool isFullRes() const { return fullRes; }
-	void setMode(unsigned /*newID*/, unsigned /*rate*/) {}
-	void setFullRes(const bool enable) { fullRes = enable; }
-	void emitRate() {}
-	const std::vector<ResInfo>& resVector() const { return nullVector; }
-};
-
-#endif
+std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
+	return std::auto_ptr<FullModeToggler>(new QuartzToggler);
+}

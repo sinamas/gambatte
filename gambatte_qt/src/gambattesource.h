@@ -76,7 +76,7 @@ public:
 	
 signals:
 	void blit();
-	void toggleTurbo();
+	void setTurbo(bool on);
 };
 
 #endif

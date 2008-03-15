@@ -16,30 +16,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef FULLRESTOGGLER_H
-#define FULLRESTOGGLER_H
+#include "getfullmodetoggler.h"
 
-#include <QObject>
-#include <vector>
+#include "fullmodetogglers/nulltoggler.h"
 
-#include "resinfo.h"
-
-class FullResToggler : public QObject {
-	Q_OBJECT
-
-public:
-	virtual ~FullResToggler() {};
-	virtual unsigned currentResIndex() const = 0;
-	virtual unsigned currentRateIndex() const = 0;
-	virtual bool isFullRes() const = 0;
-	virtual void setMode(unsigned newID, unsigned rate) = 0;
-	virtual void setFullRes(bool enable) = 0;
-	virtual void emitRate() = 0;
-	virtual const std::vector<ResInfo>& resVector() const = 0;
-
-signals:
-	void rateChange(int newHz);
-//	void modeChange();
-};
-
-#endif
+std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
+	return std::auto_ptr<FullModeToggler>(new NullToggler);
+}

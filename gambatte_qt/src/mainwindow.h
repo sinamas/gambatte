@@ -34,9 +34,10 @@ class BlitterWidget;
 class VideoDialog;
 class InputDialog;
 class SoundDialog;
-class FullResToggler;
+class FullModeToggler;
 class BlitterContainer;
 class JoyObserver;
+class QTimer;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -81,11 +82,15 @@ private:
 	SoundDialog *soundDialog;
 	VideoDialog *videoDialog;
 	BlitterWidget *blitter;
-	const std::auto_ptr<FullResToggler> fullResToggler;
+	const std::auto_ptr<FullModeToggler> fullModeToggler;
 	qint16 *sndBuffer;
 	AudioEngine *ae;
+	QTimer *cursorTimer;
 	
 	unsigned samplesPrFrame;
+	unsigned ftNum;
+	unsigned ftDenom;
+	unsigned paused;
 	int sampleRate;
 	int timerId;
 	
@@ -95,6 +100,7 @@ private:
 	bool running;
 	bool turbo;
 	bool pauseOnDialogExec;
+	bool cursorHidden;
 	
 	void initAudio();
 	void setSamplesPrFrame();
@@ -104,8 +110,13 @@ private:
 	void updateJoysticks();
 	void resetWindowSize(const QSize &s);
 	void uninitBlitter();
+	void doSetFrameTime(unsigned num, unsigned denom);
+	void doPause();
+	void doUnpause();
+	void showCursor();
 	
 private slots:
+	void hideCursor();
 	void inputSettingsChange();
 	void soundSettingsChange();
 	void videoSettingsChange();
@@ -114,8 +125,13 @@ protected:
 	void timerEvent(QTimerEvent *event);
 	void keyPressEvent(QKeyEvent *e);
 	void keyReleaseEvent(QKeyEvent *e);
+	void mouseMoveEvent(QMouseEvent *e);
 	void closeEvent(QCloseEvent *e);
 	void showEvent(QShowEvent *e);
+	void moveEvent(QMoveEvent *e);
+	void resizeEvent(QResizeEvent *e);
+	void focusOutEvent(QFocusEvent *event);
+	void focusInEvent(QFocusEvent *event);
 
 public:
 	/**
@@ -159,7 +175,7 @@ public:
 	  */
 	void execDialog(QDialog *dialog);
 	
-	bool isPaused() const { return isRunning() && !timerId; }
+	bool isPaused() const { return paused & 1; }
 	bool isRunning() const { return running; }
 	bool isTurbo() const { return turbo; }
 	bool pausesOnDialogExec() const { return pauseOnDialogExec; }

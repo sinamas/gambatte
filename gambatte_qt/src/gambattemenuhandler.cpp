@@ -151,7 +151,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	
 	mw->setFrameTime(4389, 262144);
 	connect(source, SIGNAL(blit()), mw, SLOT(blit()));
-	connect(source, SIGNAL(toggleTurbo()), mw, SLOT(toggleTurbo()));
+	connect(source, SIGNAL(setTurbo(bool)), mw, SLOT(setTurbo(bool)));
 	
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-') {

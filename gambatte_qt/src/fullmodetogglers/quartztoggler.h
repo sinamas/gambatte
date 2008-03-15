@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,51 +16,44 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef X11BLITTER_H
-#define X11BLITTER_H
+#ifndef QUARTZTOGGLER_H_
+#define QUARTZTOGGLER_H_
 
-#include "../blitterwidget.h"
+#include "../fullmodetoggler.h"
+#include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
 
-#include <memory>
+class QWidget;
 
-class QCheckBox;
-
-class X11Blitter : public BlitterWidget {
-	class SubBlitter;
-	class ShmBlitter;
-	class PlainBlitter;
-	
-	struct VisInfo {
-		void *visual;
-		unsigned depth;
-	};
-	
-	const std::auto_ptr<QWidget> confWidget;
-	std::auto_ptr<SubBlitter> subBlitter;
-	QCheckBox *const bfBox;
-	char *buffer;
-	unsigned int inWidth, inHeight;
-	VisInfo visInfo;
-// 	unsigned int scale;
-	bool shm;
-	bool bf;
-	
-protected:
-	void paintEvent(QPaintEvent *event);
-	void resizeEvent(QResizeEvent *event);
+class QuartzToggler : public FullModeToggler {
+	Q_OBJECT
+		
+	CFDictionaryRef originalMode;
+	CGDirectDisplayID *activeDspys;
+	std::vector<std::vector<ResInfo> > infoVector;
+	std::vector<unsigned> fullResIndex;
+	std::vector<unsigned> fullRateIndex;
+	unsigned widgetScreen;
+	bool isFull;
 	
 public:
-	X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
-	~X11Blitter();
-	void init();
-	void uninit();
-	bool isUnusable() const;
-	int sync(bool turbo);
-	void setBufferDimensions(const unsigned width, const unsigned height);
-	void blit();
-	QWidget* settingsWidget() { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings();
+	QuartzToggler();
+	~QuartzToggler();
+	unsigned currentResIndex(unsigned screen) const { return fullResIndex[screen]; }
+	unsigned currentRateIndex(unsigned screen) const { return fullRateIndex[screen]; }
+	const QRect fullScreenRect(const QWidget *w) const;
+	bool isFullMode() const { return isFull; }
+	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
+	void setFullMode(bool enable);
+	void emitRate();
+	const std::vector<ResInfo>& modeVector(unsigned screen) const { return infoVector[screen]; }
+	void setScreen(const QWidget *widget);
+	unsigned screen() const { return widgetScreen; }
+	unsigned screens() const { return infoVector.size(); }
+	
+signals:
+	void rateChange(int newHz);
+//	void modeChange();
 };
 
 #endif

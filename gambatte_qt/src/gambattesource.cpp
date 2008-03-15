@@ -89,7 +89,7 @@ void GambatteSource::buttonPressEvent(unsigned buttonIndex) {
 	case 5: inputGetter.is.bButton = true; break;
 	case 6: inputGetter.is.startButton = true; break;
 	case 7: inputGetter.is.selectButton = true; break;
-	case 8: emit toggleTurbo(); break;
+	case 8: emit setTurbo(true); break;
 	}
 }
 
@@ -103,7 +103,7 @@ void GambatteSource::buttonReleaseEvent(unsigned buttonIndex) {
 	case 5: inputGetter.is.bButton = false; break;
 	case 6: inputGetter.is.startButton = false; break;
 	case 7: inputGetter.is.selectButton = false; break;
-	case 8: emit toggleTurbo(); break;
+	case 8: emit setTurbo(false); break;
 	}
 }
 

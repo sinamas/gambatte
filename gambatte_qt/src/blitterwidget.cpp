@@ -106,7 +106,9 @@ impl(new Impl),
 setPixelBuffer(setPixelBuffer),
 nameString(name),
 integerOnlyScaler(integerOnlyScaler)
-{}
+{
+	setMouseTracking(true);
+}
 
 BlitterWidget::~BlitterWidget() {
 	delete impl;

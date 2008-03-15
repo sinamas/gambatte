@@ -26,6 +26,7 @@
 #include <QGLWidget>
 
 #include <algorithm>
+#include <cstring>
 
 #ifdef PLATFORM_WIN32
 #include <GL/glext.h>
@@ -34,8 +35,6 @@
 #ifdef PLATFORM_UNIX
 #include "../x11getprocaddress.h"
 #endif
-
-#include "videodialog.h"
 
 class QGLBlitter::SubWidget : public QGLWidget {
 public:
@@ -47,8 +46,12 @@ private:
 	unsigned inWidth;
 	unsigned inHeight;
 	unsigned swapInterval;
+	unsigned clear;
 	bool initialized;
 	bool bf;
+	
+public:
+	bool blitted;
 	
 protected:
 	void initializeGL();
@@ -60,7 +63,7 @@ public:
 	~SubWidget();
 	
 	void blit();
-	void blitFront();
+// 	void blitFront();
 	
 	unsigned getInWidth() const {
 		return inWidth;
@@ -103,13 +106,17 @@ QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_i
 	QGLWidget(getQGLFormat(swapInterval_in), parent),
 	corrected_w(160),
 	corrected_h(144),
+	textureRes(0x100),
 	inWidth(160),
 	inHeight(144),
 	swapInterval(swapInterval_in),
+	clear(2),
 	initialized(false),
-	bf(bf_in)
+	bf(bf_in),
+	blitted(false)
 {
 	setAutoBufferSwap(false);
+	setMouseTracking(true);
 // 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 	
 // 	QSettings settings;
@@ -128,8 +135,14 @@ QGLBlitter::SubWidget::~SubWidget() {
 }
 
 void QGLBlitter::SubWidget::blit() {
+	if (clear) {
+		--clear;
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+	
 	glCallList(1);
 	glFlush();
+	blitted = true;
 }
 
 void QGLBlitter::SubWidget::initializeGL() {
@@ -144,17 +157,14 @@ void QGLBlitter::SubWidget::initializeGL() {
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_TEXTURE_2D);
 	glDisable(GL_DITHER);
+	glDisable(GL_ALPHA_TEST);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glDisable(GL_BLEND);
+	glDisable(GL_FOG);
+	glPixelZoom(1.0, 1.0);
 	
 	glClearColor(0.0, 0.0, 0.0, 0.0);
-	
-	glNewList(1, GL_COMPILE);
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 0.0); glVertex2f(0.0, 0.0);
-	glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 1.0);
-	glTexCoord2f(1.0, 1.0); glVertex2f(1.0, 1.0);
-	glTexCoord2f(1.0, 0.0); glVertex2f(1.0, 0.0);
-	glEnd();
-	glEndList();
 	
 #ifdef PLATFORM_UNIX
 	if (swapInterval) {
@@ -170,37 +180,50 @@ void QGLBlitter::SubWidget::initializeGL() {
 	initialized = true;
 }
 
-void QGLBlitter::SubWidget::blitFront() {
+/*void QGLBlitter::SubWidget::blitFront() {
 	GLint drawBuffer;
 	glGetIntegerv(GL_DRAW_BUFFER, &drawBuffer);
 	glDrawBuffer(GL_FRONT);
 	blit();
 	glDrawBuffer(drawBuffer);
-}
+}*/
 
 void QGLBlitter::SubWidget::paintGL() {
-	if (swapInterval)
-		blitFront();
-	else {
+	clear = 2;
+
+// 	if (swapInterval)
+// 		blitFront();
+// 	else {
 		blit();
 		swapBuffers();
-	}
+		blitted = false;
+// 	}
 }
 
 void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	glViewport(0, 0, w, h);
 	
-	if (corrected_w != w || corrected_h != h) {
-		{
-			GLint drawBuffer;
-			glGetIntegerv(GL_DRAW_BUFFER, &drawBuffer);
-			glDrawBuffer(GL_FRONT_AND_BACK);
-			glClear(GL_COLOR_BUFFER_BIT);
-			glDrawBuffer(drawBuffer);
-		}
-		
-		glViewport(w - corrected_w >> 1, h - corrected_h >> 1, corrected_w, corrected_h);
-	}
+	const unsigned itop = h - corrected_h >> 1;
+	const unsigned ileft = w - corrected_w >> 1;
+	
+	const double top = static_cast<double>(itop) / h;
+	const double left = static_cast<double>(ileft) / w;
+	const double bot = static_cast<double>(itop + corrected_h) / h;
+	const double right = static_cast<double>(ileft + corrected_w) / w;
+	
+	const double ttop = 1.0 - static_cast<double>(inHeight) / textureRes;
+	const double tright = static_cast<double>(inWidth) / textureRes;
+	
+	glNewList(1, GL_COMPILE);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, ttop); glVertex2f(left, top);
+	glTexCoord2f(0.0, 1.0); glVertex2f(left, bot);
+	glTexCoord2f(tright, 1.0); glVertex2f(right, bot);
+	glTexCoord2f(tright, ttop); glVertex2f(right, top);
+	glEnd();
+	glEndList();
+	
+	clear = 2;
 }
 
 void QGLBlitter::SubWidget::setBilinearFiltering(const bool on) {
@@ -236,9 +259,16 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 	
 	glLoadIdentity();
 	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, 0);
-	double dres = textureRes;
-	glOrtho(0, width / dres, 1, 1.0 - height / dres, -1, 1);
+	{
+		quint32 *const nulltexture = new quint32[textureRes * textureRes]; // avoids bilinear filter border garbage
+		std::memset(nulltexture, 0, textureRes * textureRes * sizeof(quint32));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
+		delete []nulltexture;
+	}
+	
+	glOrtho(0, 1, 1, 0, -1, 1);
+	
+	resizeGL(this->width(), this->height());
 }
 
 void QGLBlitter::SubWidget::uninit() {
@@ -319,6 +349,10 @@ void QGLBlitter::blit() {
 	if (buffer) {
 		subWidget->makeCurrent();
 		subWidget->updateTexture(buffer);
+		
+		if (subWidget->doubleBuffer()) {
+			subWidget->blit();
+		}
 	}
 }
 
@@ -365,19 +399,23 @@ const BlitterWidget::Rational QGLBlitter::frameTime() const {
 }
 
 int QGLBlitter::sync(const bool turbo) {
+	if (!subWidget->getSwapInterval()) {
+		BlitterWidget::sync(turbo);
+	}
+
 	subWidget->makeCurrent();
 	
-	if (subWidget->getSwapInterval() && turbo)
-		subWidget->blitFront();
-	else {
+// 	if (subWidget->getSwapInterval() && turbo)
+// 		subWidget->blitFront();
+// 	else {
+	if (!subWidget->blitted)
 		subWidget->blit();
-		subWidget->swapBuffers();
-	}
 	
-	if (subWidget->getSwapInterval())
-		return 0;
+	subWidget->swapBuffers();
+	subWidget->blitted = false;
+// 	}
 	
-	return BlitterWidget::sync(turbo);
+	return 0;
 }
 
 void QGLBlitter::resetSubWidget() {

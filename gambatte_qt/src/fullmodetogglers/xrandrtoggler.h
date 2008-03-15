@@ -16,10 +16,49 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "getfullrestoggler.h"
+#ifndef XRANDRTOGGLER_H
+#define XRANDRTOGGLER_H
 
-#include "fullrestogglers/gditoggler.h"
+#include "../fullmodetoggler.h"
 
-std::auto_ptr<FullResToggler> getFullResToggler() {
-	return std::auto_ptr<FullResToggler>(new GdiToggler);
-}
+#include <QObject>
+#include <vector>
+
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+
+#include "../resinfo.h"
+
+class XRandRToggler : public FullModeToggler {
+	Q_OBJECT
+		
+	std::vector<ResInfo> infoVector;
+	unsigned originalResIndex;
+	unsigned fullResIndex;
+	Rotation rotation;
+	unsigned fullRateIndex;
+	short originalRate;
+	bool isFull;
+	
+public:
+	static bool isUsable();
+	XRandRToggler();
+	~XRandRToggler();
+	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
+	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
+	const QRect fullScreenRect(const QWidget *w) const;
+	bool isFullMode() const { return isFull; }
+	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
+	void setFullMode(bool enable);
+	void emitRate();
+	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
+	void setScreen(const QWidget */*widget*/) {}
+	unsigned screen() const { return 0; }
+	unsigned screens() const { return 1; }
+	
+signals:
+	void rateChange(int newHz);
+//	void modeChange();
+};
+
+#endif

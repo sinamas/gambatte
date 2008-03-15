@@ -16,51 +16,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef X11BLITTER_H
-#define X11BLITTER_H
+#include "getfullmodetoggler.h"
 
-#include "../blitterwidget.h"
+#include "fullmodetogglers/gditoggler.h"
 
-#include <memory>
-
-class QCheckBox;
-
-class X11Blitter : public BlitterWidget {
-	class SubBlitter;
-	class ShmBlitter;
-	class PlainBlitter;
-	
-	struct VisInfo {
-		void *visual;
-		unsigned depth;
-	};
-	
-	const std::auto_ptr<QWidget> confWidget;
-	std::auto_ptr<SubBlitter> subBlitter;
-	QCheckBox *const bfBox;
-	char *buffer;
-	unsigned int inWidth, inHeight;
-	VisInfo visInfo;
-// 	unsigned int scale;
-	bool shm;
-	bool bf;
-	
-protected:
-	void paintEvent(QPaintEvent *event);
-	void resizeEvent(QResizeEvent *event);
-	
-public:
-	X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
-	~X11Blitter();
-	void init();
-	void uninit();
-	bool isUnusable() const;
-	int sync(bool turbo);
-	void setBufferDimensions(const unsigned width, const unsigned height);
-	void blit();
-	QWidget* settingsWidget() { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings();
-};
-
-#endif
+std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
+	return std::auto_ptr<FullModeToggler>(new GdiToggler);
+}

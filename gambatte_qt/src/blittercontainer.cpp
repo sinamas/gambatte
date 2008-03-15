@@ -19,13 +19,11 @@
 #include "blittercontainer.h"
 
 #include "blitterwidget.h"
-#include "fullrestoggler.h"
 #include "videodialog.h"
 #include <QResizeEvent>
 
-BlitterContainer::BlitterContainer(const FullResToggler &resToggler_in, const VideoDialog *videoDialog, QWidget *parent) :
+BlitterContainer::BlitterContainer(const VideoDialog *videoDialog, QWidget *parent) :
 	QWidget(parent),
-	resToggler(resToggler_in),
 	videoDialog(videoDialog),
 	blitter(NULL)
 {
@@ -34,6 +32,7 @@ BlitterContainer::BlitterContainer(const FullResToggler &resToggler_in, const Vi
 	setPalette(pal);
 // 	setBackgroundRole(QPalette::Window);
 	setAutoFillBackground(true);
+	setMouseTracking(true);
 }
 
 BlitterContainer::~BlitterContainer()
@@ -62,11 +61,8 @@ void BlitterContainer::doLayout(const int w, const int h) {
 		const int new_h = src.height() * scale;
 		blitter->setCorrectedGeometry(w, h, new_w, new_h);
 	}
-	
-	if (!resToggler.resVector().empty()) {
-		const ResInfo &res = resToggler.resVector()[resToggler.currentResIndex()];
-		blitter->setExclusive(res.w == static_cast<unsigned>(w) && res.h == static_cast<unsigned>(h));
-	}
+
+	blitter->setExclusive(parentWidget()->isFullScreen() && pos() == QPoint(0,0));
 }
 
 void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {

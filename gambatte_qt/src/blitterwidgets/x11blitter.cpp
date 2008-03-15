@@ -21,6 +21,7 @@
 #include <QPaintEvent>
 #include <QX11Info>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 // #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
@@ -44,7 +45,7 @@ class X11Blitter::ShmBlitter : public SubBlitter {
 	XImage *ximage;
 	
 public:
-	ShmBlitter(unsigned int width, unsigned int height);
+	ShmBlitter(unsigned int width, unsigned int height, const VisInfo &visInfo);
 	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
 	bool failed() const;
 	void* pixels() const;
@@ -52,10 +53,10 @@ public:
 	~ShmBlitter();
 };
 
-X11Blitter::ShmBlitter::ShmBlitter(const unsigned int width, const unsigned int height) {
+X11Blitter::ShmBlitter::ShmBlitter(const unsigned int width, const unsigned int height, const VisInfo &visInfo) {
 	shminfo.shmaddr = NULL;
 	std::cout << "creating shm ximage...\n";
-	ximage = XShmCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(QX11Info::appVisual()), QX11Info::appDepth(), ZPixmap, NULL, &shminfo, width, height);
+	ximage = XShmCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(visInfo.visual), visInfo.depth, ZPixmap, NULL, &shminfo, width, height);
 	
 	if (ximage == NULL) {
 		std::cout << "failed to create shm ximage\n";
@@ -102,7 +103,7 @@ class X11Blitter::PlainBlitter : public X11Blitter::SubBlitter {
 	XImage *ximage;
 	
 public:
-	PlainBlitter (unsigned int width, unsigned int height);
+	PlainBlitter (unsigned int width, unsigned int height, const VisInfo &visInfo);
 	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
 	bool failed() const;
 	void* pixels() const;
@@ -110,9 +111,9 @@ public:
 	~PlainBlitter ();
 };
 
-X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned int height) {
+X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned int height, const VisInfo &visInfo) {
 	std::cout << "creating ximage...\n";
-	ximage = XCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(QX11Info::appVisual()), QX11Info::appDepth(), ZPixmap, 0, NULL, width, height, QX11Info::appDepth() == 16 ? 16 : 32, 0);
+	ximage = XCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(visInfo.visual), visInfo.depth, ZPixmap, 0, NULL, width, height, visInfo.depth <= 16 ? 16 : 32, 0);
 	
 	if (ximage == NULL) {
 		std::cout << "failed to create ximage\n";
@@ -146,6 +147,66 @@ unsigned X11Blitter::PlainBlitter::pitch() const {
 	return ximage ? ximage->width : 0;
 }
 
+static XVisualInfo* getVisualPtr(unsigned depth, int c_class, unsigned long rmask, unsigned long gmask, unsigned long bmask) {
+	XVisualInfo vinfo_template;
+	vinfo_template.screen = QX11Info::appScreen();
+	vinfo_template.depth = depth;
+	vinfo_template.c_class = c_class;
+	vinfo_template.red_mask = rmask;
+	vinfo_template.green_mask = gmask;
+	vinfo_template.blue_mask = bmask;
+	
+	int nitems = 0;
+	XVisualInfo *vinfos = XGetVisualInfo(QX11Info::display(),
+	                                     VisualScreenMask|(depth ? VisualDepthMask : 0)|VisualClassMask|VisualRedMaskMask|VisualGreenMaskMask|VisualBlueMaskMask,
+	                                     &vinfo_template, &nitems);
+	
+	if (nitems > 0) {
+		return vinfos;
+	}
+	
+	return NULL;
+}
+
+static XVisualInfo* getVisualPtr() {
+	{
+		XVisualInfo vinfo_template;
+		vinfo_template.visualid = XVisualIDFromVisual(XDefaultVisual(QX11Info::display(), QX11Info::appScreen()));
+		
+		int nitems = 0;
+		XVisualInfo *vinfos = XGetVisualInfo(QX11Info::display(), VisualIDMask, &vinfo_template, &nitems);
+		
+		if (nitems > 0) {
+			if (vinfos->depth == 24 && vinfos->red_mask == 0xFF0000 && vinfos->green_mask == 0x00FF00 && vinfos->blue_mask == 0x0000FF ||
+					vinfos->depth <= 16 && vinfos->red_mask == 0xF800 && vinfos->green_mask == 0x07E0 && vinfos->blue_mask == 0x001F) {
+				return vinfos;
+			}
+			
+			XFree(vinfos);
+		}
+	}
+	
+	if (XVisualInfo *visual = getVisualPtr(24, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF))
+		return visual;
+	
+	if (XVisualInfo *visual = getVisualPtr(16, TrueColor, 0xF800, 0x07E0, 0x001F))
+		return visual;
+	
+	if (XVisualInfo *visual = getVisualPtr(0, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF))
+		return visual;
+	
+	if (XVisualInfo *visual = getVisualPtr(0, TrueColor, 0xF800, 0x07E0, 0x001F))
+		return visual;
+	
+	if (XVisualInfo *visual = getVisualPtr(0, DirectColor, 0xFF0000, 0x00FF00, 0x0000FF))
+		return visual;
+	
+	if (XVisualInfo *visual = getVisualPtr(0, DirectColor, 0xF800, 0x07E0, 0x001F))
+		return visual;
+	
+	return NULL;
+}
+
 X11Blitter::X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
 BlitterWidget(setPixelBuffer, QString("X11"), false, parent),
 confWidget(new QWidget),
@@ -155,6 +216,9 @@ inWidth(160),
 inHeight(144),
 bf(false)
 {
+	visInfo.visual = NULL;
+	visInfo.depth = 0;
+		
 	QSettings settings;
 	settings.beginGroup("x11blitter");
 	bf = settings.value("bf", false).toBool();
@@ -167,10 +231,16 @@ bf(false)
 	
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAttribute(Qt::WA_PaintOnScreen, true);
+	
+	if (XVisualInfo *v = getVisualPtr()) {
+		visInfo.visual = v->visual;
+		visInfo.depth = v->depth;
+		XFree(v);
+	}
 }
 
 bool X11Blitter::isUnusable() const {
-	return !(QX11Info::appDepth() == 16 || QX11Info::appDepth() == 24 || QX11Info::appDepth() == 32);
+	return visInfo.visual == NULL;
 }
 
 void X11Blitter::init() {
@@ -231,7 +301,7 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 	uninit();
 	
 	if (shm) {
-		subBlitter.reset(new ShmBlitter(width(), height()));
+		subBlitter.reset(new ShmBlitter(width(), height(), visInfo));
 		
 		if (subBlitter->failed()) {
 			shm = false;
@@ -240,18 +310,18 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 	}
 	
 	if (!shm)
-		subBlitter.reset(new PlainBlitter (width(), height()));
+		subBlitter.reset(new PlainBlitter(width(), height(), visInfo));
 	
 	if (width() != static_cast<int>(w) || height() != static_cast<int>(h)) {
-		buffer = new char[w * h * (QX11Info::appDepth() == 16 ? 2 : 4)];
-		setPixelBuffer(buffer, QX11Info::appDepth() == 16 ? MediaSource::RGB16 : MediaSource::RGB32, w);
+		buffer = new char[w * h * (visInfo.depth <= 16 ? 2 : 4)];
+		setPixelBuffer(buffer, visInfo.depth <= 16 ? MediaSource::RGB16 : MediaSource::RGB32, w);
 	} else
-		setPixelBuffer(subBlitter->pixels(), QX11Info::appDepth() == 16 ? MediaSource::RGB16 : MediaSource::RGB32, subBlitter->pitch());
+		setPixelBuffer(subBlitter->pixels(), visInfo.depth <= 16 ? MediaSource::RGB16 : MediaSource::RGB32, subBlitter->pitch());
 }
 
 void X11Blitter::blit() {
 	if (buffer) {
-		if (QX11Info::appDepth() == 16) {
+		if (visInfo.depth <= 16) {
 			if (bf) {
 				linearScale<quint16, 0xF81F, 0x07E0, 6>(reinterpret_cast<quint16*>(buffer),
 				                                        static_cast<quint16*>(subBlitter->pixels()),
