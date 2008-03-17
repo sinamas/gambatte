@@ -18,56 +18,107 @@
  ***************************************************************************/
 #include "blitterwidget.h"
 
+struct Time {
+	long sec;
+	long rsec;
+};
+
+#ifdef Q_WS_WIN
+
+#include <windows.h>
+
+class Timer {
+	LONGLONG freq;
+	bool qpf;
+	
+public:
+	Timer() : freq(0), qpf(false) {
+		LARGE_INTEGER li;
+		qpf = QueryPerformanceFrequency(&li);
+		freq = qpf ? li.QuadPart : 1000;
+	}
+	
+	void get(Time *const time, const long denom) const {
+		LARGE_INTEGER li;
+		
+		if (qpf)
+			QueryPerformanceCounter(&li);
+		else
+			li.QuadPart = timeGetTime();
+		
+		time->sec = li.QuadPart / freq;
+		time->rsec = (li.QuadPart % freq) * denom / freq;
+	}
+};
+
+static Timer timer;
+
+static void getTime(Time *const time, const long denom) {
+	timer.get(time, denom);
+}
+
+static void sleep(const long secnum, const long secdenom) {
+	Sleep(static_cast<qlonglong>(secnum) * 1000 / secdenom);
+}
+
+#else
+
 #include <sys/time.h>
 
+static void getTime(Time *const time, const long denom) {
+	timeval t;
+	gettimeofday(&t, NULL);
+	time->sec = t.tv_sec;
+	time->rsec = static_cast<qlonglong>(t.tv_usec) * denom / 1000000;
+}
+
+static void sleep(const long secnum, const long secdenom) {
+	timespec tspec = { tv_sec: 0,
+	                   tv_nsec: static_cast<qlonglong>(secnum) * 1000000000 / secdenom };
+
+	nanosleep(&tspec, NULL);
+}
+
+#endif /*Q_WS_WIN*/
+
 class BlitterWidget::Impl {
-	struct Time {
-		long sec;
-		long rsec;
-	};
-	
-	Time time;
-	Rational ft;
+	Time last;
+	long ftnum;
+	long ftdenom;
 	long late;
 	unsigned noSleep;
 	
 public:
-	Impl() : late(0), noSleep(60) { time.sec = time.rsec = 0; }
+	Impl() : ftnum(Rational().numerator), ftdenom(Rational().denominator), late(0), noSleep(60) { getTime(&last, ftdenom); }
 	
-	void setFrameTime(Rational ft) { this->ft = ft; }
+	void setFrameTime(const Rational &ft) {
+		last.rsec = static_cast<qulonglong>(last.rsec) * ft.denominator / ftdenom;
+		ftnum = ft.numerator;
+		ftdenom = ft.denominator;
+		late = 0;
+	}
 	
 	const Rational frameTime() const {
-		return ft;
+		return Rational(ftnum, ftdenom);
 	}
 	
 	int sync(const bool turbo) {
 		if (turbo)
 			return 0;
 		
-		const long time_usec = static_cast<quint64>(time.rsec) * 1000000 / ft.denominator;
+		Time current;
+		getTime(&current, ftdenom);
 		
-		timeval t;
-		gettimeofday(&t, NULL);
+		long diff = (current.sec - last.sec) * ftdenom + current.rsec - last.rsec;
 		
-		if (time.sec > t.tv_sec || time.sec == t.tv_sec && time_usec > t.tv_usec) {
-			timeval tmp = { tv_sec: 0, tv_usec: time_usec - t.tv_usec };
+		if (diff < ftnum) {
+			diff = ftnum - diff;
 			
-			if (time.sec != t.tv_sec)
-				tmp.tv_usec += 1000000;
-			
-			if (tmp.tv_usec > late) {
-				tmp.tv_usec -= late;
+			if (diff > late) {
+				sleep(diff - late, ftdenom);
 				
-				if (tmp.tv_usec >= 1000000) {
-					tmp.tv_usec -= 1000000;
-					++tmp.tv_sec;
-				}
-				
-				timespec tspec = { tmp.tv_sec, tmp.tv_usec * 1000 };
-				nanosleep(&tspec, NULL);
-				
-				gettimeofday(&t, NULL);
-				late -= (time.sec - t.tv_sec) * 1000000 + time_usec - t.tv_usec >> 1;
+				getTime(&current, ftdenom);
+				late += ((current.sec - last.sec) * ftdenom + current.rsec - last.rsec - ftnum) / 2;
 				
 				if (late < 0)
 					late = 0;
@@ -78,19 +129,18 @@ public:
 				late = 0;
 			}
 			
-			while (time.sec > t.tv_sec || time.sec == t.tv_sec && time_usec > t.tv_usec)
-				gettimeofday(&t, NULL);
+			while ((current.sec - last.sec) * ftdenom + current.rsec - last.rsec < ftnum)
+				getTime(&current, ftdenom);
+			
+			last.rsec += ftnum;
+			
+			if (last.rsec >= ftdenom) {
+				last.rsec -= ftdenom;
+				++last.sec;
+			}
 		} else {
 			//quickfix:catches up to current time
-			time.sec = t.tv_sec;
-			time.rsec = static_cast<quint64>(ft.denominator) * t.tv_usec / 1000000;
-		}
-		
-		time.rsec += ft.numerator;
-		
-		if (static_cast<unsigned long>(time.rsec) >= ft.denominator) {
-			time.rsec -= ft.denominator;
-			++time.sec;
+			last = current;
 		}
 		
 		return 0;

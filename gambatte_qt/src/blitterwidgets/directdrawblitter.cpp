@@ -370,15 +370,13 @@ int DirectDrawBlitter::sync(const bool turbo) {
 	RECT rcRectDest;
 	GetWindowRect(winId(), &rcRectDest);
 	
-	if (!turbo) {
-		if (vblank && hz == vblankHz) {
-			if (!(exclusive && flipping))
-				lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
-		} else
-			BlitterWidget::sync(turbo);
-	}
+	if (vblank && hz == vblankHz) {
+		if (!(exclusive && flipping))
+			lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
+	} else
+		BlitterWidget::sync(turbo);
 	
-	const bool dontwait = exclusive && flipping && !(vblank && hz == vblankHz && !turbo);
+	const bool dontwait = exclusive && flipping && !(vblank && hz == vblankHz);
 	
 	HRESULT ddrval = lpDDSBack->Blt(&rcRectDest, lpDDSVideo, NULL, dontwait ? DDBLT_DONOTWAIT : DDBLT_WAIT, NULL);
 	
