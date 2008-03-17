@@ -25,7 +25,6 @@
 #include <memory>
 
 class QCheckBox;
-class VideoBufferReseter;
 
 class DirectDrawBlitter : public BlitterWidget {
 	const std::auto_ptr<QWidget> confWidget;
@@ -61,7 +60,7 @@ protected:
 	void hideEvent(QHideEvent *event);*/
 	
 public:
-	DirectDrawBlitter(VideoBufferReseter &resetVideoBuffer_in, QWidget *parent = 0);
+	DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
 	~DirectDrawBlitter();
 	void blit();
 	void init();

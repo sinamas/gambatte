@@ -114,6 +114,7 @@ private:
 	void doPause();
 	void doUnpause();
 	void showCursor();
+	void correctFullScreenGeometry();
 	
 private slots:
 	void hideCursor();

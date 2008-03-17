@@ -20,14 +20,14 @@
 #ifndef GDITOGGLER_H_
 #define GDITOGGLER_H_
 
-#include "../fullrestoggler.h"
+#include "../fullmodetoggler.h"
 
 #include <QObject>
 #include <vector>
 
 #include "../resinfo.h"
 
-class GdiToggler : public FullResToggler {
+class GdiToggler : public FullModeToggler {
 	Q_OBJECT
 		
 	std::vector<ResInfo> infoVector;

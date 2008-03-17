@@ -237,6 +237,17 @@ static void saveWindowSize(const QSize &s) {
 	settings.endGroup();
 }
 
+void MainWindow::correctFullScreenGeometry() {
+	const QRect &screenRect = fullModeToggler->fullScreenRect(this);
+	
+	if (geometry() != screenRect) {
+		setGeometry(screenRect);
+#ifdef Q_WS_WIN
+		showFullScreen();
+#endif
+	}
+}
+
 void MainWindow::toggleFullScreen() {
 	if (isFullScreen()) {
 		fullModeToggler->setFullMode(false);
@@ -248,11 +259,7 @@ void MainWindow::toggleFullScreen() {
 		saveWindowSize(size());
 		resetWindowSize(QSize(-1, -1));
 		showFullScreen();
-		
-		const QRect &screenRect = fullModeToggler->fullScreenRect(this);
-		
-		if (geometry() != screenRect)
-			setGeometry(screenRect);
+		correctFullScreenGeometry();
 	}
 }
 
@@ -362,10 +369,7 @@ void MainWindow::videoSettingsChange() {
 			fullModeToggler->setMode(i, videoDialog->fullMode(i), videoDialog->fullRate(i));
 			
 			if (fullModeToggler->isFullMode() && i == fullModeToggler->screen()) {
-				const QRect &screenRect = fullModeToggler->fullScreenRect(this);
-				
-				if (geometry() != screenRect)
-					setGeometry(screenRect);
+				correctFullScreenGeometry();
 			}
 		}
 	}
@@ -683,6 +687,8 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 		saveWindowSize(size());
 	}
 	
+	fullModeToggler->setFullMode(false); // avoid misleading auto-minimize on close focusOut event.
+	
 	QMainWindow::closeEvent(e);
 }
 
@@ -716,11 +722,7 @@ void MainWindow::focusOutEvent(QFocusEvent */*event*/) {
 void MainWindow::focusInEvent(QFocusEvent */*event*/) {
 	if (isFullScreen() && !fullModeToggler->isFullMode()) {
 		fullModeToggler->setFullMode(true);
-		
-		const QRect &screenRect = fullModeToggler->fullScreenRect(this);
-		
-		if (geometry() != screenRect)
-			setGeometry(screenRect);
+		correctFullScreenGeometry();
 	}
 	
 	cursorTimer->start();

@@ -18,8 +18,6 @@
  ***************************************************************************/
 #include "directdrawblitter.h"
 
-#include "../videobufferreseter.h"
-
 #include <QCheckBox>
 #include <QSettings>
 #include <QVBoxLayout>
@@ -351,7 +349,7 @@ void DirectDrawBlitter::setFrameTime(Rational ft) {
 	
 	QString text("Sync to vertical blank in ");
 	text += QString::number(vblankHz);
-	test += " Hz modes";
+	text += " Hz modes";
 	vblankBox->setText(text);
 }
 
@@ -474,7 +472,7 @@ void DirectDrawBlitter::setExclusive(const bool exclusive) {
 	
 	this->exclusive = exclusive;
 	
-	std::cout << "exclusive: " << exclusive << std::endl;
+	// std::cout << "exclusive: " << exclusive << std::endl;
 	
 	if (flipping)
 		reinit();
