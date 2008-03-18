@@ -134,9 +134,7 @@ void setInitState(SaveState &state, const bool cgb) {
 	std::memcpy(state.mem.ioamhram.ptr + 0x100, ffxxDump, sizeof(ffxxDump));
 	
 	state.mem.ioamhram.ptr[0x104] = 0x1C;
-	state.mem.ioamhram.ptr[0x10F] = 0xE0;
 	state.mem.ioamhram.ptr[0x140] = 0x91;
-	state.mem.ioamhram.ptr[0x141] = 0x80;
 	state.mem.ioamhram.ptr[0x144] = 0x00;
 	
 	if (!cgb) {
