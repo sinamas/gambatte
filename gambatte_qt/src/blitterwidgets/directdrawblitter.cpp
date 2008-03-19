@@ -19,10 +19,29 @@
 #include "directdrawblitter.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QSettings>
+#include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QLabel>
 #include <iostream>
 #include <cstring>
+
+Q_DECLARE_METATYPE(GUID*)
+
+BOOL WINAPI enumCallback(GUID FAR *lpGUID, char *lpDriverDescription, char */*lpDriverName*/, LPVOID lpContext, HMONITOR) {
+	DirectDrawBlitter *const thisptr = static_cast<DirectDrawBlitter*>(lpContext);
+	GUID *guidptr = NULL;
+	
+	if (lpGUID) {
+		thisptr->deviceList.append(*lpGUID);
+		guidptr = &thisptr->deviceList.last();
+	}
+	
+	thisptr->deviceSelector->addItem(lpDriverDescription, QVariant::fromValue(guidptr));
+	
+	return true;
+}
 
 DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
 	BlitterWidget(setPixelBuffer, "DirectDraw", parent),
@@ -30,6 +49,7 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	vblankBox(new QCheckBox(QString("Sync to vertical blank in 60 Hz modes"))),
 	flippingBox(new QCheckBox(QString("Page flipping"))),
 	videoSurfaceBox(new QCheckBox(QString("Use video memory surface"))),
+	deviceSelector(new QComboBox),
 	lpDD(NULL),
 	lpDDSPrimary(NULL),
 	lpDDSSystem(NULL),
@@ -38,26 +58,48 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	pixelFormat(MediaSource::RGB32),
 	hz(0),
 	vblankHz(60),
+	deviceIndex(0),
+	inWidth(1),
+	inHeight(1),
 	exclusive(false)
 {
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAttribute(Qt::WA_PaintOnScreen, true);
+	
+	DirectDrawEnumerateExA(enumCallback, this, DDENUM_ATTACHEDSECONDARYDEVICES);
+	
+	if (deviceSelector->count() < 1)
+		deviceSelector->addItem(QString(), QVariant::fromValue<GUID*>(NULL));
 	
 	QSettings settings;
 	settings.beginGroup("directdrawblitter");
 	vblank = settings.value("vblank", false).toBool();
 	flipping = settings.value("flipping", false).toBool();
 	videoSurface = settings.value("videoSurface", true).toBool();
+	
+	if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
+		deviceIndex = 0;
+	
 	settings.endGroup();
 	
-	confWidget->setLayout(new QVBoxLayout);
-	confWidget->layout()->setMargin(0);
-	confWidget->layout()->addWidget(vblankBox);
-	confWidget->layout()->addWidget(flippingBox);
-	confWidget->layout()->addWidget(videoSurfaceBox);
-	vblankBox->setChecked(vblank);
-	flippingBox->setChecked(flipping);
-	videoSurfaceBox->setChecked(videoSurface);
+	QVBoxLayout *const mainLayout = new QVBoxLayout;
+	mainLayout->setMargin(0);
+	
+	if (deviceSelector->count() > 1) {
+		QHBoxLayout *const hlayout = new QHBoxLayout;
+		
+		hlayout->addWidget(new QLabel(QString(tr("DirectDraw device:"))));
+		hlayout->addWidget(deviceSelector);
+		
+		mainLayout->addLayout(hlayout);
+	}
+	
+	mainLayout->addWidget(vblankBox);
+	mainLayout->addWidget(flippingBox);
+	mainLayout->addWidget(videoSurfaceBox);
+	confWidget->setLayout(mainLayout);
+	
+	rejectSettings();
 }
 
 DirectDrawBlitter::~DirectDrawBlitter() {
@@ -68,6 +110,7 @@ DirectDrawBlitter::~DirectDrawBlitter() {
 	settings.setValue("vblank", vblank);
 	settings.setValue("flipping", flipping);
 	settings.setValue("videoSurface", videoSurface);
+	settings.setValue("deviceIndex", deviceIndex);
 	settings.endGroup();
 }
 
@@ -179,7 +222,7 @@ bool DirectDrawBlitter::initVideoSurface() {
 }
 
 void DirectDrawBlitter::init() {
-	if (DirectDrawCreateEx(NULL, reinterpret_cast<void**>(&lpDD), IID_IDirectDraw7, NULL) != DD_OK) {
+	if (DirectDrawCreateEx(deviceSelector->itemData(deviceIndex).value<GUID*>(), reinterpret_cast<void**>(&lpDD), IID_IDirectDraw7, NULL) != DD_OK) {
 		std::cout << "DirectDrawCreateEx failed" << std::endl;
 		goto fail;
 	}
@@ -265,6 +308,9 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, MediaSource::PixelFormat *const p
 }
 
 void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned int h) {
+	inWidth = w;
+	inHeight = h;
+	
 	if (lpDDSPrimary == NULL)
 		return;
 	
@@ -400,19 +446,24 @@ int DirectDrawBlitter::sync(const bool turbo) {
 }
 
 void DirectDrawBlitter::acceptSettings() {
+	bool needReinit = false;
+	
 	vblank = vblankBox->isChecked();
+	
+	if (static_cast<int>(deviceIndex) != deviceSelector->currentIndex()) {
+		deviceIndex = deviceSelector->currentIndex();
+		needReinit = true;
+	}
 	
 	if (flipping != flippingBox->isChecked()) {
 		flipping = flippingBox->isChecked();
-		
-		if (exclusive)
-			reinit();
+		needReinit |= exclusive;
 	}
 	
 	if (videoSurface != videoSurfaceBox->isChecked()) {
 		videoSurface = videoSurfaceBox->isChecked();
 		
-		if (lpDDSVideo) {
+		if (!needReinit && lpDDSVideo) {
 			lpDDSVideo->Release();
 			
 			if (initVideoSurface()) {
@@ -421,12 +472,16 @@ void DirectDrawBlitter::acceptSettings() {
 			}
 		}
 	}
+	
+	if (needReinit)
+		reinit();
 }
 
 void DirectDrawBlitter::rejectSettings() {
 	vblankBox->setChecked(vblank);
 	flippingBox->setChecked(flipping);
 	videoSurfaceBox->setChecked(videoSurface);
+	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
 void DirectDrawBlitter::rateChange(int hz) {
@@ -477,15 +532,10 @@ void DirectDrawBlitter::setExclusive(const bool exclusive) {
 }
 
 void DirectDrawBlitter::reinit() {
-	if (lpDDSSystem) {
-		DDSURFACEDESC2 ddsd;
-		std::memset(&ddsd, 0, sizeof(ddsd));
-		ddsd.dwSize = sizeof(ddsd); 
-		lpDDSSystem->GetSurfaceDesc(&ddsd);
-		
+	if (isVisible()) {
 		uninit();
 		setPixelBuffer(NULL, MediaSource::RGB32, 0);
 		init();
-		setBufferDimensions(ddsd.dwWidth, ddsd.dwHeight);
+		setBufferDimensions(inWidth, inHeight);
 	}
 }

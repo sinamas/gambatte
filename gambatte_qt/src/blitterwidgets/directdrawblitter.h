@@ -20,26 +20,34 @@
 #define DIRECTDRAWBLITTER_H_
 
 #include "../blitterwidget.h"
-
+#include <QList>
 #include <ddraw.h>
 #include <memory>
 
 class QCheckBox;
+class QComboBox;
 
 class DirectDrawBlitter : public BlitterWidget {
+	friend BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
+	
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
 	QCheckBox *const videoSurfaceBox;
+	QComboBox *const deviceSelector;
 	LPDIRECTDRAW7 lpDD;
 	LPDIRECTDRAWSURFACE7 lpDDSPrimary;
 	LPDIRECTDRAWSURFACE7 lpDDSBack;
 	LPDIRECTDRAWSURFACE7 lpDDSSystem;
 	LPDIRECTDRAWSURFACE7 lpDDSVideo;
 	LPDIRECTDRAWCLIPPER lpClipper;
+	QList<GUID> deviceList;
 	MediaSource::PixelFormat pixelFormat;
 	unsigned hz;
 	unsigned vblankHz;
+	unsigned deviceIndex;
+	unsigned inWidth;
+	unsigned inHeight;
 	bool vblank;
 	bool videoSurface;
 	bool exclusive;
