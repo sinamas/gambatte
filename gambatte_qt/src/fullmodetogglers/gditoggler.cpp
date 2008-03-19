@@ -57,52 +57,154 @@ static void addMode(const DEVMODE &devmode, std::vector<ResInfo> &infoVector, un
 		*rateIndex = std::distance(it->rates.begin(), rateIt);
 }
 
+class GdiToggler::MultiMon {
+	struct MonInfo { 
+		DWORD  cbSize; 
+		RECT   rcMonitor; 
+		RECT   rcWork; 
+		DWORD  dwFlags; 
+		TCHAR  szDevice[CCHDEVICENAME];
+	};
+
+    typedef BOOL (WINAPI *GetMonInfo)(HMONITOR, MonInfo*);
+    typedef HMONITOR (WINAPI *MonFromPoint)(POINT pt, DWORD dwFlags);
+    typedef LONG (WINAPI *ChangeDspSettingsEx)(LPCTSTR, LPDEVMODE, HWND, DWORD, LPVOID);
+	enum { MON_DEFAULTTONEAREST = 2 };
+	
+	HMODULE user32handle;
+	ChangeDspSettingsEx changeDisplaySettingsEx;
+	TCHAR *devNames;
+	unsigned numDevs;
+	
+	TCHAR *name(int screen) { return devNames ? devNames + screen * CCHDEVICENAME : NULL; }
+	
+public:
+	MultiMon() : user32handle(NULL), changeDisplaySettingsEx(NULL), devNames(NULL), numDevs(1) {
+		GetMonInfo getMonitorInfo = NULL;
+		MonFromPoint monitorFromPoint = NULL;
+		
+		user32handle = LoadLibraryA("user32.dll");
+		
+		if (user32handle) {
+			QT_WA(
+					{getMonitorInfo = (GetMonInfo)GetProcAddress(user32handle, "GetMonitorInfoW");},
+					{getMonitorInfo = (GetMonInfo)GetProcAddress(user32handle, "GetMonitorInfoA");}
+			);
+			
+			QT_WA(
+					{changeDisplaySettingsEx = (ChangeDspSettingsEx)GetProcAddress(user32handle, "ChangeDisplaySettingsExW");},
+					{changeDisplaySettingsEx = (ChangeDspSettingsEx)GetProcAddress(user32handle, "ChangeDisplaySettingsExA");}
+			);
+			
+			monitorFromPoint = (MonFromPoint)GetProcAddress(user32handle, "MonitorFromPoint");
+		}
+		
+		if (getMonitorInfo && monitorFromPoint && changeDisplaySettingsEx) {
+			numDevs = QApplication::desktop()->numScreens();
+			devNames = new TCHAR[numDevs * CCHDEVICENAME];
+			
+			MonInfo moninfo;
+			moninfo.cbSize = sizeof(MonInfo);
+			
+			for (unsigned i = 0; i < numDevs; ++i) {
+				const QPoint &qpoint = QApplication::desktop()->screenGeometry(i).center();
+				POINT point = { x: qpoint.x(), y: qpoint.y() };
+				getMonitorInfo(monitorFromPoint(point, MON_DEFAULTTONEAREST), &moninfo);
+				
+				std::memcpy(devNames + i * CCHDEVICENAME, moninfo.szDevice, CCHDEVICENAME * sizeof(TCHAR));
+			}
+		}
+	}
+	
+	~MultiMon() {
+		if (user32handle)
+			FreeLibrary(user32handle);
+		
+		delete []devNames;
+	}
+	
+	unsigned numScreens() const { return numDevs; }
+	
+	BOOL enumDisplaySettings(unsigned screen, DWORD iModeNum, LPDEVMODE devmode) {
+		return EnumDisplaySettings(name(screen), iModeNum, devmode);
+	}
+	
+	LONG changeDisplaySettings(unsigned screen, LPDEVMODE devmode, DWORD dwflags) {
+		return changeDisplaySettingsEx ?
+			changeDisplaySettingsEx(name(screen), devmode, NULL, dwflags, NULL) :
+			ChangeDisplaySettings(devmode, dwflags);
+	}
+};
+
 GdiToggler::GdiToggler() :
+mon(new MultiMon),
 originalWidth(0),
 originalHeight(0),
 originalRate(0),
-fullResIndex(0),
-fullRateIndex(0),
+widgetScreen(0),
 isFull(false)
 {
+	infoVector.resize(mon->numScreens());
+	fullResIndex.resize(mon->numScreens());
+	fullRateIndex.resize(mon->numScreens());
+	
 	DEVMODE devmode;
 	devmode.dmSize = sizeof(DEVMODE);
 	devmode.dmDriverExtra = 0;
 	
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);
+	for (unsigned i = 0; i < mon->numScreens(); ++i) {
+		mon->enumDisplaySettings(i, ENUM_CURRENT_SETTINGS, &devmode);
+		
+		const unsigned bpp = devmode.dmBitsPerPel;
+		
+		int n = 0;
+		
+		while (mon->enumDisplaySettings(i, n++, &devmode)) {
+			if (devmode.dmBitsPerPel == bpp)
+				addMode(devmode, infoVector[i], NULL, NULL);
+		}
+	}
+	
+	for (unsigned i = 0; i < mon->numScreens(); ++i) {
+		mon->enumDisplaySettings(i, ENUM_CURRENT_SETTINGS, &devmode);
+		addMode(devmode, infoVector[i], &fullResIndex[i], &fullRateIndex[i]);
+	}
+	
+	mon->enumDisplaySettings(widgetScreen, ENUM_CURRENT_SETTINGS, &devmode);
 	originalWidth = devmode.dmPelsWidth;
 	originalHeight = devmode.dmPelsHeight;
 	originalRate = devmode.dmDisplayFrequency;
-	
-	const unsigned bpp = devmode.dmBitsPerPel;
-	
-	int n = 0;
-	
-	while (EnumDisplaySettings(NULL, n++, &devmode)) {
-		if (devmode.dmBitsPerPel == bpp)
-			addMode(devmode, infoVector, NULL, NULL);
-	}
-	
-	devmode.dmPelsWidth = originalWidth;
-	devmode.dmPelsHeight = originalHeight;
-	devmode.dmDisplayFrequency = originalRate;
-	
-	addMode(devmode, infoVector, &fullResIndex, &fullRateIndex);
 }
 
 GdiToggler::~GdiToggler() {
 	setFullMode(false);
+	delete mon;
 }
 
-const QRect GdiToggler::fullScreenRect(const QWidget */*wdgt*/) const {
-	return QApplication::desktop()->screenGeometry(/*wdgt*/);
-}
+/*const QRect GdiToggler::fullScreenRect(const QWidget *wdgt) const {
+	return QApplication::desktop()->screenGeometry(wdgt);
+}*/
 
-void GdiToggler::setMode(unsigned /*screen*/, const unsigned resIndex, const unsigned rateIndex) {
-	fullResIndex = resIndex;
-	fullRateIndex = rateIndex;
+void GdiToggler::setScreen(const QWidget *widget) {
+	unsigned n = QApplication::desktop()->screenNumber(widget);
 	
-	if (isFullMode())
+	if (n != widgetScreen && n < mon->numScreens()) {
+		if (isFullMode()) {
+			setFullMode(false);
+			widgetScreen = n;
+			setFullMode(true);
+		} else {
+			widgetScreen = n;
+			emitRate();
+		}
+	}
+}
+
+void GdiToggler::setMode(const unsigned screen, const unsigned resIndex, const unsigned rateIndex) {
+	fullResIndex[screen] = resIndex;
+	fullRateIndex[screen] = rateIndex;
+	
+	if (isFullMode() && screen == widgetScreen)
 		setFullMode(true);
 }
 
@@ -111,23 +213,23 @@ void GdiToggler::setFullMode(const bool enable) {
 	devmode.dmSize = sizeof(DEVMODE);
 	devmode.dmDriverExtra = 0;
 	
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);
+	mon->enumDisplaySettings(widgetScreen, ENUM_CURRENT_SETTINGS, &devmode);
 	const unsigned currentWidth = devmode.dmPelsWidth;
 	const unsigned currentHeight = devmode.dmPelsHeight;
 	const unsigned currentRate = devmode.dmDisplayFrequency;
 	
 	if (enable) {
-		const ResInfo &info = infoVector[fullResIndex];
+		const ResInfo &info = infoVector[widgetScreen][fullResIndex[widgetScreen]];
 		devmode.dmPelsWidth = info.w;
 		devmode.dmPelsHeight = info.h;
-		devmode.dmDisplayFrequency = info.rates[fullRateIndex];
+		devmode.dmDisplayFrequency = info.rates[fullRateIndex[widgetScreen]];
 		
 		if (!isFull) {
 			originalWidth = currentWidth;
 			originalHeight = currentHeight;
 			originalRate = currentRate;
 		}
-	} else {
+	} else if (isFull) {
 		devmode.dmPelsWidth = originalWidth;
 		devmode.dmPelsHeight = originalHeight;
 		devmode.dmDisplayFrequency = originalRate;
@@ -135,7 +237,7 @@ void GdiToggler::setFullMode(const bool enable) {
 	
 	if (devmode.dmPelsWidth != currentWidth || devmode.dmPelsHeight != currentHeight || devmode.dmDisplayFrequency != currentRate) {
 		devmode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY;
-		ChangeDisplaySettings(&devmode, CDS_FULLSCREEN);
+		mon->changeDisplaySettings(widgetScreen, &devmode, enable ? CDS_FULLSCREEN : 0);
 		
 		if (devmode.dmDisplayFrequency != currentRate)
 			emit rateChange(devmode.dmDisplayFrequency);
@@ -148,6 +250,6 @@ void GdiToggler::emitRate() {
 	DEVMODE devmode;
 	devmode.dmSize = sizeof(DEVMODE);
 	devmode.dmDriverExtra = 0;
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);
+	mon->enumDisplaySettings(widgetScreen, ENUM_CURRENT_SETTINGS, &devmode);
 	emit rateChange(devmode.dmDisplayFrequency);
 }

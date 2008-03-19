@@ -242,9 +242,6 @@ void MainWindow::correctFullScreenGeometry() {
 	
 	if (geometry() != screenRect) {
 		setGeometry(screenRect);
-#ifdef Q_WS_WIN
-		showFullScreen();
-#endif
 	}
 }
 
@@ -255,9 +252,27 @@ void MainWindow::toggleFullScreen() {
 		resetWindowSize(videoDialog->winRes());
 		activateWindow();
 	} else {
+		const int screen = QApplication::desktop()->screenNumber(this);
+		
 		fullModeToggler->setFullMode(true);
 		saveWindowSize(size());
 		resetWindowSize(QSize(-1, -1));
+		
+		// If the window is outside the screen it will be moved to the primary screen by Qt.
+		{
+			const QRect &rect = QApplication::desktop()->screenGeometry(screen);
+			QPoint p(pos());
+			
+			if (p.x() > rect.right())
+				p.setX(rect.right());
+			
+			if (p.y() > rect.bottom())
+				p.setY(rect.bottom());
+			
+			if (p != pos())
+				move(p);
+		}
+		
 		showFullScreen();
 		correctFullScreenGeometry();
 	}
@@ -369,6 +384,10 @@ void MainWindow::videoSettingsChange() {
 			fullModeToggler->setMode(i, videoDialog->fullMode(i), videoDialog->fullRate(i));
 			
 			if (fullModeToggler->isFullMode() && i == fullModeToggler->screen()) {
+#ifdef Q_WS_WIN
+				showNormal();
+				showFullScreen();
+#endif
 				correctFullScreenGeometry();
 			}
 		}

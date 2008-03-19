@@ -21,37 +21,39 @@
 #define GDITOGGLER_H_
 
 #include "../fullmodetoggler.h"
-
 #include <QObject>
 #include <vector>
-
 #include "../resinfo.h"
 
 class GdiToggler : public FullModeToggler {
 	Q_OBJECT
-		
-	std::vector<ResInfo> infoVector;
+	
+	class MultiMon;
+	
+	MultiMon *const mon;
+	std::vector<std::vector<ResInfo> > infoVector;
+	std::vector<unsigned> fullResIndex;
+	std::vector<unsigned> fullRateIndex;
 	unsigned originalWidth;
 	unsigned originalHeight;
 	unsigned originalRate;
-	unsigned fullResIndex;
-	unsigned fullRateIndex;
+	unsigned widgetScreen;
 	bool isFull;
 	
 public:
 	GdiToggler();
 	~GdiToggler();
-	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
-	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
-	const QRect fullScreenRect(const QWidget *w) const;
+	unsigned currentResIndex(unsigned screen) const { return fullResIndex[screen]; }
+	unsigned currentRateIndex(unsigned screen) const { return fullRateIndex[screen]; }
+	//const QRect fullScreenRect(const QWidget *w) const;
 	bool isFullMode() const { return isFull; }
 	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
 	void setFullMode(bool enable);
 	void emitRate();
-	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
-	void setScreen(const QWidget */*widget*/) {}
-	unsigned screen() const { return 0; }
-	unsigned screens() const { return 1; }
+	const std::vector<ResInfo>& modeVector(unsigned screen) const { return infoVector[screen]; }
+	void setScreen(const QWidget *widget);
+	unsigned screen() const { return widgetScreen; }
+	unsigned screens() const { return infoVector.size(); }
 	
 signals:
 	void rateChange(int newHz);

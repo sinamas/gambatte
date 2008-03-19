@@ -168,7 +168,7 @@ sourceIndexStore(0)
 	restore();
 	
 	for (unsigned i = 0; i < hzIndex.size(); ++i) {
-		hzIndex[i] = filterValue(hzSelector[i]->findData(settings.value("hz" + QString::number(i)).toUInt()),
+		hzIndex[i] = filterValue(hzSelector[i]->findText(settings.value("hz" + QString::number(i)).toString()),
 		                         hzSelector[i]->count(),
 		                         0,
 		                         resHandler->currentRateIndex(i));
@@ -195,7 +195,7 @@ VideoDialog::~VideoDialog() {
 	settings.setValue("winIndex", winIndex);
 	
 	for (unsigned i = 0; i < hzIndex.size(); ++i) {
-		settings.setValue("hz" + QString::number(i), fullRate(i));
+		settings.setValue("hz" + QString::number(i), hzSelector[i]->itemText(hzIndex[i]));
 	}
 	
 	settings.setValue("scalingType", (int)scaling);
@@ -349,7 +349,7 @@ void VideoDialog::engineChange(int index) {
 
 void VideoDialog::fullresChange(int index) {
 	for (unsigned i = 0; i < fullResSelector.size(); ++i) {
-		if (fullResSelector[i]->currentIndex() == index) {
+		if (sender() == fullResSelector[i]) {
 			hzSelector[i]->clear();
 		
 			if (index >= 0) {

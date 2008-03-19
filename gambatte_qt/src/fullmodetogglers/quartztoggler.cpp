@@ -145,7 +145,7 @@ void QuartzToggler::setFullMode(const bool enable) {
 	CGDirectDisplayID display = activeDspys[widgetScreen];
 	CFDictionaryRef currentMode = CGDisplayCurrentMode(display);
 	
-	CFDictionaryRef mode;
+	CFDictionaryRef mode = currentMode;
 	
 	if (enable) {
 		int bpp = 0;
@@ -162,7 +162,7 @@ void QuartzToggler::setFullMode(const bool enable) {
 		
 		if (!isFull)
 			originalMode = currentMode;
-	} else
+	} else if (isFull)
 		mode = originalMode;
 	
 	if (mode != currentMode) {
