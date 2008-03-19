@@ -53,7 +53,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::ve
 	
 	{
 		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(new QLabel(tr("Sound Engine:")));
+		hLayout->addWidget(new QLabel(tr("Sound engine:")));
 	
 		for (std::size_t i = 0; i < engines.size(); ++i)
 			engineSelector->addItem(engines[i]->nameString);
@@ -64,7 +64,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::ve
 	
 	{
 		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(new QLabel(tr("Sample Rate:")));
+		hLayout->addWidget(new QLabel(tr("Sample rate:")));
 		
 		for (unsigned i = 0; i < rates.size(); ++i)
 			rateSelector->addItem(QString::number(rates[i]) + " Hz", rates[i]);
@@ -75,7 +75,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::ve
 	
 	{
 		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(new QLabel(tr("Buffer Latency:")));
+		hLayout->addWidget(new QLabel(tr("Buffer latency:")));
 		latencySelector->setRange(4, 999);
 		latencySelector->setSuffix(" ms");
 		hLayout->addWidget(latencySelector);

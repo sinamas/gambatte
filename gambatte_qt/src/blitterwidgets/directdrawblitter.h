@@ -28,8 +28,6 @@ class QCheckBox;
 class QComboBox;
 
 class DirectDrawBlitter : public BlitterWidget {
-	friend BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
-	
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
@@ -53,6 +51,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	bool exclusive;
 	bool flipping;
 	
+	static BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
 	bool initPrimarySurface();
 	bool initVideoSurface();
 	bool restoreSurfaces();

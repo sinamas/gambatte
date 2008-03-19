@@ -29,7 +29,7 @@
 
 Q_DECLARE_METATYPE(GUID*)
 
-BOOL WINAPI enumCallback(GUID FAR *lpGUID, char *lpDriverDescription, char */*lpDriverName*/, LPVOID lpContext, HMONITOR) {
+BOOL WINAPI DirectDrawBlitter::enumCallback(GUID FAR *lpGUID, char *lpDriverDescription, char */*lpDriverName*/, LPVOID lpContext, HMONITOR) {
 	DirectDrawBlitter *const thisptr = static_cast<DirectDrawBlitter*>(lpContext);
 	GUID *guidptr = NULL;
 	
@@ -85,7 +85,7 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	QVBoxLayout *const mainLayout = new QVBoxLayout;
 	mainLayout->setMargin(0);
 	
-	if (deviceSelector->count() > 1) {
+	if (deviceSelector->count() > 2) {
 		QHBoxLayout *const hlayout = new QHBoxLayout;
 		
 		hlayout->addWidget(new QLabel(QString(tr("DirectDraw device:"))));

@@ -20,20 +20,27 @@
 #define DIRECTSOUNDENGINE_H
 
 class QCheckBox;
+class QComboBox;
 
 #include "../audioengine.h"
+#include <QList>
 #include <memory>
 #include <dsound.h>
 
 class DirectSoundEngine : public AudioEngine {
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const globalBufBox;
+	QComboBox *const deviceSelector;
 	LPDIRECTSOUND lpDS;
 	LPDIRECTSOUNDBUFFER lpDSB;
+	QList<GUID> deviceList;
 	unsigned bufSize;
+	unsigned deviceIndex;
 	DWORD offset;
 	HWND hwnd;
 	bool useGlobalBuf;
+	
+	static BOOL CALLBACK enumCallback(LPGUID, const char*, const char*, LPVOID);
 	
 public:
 	DirectSoundEngine(HWND hwnd);

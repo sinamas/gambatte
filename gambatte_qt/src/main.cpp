@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	                                 source.generateButtonLabels(),
 	                                 source.generateButtonDefaults(),
 	                                 source.generateVideoSourceInfos(),
-	                                 "Video Filter:",
+	                                 "Video filter:",
 	                                 QSize(160, 144),
 	                                 source.generateSampleRates());
 	GambatteMenuHandler mh(mw, &source, argc, argv);

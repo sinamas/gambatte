@@ -18,25 +18,70 @@
  ***************************************************************************/
 #include "directsoundengine.h"
 
-// #include <iostream>
 #include <cstring>
 #include <QWidget>
 #include <QCheckBox>
+#include <QComboBox>
+#include <QLabel>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QSettings>
 
-DirectSoundEngine::DirectSoundEngine(HWND hwnd_in)
-: AudioEngine("DirectSound"), confWidget(new QWidget), globalBufBox(new QCheckBox("Global buffer")),
-  lpDS(NULL), lpDSB(NULL), hwnd(hwnd_in), useGlobalBuf(false)
+Q_DECLARE_METATYPE(GUID*)
+
+BOOL CALLBACK DirectSoundEngine::enumCallback(LPGUID lpGuid, const char *lpcstrDescription, const char */*lpcstrModule*/, LPVOID lpContext) {
+	if (lpGuid) {
+		DirectSoundEngine *const thisptr = static_cast<DirectSoundEngine*>(lpContext);
+		thisptr->deviceList.append(*lpGuid);
+		thisptr->deviceSelector->addItem(lpcstrDescription, QVariant::fromValue(&thisptr->deviceList.last()));
+	}
+	
+	return true;
+}
+
+DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) :
+	AudioEngine("DirectSound"),
+	confWidget(new QWidget),
+	globalBufBox(new QCheckBox("Global buffer")),
+	deviceSelector(new QComboBox),
+	lpDS(NULL),
+	lpDSB(NULL),
+	bufSize(0),
+	deviceIndex(0),
+	offset(0),
+	hwnd(hwnd_in),
+	useGlobalBuf(false)
 {
-	confWidget->setLayout(new QVBoxLayout);
-	confWidget->layout()->setMargin(0);
-	confWidget->layout()->addWidget(globalBufBox);
+	DirectSoundEnumerateA(enumCallback, this);
+	
+	if (deviceSelector->count() < 1)
+		deviceSelector->addItem(QString(), QVariant::fromValue<GUID*>(NULL));
+	
+	{
+		QVBoxLayout *const mainLayout = new QVBoxLayout;
+		mainLayout->setMargin(0);
+		
+		if (deviceSelector->count() > 1) {
+			QHBoxLayout *const hlayout = new QHBoxLayout;
+			
+			hlayout->addWidget(new QLabel(QString("DirectSound device:")));
+			hlayout->addWidget(deviceSelector);
+			
+			mainLayout->addLayout(hlayout);
+		}
+		
+		mainLayout->addWidget(globalBufBox);
+		confWidget->setLayout(mainLayout);
+	}
 	
 	{
 		QSettings settings;
 		settings.beginGroup("directsoundengine");
 		useGlobalBuf = settings.value("useGlobalBuf", useGlobalBuf).toBool();
+		
+		if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
+			deviceIndex = 0;
+		
 		settings.endGroup();
 	}
 	
@@ -49,15 +94,18 @@ DirectSoundEngine::~DirectSoundEngine() {
 	QSettings settings;
 	settings.beginGroup("directsoundengine");
 	settings.setValue("useGlobalBuf", useGlobalBuf);
+	settings.setValue("deviceIndex", deviceIndex);
 	settings.endGroup();
 }
 
 void DirectSoundEngine::acceptSettings() {
 	useGlobalBuf = globalBufBox->isChecked();
+	deviceIndex = deviceSelector->currentIndex();
 }
 
 void DirectSoundEngine::rejectSettings() {
 	globalBufBox->setChecked(useGlobalBuf);
+	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
 static unsigned nearestPowerOf2(const unsigned in) {
@@ -77,7 +125,7 @@ static unsigned nearestPowerOf2(const unsigned in) {
 }
 
 int DirectSoundEngine::init(const int rate, const unsigned latency) {
-	if (DirectSoundCreate(NULL, &lpDS, NULL) != DS_OK) {
+	if (DirectSoundCreate(deviceSelector->itemData(deviceIndex).value<GUID*>(), &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
 		goto fail;
 	}

@@ -87,7 +87,7 @@ sourceIndexStore(0)
 
 	for (unsigned i = 0; i < hzSelector.size(); ++i) {
 		hLayout = new QHBoxLayout;
-		hLayout->addWidget(new QLabel("Full Screen mode (screen " + QString::number(i) + "):"));
+		hLayout->addWidget(new QLabel("Full screen mode (screen " + QString::number(i) + "):"));
 		QHBoxLayout *hhLayout = new QHBoxLayout;
 		hhLayout->addWidget((fullResSelector[i] = new QComboBox));
 		hhLayout->addWidget((hzSelector[i] = new QComboBox));
