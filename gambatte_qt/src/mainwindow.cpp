@@ -247,6 +247,7 @@ void MainWindow::correctFullScreenGeometry() {
 
 void MainWindow::toggleFullScreen() {
 	if (isFullScreen()) {
+		blitterContainer->parentExclusiveEvent(false);
 		fullModeToggler->setFullMode(false);
 		showNormal();
 		resetWindowSize(videoDialog->winRes());
@@ -275,13 +276,14 @@ void MainWindow::toggleFullScreen() {
 		
 		showFullScreen();
 		correctFullScreenGeometry();
+		blitterContainer->parentExclusiveEvent(hasFocus());
 	}
 }
 
 void MainWindow::toggleMenuHidden() {
 #ifdef Q_WS_MAC
-	if (isFullScreen())
-		toggleFullScreen();
+//	if (isFullScreen())
+//		toggleFullScreen();
 #else
 	menuBar()->setVisible(!menuBar()->isVisible());
 	
@@ -381,6 +383,7 @@ void MainWindow::videoSettingsChange() {
 	for (unsigned i = 0; i < screens; ++i) {
 		if (fullModeToggler->currentResIndex(i) != videoDialog->fullMode(i) ||
 				fullModeToggler->currentRateIndex(i) != videoDialog->fullRate(i)) {
+			blitterContainer->parentExclusiveEvent(false);
 			fullModeToggler->setMode(i, videoDialog->fullMode(i), videoDialog->fullRate(i));
 			
 			if (fullModeToggler->isFullMode() && i == fullModeToggler->screen()) {
@@ -390,6 +393,8 @@ void MainWindow::videoSettingsChange() {
 #endif
 				correctFullScreenGeometry();
 			}
+			
+			blitterContainer->parentExclusiveEvent(isFullScreen() & hasFocus());
 		}
 	}
 	
@@ -666,7 +671,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e) {
 }
 
 void MainWindow::updateJoysticks() {
-	if (hasFocus() || QApplication::desktop()->numScreens() != 1) {
+	if (hasFocus()/* || QApplication::desktop()->numScreens() != 1*/) {
 		bool hit = false;
 		
 		SDL_ClearEvents();
@@ -699,7 +704,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent */*e*/) {
 	cursorTimer->start();
 }
 
-void MainWindow::closeEvent(QCloseEvent *e) {
+void MainWindow::closeEvent(QCloseEvent */*e*/) {
 	stop();
 	
 	if (!isFullScreen()) {
@@ -707,28 +712,25 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 	}
 	
 	fullModeToggler->setFullMode(false); // avoid misleading auto-minimize on close focusOut event.
-	
-	QMainWindow::closeEvent(e);
 }
 
-void MainWindow::showEvent(QShowEvent *event) {
-	QMainWindow::showEvent(event);
+void MainWindow::showEvent(QShowEvent */*event*/) {
 	resetWindowSize(videoDialog->winRes()); // some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
 }
 
-void MainWindow::moveEvent(QMoveEvent *event) {
-	QMainWindow::moveEvent(event);
+void MainWindow::moveEvent(QMoveEvent */*event*/) {
 	fullModeToggler->setScreen(this);
 }
 
-void MainWindow::resizeEvent(QResizeEvent *event) {
-	QMainWindow::resizeEvent(event);
+void MainWindow::resizeEvent(QResizeEvent */*event*/) {
 	fullModeToggler->setScreen(this);
 }
 
 void MainWindow::focusOutEvent(QFocusEvent */*event*/) {
+	blitterContainer->parentExclusiveEvent(false);
+	
 #ifndef Q_WS_MAC // Minimize is ugly on mac (especially full screen windows) and there doesn't seem to be a "qApp->hide()" which would be more appropriate.
-	if (isFullScreen() && fullModeToggler->isFullMode() && !qApp->activeWindow() && QApplication::desktop()->numScreens() == 1) {
+	if (isFullScreen() && fullModeToggler->isFullMode() && !qApp->activeWindow()/* && QApplication::desktop()->numScreens() == 1*/) {
 		fullModeToggler->setFullMode(false);
 		showMinimized();
 	}
@@ -743,6 +745,8 @@ void MainWindow::focusInEvent(QFocusEvent */*event*/) {
 		fullModeToggler->setFullMode(true);
 		correctFullScreenGeometry();
 	}
+	
+	blitterContainer->parentExclusiveEvent(isFullScreen());
 	
 	cursorTimer->start();
 }

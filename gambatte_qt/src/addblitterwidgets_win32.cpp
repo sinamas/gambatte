@@ -19,7 +19,9 @@
 #include "addblitterwidgets.h"
 
 #include "blitterwidgets/directdrawblitter.h"
+#include "blitterwidgets/direct3dblitter.h"
 
 void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, PixelBufferSetter setPixelBuffer) {
 	blitters.push_back(new DirectDrawBlitter(setPixelBuffer));
+	blitters.push_back(new Direct3DBlitter(setPixelBuffer));
 }

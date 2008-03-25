@@ -28,18 +28,21 @@ class VideoDialog;
 class BlitterContainer : public QWidget {
 	const VideoDialog *const videoDialog;
 	BlitterWidget *blitter;
+	bool parentExclusive;
 	
 	void doLayout(int w, int h);
+	void testExclusive();
 	
 protected:
+	void moveEvent(QMoveEvent *event);
 	void resizeEvent(QResizeEvent *event);
-	void hideEvent(QHideEvent *event);
 	
 public:
 	BlitterContainer(const VideoDialog *videoDialog, QWidget *parent = 0);
 	~BlitterContainer();
 	void setBlitter(BlitterWidget *blitter);
 	void updateLayout() { doLayout(width(), height()); }
+	void parentExclusiveEvent(bool fs) { parentExclusive = fs; testExclusive(); }
 };
 
 #endif

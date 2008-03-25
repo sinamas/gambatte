@@ -235,6 +235,7 @@ void GambatteMenuHandler::open() {
 		loadFile(fileName);
 	
 	mw->unpause();
+	mw->setFocus();
 }
 
 void GambatteMenuHandler::openRecentFile() {

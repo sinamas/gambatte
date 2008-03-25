@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,45 +16,47 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef GDISETTINGS_H_
+#define GDISETTINGS_H_
 
-#ifndef GDITOGGLER_H_
-#define GDITOGGLER_H_
+#include <windows.h>
 
-#include "../fullmodetoggler.h"
-#include <QObject>
-#include <vector>
-#include "../resinfo.h"
+class GdiSettings {
+	struct MonInfo { 
+		DWORD  cbSize; 
+		RECT   rcMonitor; 
+		RECT   rcWork; 
+		DWORD  dwFlags; 
+		TCHAR  szDevice[CCHDEVICENAME];
+	};
 
-class GdiToggler : public FullModeToggler {
-	Q_OBJECT
+	typedef BOOL (WINAPI *GetMonInfo)(HMONITOR, MonInfo*);
+    typedef HMONITOR (WINAPI *MonFromWindow)(HWND, DWORD);
+    typedef HMONITOR (WINAPI *MonFromPoint)(POINT pt, DWORD dwFlags);
+    typedef LONG (WINAPI *ChangeGdiSettingsEx)(LPCTSTR, LPDEVMODE, HWND, DWORD, LPVOID);
+    
+public:
+	enum { MON_DEFAULTTONEAREST = 2 };
 	
-	class MultiMon;
-	
-	MultiMon *const mon;
-	std::vector<std::vector<ResInfo> > infoVector;
-	std::vector<unsigned> fullResIndex;
-	std::vector<unsigned> fullRateIndex;
-	unsigned widgetScreen;
-	bool isFull;
+private:
+	HMODULE user32handle;
+	GetMonInfo getMonitorInfo;
+	ChangeGdiSettingsEx changeDisplaySettingsEx;
 	
 public:
-	GdiToggler();
-	~GdiToggler();
-	unsigned currentResIndex(unsigned screen) const { return fullResIndex[screen]; }
-	unsigned currentRateIndex(unsigned screen) const { return fullRateIndex[screen]; }
-	//const QRect fullScreenRect(const QWidget *w) const;
-	bool isFullMode() const { return isFull; }
-	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
-	void setFullMode(bool enable);
-	void emitRate();
-	const std::vector<ResInfo>& modeVector(unsigned screen) const { return infoVector[screen]; }
-	void setScreen(const QWidget *widget);
-	unsigned screen() const { return widgetScreen; }
-	unsigned screens() const { return infoVector.size(); }
+	MonFromWindow monitorFromWindow;
+	MonFromPoint monitorFromPoint;
 	
-signals:
-	void rateChange(int newHz);
-//	void modeChange();
+private:
+	TCHAR *getMonitorName(HMONITOR monitor, MonInfo *minfo) const;
+	
+public:
+	GdiSettings();
+	~GdiSettings();
+	BOOL enumDisplaySettings(HMONITOR monitor, DWORD iModeNum, LPDEVMODE devmode) const;
+	LONG changeDisplaySettings(HMONITOR monitor, LPDEVMODE devmode, DWORD dwflags) const;
 };
 
-#endif /*GDITOGGLER_H_*/
+extern const GdiSettings gdiSettings;
+
+#endif /*GDISETTINGS_H_*/

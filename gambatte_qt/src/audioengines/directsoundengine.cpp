@@ -137,7 +137,7 @@ int DirectSoundEngine::init(const int rate, const unsigned latency) {
 		DSBUFFERDESC dsbd;
 		std::memset(&dsbd, 0, sizeof(dsbd));
 		dsbd.dwSize = sizeof(dsbd);
-		dsbd.dwFlags |= useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0;
+		dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | (useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0);
 		
 		{
 			/*int bufferSize = (((rate * 4389) / 262144) + 1) * 8 * 4;

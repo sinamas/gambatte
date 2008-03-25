@@ -25,7 +25,8 @@
 BlitterContainer::BlitterContainer(const VideoDialog *videoDialog, QWidget *parent) :
 	QWidget(parent),
 	videoDialog(videoDialog),
-	blitter(NULL)
+	blitter(NULL),
+	parentExclusive(false)
 {
 	QPalette pal = palette();
 	pal.setColor(QPalette::Window, QColor(0, 0, 0));
@@ -61,8 +62,11 @@ void BlitterContainer::doLayout(const int w, const int h) {
 		const int new_h = src.height() * scale;
 		blitter->setCorrectedGeometry(w, h, new_w, new_h);
 	}
+}
 
-	blitter->setExclusive(parentWidget()->isFullScreen() && pos() == QPoint(0,0));
+void BlitterContainer::testExclusive() {
+	if (blitter)
+		blitter->setExclusive(parentExclusive && pos() == QPoint(0,0));
 }
 
 void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
@@ -74,16 +78,14 @@ void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
 	if (blitter) {
 		blitter->setParent(this);
 		updateLayout();
+		testExclusive();
 	}
+}
+
+void BlitterContainer::moveEvent(QMoveEvent */*e*/) {
+	testExclusive();
 }
 
 void BlitterContainer::resizeEvent(QResizeEvent *const event) {
 	doLayout(event->size().width(), event->size().height());
-}
-
-void BlitterContainer::hideEvent(QHideEvent *const event) {
-	if (blitter)
-		blitter->setExclusive(false);
-	
-	QWidget::hideEvent(event);
 }

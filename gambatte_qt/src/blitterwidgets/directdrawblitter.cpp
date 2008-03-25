@@ -17,7 +17,6 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "directdrawblitter.h"
-
 #include <QCheckBox>
 #include <QComboBox>
 #include <QSettings>
@@ -227,7 +226,7 @@ void DirectDrawBlitter::init() {
 		goto fail;
 	}
 	
-	if (lpDD->SetCooperativeLevel(GetParent(GetParent(winId())), (exclusive && flipping) ? DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN : DDSCL_NORMAL) != DD_OK) {
+	if (lpDD->SetCooperativeLevel(parentWidget()->parentWidget()->winId(), (exclusive && flipping) ? DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN : DDSCL_NORMAL) != DD_OK) {
 		std::cout << "SetCooperativeLevel failed" << std::endl;
 		goto fail;
 	}
@@ -491,33 +490,6 @@ void DirectDrawBlitter::rateChange(int hz) {
 void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {
 	sync(true);
 }
-
-/*void DirectDrawBlitter::detectExclusive() {
-	if (!lpDD || !parentWidget())
-		return;
-	
-	DDSURFACEDESC2 ddsd;
-	std::memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd); 
-	lpDD->GetDisplayMode(&ddsd);
-	
-	setExclusive(parentWidget()->width() == ddsd.dwWidth && parentWidget()->height() == ddsd.dwHeight);
-}
-
-void DirectDrawBlitter::resizeEvent(QResizeEvent *event) {
-	BlitterWidget::resizeEvent(event);
-	detectExclusive();
-}
-
-void DirectDrawBlitter::moveEvent(QMoveEvent *event) {
-	BlitterWidget::moveEvent(event);
-	detectExclusive();
-}
-
-void DirectDrawBlitter::hideEvent(QHideEvent *event) {
-	BlitterWidget::hideEvent(event);
-	setExclusive(false);
-}*/
 
 void DirectDrawBlitter::setExclusive(const bool exclusive) {
 	if (this->exclusive == exclusive)

@@ -117,14 +117,18 @@ else:unix {
 }
 else:win32 { 
     DEFINES += PLATFORM_WIN32
-    SOURCES += getfullmodetoggler_win32.cpp \
+    SOURCES += gdisettings.cpp \
+        blitterwidgets/direct3dblitter.cpp \
+        getfullmodetoggler_win32.cpp \
         addaudioengines_win32.cpp \
         addblitterwidgets_win32.cpp \
         audioengines/directsoundengine.cpp \
         blitterwidgets/directdrawblitter.cpp \
         fullmodetogglers/gditoggler.cpp \
         SDL_Joystick/src/win32/SDL_mmjoystick.c
-    HEADERS += audioengines/directsoundengine.h \
+    HEADERS += gdisettings.h \
+        blitterwidgets/direct3dblitter.h \
+        audioengines/directsoundengine.h \
         blitterwidgets/directdrawblitter.h \
         fullmodetogglers/gditoggler.h
     LIBS += -lwinmm \

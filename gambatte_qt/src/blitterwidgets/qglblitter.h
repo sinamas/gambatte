@@ -23,7 +23,6 @@
 #include <memory>
 
 class QCheckBox;
-class VideoDialog;
 
 class QGLBlitter : public BlitterWidget {
 	class SubWidget;
