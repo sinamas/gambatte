@@ -19,15 +19,15 @@
 #include "getfullmodetoggler.h"
 
 #include "fullmodetogglers/nulltoggler.h"
-#include "fullmodetogglers/xf86vidmodetoggler.h"
+// #include "fullmodetogglers/xf86vidmodetoggler.h"
 #include "fullmodetogglers/xrandrtoggler.h"
 
-std::auto_ptr<FullModeToggler> getFullModeToggler(WId winId) {
+std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
 	if (XRandRToggler::isUsable())
 		return std::auto_ptr<FullModeToggler>(new XRandRToggler);
 	
-	if (Xf86VidModeToggler::isUsable())
-		return std::auto_ptr<FullModeToggler>(new Xf86VidModeToggler(winId));
+// 	if (Xf86VidModeToggler::isUsable())
+// 		return std::auto_ptr<FullModeToggler>(new Xf86VidModeToggler(winId));
 	
 	return std::auto_ptr<FullModeToggler>(new NullToggler);
 }

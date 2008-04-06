@@ -84,17 +84,19 @@ else:unix {
         audioengines/ossengine.cpp \
         blitterwidgets/xvblitter.cpp \
         blitterwidgets/x11blitter.cpp \
-        fullmodetogglers/xrandrtoggler.cpp \
-        fullmodetogglers/xf86vidmodetoggler.cpp
+        fullmodetogglers/xrandrtoggler.cpp #\
+#        fullmodetogglers/xf86vidmodetoggler.cpp
     HEADERS += x11getprocaddress.h \
         audioengines/ossengine.h \
         blitterwidgets/xvblitter.h \
         blitterwidgets/x11blitter.h \
-        fullmodetogglers/xrandrtoggler.h \
-        fullmodetogglers/xf86vidmodetoggler.h
+        fullmodetogglers/xrandrtoggler.h #\
+#        fullmodetogglers/xf86vidmodetoggler.h
     LIBS += -L/usr/X11R6/lib \
         -lXv \
-        -lXrandr
+        -lXrandr #\
+#        -lXxf86vm \
+#        -lXinerama
     linux-g++ { 
         SOURCES += addaudioengines_linux.cpp \
             audioengines/alsaengine.cpp \
