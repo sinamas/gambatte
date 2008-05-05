@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include "channel4.h"
 #include "../savestate.h"
+#include <algorithm>
 
 static unsigned long toPeriod(const unsigned nr3) {
 	unsigned s = (nr3 >> 4) + 3;
@@ -154,7 +155,7 @@ void Channel4::Lfsr::saveState(SaveState &state, const unsigned long cc) {
 }
 
 void Channel4::Lfsr::loadState(const SaveState &state) {
-	counter = backupCounter = state.spu.ch4.lfsr.counter;
+	counter = backupCounter = std::max(state.spu.ch4.lfsr.counter, state.spu.cycleCounter);
 	reg = state.spu.ch4.lfsr.reg;
 	master = state.spu.ch4.master;
 	nr3 = state.mem.ioamhram.get()[0x122];
@@ -246,8 +247,8 @@ void Channel4::saveState(SaveState &state) {
 
 void Channel4::loadState(const SaveState &state) {
 	lfsr.loadState(state);
-	envelopeUnit.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121]);
-	lengthCounter.loadState(state.spu.ch4.lcounter);
+	envelopeUnit.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121], state.spu.cycleCounter);
+	lengthCounter.loadState(state.spu.ch4.lcounter, state.spu.cycleCounter);
 	
 	cycleCounter = state.spu.cycleCounter;
 	nr4 = state.spu.ch4.nr4;

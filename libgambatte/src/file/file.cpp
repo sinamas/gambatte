@@ -71,13 +71,3 @@ void File::read(char *buffer, size_t amount)
     count = 0;
   }
 }
-
-size_t File::size()
-{
-  return(fsize);
-}
-
-size_t File::gcount()
-{
-  return(count);
-}

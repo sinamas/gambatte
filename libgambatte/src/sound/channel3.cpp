@@ -19,6 +19,7 @@
 #include "channel3.h"
 #include "../savestate.h"
 #include <cstring>
+#include <algorithm>
 
 static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
 	return 0x800 - (nr4 << 8 & 0x700 | nr3);
@@ -109,14 +110,14 @@ void Channel3::saveState(SaveState &state) const {
 }
 
 void Channel3::loadState(const SaveState &state) {
-	lengthCounter.loadState(state.spu.ch3.lcounter);
+	lengthCounter.loadState(state.spu.ch3.lcounter, state.spu.cycleCounter);
 	
 	cycleCounter = state.spu.cycleCounter;
-	waveCounter = state.spu.ch3.waveCounter;
+	waveCounter = std::max(state.spu.ch3.waveCounter, state.spu.cycleCounter);
 	lastReadTime = state.spu.ch3.lastReadTime;
 	nr3 = state.spu.ch3.nr3;
 	nr4 = state.spu.ch3.nr4;
-	wavePos = state.spu.ch3.wavePos;
+	wavePos = state.spu.ch3.wavePos & 0x1F;
 	sampleBuf = state.spu.ch3.sampleBuf;
 	master = state.spu.ch3.master;
 	

@@ -95,7 +95,7 @@ void Channel1::SweepUnit::saveState(SaveState &state) const {
 }
 
 void Channel1::SweepUnit::loadState(const SaveState &state) {
-	counter = state.spu.ch1.sweep.counter;
+	counter = std::max(state.spu.ch1.sweep.counter, state.spu.cycleCounter);
 	shadow = state.spu.ch1.sweep.shadow;
 	nr0 = state.spu.ch1.sweep.nr0;
 	negging = state.spu.ch1.sweep.negging;
@@ -202,9 +202,9 @@ void Channel1::saveState(SaveState &state) {
 
 void Channel1::loadState(const SaveState &state) {
 	sweepUnit.loadState(state);
-	dutyUnit.loadState(state.spu.ch1.duty, state.mem.ioamhram.get()[0x111], state.spu.ch1.nr4);
-	envelopeUnit.loadState(state.spu.ch1.env, state.mem.ioamhram.get()[0x112]);
-	lengthCounter.loadState(state.spu.ch1.lcounter);
+	dutyUnit.loadState(state.spu.ch1.duty, state.mem.ioamhram.get()[0x111], state.spu.ch1.nr4, state.spu.cycleCounter);
+	envelopeUnit.loadState(state.spu.ch1.env, state.mem.ioamhram.get()[0x112], state.spu.cycleCounter);
+	lengthCounter.loadState(state.spu.ch1.lcounter, state.spu.cycleCounter);
 	
 	cycleCounter = state.spu.cycleCounter;
 	nr4 = state.spu.ch1.nr4;

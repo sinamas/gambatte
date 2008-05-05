@@ -20,6 +20,7 @@
 #define COLORCONVERSION_H
 
 #include "int.h"
+#include <algorithm>
 
 class Rgb32ToUyvy {
 	struct CacheUnit {

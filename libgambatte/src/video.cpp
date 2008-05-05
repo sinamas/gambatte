@@ -192,6 +192,7 @@ void LCD::setDoubleSpeed(const bool ds) {
 }
 
 void LCD::setStatePtrs(SaveState &state) {
+	state.ppu.drawBuffer.set(static_cast<Gambatte::uint_least32_t*>(dbuffer), dpitch * 144);
 	state.ppu.bgpData.set(bgpData, sizeof bgpData);
 	state.ppu.objpData.set(objpData, sizeof objpData);
 	spriteMapper.setStatePtrs(state);
@@ -221,9 +222,9 @@ void LCD::loadState(const SaveState &state, const unsigned char *oamram) {
 	setDoubleSpeed(cgb & state.mem.ioamhram.get()[0x14D] >> 7);
 	
 	lastUpdate = state.cpu.cycleCounter;
-	videoCycles = state.ppu.videoCycles;
+	videoCycles = std::min(state.ppu.videoCycles, 70223ul);
 	enableDisplayM0Time = state.ppu.enableDisplayM0Time;
-	winYPos = state.ppu.winYPos;
+	winYPos = state.ppu.winYPos > 143 ? 0xFF : state.ppu.winYPos;
 	drawStartCycle = state.ppu.drawStartCycle;
 	scReadOffset = state.ppu.scReadOffset;
 	enabled = state.ppu.lcdc >> 7 & 1;
@@ -277,7 +278,7 @@ void LCD::setVideoBlitter(Gambatte::VideoBlitter *vb) {
 	vBlitter = vb;
 	
 	if (vBlitter) {
-		vBlitter->setBufferDimensions(filter ? filter->info().outWidth : 160, filter ? filter->info().outHeight : 144);
+		vBlitter->setBufferDimensions(videoWidth(), videoHeight());
 		pb = vBlitter->inBuffer();
 	}
 	
@@ -292,8 +293,8 @@ void LCD::videoBufferChange() {
 }
 
 void LCD::setVideoFilter(const unsigned n) {
-	const unsigned oldw = filter ? filter->info().outWidth : 160;
-	const unsigned oldh = filter ? filter->info().outHeight : 144;
+	const unsigned oldw = videoWidth();
+	const unsigned oldh = videoHeight();
 	
 	if (filter)
 		filter->outit();
@@ -304,8 +305,8 @@ void LCD::setVideoFilter(const unsigned n) {
 		filter->init();
 	}
 
-	if (vBlitter && (oldw != (filter ? filter->info().outWidth : 160) || oldh != (filter ? filter->info().outHeight : 144))) {
-		vBlitter->setBufferDimensions(filter ? filter->info().outWidth : 160, filter ? filter->info().outHeight : 144);
+	if (vBlitter && (oldw != videoWidth() || oldh != videoHeight())) {
+		vBlitter->setBufferDimensions(videoWidth(), videoHeight());
 		pb = vBlitter->inBuffer();
 	}
 	
@@ -336,19 +337,41 @@ void LCD::updateScreen(const unsigned long cycleCounter) {
 	update(cycleCounter);
 	
 	if (pb.pixels) {
+		if (dbuffer && osdElement.get()) {
+			const Gambatte::uint_least32_t *s = osdElement->update();
+			
+			if (s) {
+				Gambatte::uint_least32_t *d = static_cast<Gambatte::uint_least32_t*>(dbuffer) + osdElement->y() * dpitch + osdElement->x();
+				
+				for (unsigned h = osdElement->h(); h--;) {
+					for (unsigned w = osdElement->w(); w--;) {
+						if (*s != 0xFFFFFFFF)
+							*d = *s * 7 + *d - ((*s & 0x070707) * 7 + (*d & 0x070707) & 0x070707) >> 3;
+						
+						++d;
+						++s;
+					}
+// 					std::memcpy(d, s, osdElement->w() * sizeof(Gambatte::uint_least32_t));
+// 					s += osdElement->w();
+					d += dpitch - osdElement->w();
+				}
+			} else
+				osdElement.reset();
+		}
+		
 		if (filter) {
 			filter->filter(static_cast<Gambatte::uint_least32_t*>(tmpbuf ? tmpbuf : pb.pixels), pb.pitch);
-			
-			if (tmpbuf) {
-				switch (pb.format) {
-				case Gambatte::PixelBuffer::RGB16:
-					rgb32ToRgb16(tmpbuf, static_cast<Gambatte::uint_least16_t*>(pb.pixels), filter->info().outWidth, filter->info().outHeight, pb.pitch);
-					break;
-				case Gambatte::PixelBuffer::UYVY:
-					rgb32ToUyvy(tmpbuf, static_cast<Gambatte::uint_least32_t*>(pb.pixels), filter->info().outWidth, filter->info().outHeight, pb.pitch);
-					break;
-				default: break;
-				}
+		}
+		
+		if (tmpbuf) {
+			switch (pb.format) {
+			case Gambatte::PixelBuffer::RGB16:
+				rgb32ToRgb16(tmpbuf, static_cast<Gambatte::uint_least16_t*>(pb.pixels), videoWidth(), videoHeight(), pb.pitch);
+				break;
+			case Gambatte::PixelBuffer::UYVY:
+				rgb32ToUyvy(tmpbuf, static_cast<Gambatte::uint_least32_t*>(pb.pixels), videoWidth(), videoHeight(), pb.pitch);
+				break;
+			default: break;
 			}
 		}
 		
@@ -385,10 +408,7 @@ void LCD::enableChange(const unsigned long cycleCounter) {
 	if (!enabled && dbuffer) {
 		const unsigned long color = cgb ? (*gbcToFormat)(0xFFFF) : dmgColors[0];
 		
-		if (!filter && pb.format == Gambatte::PixelBuffer::RGB16)
-			clear(static_cast<Gambatte::uint_least16_t*>(dbuffer), color, dpitch);
-		else
-			clear(static_cast<Gambatte::uint_least32_t*>(dbuffer), color, dpitch);
+		clear(static_cast<Gambatte::uint_least32_t*>(dbuffer), color, dpitch);
 		
 // 		updateScreen(cycleCounter);
 	}
@@ -854,42 +874,25 @@ void LCD::update(const unsigned long cycleCounter) {
 }
 
 void LCD::setDBuffer() {
+	tmpbuf.reset(pb.format == Gambatte::PixelBuffer::RGB32 ? 0 : videoWidth() * videoHeight());
+	
+	if (cgb)
+		draw = &LCD::cgb_draw<Gambatte::uint_least32_t>;
+	else
+		draw = &LCD::dmg_draw<Gambatte::uint_least32_t>;
+	
+	gbcToFormat = &gbcToRgb32;
+	dmgColors = dmgColorsRgb32;
+	
 	if (filter) {
 		dbuffer = filter->inBuffer();
 		dpitch = filter->inPitch();
-	} else {
+	} else if (pb.format == Gambatte::PixelBuffer::RGB32) {
 		dbuffer = pb.pixels;
 		dpitch = pb.pitch;
-	}
-	
-	tmpbuf.reset(filter && pb.format != Gambatte::PixelBuffer::RGB32 ? filter->info().outWidth * filter->info().outHeight : 0);
-	
-	/*if (filter || pb.bpp == 16)
-		draw = memory.cgb ? &LCD::cgb_draw<uint16_t> : &LCD::dmg_draw<uint16_t>;
-	else
-		draw = memory.cgb ? &LCD::cgb_draw<uint32_t> : &LCD::dmg_draw<uint32_t>;*/
-	
-	if (!filter && pb.format == Gambatte::PixelBuffer::RGB16) {
-		if (cgb)
-			draw = &LCD::cgb_draw<Gambatte::uint_least16_t>;
-		else
-			draw = &LCD::dmg_draw<Gambatte::uint_least16_t>;
-		
-		gbcToFormat = &gbcToRgb16;
-		dmgColors = dmgColorsRgb16;
 	} else {
-		if (cgb)
-			draw = &LCD::cgb_draw<Gambatte::uint_least32_t>;
-		else
-			draw = &LCD::dmg_draw<Gambatte::uint_least32_t>;
-		
-		if (filter || pb.format == Gambatte::PixelBuffer::RGB32) {
-			gbcToFormat = &gbcToRgb32;
-			dmgColors = dmgColorsRgb32;
-		} else {
-			gbcToFormat = &gbcToUyvy;
-			dmgColors = dmgColorsUyvy;
-		}
+		dbuffer = tmpbuf;
+		dpitch = 160;
 	}
 	
 	if (dbuffer == NULL)
@@ -1009,6 +1012,37 @@ static const unsigned char xflipt[0x100] = {
 #undef FLIP_ROW
 #undef FLIP
 
+/*
+#define PREP(u8) (u8)
+
+#define EXPAND(u8) ( PREP(u8) << 7 & 0x4000 | PREP(u8) << 6 & 0x1000 | PREP(u8) << 5 & 0x0400 | PREP(u8) << 4 & 0x0100 | \
+                     PREP(u8) << 3 & 0x0040 | PREP(u8) << 2 & 0x0010 | PREP(u8) << 1 & 0x0004 | PREP(u8) & 0x0001 )
+
+#define EXPAND_ROW(n) EXPAND((n)|0x0), EXPAND((n)|0x1), EXPAND((n)|0x2), EXPAND((n)|0x3), \
+                      EXPAND((n)|0x4), EXPAND((n)|0x5), EXPAND((n)|0x6), EXPAND((n)|0x7), \
+                      EXPAND((n)|0x8), EXPAND((n)|0x9), EXPAND((n)|0xA), EXPAND((n)|0xB), \
+                      EXPAND((n)|0xC), EXPAND((n)|0xD), EXPAND((n)|0xE), EXPAND((n)|0xF)
+
+#define EXPAND_TABLE EXPAND_ROW(0x00), EXPAND_ROW(0x10), EXPAND_ROW(0x20), EXPAND_ROW(0x30), \
+                     EXPAND_ROW(0x40), EXPAND_ROW(0x50), EXPAND_ROW(0x60), EXPAND_ROW(0x70), \
+                     EXPAND_ROW(0x80), EXPAND_ROW(0x90), EXPAND_ROW(0xA0), EXPAND_ROW(0xB0), \
+                     EXPAND_ROW(0xC0), EXPAND_ROW(0xD0), EXPAND_ROW(0xE0), EXPAND_ROW(0xF0)
+
+static const unsigned short expand_lut[0x200] = {
+	EXPAND_TABLE,
+
+#undef PREP
+#define PREP(u8) ( (u8) << 7 & 0x80 | (u8) << 5 & 0x40 | (u8) << 3 & 0x20 | (u8) << 1 & 0x10 | \
+                   (u8) >> 1 & 0x08 | (u8) >> 3 & 0x04 | (u8) >> 5 & 0x02 | (u8) >> 7 & 0x01 )
+	
+	EXPAND_TABLE
+};
+
+#undef EXPAND_TABLE
+#undef EXPAND_ROW
+#undef EXPAND
+#undef PREP
+*/
 
 //shoud work for the window too, if -wx is passed as scx.
 //tilemap and tiledata must point to the areas in the first vram bank

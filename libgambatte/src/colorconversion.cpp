@@ -78,7 +78,7 @@ unsigned long rgb32ToUyvy(unsigned long rgb32) {
 #endif
 }
 
-void rgb32ToRgb16(const Gambatte::uint_least32_t *s, Gambatte::uint_least16_t *d, unsigned w, unsigned h, unsigned dstPitch) {
+void rgb32ToRgb16(const Gambatte::uint_least32_t *s, Gambatte::uint_least16_t *d, const unsigned w, unsigned h, const unsigned dstPitch) {
 	do {
 		unsigned n = w;
 		

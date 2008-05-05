@@ -46,6 +46,12 @@ static inline bool operator<(const Saver &l, const Saver &r) {
 	return std::strcmp(l.label, r.label) < 0;
 }
 
+static void put24(std::ofstream &file, const unsigned long data) {
+	file.put(data >> 16 & 0xFF);
+	file.put(data >> 8 & 0xFF);
+	file.put(data & 0xFF);
+}
+
 static void put32(std::ofstream &file, const unsigned long data) {
 	file.put(data >> 24 & 0xFF);
 	file.put(data >> 16 & 0xFF);
@@ -80,39 +86,23 @@ static inline void write(std::ofstream &file, const bool data) {
 }
 
 static void write(std::ofstream &file, const unsigned char *data, const unsigned long sz) {
-	file.put(sz >> 16 & 0xFF);
-	file.put(sz >> 8 & 0xFF);
-	file.put(sz & 0xFF);
+	put24(file, sz);
 	file.write(reinterpret_cast<const char*>(data), sz);
 }
 
 static void write(std::ofstream &file, const bool *data, const unsigned long sz) {
-	file.put(sz >> 16 & 0xFF);
-	file.put(sz >> 8 & 0xFF);
-	file.put(sz & 0xFF);
+	put24(file, sz);
 	
 	for (unsigned long i = 0; i < sz; ++i)
 		file.put(data[i]);
 }
 
-static void writeTime(std::ofstream &file, const std::time_t data) {
-	static const char inf[] = { 0x00, 0x00, 0x08 };
-	
-	file.write(inf, sizeof(inf));
-	
-	if (sizeof(std::time_t) < sizeof(unsigned long)) {
-		const unsigned long uldata = data;
-		
-		put32(file, (uldata >> 31) >> 1);
-		put32(file, uldata);
-	} else {
-		put32(file, (data >> 31) >> 1);
-		put32(file, data);
-	}
-}
-
 static unsigned long get24(std::ifstream &file) {
-	return static_cast<unsigned long>(file.get() & 0xFF) << 16 | (file.get() & 0xFF) << 8 | file.get() & 0xFF;
+	unsigned long tmp = file.get() & 0xFF;
+	
+	tmp = tmp << 8 | file.get() & 0xFF;
+	
+	return tmp << 8 | file.get() & 0xFF;
 }
 
 static unsigned long read(std::ifstream &file) {
@@ -178,23 +168,6 @@ static void read(std::ifstream &file, bool *data, unsigned long sz) {
 	file.ignore(size - sz);
 }
 
-static void readTime(std::ifstream &file, std::time_t &data) {
-	unsigned long size = get24(file);
-	
-	if (size > 8) {
-		file.ignore(size - 8);
-		size = 8;
-	}
-	
-	std::time_t out = 0;
-	
-	while (size-- && out >= 0) {
-		out = out << 8 | file.get() & 0xFF;
-	}
-	
-	data = out;
-}
-
 class SaverList {
 public:
 	typedef std::vector<Saver> list_t;
@@ -226,16 +199,6 @@ SaverList::SaverList() {
 	struct Func { \
 		static void save(std::ofstream &file, const SaveState &state) { write(file, state.arg.get(), state.arg.getSz()); } \
 		static void load(std::ifstream &file, SaveState &state) { read(file, state.arg.ptr, state.arg.getSz()); } \
-	}; \
-	\
-	Saver saver = { label, Func::save, Func::load, sizeof label }; \
-	list.push_back(saver); \
-} while (0)
-
-#define ADDTIME(arg) do { \
-	struct Func { \
-		static void save(std::ofstream &file, const SaveState &state) { writeTime(file, state.arg); } \
-		static void load(std::ifstream &file, SaveState &state) { readTime(file, state.arg); } \
 	}; \
 	\
 	Saver saver = { label, Func::save, Func::load, sizeof label }; \
@@ -334,8 +297,8 @@ SaverList::SaverList() {
 	{ static const char label[] = { l,e,n,NO4,v,a,l, NUL }; ADD(spu.ch4.lcounter.lengthCounter); }
 	{ static const char label[] = { n,r,NO4,NO4,       NUL }; ADD(spu.ch4.nr4); }
 	{ static const char label[] = { c,NO4,m,a,s,t,r, NUL }; ADD(spu.ch4.master); }
-	{ static const char label[] = { r,t,c,b,a,s,e, NUL }; ADDTIME(rtc.baseTime); }
-	{ static const char label[] = { r,t,c,h,a,l,t, NUL }; ADDTIME(rtc.haltTime); }
+	{ static const char label[] = { r,t,c,b,a,s,e, NUL }; ADD(rtc.baseTime); }
+	{ static const char label[] = { r,t,c,h,a,l,t, NUL }; ADD(rtc.haltTime); }
 	{ static const char label[] = { r,t,c,i,n,d,x, NUL }; ADD(rtc.index); }
 	{ static const char label[] = { r,t,c,d,h,     NUL }; ADD(rtc.dataDh); }
 	{ static const char label[] = { r,t,c,d,l,     NUL }; ADD(rtc.dataDl); }
@@ -359,6 +322,34 @@ SaverList::SaverList() {
 	}
 }
 
+static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *pixels, const unsigned pitch) {
+	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(Gambatte::uint_least32_t) : 0);
+	
+	if (pixels) {
+		Gambatte::uint_least32_t buf[StateSaver::SS_WIDTH];
+		
+		for (unsigned h = StateSaver::SS_HEIGHT; h--;) {
+			for (unsigned x = 0; x < StateSaver::SS_WIDTH; ++x) {
+				unsigned long rb = 0;
+				unsigned long g = 0;
+				
+				static const unsigned w[StateSaver::SS_DIV] = { 1, 3, 3, 1 };
+				
+				for (unsigned y = 0; y < StateSaver::SS_DIV; ++y)
+					for (unsigned xx = 0; xx < StateSaver::SS_DIV; ++xx) {
+						rb += (pixels[x * StateSaver::SS_DIV + y * pitch + xx] & 0xFF00FF) * w[y] * w[xx];
+						g += (pixels[x * StateSaver::SS_DIV + y * pitch + xx] & 0x00FF00) * w[y] * w[xx];
+					}
+				
+				buf[x] = rb >> StateSaver::SS_SHIFT * 2 + 2 & 0xFF00FF | g >> StateSaver::SS_SHIFT * 2 + 2 & 0x00FF00;
+			}
+			
+			file.write(reinterpret_cast<const char*>(buf), sizeof(buf));
+			pixels += pitch * StateSaver::SS_DIV;
+		}
+	}
+}
+
 static SaverList list;
 
 void StateSaver::saveState(const SaveState &state, const char *filename) {
@@ -369,19 +360,22 @@ void StateSaver::saveState(const SaveState &state, const char *filename) {
 	
 	{ static const char ver[] = { 0, 0 }; file.write(ver, sizeof(ver)); }
 	
+	writeSnapShot(file, state.ppu.drawBuffer.get(), state.ppu.drawBuffer.getSz() / 144);
+	
 	for (SaverList::const_iterator it = list.begin(); it != list.end(); ++it) {
 		file.write(it->label, it->labelsize);
 		(*it->save)(file, state);
 	}
 }
 
-void StateSaver::loadState(SaveState &state, const char *filename) {
+bool StateSaver::loadState(SaveState &state, const char *filename) {
 	std::ifstream file(filename, std::ios_base::binary);
 	
 	if (file.fail() || file.get() != 0)
-		return;
+		return false;
 	
 	file.ignore();
+	file.ignore(get24(file));
 	
 	Array<char> labelbuf(list.maxLabelsize());
 	const Saver labelbufSaver = { label: labelbuf, save: 0, load: 0, labelsize: list.maxLabelsize() };
@@ -405,4 +399,9 @@ void StateSaver::loadState(SaveState &state, const char *filename) {
 		
 		(*it->load)(file, state);
 	}
+	
+	state.cpu.cycleCounter &= 0x7FFFFFFF;
+	state.spu.cycleCounter &= 0x7FFFFFFF;
+	
+	return true;
 }

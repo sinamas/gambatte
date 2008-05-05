@@ -18,6 +18,7 @@
 ***************************************************************************/
 #include "length_counter.h"
 #include "master_disabler.h"
+#include <algorithm>
 
 LengthCounter::LengthCounter(MasterDisabler &disabler, const unsigned mask) :
 	disableMaster(disabler),
@@ -80,7 +81,7 @@ void LengthCounter::saveState(SaveState::SPU::LCounter &lstate) const {
 	lstate.lengthCounter = lengthCounter;
 }
 
-void LengthCounter::loadState(const SaveState::SPU::LCounter &lstate) {
-	counter = lstate.counter;
+void LengthCounter::loadState(const SaveState::SPU::LCounter &lstate, const unsigned long cc) {
+	counter = std::max(lstate.counter, cc);
 	lengthCounter = lstate.lengthCounter;
 }

@@ -27,6 +27,7 @@ class SaveState;
 
 #include "interrupter.h"
 #include "rtc.h"
+#include <string>
 
 namespace Gambatte {
 class InputStateGetter;
@@ -57,10 +58,6 @@ private:
 	unsigned char *vrambank;
 	unsigned char *rsrambankptr;
 	unsigned char *wsrambankptr;
-
-	char *romfile;
-	char *savedir;
-	char *savename;
 	
 	Gambatte::InputStateGetter *getInput;
 
@@ -89,6 +86,9 @@ private:
 	events next_event;
 	irqEvents next_irqEvent;
 	cartridgetype romtype;
+	
+	std::string romFilePath;
+	std::string saveDir;
 	
 	unsigned short rombanks;
 	unsigned short rombank;
@@ -137,8 +137,6 @@ private:
 	void rescheduleIrq(unsigned long cycleCounter);
 	void rescheduleHdmaReschedule();
 	
-	bool loadROM();
-	
 	bool isDoubleSpeed() const { return doubleSpeed; }
 
 public:
@@ -150,6 +148,11 @@ public:
 	void loadState(const SaveState &state, unsigned long oldCc);
 	void loadSavedata();
 	void saveSavedata();
+	const std::string saveBasePath() const;
+	
+	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
+		display.setOsdElement(osdElement);
+	}
 
 	void speedChange(unsigned long cycleCounter);
 	bool isCgb() const { return cgb; }

@@ -28,11 +28,13 @@ class Filter;
 class SaveState;
 
 #include <vector>
+#include <memory>
 #include "event_queue.h"
 #include "videoblitter.h"
 #include "array.h"
 #include "int.h"
 #include "colorconversion.h"
+#include "osd_element.h"
 
 #include "video/video_event_comparer.h"
 #include "video/ly_counter.h"
@@ -104,6 +106,7 @@ class LCD {
 	Gambatte::PixelBuffer pb;
 	Array<Gambatte::uint_least32_t> tmpbuf;
 	Rgb32ToUyvy rgb32ToUyvy;
+	std::auto_ptr<OsdElement> osdElement;
 	
 	std::vector<Filter*> filters;
 	
@@ -166,6 +169,10 @@ public:
 	unsigned videoWidth() const;
 	unsigned videoHeight() const;
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
+	
+	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
+		this->osdElement = osdElement;
+	}
 	
 	void wdTileMapSelectChange(bool newValue, unsigned long cycleCounter);
 	void bgTileMapSelectChange(bool newValue, unsigned long cycleCounter);

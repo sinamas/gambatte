@@ -31,6 +31,7 @@ class CPU;
 namespace Gambatte {
 class GB {
 	CPU *const z80;
+	int stateNo;
 
 public:
 	GB();
@@ -54,6 +55,8 @@ public:
 	bool isCgb() const;
 	void saveState();
 	void loadState();
+	void selectState(int n);
+	int currentState() const { return stateNo; }
 };
 }
 

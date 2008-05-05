@@ -19,7 +19,7 @@
 #ifndef SAVESTATE_H
 #define SAVESTATE_H
 
-#include <ctime>
+#include "int.h"
 
 struct SaveState {
 	template<typename T>
@@ -76,6 +76,7 @@ struct SaveState {
 	} mem;
 	
 	struct PPU {
+		Ptr<Gambatte::uint_least32_t> drawBuffer;
 		Ptr<unsigned char> bgpData;
 		Ptr<unsigned char> objpData;
 		//SpriteMapper::OamReader
@@ -168,8 +169,8 @@ struct SaveState {
 	} spu;
 	
 	struct RTC {
-		std::time_t baseTime;
-		std::time_t haltTime;
+		unsigned long baseTime;
+		unsigned long haltTime;
 		unsigned char index;
 		unsigned char dataDh;
 		unsigned char dataDl;

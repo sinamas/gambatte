@@ -635,9 +635,6 @@ int GambatteSdl::exec() {
 					
 					break;
 				case SDL_KEYDOWN:
-					if (e.key.keysym.sym == SDLK_ESCAPE)
-						return 0;
-					
 					if (e.key.keysym.mod & KMOD_CTRL) {
 						switch (e.key.keysym.sym) {
 						case SDLK_f:
@@ -647,6 +644,15 @@ int GambatteSdl::exec() {
 						case SDLK_r:
 							gambatte.reset();
 							break;
+						default: break;
+						}
+					} else {
+						switch (e.key.keysym.sym) {
+						case SDLK_ESCAPE: return 0;
+						case SDLK_F5: gambatte.saveState(); break;
+						case SDLK_F6: gambatte.selectState(gambatte.currentState() - 1); break;
+						case SDLK_F7: gambatte.selectState(gambatte.currentState() + 1); break;
+						case SDLK_F8: gambatte.loadState(); break;
 						default: break;
 						}
 					}

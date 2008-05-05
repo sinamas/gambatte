@@ -44,7 +44,7 @@ public:
 	bool nr4Init(unsigned long cycleCounter);
 	void reset();
 	void saveState(SaveState::SPU::Env &estate) const;
-	void loadState(const SaveState::SPU::Env &estate, unsigned nr2);
+	void loadState(const SaveState::SPU::Env &estate, unsigned nr2, unsigned long cc);
 };
 
 #endif

@@ -19,6 +19,8 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include <cstddef>
+
 template<typename T>
 class Array {
 	T *a;

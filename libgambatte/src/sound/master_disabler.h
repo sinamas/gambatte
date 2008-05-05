@@ -24,6 +24,7 @@ class MasterDisabler {
 	
 public:
 	MasterDisabler(bool &m) : master(m) {}
+	virtual ~MasterDisabler() {}
 	virtual void operator()() { master = false; }
 };
 

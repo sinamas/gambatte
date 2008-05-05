@@ -35,7 +35,8 @@ class File {
   void rewind();
   bool is_open();
   void close();
-  std::size_t size();
+  std::size_t size() const { return fsize; };
   void read(char *buffer, std::size_t amount);
-  std::size_t gcount();
+  std::size_t gcount() const { return count; }
+  bool fail() const { return stream.fail(); }
 };

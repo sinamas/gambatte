@@ -37,9 +37,6 @@ oamDmaSrc(NULL),
 vrambank(vram),
 rsrambankptr(NULL),
 wsrambankptr(NULL),
-romfile(NULL),
-savedir(NULL),
-savename(NULL),
 getInput(NULL),
 div_lastUpdate(0),
 tima_lastUpdate(0),
@@ -135,10 +132,10 @@ void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
 	next_serialtime = state.mem.next_serialtime;
 	lastOamDmaUpdate = state.mem.lastOamDmaUpdate;
 	minIntTime = state.mem.minIntTime;
-	rombank = state.mem.rombank;
+	rombank = state.mem.rombank % rombanks;
 	dmaSource = state.mem.dmaSource;
 	dmaDestination = state.mem.dmaDestination;
-	rambank = state.mem.rambank;
+	rambank = state.mem.rambank & rambanks - 1;
 	oamDmaPos = state.mem.oamDmaPos;
 	IME = state.mem.IME;
 	enable_ram = state.mem.enable_ram;
@@ -1544,15 +1541,15 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 		ioamhram[P - 0xFE00] = data;
 }
 
-bool Memory::loadROM(const char* file) {
-	delete []romfile;
-	romfile = new char[std::strlen(file) + 1];
-	std::strcpy(romfile, file);
-	
-	return loadROM();
+static void enforce8bit(unsigned char *data, unsigned long sz) {
+	if (static_cast<unsigned char>(0x100))
+		while (sz--)
+			*data++ &= 0xFF;
 }
 
-bool Memory::loadROM() {
+bool Memory::loadROM(const char *romfile) {
+	romFilePath = romfile;
+	
 	File rom(romfile);
 	
 	if (!rom.is_open()) {
@@ -1748,22 +1745,10 @@ bool Memory::loadROM() {
 	
 	rom.rewind();
 	rom.read(reinterpret_cast<char*>(romdata[0]), rombanks * 0x4000ul);
-	rom.close();
-
-	{
-		char *tmp = std::strrchr(romfile, '/');
-		
-		if (tmp == NULL || savedir == NULL)
-			tmp = romfile;
-		else
-			++tmp;
-		
-		const unsigned int namelen = std::strrchr(tmp, '.') == NULL ? std::strlen(tmp) : std::strrchr(tmp, '.') - tmp;
-		delete []savename;
-		savename = new char[namelen + 1];
-		std::strncpy(savename, tmp, namelen);
-		savename[namelen] = '\0';
-	}
+	enforce8bit(romdata[0], rombanks * 0x4000ul);
+	
+	if (rom.fail())
+		return 1;
 
 	sound.init(isCgb());
 	display.reset(isCgb());
@@ -1772,108 +1757,82 @@ bool Memory::loadROM() {
 }
 
 void Memory::loadSavedata() {
+	const std::string &sbp = saveBasePath();
+	
 	if (battery) {
-		char *savefile;
+		std::ifstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::in);
 		
-		if (savedir != NULL) {
-			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
-			std::sprintf(savefile, "%s%s.sav", savedir, savename);
-		} else {
-			savefile = new char[5 + std::strlen(savename)];
-			std::sprintf(savefile, "%s.sav", savename);
+		if (file.is_open()) {
+			file.read(reinterpret_cast<char*>(rambankdata), rambanks * 0x2000ul);
+			enforce8bit(rambankdata, rambanks * 0x2000ul);
 		}
-		
-		std::ifstream load(savefile, std::ios::binary | std::ios::in);
-		
-		if (load.is_open()) {
-			load.read(reinterpret_cast<char*>(rambankdata), rambanks * 0x2000ul);
-			load.close();
-		}
-		//else cout << "No savefile available\n";
-		delete []savefile;
 	}
 	
 	if (rtcRom) {
-		char *savefile;
+		std::ifstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::in);
 		
-		if (savedir != NULL) {
-			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
-			std::sprintf(savefile, "%s%s.rtc", savedir, savename);
-		} else {
-			savefile = new char[5 + std::strlen(savename)];
-			std::sprintf(savefile, "%s.rtc", savename);
-		}
-		
-		std::ifstream load(savefile, std::ios::binary | std::ios::in);
-		
-		if (load.is_open()) {
-			std::time_t basetime;
-			load.read(reinterpret_cast<char*>(&basetime), sizeof(basetime));
-			load.close();
+		if (file.is_open()) {
+			unsigned long basetime = file.get() & 0xFF;
+			
+			basetime = basetime << 8 | file.get() & 0xFF;
+			basetime = basetime << 8 | file.get() & 0xFF;
+			basetime = basetime << 8 | file.get() & 0xFF;
+			
 			rtc.setBaseTime(basetime);
 		}
-		
-		delete []savefile;
 	}
 }
 
 void Memory::saveSavedata() {
+	const std::string &sbp = saveBasePath();
+	
 	if (battery) {
-		char *savefile;
+		std::ofstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::out);
 		
-		if (savedir != NULL) {
-			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
-			std::sprintf(savefile, "%s%s.sav", savedir, savename);
-		} else {
-			savefile = new char[5 + std::strlen(savename)];
-			std::sprintf(savefile, "%s.sav", savename);
-		}
-		
-		std::ofstream save(savefile, std::ios::binary | std::ios::out);
-		
-		if (save.is_open()) {
-			save.write(reinterpret_cast<char*>(rambankdata), rambanks * 0x2000ul);
-			save.close();
-		}  /*else cout << "Saving ramdata failed\n";*/
-		
-		delete []savefile;
+		file.write(reinterpret_cast<const char*>(rambankdata), rambanks * 0x2000ul);
 	}
 	
 	if (rtcRom) {
-		char *savefile;
+		std::ofstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::out);
+		const unsigned long basetime = rtc.getBaseTime();
 		
-		if (savedir != NULL) {
-			savefile = new char[5 + std::strlen(savedir) + std::strlen(savename)];
-			std::sprintf(savefile, "%s%s.rtc", savedir, savename);
-		} else {
-			savefile = new char[5 + std::strlen(savename)];
-			std::sprintf(savefile, "%s.rtc", savename);
-		}
-		
-		std::ofstream save(savefile, std::ios::binary | std::ios::out);
-		
-		if (save.is_open()) {
-			std::time_t basetime = rtc.getBaseTime();
-			save.write(reinterpret_cast<char*>(&basetime), sizeof(basetime));
-			save.close();
-		}  /*else cout << "Saving rtcdata failed\n";*/
-		
-		delete []savefile;
+		file.put(basetime >> 24 & 0xFF);
+		file.put(basetime >> 16 & 0xFF);
+		file.put(basetime >> 8 & 0xFF);
+		file.put(basetime & 0xFF);
 	}
 }
 
-void Memory::set_savedir(const char *dir) {
-	delete []savedir;
-	savedir = NULL;
+static const std::string stripExtension(const std::string &str) {
+	const std::string::size_type lastDot = str.find_last_of('.');
+	const std::string::size_type lastSlash = str.find_last_of('/');
+	
+	if (lastDot != std::string::npos && (lastSlash == std::string::npos || lastSlash < lastDot))
+		return str.substr(0, lastDot);
+	
+	return str;
+}
 
-	if (dir != NULL) {
-		savedir = new char[std::strlen(dir) + 2];
-		std::strcpy(savedir, dir);
-		
-		if (savedir[std::strlen(dir) - 1] != '/') {
-			savedir[std::strlen(dir)] = '/';
-			savedir[std::strlen(dir) + 1] = '\0';
-		}
+static const std::string stripDir(const std::string &str) {
+	const std::string::size_type lastSlash = str.find_last_of('/');
+	
+	if (lastSlash != std::string::npos)
+		return str.substr(lastSlash + 1);
+	
+	return str;
+}
+
+const std::string Memory::saveBasePath() const {
+	const std::string &extStrippedFilePath = stripExtension(romFilePath);
+	
+	return saveDir.empty() ? extStrippedFilePath : saveDir + stripDir(extStrippedFilePath);
+}
+
+void Memory::set_savedir(const char *dir) {
+	saveDir = dir ? dir : "";
+	
+	if (!saveDir.empty() && saveDir[saveDir.length() - 1] != '/') {
+		saveDir += '/';
 	}
 }
 
@@ -1901,8 +1860,5 @@ void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned lon
 Memory::~Memory() {
 	saveSavedata();
 	
-	delete []romfile;
-	delete []savedir;
-	delete []savename;
 	delete []memchunk;
 }

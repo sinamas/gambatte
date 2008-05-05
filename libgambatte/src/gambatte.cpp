@@ -21,9 +21,55 @@
 #include "savestate.h"
 #include "statesaver.h"
 #include "initstate.h"
+#include <string>
+#include <sstream>
+#include <fstream>
+
+class SaveStateOsdElement : public OsdElement {
+	Gambatte::uint_least32_t pixels[StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT];
+	unsigned life;
+	
+public:
+	SaveStateOsdElement(const char *fileName, unsigned stateNo);
+	const Gambatte::uint_least32_t* update();
+};
+
+SaveStateOsdElement::SaveStateOsdElement(const char *fileName, unsigned stateNo) : OsdElement(stateNo * ((160 - StateSaver::SS_WIDTH) / 10) + ((160 - StateSaver::SS_WIDTH) / 10) / 2, 4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT), life(4 * 60) {
+	std::memset(pixels, 0, sizeof(pixels));
+	
+	std::ifstream file(fileName);
+	
+	if (file.is_open() && file.get() == 0) {
+		file.ignore(4);
+		file.read(reinterpret_cast<char*>(pixels), sizeof(pixels));
+	}
+}
+
+const Gambatte::uint_least32_t* SaveStateOsdElement::update() {
+	if (life--)
+		return pixels;
+	
+	return 0;
+}
+
+static const std::string itos(int i) {
+	std::stringstream ss;
+	
+	ss << i;
+	
+	std::string out;
+	
+	ss >> out;
+	
+	return out;
+}
+
+static const std::string statePath(const std::string &basePath, int stateNo) {
+	return basePath + "_" + itos(stateNo) + ".gqs";
+}
 
 namespace Gambatte {
-GB::GB() : z80(new CPU) {}
+GB::GB() : z80(new CPU), stateNo(0) {}
 
 GB::~GB() {
 	delete z80;
@@ -82,11 +128,13 @@ bool GB::load(const char* romfile) {
 	
 	const bool failed = z80->load(romfile);
 	
-	SaveState state;
-	z80->setStatePtrs(state);
-	setInitState(state, z80->isCgb());
-	z80->loadState(state);
-	z80->loadSavedata();
+	if (!failed) {
+		SaveState state;
+		z80->setStatePtrs(state);
+		setInitState(state, z80->isCgb());
+		z80->loadState(state);
+		z80->loadSavedata();
+	}
 	
 	return failed;
 }
@@ -107,7 +155,7 @@ void GB::saveState() {
 	SaveState state;
 	z80->setStatePtrs(state);
 	z80->saveState(state);
-	StateSaver::saveState(state, "test.gqs");
+	StateSaver::saveState(state, statePath(z80->saveBasePath(), stateNo).c_str());
 }
 
 void GB::loadState() {
@@ -115,7 +163,14 @@ void GB::loadState() {
 	
 	SaveState state;
 	z80->setStatePtrs(state);
-	StateSaver::loadState(state, "test.gqs");
-	z80->loadState(state);
+	
+	if (StateSaver::loadState(state, statePath(z80->saveBasePath(), stateNo).c_str()))
+		z80->loadState(state);
+}
+
+void GB::selectState(int n) {
+	n -= (n / 10) * 10;
+	stateNo = n < 0 ? n + 10 : n;
+	z80->setOsdElement(std::auto_ptr<OsdElement>(new SaveStateOsdElement(statePath(z80->saveBasePath(), stateNo).c_str(), stateNo)));
 }
 }

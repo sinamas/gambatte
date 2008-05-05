@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "duty_unit.h"
+#include <algorithm>
 
 static inline bool toOutState(const unsigned duty, const unsigned pos) {
 	static const unsigned char duties[4] = { 0x80, 0x81, 0xE1, 0x7E };
@@ -116,9 +117,9 @@ void DutyUnit::saveState(SaveState::SPU::Duty &dstate, const unsigned long cc) {
 	dstate.pos = pos;
 }
 
-void DutyUnit::loadState(const SaveState::SPU::Duty &dstate, const unsigned nr1, const unsigned nr4) {
-	nextPosUpdate = dstate.nextPosUpdate;
-	pos = dstate.pos;
+void DutyUnit::loadState(const SaveState::SPU::Duty &dstate, const unsigned nr1, const unsigned nr4, const unsigned long cc) {
+	nextPosUpdate = std::max(dstate.nextPosUpdate, cc);
+	pos = dstate.pos & 7;
 	setDuty(nr1);
 	period = toPeriod(nr4 << 8 & 0x700 | dstate.nr3);
 	enableEvents = true;

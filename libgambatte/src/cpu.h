@@ -88,6 +88,14 @@ public:
 		memory.set_savedir(sdir);
 	}
 	
+	const std::string saveBasePath() const {
+		return memory.saveBasePath();
+	}
+	
+	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
+		memory.setOsdElement(osdElement);
+	}
+	
 	bool load(const char* romfile);
 	
 	void sound_fill_buffer(Gambatte::uint_least16_t *const stream, const unsigned samples) {

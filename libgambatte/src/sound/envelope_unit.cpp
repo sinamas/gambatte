@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "envelope_unit.h"
+#include <algorithm>
 
 EnvelopeUnit::VolOnOffEvent EnvelopeUnit::nullEvent;
 
@@ -93,8 +94,8 @@ void EnvelopeUnit::saveState(SaveState::SPU::Env &estate) const {
 	estate.volume = volume;
 }
 
-void EnvelopeUnit::loadState(const SaveState::SPU::Env &estate, const unsigned nr2) {
-	counter = estate.counter;
+void EnvelopeUnit::loadState(const SaveState::SPU::Env &estate, const unsigned nr2, const unsigned long cc) {
+	counter = std::max(estate.counter, cc);
 	volume = estate.volume;
 	this->nr2 = nr2;
 }
