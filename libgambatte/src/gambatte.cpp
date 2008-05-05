@@ -21,36 +21,9 @@
 #include "savestate.h"
 #include "statesaver.h"
 #include "initstate.h"
+#include "state_osd_elements.h"
 #include <string>
 #include <sstream>
-#include <fstream>
-
-class SaveStateOsdElement : public OsdElement {
-	Gambatte::uint_least32_t pixels[StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT];
-	unsigned life;
-	
-public:
-	SaveStateOsdElement(const char *fileName, unsigned stateNo);
-	const Gambatte::uint_least32_t* update();
-};
-
-SaveStateOsdElement::SaveStateOsdElement(const char *fileName, unsigned stateNo) : OsdElement(stateNo * ((160 - StateSaver::SS_WIDTH) / 10) + ((160 - StateSaver::SS_WIDTH) / 10) / 2, 4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT), life(4 * 60) {
-	std::memset(pixels, 0, sizeof(pixels));
-	
-	std::ifstream file(fileName);
-	
-	if (file.is_open() && file.get() == 0) {
-		file.ignore(4);
-		file.read(reinterpret_cast<char*>(pixels), sizeof(pixels));
-	}
-}
-
-const Gambatte::uint_least32_t* SaveStateOsdElement::update() {
-	if (life--)
-		return pixels;
-	
-	return 0;
-}
 
 static const std::string itos(int i) {
 	std::stringstream ss;
@@ -156,6 +129,7 @@ void GB::saveState() {
 	z80->setStatePtrs(state);
 	z80->saveState(state);
 	StateSaver::saveState(state, statePath(z80->saveBasePath(), stateNo).c_str());
+	z80->setOsdElement(newStateSavedOsdElement(stateNo));
 }
 
 void GB::loadState() {
@@ -164,13 +138,15 @@ void GB::loadState() {
 	SaveState state;
 	z80->setStatePtrs(state);
 	
-	if (StateSaver::loadState(state, statePath(z80->saveBasePath(), stateNo).c_str()))
+	if (StateSaver::loadState(state, statePath(z80->saveBasePath(), stateNo).c_str())) {
 		z80->loadState(state);
+		z80->setOsdElement(newStateLoadedOsdElement(stateNo));
+	}
 }
 
 void GB::selectState(int n) {
 	n -= (n / 10) * 10;
 	stateNo = n < 0 ? n + 10 : n;
-	z80->setOsdElement(std::auto_ptr<OsdElement>(new SaveStateOsdElement(statePath(z80->saveBasePath(), stateNo).c_str(), stateNo)));
+	z80->setOsdElement(newSaveStateOsdElement(statePath(z80->saveBasePath(), stateNo).c_str(), stateNo));
 }
 }

@@ -16,40 +16,29 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef OSD_ELEMENT_H
-#define OSD_ELEMENT_H
+#ifndef BITMAP_FONT_H
+#define BITMAP_FONT_H
 
 #include "int.h"
 
-class OsdElement {
-	unsigned x_;
-	unsigned y_;
-	unsigned w_;
-	unsigned h_;
-	
-protected:
-	OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0) {
-		setPos(x, y);
-		setSize(w, h);
-	}
-	
-	void setPos(unsigned x, unsigned y) {
-		x_ = x;
-		y_ = y;
-	}
-	
-	void setSize(unsigned w, unsigned h) {
-		w_ = w;
-		h_ = h;
-	}
-	
-public:
-	unsigned x() const { return x_; }
-	unsigned y() const { return y_; }
-	unsigned w() const { return w_; }
-	unsigned h() const { return h_; }
-	
-	virtual const Gambatte::uint_least32_t* update() = 0;
+namespace BitmapFont {
+enum Char {
+	NUL,
+	N0, N1, N2, N3, N4, N5, N6, N7, N8, N9,
+	A, B, C, D, E, F, G, H, I, J, K, L, M,
+	N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+	a, b, c, d, e, f, g, h, i, j, k, l, m,
+	n, o, p, q, r, s, t, u, v, w, x, y, z,
+	SPC
 };
+
+enum { HEIGHT = 10 };
+enum { MAX_WIDTH = 9 };
+enum { NUMBER_WIDTH = 6 };
+
+unsigned getWidth(const char *chars);
+void print(Gambatte::uint_least32_t *dest, unsigned pitch, unsigned long color, const char *chars);
+void utoa(unsigned u, char *a);
+}
 
 #endif

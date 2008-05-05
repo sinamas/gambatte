@@ -16,40 +16,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef OSD_ELEMENT_H
-#define OSD_ELEMENT_H
+#ifndef STATE_OSD_ELEMENTS_H
+#define STATE_OSD_ELEMENTS_H
 
-#include "int.h"
+#include "osd_element.h"
+#include <memory>
 
-class OsdElement {
-	unsigned x_;
-	unsigned y_;
-	unsigned w_;
-	unsigned h_;
-	
-protected:
-	OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0) {
-		setPos(x, y);
-		setSize(w, h);
-	}
-	
-	void setPos(unsigned x, unsigned y) {
-		x_ = x;
-		y_ = y;
-	}
-	
-	void setSize(unsigned w, unsigned h) {
-		w_ = w;
-		h_ = h;
-	}
-	
-public:
-	unsigned x() const { return x_; }
-	unsigned y() const { return y_; }
-	unsigned w() const { return w_; }
-	unsigned h() const { return h_; }
-	
-	virtual const Gambatte::uint_least32_t* update() = 0;
-};
+std::auto_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo);
+std::auto_ptr<OsdElement> newStateSavedOsdElement(unsigned stateNo);
+std::auto_ptr<OsdElement> newSaveStateOsdElement(const char *fileName, unsigned stateNo);
 
 #endif

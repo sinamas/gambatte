@@ -7,6 +7,7 @@ env = Environment(CPPPATH = ['src', 'include'],
                   CXXFLAGS = global_cxxflags + global_defines)
 
 sourceFiles = Split('''
+			src/bitmap_font.cpp
 			src/colorconversion.cpp
 			src/cpu.cpp
 			src/gambatte.cpp
@@ -15,6 +16,7 @@ sourceFiles = Split('''
 			src/memory.cpp
 			src/rtc.cpp
 			src/sound.cpp
+			src/state_osd_elements.cpp
 			src/statesaver.cpp
 			src/video.cpp
 			src/sound/channel1.cpp

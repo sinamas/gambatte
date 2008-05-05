@@ -333,7 +333,7 @@ static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *p
 				unsigned long rb = 0;
 				unsigned long g = 0;
 				
-				static const unsigned w[StateSaver::SS_DIV] = { 1, 3, 3, 1 };
+				static const unsigned w[StateSaver::SS_DIV] = { 3, 5, 5, 3 };
 				
 				for (unsigned y = 0; y < StateSaver::SS_DIV; ++y)
 					for (unsigned xx = 0; xx < StateSaver::SS_DIV; ++xx) {
@@ -341,7 +341,7 @@ static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *p
 						g += (pixels[x * StateSaver::SS_DIV + y * pitch + xx] & 0x00FF00) * w[y] * w[xx];
 					}
 				
-				buf[x] = rb >> StateSaver::SS_SHIFT * 2 + 2 & 0xFF00FF | g >> StateSaver::SS_SHIFT * 2 + 2 & 0x00FF00;
+				buf[x] = rb >> 8 & 0xFF00FF | g >> 8 & 0x00FF00;
 			}
 			
 			file.write(reinterpret_cast<const char*>(buf), sizeof(buf));
