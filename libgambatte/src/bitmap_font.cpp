@@ -262,7 +262,8 @@ static const unsigned char z_bits[] = { 0x58,
 static const unsigned char SPC_bits[] = { 0x38,
    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-static const unsigned char *const font[] = {
+namespace BitmapFont {
+const unsigned char *const font[] = {
 	0,
 	n0_bits, n1_bits, n2_bits, n3_bits, n4_bits, n5_bits, n6_bits, n7_bits, n8_bits, n9_bits,
 	A_bits, B_bits, C_bits, D_bits, E_bits, F_bits, G_bits, H_bits, I_bits, J_bits, K_bits, L_bits, M_bits,
@@ -272,7 +273,6 @@ static const unsigned char *const font[] = {
 	SPC_bits
 };
 
-namespace BitmapFont {
 unsigned getWidth(const char *chars) {
 	unsigned w = 0;
 
@@ -283,34 +283,30 @@ unsigned getWidth(const char *chars) {
 	return w;
 }
 
+class Rgb32Fill {
+	const unsigned long color;
+	
+public:
+	Rgb32Fill(unsigned long color) : color(color) {}
+	
+	void operator()(Gambatte::uint_least32_t *dest, unsigned /*pitch*/) {
+		*dest = color;
+	}
+};
+
 void print(Gambatte::uint_least32_t *dest, const unsigned pitch, const unsigned long color, const char *chars) {
-	while (const int character = *chars++) {
-		Gambatte::uint_least32_t *dst = dest;
-		const unsigned char *s = font[character];
+	print(dest, pitch, Rgb32Fill(color), chars);
+}
+
+static void reverse(char *first, char *last) {
+	while (first < last) {
+		const int tmp = *first;
 		
-		const unsigned width = *s >> 4;
-		unsigned h = *s++ & 0xF;
+		*first = *last;
+		*last = tmp;
 		
-		while (h--) {
-			Gambatte::uint_least32_t *d = dst;
-			
-			unsigned line = *s++;
-			
-			if (width > 8)
-				line |= *s++ << 8;
-		
-			while (line) {
-				if (line & 1)
-					*d = color;
-				
-				line >>= 1;
-				++d;
-			}
-			
-			dst += pitch;
-		}
-		
-		dest += width;
+		++first;
+		--last;
 	}
 }
 
@@ -327,14 +323,6 @@ void utoa(unsigned u, char *a) {
 	
 	*aa = u + N0;
 	
-	while (a < aa) {
-		const int tmp = *a;
-		
-		*a = *aa;
-		*aa = tmp;
-		
-		++a;
-		--aa;
-	}
+	reverse(a, aa);
 }
 }

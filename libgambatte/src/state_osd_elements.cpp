@@ -30,6 +30,16 @@ static const unsigned stateLoadedTxtWidth = getWidth(stateLoadedTxt);
 static const unsigned stateSavedTxtWidth = getWidth(stateSavedTxt);
 
 class ShadedTextOsdElment : public OsdElement {
+	struct ShadeFill {
+		void operator()(Gambatte::uint_least32_t *dest, const unsigned pitch) {
+			dest[2] = dest[1] = dest[0] = 0x000000ul;
+			dest += pitch;
+			dest[2] = dest[0] = 0x000000ul;
+			dest += pitch;
+			dest[2] = dest[1] = dest[0] = 0x000000ul;
+		}
+	};
+	
 	Gambatte::uint_least32_t *const pixels;
 	unsigned life;
 	
@@ -40,12 +50,23 @@ public:
 };
 
 ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt) :
-OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT / 2, width + 1, HEIGHT + 1),
-pixels(new Gambatte::uint_least32_t[(width + 1) * (HEIGHT + 1)]),
+OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT, width + 2, HEIGHT + 2),
+pixels(new Gambatte::uint_least32_t[w() * h()]),
 life(4 * 60) {
 	std::memset(pixels, 0xFF, w() * h() * sizeof(Gambatte::uint_least32_t));
-	BitmapFont::print(pixels + w() + 1, w(), 0x000000, txt);
-	BitmapFont::print(pixels, w(), 0xFFFFFF, txt);
+	
+	/*print(pixels + 0 * w() + 0, w(), 0x000000ul, txt);
+	print(pixels + 0 * w() + 1, w(), 0x000000ul, txt);
+	print(pixels + 0 * w() + 2, w(), 0x000000ul, txt);
+	print(pixels + 1 * w() + 0, w(), 0x000000ul, txt);
+	print(pixels + 1 * w() + 2, w(), 0x000000ul, txt);
+	print(pixels + 2 * w() + 0, w(), 0x000000ul, txt);
+	print(pixels + 2 * w() + 1, w(), 0x000000ul, txt);
+	print(pixels + 2 * w() + 2, w(), 0x000000ul, txt);
+	print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul, txt);*/
+	
+	print(pixels, w(), ShadeFill(), txt);
+	print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul, txt);
 }
 
 ShadedTextOsdElment::~ShadedTextOsdElment() {
@@ -58,6 +79,35 @@ const Gambatte::uint_least32_t* ShadedTextOsdElment::update() {
 	
 	return 0;
 }
+
+/*class FramedTextOsdElment : public OsdElement {
+	Gambatte::uint_least32_t *const pixels;
+	unsigned life;
+	
+public:
+	FramedTextOsdElment(unsigned w, const char *txt);
+	~FramedTextOsdElment();
+	const Gambatte::uint_least32_t* update();
+};
+
+FramedTextOsdElment::FramedTextOsdElment(unsigned width, const char *txt) :
+OsdElement(NUMBER_WIDTH, 144 - HEIGHT * 2 - HEIGHT / 2, width + NUMBER_WIDTH * 2, HEIGHT * 2),
+pixels(new Gambatte::uint_least32_t[w() * h()]),
+life(4 * 60) {
+	std::memset(pixels, 0x00, w() * h() * sizeof(Gambatte::uint_least32_t));
+	print(pixels + (w() - width) / 2 + ((h() - HEIGHT) / 2) * w(), w(), 0xA0A0A0ul, txt);
+}
+
+FramedTextOsdElment::~FramedTextOsdElment() {
+	delete []pixels;
+}
+
+const Gambatte::uint_least32_t* FramedTextOsdElment::update() {
+	if (life--)
+		return pixels;
+	
+	return 0;
+}*/
 
 std::auto_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo) {
 	char txt[sizeof(stateLoadedTxt)];
@@ -102,7 +152,7 @@ life(4 * 60) {
 			
 			static const char txt[] = { E,m,p,t,BitmapFont::y,0 };
 			
-			print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - BitmapFont::HEIGHT / 2) * StateSaver::SS_WIDTH, StateSaver::SS_WIDTH, 0x808080, txt);
+			print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - BitmapFont::HEIGHT / 2) * StateSaver::SS_WIDTH, StateSaver::SS_WIDTH, 0x808080ul, txt);
 		}
 	}
 }

@@ -37,8 +37,51 @@ enum { MAX_WIDTH = 9 };
 enum { NUMBER_WIDTH = 6 };
 
 unsigned getWidth(const char *chars);
+
+// struct Fill { void operator()(RandomAccessIterator dest, unsigned pitch) { fill pixels at dest } }
+template<class RandomAccessIterator, class Fill>
+void print(RandomAccessIterator dest, unsigned pitch, Fill fill, const char *chars);
+
 void print(Gambatte::uint_least32_t *dest, unsigned pitch, unsigned long color, const char *chars);
 void utoa(unsigned u, char *a);
+
+// --- INTERFACE END ---
+
+
+
+extern const unsigned char *const font[];
+
+template<class RandomAccessIterator, class Fill>
+void print(RandomAccessIterator dest, const unsigned pitch, Fill fill, const char *chars) {
+	while (const int character = *chars++) {
+		RandomAccessIterator dst = dest;
+		const unsigned char *s = font[character];
+		
+		const unsigned width = *s >> 4;
+		unsigned h = *s++ & 0xF;
+		
+		while (h--) {
+			RandomAccessIterator d = dst;
+			
+			unsigned line = *s++;
+			
+			if (width > 8)
+				line |= *s++ << 8;
+			
+			while (line) {
+				if (line & 1)
+					fill(d, pitch);
+				
+				line >>= 1;
+				++d;
+			}
+			
+			dst += pitch;
+		}
+		
+		dest += width;
+	}
+}
 }
 
 #endif
