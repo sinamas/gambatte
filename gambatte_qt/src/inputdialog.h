@@ -20,6 +20,8 @@
 #define INPUTDIALOG_H
 
 #include <QDialog>
+#include <string>
+#include <vector>
 #include "SDL_Joystick/include/SDL_event.h"
 
 static const int KBD_VALUE = 0;

@@ -44,6 +44,7 @@ protected:
 	}
 	
 public:
+	virtual ~OsdElement() {}
 	unsigned x() const { return x_; }
 	unsigned y() const { return y_; }
 	unsigned w() const { return w_; }
