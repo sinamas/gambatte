@@ -65,6 +65,10 @@ public:
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
 	void setSavedir(const std::string &sdir) { gb.set_savedir(sdir.c_str()); }
 	bool isCgb() const { return gb.isCgb(); }
+	void selectState(int n) { gb.selectState(n); }
+	int currentState() const { return gb.currentState(); }
+	void saveState(const char *filepath) { gb.saveState(filepath); }
+	void loadState(const char *filepath) { gb.loadState(filepath); }
 	
 	//overrides
 	void buttonPressEvent(unsigned buttonIndex);
@@ -73,6 +77,10 @@ public:
 	void setSampleBuffer(qint16 *sampleBuffer, unsigned /*sampleRate*/) { this->sampleBuffer = sampleBuffer; }
 	void setVideoSource(unsigned videoSourceIndex) { gb.setVideoFilter(videoSourceIndex); }
 	void update(unsigned samples);
+	
+public slots:
+	void saveState() { gb.saveState(); }
+	void loadState() { gb.loadState(); }
 	
 signals:
 	void blit();

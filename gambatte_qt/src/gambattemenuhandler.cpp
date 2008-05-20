@@ -19,6 +19,7 @@
 #include "gambattemenuhandler.h"
 
 #include <QtGui>
+#include <QActionGroup>
 #include "palettedialog.h"
 #include "mainwindow.h"
 #include "gambattesource.h"
@@ -50,87 +51,85 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	}
 	
 	{
-		QAction *openAct = new QAction(tr("&Open..."), mw);
-		openAct->setShortcut(tr("Ctrl+O"));
-		openAct->setStatusTip(tr("Open an existing file"));
-		connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
-		
 		for (int i = 0; i < MaxRecentFiles; ++i) {
 			recentFileActs[i] = new QAction(mw);
 			recentFileActs[i]->setVisible(false);
 			connect(recentFileActs[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
 		}
 		
-		resetAct = new QAction(tr("&Reset"), mw);
-		resetAct->setShortcut(tr("Ctrl+R"));
-		resetAct->setEnabled(false);
-		connect(resetAct, SIGNAL(triggered()), recentFileActs[0], SLOT(trigger()));
-		
 		QMenu *fileMenu = mw->menuBar()->addMenu(tr("&File"));
-		fileMenu->addAction(openAct);
-		separatorAct = fileMenu->addSeparator();
+		fileMenu->addAction(tr("&Open..."), this, SLOT(open()), tr("Ctrl+O"));
 		
-		for (int i = 0; i < MaxRecentFiles; ++i)
-			fileMenu->addAction(recentFileActs[i]);
+		{
+			recentMenu = fileMenu->addMenu(tr("Open Re&cent"));
+			
+			for (int i = 0; i < MaxRecentFiles; ++i)
+				recentMenu->addAction(recentFileActs[i]);
+		}
 		
 		fileMenu->addSeparator();
-		fileMenu->addAction(resetAct);
+		romLoadedActions.append(fileMenu->addAction(tr("&Reset"), recentFileActs[0], SLOT(trigger()), tr("Ctrl+R")));
 		fileMenu->addSeparator();
 		
-		QAction *exitAct = new QAction(tr("E&xit"), mw);
-		exitAct->setShortcut(tr("Ctrl+Q"));
-		exitAct->setStatusTip(tr("Exit the application"));
-		connect(exitAct, SIGNAL(triggered()), qApp, SLOT(closeAllWindows()));
+		romLoadedActions.append(fileMenu->addAction(tr("Save State &As..."), this, SLOT(saveStateAs())));
+		romLoadedActions.append(fileMenu->addAction(tr("Load State &From..."), this, SLOT(loadStateFrom())));
+		fileMenu->addSeparator();
 		
-		fileMenu->addAction(exitAct);
+		romLoadedActions.append(fileMenu->addAction(tr("&Save State"), source, SLOT(saveState()), QString("F5")));
+		romLoadedActions.append(fileMenu->addAction(tr("&Load State"), source, SLOT(loadState()), QString("F8")));
+		
+		{
+			stateSlotMenu = fileMenu->addMenu(tr("S&elect State Slot"));
+			stateSlotMenu->setEnabled(false);
+			stateSlotMenu->addAction(tr("&Previous"), this, SLOT(prevStateSlot()), QString("F6"));
+			stateSlotMenu->addAction(tr("&Next"), this, SLOT(nextStateSlot()), QString("F7"));
+			stateSlotMenu->addSeparator();
+			
+			stateSlotGroup = new QActionGroup(mw);
+			
+			for (int i = 0; i < 10; ++i) {
+				const int no = i == 9 ? 0 : i + 1;
+				const QString &strno = QString::number(no);
+				QAction *action = stateSlotMenu->addAction("Slot &" + strno, this, SLOT(selectStateSlot()), strno);
+				
+				action->setCheckable(true);
+				action->setData(no);
+				stateSlotGroup->addAction(action);
+			}
+		}
+		
+		foreach(QAction *a, romLoadedActions) {
+			a->setEnabled(false);
+		}
+		
+		fileMenu->addSeparator();
+		
+		fileMenu->addAction(tr("E&xit"), qApp, SLOT(closeAllWindows()), tr("Ctrl+Q"));
 		updateRecentFileActions();
 	}
 	
 	QMenu *settingsm = mw->menuBar()->addMenu(tr("&Settings"));
 	
-	{
-		QAction *const act = new QAction(tr("&Input..."), mw);
-		connect(act, SIGNAL(triggered()), mw, SLOT(execInputDialog()));
-		settingsm->addAction(act);
-	}
-	
-	{
-		QAction *const act = new QAction(tr("&Sound..."), mw);
-		connect(act, SIGNAL(triggered()), mw, SLOT(execSoundDialog()));
-		settingsm->addAction(act);
-	}
-	
-	{
-		QAction *const act = new QAction(tr("&Video..."), mw);
-		connect(act, SIGNAL(triggered()), mw, SLOT(execVideoDialog()));
-		settingsm->addAction(act);
-	}
+	settingsm->addAction(tr("&Input..."), mw, SLOT(execInputDialog()));
+	settingsm->addAction(tr("&Sound..."), mw, SLOT(execSoundDialog()));
+	settingsm->addAction(tr("&Video..."), mw, SLOT(execVideoDialog()));
 	
 	settingsm->addSeparator();
 	
 	{
 		QMenu *const palm = settingsm->addMenu(tr("DMG &Palette"));
 		
-		{
-			QAction *act = new QAction(tr("&Global..."), mw);
-			connect(act, SIGNAL(triggered()), this, SLOT(execGlobalPaletteDialog()));
-			palm->addAction(act);
-		}
+		palm->addAction(tr("&Global..."), this, SLOT(execGlobalPaletteDialog()));
 		
-		romPaletteAct = new QAction(tr("Current &ROM..."), mw);
+		romPaletteAct = palm->addAction(tr("Current &ROM..."), this, SLOT(execRomPaletteDialog()));
 		romPaletteAct->setEnabled(false);
-		connect(romPaletteAct, SIGNAL(triggered()), this, SLOT(execRomPaletteDialog()));
-		palm->addAction(romPaletteAct);
 	}
 	
 	settingsm->addSeparator();
 	
 	{
-		QAction *fsAct = new QAction(tr("&Full Screen"), mw);
-		fsAct->setShortcut(tr("Ctrl+F"));
+		QAction *fsAct = settingsm->addAction(tr("&Full Screen"), mw, SLOT(toggleFullScreen()), tr("Ctrl+F"));
 		fsAct->setCheckable(true);
-		connect(fsAct, SIGNAL(triggered()), mw, SLOT(toggleFullScreen()));
-		settingsm->addAction(fsAct);
 	}
 	
 // 	settingsm->addAction(hideMenuAct);
@@ -138,9 +137,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	mw->menuBar()->addSeparator();
 	
 	QMenu *helpMenu = mw->menuBar()->addMenu(tr("&Help"));
-	QAction *aboutAct = new QAction(tr("&About"), mw);
-	connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
-	helpMenu->addAction(aboutAct);
+	helpMenu->addAction(tr("&About"), this, SLOT(about()));
 	
 	mw->addActions(mw->menuBar()->actions());
 	
@@ -177,7 +174,7 @@ void GambatteMenuHandler::updateRecentFileActions() {
 	for (int j = numRecentFiles; j < MaxRecentFiles; ++j)
 		recentFileActs[j]->setVisible(false);
 	
-	separatorAct->setVisible(numRecentFiles > 0);
+	recentMenu->setEnabled(numRecentFiles > 0);
 }
 
 void GambatteMenuHandler::setCurrentFile(const QString &fileName) {
@@ -221,7 +218,13 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	romPaletteAct->setEnabled(!source->isCgb());
 	
 	setCurrentFile(fileName);
-	resetAct->setEnabled(true);
+	
+	foreach(QAction *a, romLoadedActions) {
+		a->setEnabled(true);
+	}
+	
+	stateSlotMenu->setEnabled(true);
+	stateSlotGroup->actions().at(0)->setChecked(true);
 	
 	mw->run();
 }
@@ -229,13 +232,14 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 void GambatteMenuHandler::open() {
 	mw->pause();
 	
-	QString fileName = QFileDialog::getOpenFileName(mw, "Open", recentFileActs[0]->data().toString(), "Game Boy ROM images (*.dmg *.gb *.gbc *.sgb *.zip);;All files (*)");
+	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Open"), recentFileActs[0]->data().toString(),
+			tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip);;All Files (*)"));
 	
 	if (!fileName.isEmpty())
 		loadFile(fileName);
 	
 	mw->unpause();
-	mw->setFocus();
+	mw->setFocus(); // giving back focus after getOpenFileName seems to fail at times, which can be problematic with current exclusive mode handling.
 }
 
 void GambatteMenuHandler::openRecentFile() {
@@ -246,6 +250,8 @@ void GambatteMenuHandler::openRecentFile() {
 }
 
 void GambatteMenuHandler::about() {
+	const bool wasPaused = mw->isPaused();
+	
 	mw->pause();
 	
 	QMessageBox::about(
@@ -257,7 +263,8 @@ void GambatteMenuHandler::about() {
 	                       <p>Gambatte is an accuracy-focused, open-source, cross-platform Game Boy / Game Boy Color emulator written in C++. It is based on hundreds of corner case hardware tests, as well as previous documentation and reverse engineering efforts.</p>")
 	                  );
 	
-	mw->unpause();
+	if (!wasPaused)
+		mw->unpause();
 }
 
 void GambatteMenuHandler::globalPaletteChange() {
@@ -282,4 +289,44 @@ void GambatteMenuHandler::execGlobalPaletteDialog() {
 
 void GambatteMenuHandler::execRomPaletteDialog() {
 	mw->execDialog(romPaletteDialog);
+}
+
+void GambatteMenuHandler::prevStateSlot() {
+	stateSlotGroup->actions().at(source->currentState() < 2 ? source->currentState() + 8 : source->currentState() - 2)->trigger();
+}
+
+void GambatteMenuHandler::nextStateSlot() {
+	stateSlotGroup->actions().at(source->currentState())->trigger();
+}
+
+void GambatteMenuHandler::selectStateSlot() {
+	if (QAction *action = stateSlotGroup->checkedAction())
+		source->selectState(action->data().toInt());
+}
+
+void GambatteMenuHandler::saveStateAs() {
+	const bool wasPaused = mw->isPaused();
+	
+	mw->pause();
+	
+	const QString &fileName = QFileDialog::getSaveFileName(mw, tr("Save State"), QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
+	
+	if (!fileName.isEmpty()) {
+		source->saveState(fileName.toAscii().data());
+	}
+	
+	if (!wasPaused)
+		mw->unpause();
+}
+
+void GambatteMenuHandler::loadStateFrom() {
+	mw->pause();
+	
+	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Load State"), QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
+	
+	if (!fileName.isEmpty()) {
+		source->loadState(fileName.toAscii().data());
+	}
+	
+	mw->unpause();
 }

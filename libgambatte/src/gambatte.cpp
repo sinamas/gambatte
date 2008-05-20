@@ -42,7 +42,7 @@ static const std::string statePath(const std::string &basePath, int stateNo) {
 }
 
 namespace Gambatte {
-GB::GB() : z80(new CPU), stateNo(0) {}
+GB::GB() : z80(new CPU), stateNo(1) {}
 
 GB::~GB() {
 	delete z80;
@@ -107,6 +107,9 @@ bool GB::load(const char* romfile) {
 		setInitState(state, z80->isCgb());
 		z80->loadState(state);
 		z80->loadSavedata();
+		
+		stateNo = 1;
+		z80->setOsdElement(std::auto_ptr<OsdElement>());
 	}
 	
 	return failed;
@@ -124,24 +127,38 @@ void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) 
 	z80->setDmgPaletteColor(palNum, colorNum, rgb32);
 }
 
-void GB::saveState() {
-	SaveState state;
-	z80->setStatePtrs(state);
-	z80->saveState(state);
-	StateSaver::saveState(state, statePath(z80->saveBasePath(), stateNo).c_str());
-	z80->setOsdElement(newStateSavedOsdElement(stateNo));
-}
-
-void GB::loadState() {
+void GB::loadState(const char *const filepath, const bool osdMessage) {
 	z80->saveSavedata();
 	
 	SaveState state;
 	z80->setStatePtrs(state);
 	
-	if (StateSaver::loadState(state, statePath(z80->saveBasePath(), stateNo).c_str())) {
+	if (StateSaver::loadState(state, filepath)) {
 		z80->loadState(state);
-		z80->setOsdElement(newStateLoadedOsdElement(stateNo));
+		
+		if (osdMessage)
+			z80->setOsdElement(newStateLoadedOsdElement(stateNo));
 	}
+}
+
+void GB::saveState() {
+	saveState(statePath(z80->saveBasePath(), stateNo).c_str());
+	z80->setOsdElement(newStateSavedOsdElement(stateNo));
+}
+
+void GB::loadState() {
+	loadState(statePath(z80->saveBasePath(), stateNo).c_str(), true);
+}
+
+void GB::saveState(const char *filepath) {
+	SaveState state;
+	z80->setStatePtrs(state);
+	z80->saveState(state);
+	StateSaver::saveState(state, filepath);
+}
+
+void GB::loadState(const char *const filepath) {
+	loadState(filepath, false);
 }
 
 void GB::selectState(int n) {

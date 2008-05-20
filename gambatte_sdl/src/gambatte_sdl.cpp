@@ -653,6 +653,16 @@ int GambatteSdl::exec() {
 						case SDLK_F6: gambatte.selectState(gambatte.currentState() - 1); break;
 						case SDLK_F7: gambatte.selectState(gambatte.currentState() + 1); break;
 						case SDLK_F8: gambatte.loadState(); break;
+						case SDLK_0: gambatte.selectState(0); break;
+						case SDLK_1: gambatte.selectState(1); break;
+						case SDLK_2: gambatte.selectState(2); break;
+						case SDLK_3: gambatte.selectState(3); break;
+						case SDLK_4: gambatte.selectState(4); break;
+						case SDLK_5: gambatte.selectState(5); break;
+						case SDLK_6: gambatte.selectState(6); break;
+						case SDLK_7: gambatte.selectState(7); break;
+						case SDLK_8: gambatte.selectState(8); break;
+						case SDLK_9: gambatte.selectState(9); break;
 						default: break;
 						}
 					}

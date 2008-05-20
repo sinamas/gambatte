@@ -20,12 +20,15 @@
 #define GAMBATTEMENUHANDLER_H
 
 #include <QObject>
+#include <QList>
 
 class MainWindow;
 class GambatteSource;
 class QAction;
 class PaletteDialog;
 class QString;
+class QActionGroup;
+class QMenu;
 
 class GambatteMenuHandler : public QObject {
 	Q_OBJECT
@@ -35,11 +38,13 @@ class GambatteMenuHandler : public QObject {
 	MainWindow *const mw;
 	GambatteSource *const source;
 	QAction *recentFileActs[MaxRecentFiles];
-	QAction *separatorAct;
-	QAction *resetAct;
+	QMenu *recentMenu;
 	QAction *romPaletteAct;
 	PaletteDialog *globalPaletteDialog;
 	PaletteDialog *romPaletteDialog;
+	QActionGroup *stateSlotGroup;
+	QMenu *stateSlotMenu;
+	QList<QAction*> romLoadedActions;
 	
 	void loadFile(const QString &fileName);
 	void setCurrentFile(const QString &fileName);
@@ -54,6 +59,11 @@ private slots:
 	void romPaletteChange();
 	void execGlobalPaletteDialog();
 	void execRomPaletteDialog();
+	void prevStateSlot();
+	void nextStateSlot();
+	void selectStateSlot();
+	void saveStateAs();
+	void loadStateFrom();
 	
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);

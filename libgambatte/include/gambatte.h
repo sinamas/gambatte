@@ -33,6 +33,8 @@ class GB {
 	CPU *const z80;
 	int stateNo;
 
+	void loadState(const char *filepath, bool osdMessage);
+
 public:
 	GB();
 	~GB();
@@ -55,6 +57,8 @@ public:
 	bool isCgb() const;
 	void saveState();
 	void loadState();
+	void saveState(const char *filepath);
+	void loadState(const char *filepath);
 	void selectState(int n);
 	int currentState() const { return stateNo; }
 };
