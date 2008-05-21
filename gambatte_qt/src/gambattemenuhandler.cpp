@@ -20,6 +20,7 @@
 
 #include <QtGui>
 #include <QActionGroup>
+#include <QFileInfo>
 #include "palettedialog.h"
 #include "mainwindow.h"
 #include "gambattesource.h"
@@ -152,7 +153,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-') {
-			loadFile(QString(argv[i]));
+			loadFile(QFileInfo(QString(argv[i])).absoluteFilePath());
 			break;
 		}
 	}
