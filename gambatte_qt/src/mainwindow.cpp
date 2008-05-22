@@ -610,6 +610,15 @@ void MainWindow::unpause() {
 		doUnpause();
 }
 
+void MainWindow::frameStep() {
+	if (isRunning() && paused == 1) {
+		timerEvent(NULL);
+		
+		if (ae)
+			ae->pause();
+	}
+}
+
 void MainWindow::setTurbo(bool enable) {
 	if (enable != turbo) {
 		turbo = enable;

@@ -35,16 +35,58 @@ class GambatteMenuHandler : public QObject {
 		
 	enum { MaxRecentFiles = 9 };
 	
+	class FrameTime {
+	public:
+		struct Rational {
+			unsigned num;
+			unsigned denom;
+			Rational(unsigned num = 0, unsigned denom = 0) : num(num), denom(denom) {}
+		};
+		
+	private:
+		enum { STEPS = 16 };
+		
+		Rational frameTimes[STEPS * 2 + 1];
+		unsigned index;
+		
+	public:
+		FrameTime(unsigned baseNum, unsigned baseDenom);
+		
+		bool inc() {
+			if (index < STEPS * 2)
+				++index;
+			
+			return index < STEPS * 2;
+		}
+		
+		bool dec() {
+			if (index)
+				--index;
+			
+			return index;
+		}
+		
+		void reset() { index = STEPS; }
+		
+		const Rational& get() const {
+			return frameTimes[index];
+		}
+	};
+	
 	MainWindow *const mw;
 	GambatteSource *const source;
 	QAction *recentFileActs[MaxRecentFiles];
-	QMenu *recentMenu;
 	QAction *romPaletteAct;
+	QAction *pauseAction;
+	QAction *decFrameRateAction;
+	QAction *incFrameRateAction;
+	QMenu *recentMenu;
+	QMenu *stateSlotMenu;
 	PaletteDialog *globalPaletteDialog;
 	PaletteDialog *romPaletteDialog;
 	QActionGroup *stateSlotGroup;
-	QMenu *stateSlotMenu;
 	QList<QAction*> romLoadedActions;
+	FrameTime frameTime;
 	
 	void loadFile(const QString &fileName);
 	void setCurrentFile(const QString &fileName);
@@ -64,6 +106,11 @@ private slots:
 	void selectStateSlot();
 	void saveStateAs();
 	void loadStateFrom();
+	void pauseChange();
+	void frameStep();
+	void decFrameRate();
+	void incFrameRate();
+	void resetFrameRate();
 	
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);

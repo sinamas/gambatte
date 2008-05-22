@@ -195,6 +195,11 @@ public:
 	void setPauseOnDialogExec(bool enable) { pauseOnDialogExec = enable; }
 	void setSampleRates(const std::vector<int> &sampleRates);
 	void setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos);
+	
+	/**
+	  * Does a single source->update() if isRunning() && isPaused() (unless it's also paused by a dialog or similar)
+	  */
+	void frameStep();
 
 public slots:
 	/**

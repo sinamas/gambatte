@@ -29,7 +29,20 @@ static const QString strippedName(const QString &fullFileName) {
 	return QFileInfo(fullFileName).fileName();
 }
 
-GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *const source, const int argc, const char *const argv[]) : mw(mw), source(source) {
+GambatteMenuHandler::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) : index(STEPS) {
+	frameTimes[index] = Rational(baseNum, baseDenom);
+	
+	for (unsigned i = index; i < STEPS * 2; ++i) {
+		frameTimes[i + 1] = Rational(frameTimes[i].num * 11 * 0x10000 / (frameTimes[i].denom * 10), 0x10000);
+	}
+	
+	for (unsigned i = index; i; --i) {
+		frameTimes[i - 1] = Rational(frameTimes[i].num * 10 * 0x10000 / (frameTimes[i].denom * 11), 0x10000);
+	}
+}
+
+GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *const source,
+			const int argc, const char *const argv[]) : mw(mw), source(source), frameTime(4389, 262144) {
 	mw->setWindowTitle("Gambatte");
 	
 	{
@@ -99,14 +112,22 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 			}
 		}
 		
-		foreach(QAction *a, romLoadedActions) {
-			a->setEnabled(false);
-		}
-		
 		fileMenu->addSeparator();
 		
 		fileMenu->addAction(tr("E&xit"), qApp, SLOT(closeAllWindows()), tr("Ctrl+Q"));
 		updateRecentFileActions();
+	}
+	
+	{
+		QMenu *const playm = mw->menuBar()->addMenu(tr("&Play"));
+		
+		romLoadedActions.append(pauseAction = playm->addAction(tr("&Pause"), this, SLOT(pauseChange()), QString("Pause")));
+		pauseAction->setCheckable(true);
+		romLoadedActions.append(playm->addAction(tr("Frame &Step"), this, SLOT(frameStep()), QString("F1")));
+		playm->addSeparator();
+		romLoadedActions.append(decFrameRateAction = playm->addAction(tr("&Decrease Frame Rate"), this, SLOT(decFrameRate()), QString("F2")));
+		romLoadedActions.append(incFrameRateAction = playm->addAction(tr("&Increase Frame Rate"), this, SLOT(incFrameRate()), QString("F3")));
+		romLoadedActions.append(playm->addAction(tr("&Reset Frame Rate"), this, SLOT(resetFrameRate()), QString("F4")));
 	}
 	
 	QMenu *settingsm = mw->menuBar()->addMenu(tr("&Settings"));
@@ -133,6 +154,10 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 		fsAct->setCheckable(true);
 	}
 	
+	foreach(QAction *a, romLoadedActions) {
+		a->setEnabled(false);
+	}
+	
 // 	settingsm->addAction(hideMenuAct);
 	
 	mw->menuBar()->addSeparator();
@@ -147,7 +172,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	connect(hideMenuAct, SIGNAL(triggered()), mw, SLOT(toggleMenuHidden()));
 	mw->addAction(hideMenuAct);
 	
-	mw->setFrameTime(4389, 262144);
+	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 	connect(source, SIGNAL(blit()), mw, SLOT(blit()));
 	connect(source, SIGNAL(setTurbo(bool)), mw, SLOT(setTurbo(bool)));
 	
@@ -199,6 +224,10 @@ void GambatteMenuHandler::setCurrentFile(const QString &fileName) {
 }
 
 void GambatteMenuHandler::loadFile(const QString &fileName) {
+	resetFrameRate();
+	pauseAction->setChecked(false);
+	pauseChange();
+	
 	if (source->load((fileName.toAscii()).data())) {
 		mw->stop();
 		
@@ -239,8 +268,8 @@ void GambatteMenuHandler::open() {
 	if (!fileName.isEmpty())
 		loadFile(fileName);
 	
-	mw->unpause();
 	mw->setFocus(); // giving back focus after getOpenFileName seems to fail at times, which can be problematic with current exclusive mode handling.
+	pauseChange();
 }
 
 void GambatteMenuHandler::openRecentFile() {
@@ -251,8 +280,6 @@ void GambatteMenuHandler::openRecentFile() {
 }
 
 void GambatteMenuHandler::about() {
-	const bool wasPaused = mw->isPaused();
-	
 	mw->pause();
 	
 	QMessageBox::about(
@@ -264,8 +291,7 @@ void GambatteMenuHandler::about() {
 	                       <p>Gambatte is an accuracy-focused, open-source, cross-platform Game Boy / Game Boy Color emulator written in C++. It is based on hundreds of corner case hardware tests, as well as previous documentation and reverse engineering efforts.</p>")
 	                  );
 	
-	if (!wasPaused)
-		mw->unpause();
+	pauseChange();
 }
 
 void GambatteMenuHandler::globalPaletteChange() {
@@ -306,8 +332,6 @@ void GambatteMenuHandler::selectStateSlot() {
 }
 
 void GambatteMenuHandler::saveStateAs() {
-	const bool wasPaused = mw->isPaused();
-	
 	mw->pause();
 	
 	const QString &fileName = QFileDialog::getSaveFileName(mw, tr("Save State"), QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
@@ -316,8 +340,7 @@ void GambatteMenuHandler::saveStateAs() {
 		source->saveState(fileName.toAscii().data());
 	}
 	
-	if (!wasPaused)
-		mw->unpause();
+	pauseChange();
 }
 
 void GambatteMenuHandler::loadStateFrom() {
@@ -329,5 +352,45 @@ void GambatteMenuHandler::loadStateFrom() {
 		source->loadState(fileName.toAscii().data());
 	}
 	
-	mw->unpause();
+	pauseAction->setChecked(false);
+	pauseChange();
+}
+
+void GambatteMenuHandler::pauseChange() {
+	if (pauseAction->isChecked())
+		mw->pause();
+	else
+		mw->unpause();
+}
+
+void GambatteMenuHandler::frameStep() {
+	if (pauseAction->isChecked())
+		mw->frameStep();
+	else
+		pauseAction->trigger();
+}
+
+void GambatteMenuHandler::decFrameRate() {
+	if (!frameTime.inc())
+		decFrameRateAction->setEnabled(false);
+	
+	incFrameRateAction->setEnabled(true);
+		
+	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
+}
+
+void GambatteMenuHandler::incFrameRate() {
+	if (!frameTime.dec())
+		incFrameRateAction->setEnabled(false);
+	
+	decFrameRateAction->setEnabled(true);
+	
+	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
+}
+
+void GambatteMenuHandler::resetFrameRate() {
+	frameTime.reset();
+	incFrameRateAction->setEnabled(true);
+	decFrameRateAction->setEnabled(true);
+	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 }
