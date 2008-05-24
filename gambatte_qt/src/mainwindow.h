@@ -86,6 +86,7 @@ private:
 	qint16 *sndBuffer;
 	AudioEngine *ae;
 	QTimer *cursorTimer;
+	QTimer *jsTimer;
 	
 	unsigned samplesPrFrame;
 	unsigned ftNum;
@@ -107,7 +108,6 @@ private:
 	void soundEngineFailure();
 	void clearInputVectors();
 	void pushInputObserver(const SDL_Event &data, InputObserver *observer);
-	void updateJoysticks();
 	void resetWindowSize(const QSize &s);
 	void uninitBlitter();
 	void doSetFrameTime(unsigned num, unsigned denom);
@@ -117,6 +117,7 @@ private:
 	void correctFullScreenGeometry();
 	
 private slots:
+	void updateJoysticks();
 	void hideCursor();
 	void inputSettingsChange();
 	void soundSettingsChange();
@@ -136,12 +137,8 @@ protected:
 
 public:
 	/**
-	  * @param buttonLabels Labels used in input dialog for buttons of corresponding index used by
-	  *                     source->button[Press|Release]Event.
-	  *
-	  * @param buttonDefaults Default Qt::keys for buttons of corresponding index. Every button
-	  *                       requires a default key, but you can have more default keys than
-	  *                       labels, in which case the button won't show up in the input dialog.
+	  * @param buttonInfos Labels and default Qt::Keys for buttons of corresponding index used by
+	  *                    source->button[Press|Release]Event.
 	  *
 	  * @param videoSourceInfos Names and dimensions of available video sources of corresponding
 	  *                         index in source->setVideoSource. At least one video source required.
@@ -161,8 +158,7 @@ public:
 	  *                    one is required. Can be changed later with the setSampleRates method.
 	  */
 	MainWindow(MediaSource *source,
-	           const std::vector<std::string> &buttonLabels,
-	           const std::vector<int> &buttonDefaults,
+	           const std::vector<MediaSource::ButtonInfo> &buttonInfos,
 	           const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
 	           const std::string &videoSourceLabel,
 	           const QSize &aspectRatio,

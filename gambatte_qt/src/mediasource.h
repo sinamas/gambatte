@@ -19,8 +19,8 @@
 #ifndef MEDIASOURCE_H
 #define MEDIASOURCE_H
 
-#include <string>
 #include <QtGlobal>
+#include <QString>
 
 //TODO: stop dictating audio/video formats.
 //      Choice based on:
@@ -51,7 +51,7 @@ public:
 	
 	struct VideoSourceInfo {
 		// label used in the video dialog combobox.
-		std::string handle;
+		QString label;
 		
 		// The size of the buffer given through setPixelBuffer depends on these.
 		// (so does scaling calculations and other things)
@@ -59,9 +59,23 @@ public:
 		unsigned height;
 	};
 	
+	struct ButtonInfo {
+		// Label used in input settings dialog. If this is empty the button won't be configurable, but will use the defaultKey.
+		QString label;
+		
+		// Tab label used in input settings dialog.
+		QString category;
+		
+		// Default Qt::Key. Use Qt::Key_unknown for none.
+		int defaultKey;
+		
+		// Default alternate Qt::Key. Use Qt::Key_unknown for none.
+		int defaultAltKey;
+	};
+	
 	/**
 	  * Reimplement to get buttonPress events for buttons of corresponding index to the
-	  * buttonLabels and buttonDefaults given to MainWindow.
+	  * buttonInfos given to MainWindow.
 	  */
 	virtual void buttonPressEvent(unsigned /*buttonIndex*/) {}
 	virtual void buttonReleaseEvent(unsigned /*buttonIndex*/) {}

@@ -57,8 +57,8 @@ void MainWindow::ButtonHandler::releaseEvent() { source->buttonReleaseEvent(butt
 
 class JoyObserver {
 	MainWindow::InputObserver *const observer;
+	const int mask;
 	
-protected:
 	void notifyObserver(bool press) {
 		if (press)
 			observer->pressEvent();
@@ -67,28 +67,7 @@ protected:
 	}
 	
 public:
-	JoyObserver(MainWindow::InputObserver *observer) : observer(observer) {}
-	virtual ~JoyObserver() {}
-	virtual void valueChanged(int value) = 0;
-};
-
-class JoyAxisHandler : public JoyObserver {
-	const int threshold;
-public:
-	JoyAxisHandler(MainWindow::InputObserver *observer, const int threshold) : JoyObserver(observer), threshold(threshold) {}
-	void valueChanged(const int value) { notifyObserver((value - threshold ^ threshold) >= 0); }
-};
-
-class JoyButHandler : public JoyObserver {
-public:
-	JoyButHandler(MainWindow::InputObserver *observer) : JoyObserver(observer) {}
-	void valueChanged(const int value) { notifyObserver(value); }
-};
-
-class JoyHatHandler : public JoyObserver {
-	const int mask;
-public:
-	JoyHatHandler(MainWindow::InputObserver *observer, const int mask) : JoyObserver(observer), mask(mask) {}
+	JoyObserver(MainWindow::InputObserver *observer, const int mask) : observer(observer), mask(mask) {}
 	void valueChanged(const int value) { notifyObserver((value & mask) == mask); }
 };
 
@@ -118,19 +97,19 @@ MainWindow::JoystickIniter::~JoystickIniter() {
 }
 
 MainWindow::MainWindow(MediaSource *source,
-                       const std::vector<std::string> &buttonLabels,
-                       const std::vector<int> &buttonDefaults,
+                       const std::vector<MediaSource::ButtonInfo> &buttonInfos,
                        const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
                        const std::string &videoSourceLabel,
                        const QSize &aspectRatio,
                        const std::vector<int> &sampleRates) :
 	source(source),
-	buttonHandlers(buttonDefaults.size(), ButtonHandler(0, 0)),
+	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
 	blitter(NULL),
 	fullModeToggler(getFullModeToggler(winId())),
 	sndBuffer(NULL),
 	ae(NULL),
 	cursorTimer(NULL),
+	jsTimer(NULL),
 	samplesPrFrame(0),
 	ftNum(1),
 	ftDenom(60),
@@ -163,7 +142,7 @@ MainWindow::MainWindow(MediaSource *source,
 	soundDialog = new SoundDialog(audioEngines, sampleRates, this);
 	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundSettingsChange()));
 	
-	inputDialog = new InputDialog(buttonLabels, buttonDefaults, this);
+	inputDialog = new InputDialog(buttonInfos, this);
 	connect(inputDialog, SIGNAL(accepted()), this, SLOT(inputSettingsChange()));
 
 	addBlitterWidgets(blitters, PixelBufferSetter(source));
@@ -197,6 +176,11 @@ MainWindow::MainWindow(MediaSource *source,
 	cursorTimer->setSingleShot(true);
 	cursorTimer->setInterval(2500);
 	connect(cursorTimer, SIGNAL(timeout()), this, SLOT(hideCursor()));
+	
+	jsTimer = new QTimer(this);
+	jsTimer->setInterval(133);
+	connect(jsTimer, SIGNAL(timeout()), this, SLOT(updateJoysticks()));
+	
 	setMouseTracking(true);
 	setFocus();
 }
@@ -303,27 +287,20 @@ void MainWindow::clearInputVectors() {
 }
 
 void MainWindow::pushInputObserver(const SDL_Event &data, InputObserver *observer) {
-	if (data.value == KBD_VALUE) {
-		keyInputs.insert(std::pair<unsigned,InputObserver*>(data.id, observer));
-	} else {
-		JoyObserver *jhandler = NULL;
-		
-		switch (data.type) {
-		case SDL_JOYAXISMOTION: jhandler = new JoyAxisHandler(observer, data.value); break;
-		case SDL_JOYHATMOTION: jhandler = new JoyHatHandler(observer, data.value); break;
-		case SDL_JOYBUTTONCHANGE: jhandler = new JoyButHandler(observer); break;
-		default: return;
+	if (data.value != InputDialog::NULL_VALUE) {
+		if (data.value == InputDialog::KBD_VALUE) {
+			keyInputs.insert(std::pair<unsigned,InputObserver*>(data.id, observer));
+		} else {
+			joyInputs.insert(std::pair<unsigned,JoyObserver*>(data.id, new JoyObserver(observer, data.value)));
 		}
-		
-		joyInputs.insert(std::pair<unsigned,JoyObserver*>(data.id, jhandler));
 	}
 }
 
 void MainWindow::inputSettingsChange() {
 	clearInputVectors();
 	
-	for (unsigned i = 0; i < inputDialog->getData().size(); ++i)
-		pushInputObserver(inputDialog->getData()[i], &buttonHandlers[i]);
+	for (std::size_t i = 0; i < inputDialog->getData().size(); ++i)
+		pushInputObserver(inputDialog->getData()[i], &buttonHandlers[i >> 1]);
 }
 
 void MainWindow::soundSettingsChange() {
@@ -556,6 +533,8 @@ void MainWindow::run() {
 	
 	if (!paused)
 		timerId = startTimer(0);
+	else
+		jsTimer->start();
 }
 
 void MainWindow::stop() {
@@ -563,6 +542,7 @@ void MainWindow::stop() {
 		return;
 	
 	running = false;
+	jsTimer->stop();
 	
 	if (timerId) {
 		killTimer(timerId);
@@ -589,12 +569,14 @@ void MainWindow::doPause() {
 	
 	killTimer(timerId);
 	timerId = 0;
+	jsTimer->start();
 }
 
 void MainWindow::doUnpause() {
 	if (!running || timerId)
 		return;
 	
+	jsTimer->stop();
 	timerId = startTimer(0);
 }
 
@@ -654,22 +636,22 @@ void MainWindow::showCursor() {
 void MainWindow::keyPressEvent(QKeyEvent *e) {
 	e->ignore();
 	
-	{
+	if (isRunning()) {
 		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
 		while (range.first != range.second) {
 			(range.first->second)->pressEvent();
 			++range.first;
 		}
-	}
 	
-	hideCursor();
+		hideCursor();
+	}
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *e) {
 	e->ignore();
 	
-	{
+	if (isRunning()) {
 		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
 		while (range.first != range.second) {
@@ -683,12 +665,11 @@ void MainWindow::updateJoysticks() {
 	if (hasFocus()/* || QApplication::desktop()->numScreens() != 1*/) {
 		bool hit = false;
 		
-		SDL_ClearEvents();
 		SDL_JoystickUpdate();
 		
 		SDL_Event ev;
 		
-		while (SDL_PollEvent(&ev)) {
+		while (pollJsEvent(&ev)) {
 			std::pair<joymap_t::iterator,joymap_t::iterator> range = joyInputs.equal_range(ev.id);
 			
 			while (range.first != range.second) {
@@ -756,6 +737,9 @@ void MainWindow::focusInEvent(QFocusEvent */*event*/) {
 	}
 	
 	blitterContainer->parentExclusiveEvent(isFullScreen());
+	
+	SDL_JoystickUpdate();
+	SDL_ClearEvents();
 	
 	cursorTimer->start();
 }

@@ -30,8 +30,7 @@ int main(int argc, char *argv[]) {
 	QCoreApplication::setApplicationName("gambatte_qt");
 	GambatteSource source;
 	MainWindow * mw = new MainWindow(&source,
-	                                 source.generateButtonLabels(),
-	                                 source.generateButtonDefaults(),
+	                                 source.generateButtonInfos(),
 	                                 source.generateVideoSourceInfos(),
 	                                 "Video filter:",
 	                                 QSize(160, 144),

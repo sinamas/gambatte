@@ -133,7 +133,7 @@ sourceIndexStore(0)
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 	
 	for (std::size_t i = 0; i < sourceInfos.size(); ++i) {
-		sourceSelector->addItem(sourceInfos[i].handle.c_str(), QSize(sourceInfos[i].width, sourceInfos[i].height));
+		sourceSelector->addItem(sourceInfos[i].label, QSize(sourceInfos[i].width, sourceInfos[i].height));
 	}
 	
 	for (std::size_t i = 0; i < engines.size(); ++i) {
@@ -407,7 +407,7 @@ void VideoDialog::setVideoSources(const std::vector<MediaSource::VideoSourceInfo
 	sourceSelector->clear();
 	
 	for (std::size_t i = 0; i < sourceInfos.size(); ++i)
-		sourceSelector->addItem(sourceInfos[i].handle.c_str(), QSize(sourceInfos[i].width, sourceInfos[i].height));
+		sourceSelector->addItem(sourceInfos[i].label, QSize(sourceInfos[i].width, sourceInfos[i].height));
 	
 	connect(sourceSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
 	sourceChange(sourceSelector->currentIndex());

@@ -20,30 +20,45 @@
 #define INPUTDIALOG_H
 
 #include <QDialog>
-#include <string>
 #include <vector>
 #include "SDL_Joystick/include/SDL_event.h"
+#include "mediasource.h"
 
-static const int KBD_VALUE = 0;
-static const int JSBUTTON_VALUE = 1;
-static const int JSPAXIS_VALUE = 8192;
-static const int JSNAXIS_VALUE = -JSPAXIS_VALUE;
+enum { AXIS_CENTERED = 0, AXIS_POSITIVE = 1, AXIS_NEGATIVE = 2 };
+
+// wraps SDL_PollEvent, converting all values to hat-style bitset values (a single bit for buttons, two for axes, four for hats)
+// only hats can have multiple bits set at once. In practice only axis values are converted (to AXIS_CENTERED, AXIS_POSITIVE or AXIS_NEGATIVE).
+int pollJsEvent(SDL_Event *ev);
 
 class InputBox;
+
+class InputBoxPair : public QObject {
+	Q_OBJECT
+
+public:
+	InputBox *const mainBox;
+	InputBox *const altBox;
+	
+	InputBoxPair(InputBox *mainBox, InputBox *altBox) : mainBox(mainBox), altBox(altBox) {}
+	
+public slots:
+	void clear();
+};
 
 class InputDialog : public QDialog {
 	Q_OBJECT
 	
-	const std::vector<std::string> buttonLabels;
-	std::vector<InputBox*> inputBoxes;
+	const std::vector<MediaSource::ButtonInfo> buttonInfos;
+	std::vector<InputBoxPair*> inputBoxPairs;
 	std::vector<SDL_Event> eventData;
 	
 	void store();
 	void restore();
 	
 public:
-	InputDialog(const std::vector<std::string> &buttonLabels,
-	            const std::vector<int> &buttonDefaults,
+	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
+	
+	InputDialog(const std::vector<MediaSource::ButtonInfo> &buttonInfos,
 	            QWidget *parent = 0);
 	~InputDialog();
 	

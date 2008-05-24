@@ -53,8 +53,7 @@ class GambatteSource : public QObject, public MediaSource {
 public:
 	GambatteSource();
 	
-	static const std::vector<std::string> generateButtonLabels();
-	static const std::vector<int> generateButtonDefaults();
+	static const std::vector<ButtonInfo> generateButtonInfos();
 	const std::vector<MediaSource::VideoSourceInfo> generateVideoSourceInfos();
 	static const std::vector<int> generateSampleRates();
 	
@@ -85,6 +84,13 @@ public slots:
 signals:
 	void blit();
 	void setTurbo(bool on);
+	void togglePause();
+	void frameStep();
+	void decFrameRate();
+	void incFrameRate();
+	void resetFrameRate();
+	void prevStateSlot();
+	void nextStateSlot();
 };
 
 #endif

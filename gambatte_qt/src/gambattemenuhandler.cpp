@@ -42,7 +42,8 @@ GambatteMenuHandler::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) 
 }
 
 GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *const source,
-			const int argc, const char *const argv[]) : mw(mw), source(source), frameTime(4389, 262144) {
+			const int argc, const char *const argv[]) :
+mw(mw), source(source), frameTime(4389, 262144) {
 	mw->setWindowTitle("Gambatte");
 	
 	{
@@ -89,14 +90,14 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 		romLoadedActions.append(fileMenu->addAction(tr("Load State &From..."), this, SLOT(loadStateFrom())));
 		fileMenu->addSeparator();
 		
-		romLoadedActions.append(fileMenu->addAction(tr("&Save State"), source, SLOT(saveState()), QString("F5")));
-		romLoadedActions.append(fileMenu->addAction(tr("&Load State"), source, SLOT(loadState()), QString("F8")));
+		romLoadedActions.append(fileMenu->addAction(tr("&Save State"), source, SLOT(saveState()), QString("Ctrl+S")));
+		romLoadedActions.append(fileMenu->addAction(tr("&Load State"), source, SLOT(loadState()), QString("Ctrl+L")));
 		
 		{
 			stateSlotMenu = fileMenu->addMenu(tr("S&elect State Slot"));
 			stateSlotMenu->setEnabled(false);
-			stateSlotMenu->addAction(tr("&Previous"), this, SLOT(prevStateSlot()), QString("F6"));
-			stateSlotMenu->addAction(tr("&Next"), this, SLOT(nextStateSlot()), QString("F7"));
+			stateSlotMenu->addAction(tr("&Previous"), this, SLOT(prevStateSlot()), QString("Ctrl+Z"));
+			stateSlotMenu->addAction(tr("&Next"), this, SLOT(nextStateSlot()), QString("Ctrl+X"));
 			stateSlotMenu->addSeparator();
 			
 			stateSlotGroup = new QActionGroup(mw);
@@ -121,13 +122,13 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	{
 		QMenu *const playm = mw->menuBar()->addMenu(tr("&Play"));
 		
-		romLoadedActions.append(pauseAction = playm->addAction(tr("&Pause"), this, SLOT(pauseChange()), QString("Pause")));
+		romLoadedActions.append(pauseAction = playm->addAction(tr("&Pause"), this, SLOT(pauseChange()), QString("Ctrl+P")));
 		pauseAction->setCheckable(true);
-		romLoadedActions.append(playm->addAction(tr("Frame &Step"), this, SLOT(frameStep()), QString("F1")));
+		romLoadedActions.append(playm->addAction(tr("Frame &Step"), this, SLOT(frameStep()), QString("Ctrl+.")));
 		playm->addSeparator();
-		romLoadedActions.append(decFrameRateAction = playm->addAction(tr("&Decrease Frame Rate"), this, SLOT(decFrameRate()), QString("F2")));
-		romLoadedActions.append(incFrameRateAction = playm->addAction(tr("&Increase Frame Rate"), this, SLOT(incFrameRate()), QString("F3")));
-		romLoadedActions.append(playm->addAction(tr("&Reset Frame Rate"), this, SLOT(resetFrameRate()), QString("F4")));
+		romLoadedActions.append(decFrameRateAction = playm->addAction(tr("&Decrease Frame Rate"), this, SLOT(decFrameRate()), QString("Ctrl+D")));
+		romLoadedActions.append(incFrameRateAction = playm->addAction(tr("&Increase Frame Rate"), this, SLOT(incFrameRate()), QString("Ctrl+I")));
+		romLoadedActions.append(playm->addAction(tr("&Reset Frame Rate"), this, SLOT(resetFrameRate()), QString("Ctrl+U")));
 	}
 	
 	QMenu *settingsm = mw->menuBar()->addMenu(tr("&Settings"));
@@ -175,6 +176,13 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *c
 	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 	connect(source, SIGNAL(blit()), mw, SLOT(blit()));
 	connect(source, SIGNAL(setTurbo(bool)), mw, SLOT(setTurbo(bool)));
+	connect(source, SIGNAL(togglePause()), pauseAction, SLOT(trigger()));
+	connect(source, SIGNAL(frameStep()), this, SLOT(frameStep()));
+	connect(source, SIGNAL(decFrameRate()), this, SLOT(decFrameRate()));
+	connect(source, SIGNAL(incFrameRate()), this, SLOT(incFrameRate()));
+	connect(source, SIGNAL(resetFrameRate()), this, SLOT(resetFrameRate()));
+	connect(source, SIGNAL(prevStateSlot()), this, SLOT(prevStateSlot()));
+	connect(source, SIGNAL(nextStateSlot()), this, SLOT(nextStateSlot()));
 	
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-') {

@@ -22,9 +22,12 @@
 #include <QKeyEvent>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QSettings>
+#include <QTabWidget>
+#include <map>
 #include <cassert>
 
 #include "SDL_Joystick/include/SDL_joystick.h"
@@ -351,29 +354,64 @@ static const char* keyToString(int key) {
 	}
 }
 
+int pollJsEvent(SDL_Event *ev) {
+	typedef std::map<unsigned, int> map_t;
+	
+	static map_t axisState;
+	
+	int returnVal;
+	
+	do {
+		returnVal = SDL_PollEvent(ev);
+		
+		if (returnVal && ev->type == SDL_JOYAXISMOTION) {
+			if (ev->value > 8192)
+				ev->value = AXIS_POSITIVE;
+			else if (ev->value < -8192)
+				ev->value = AXIS_NEGATIVE;
+			else
+				ev->value = 0;
+			
+			const std::pair<map_t::iterator, bool> &axisInsert = axisState.insert(map_t::value_type(ev->id, ev->value));
+			
+			if (!axisInsert.second && axisInsert.first->second == ev->value)
+				continue;
+			
+			axisInsert.first->second = ev->value;
+		}
+	} while (false);
+	
+	return returnVal;
+}
+
 class InputBox : public QLineEdit {
+	QWidget *nextFocus;
 	SDL_Event data;
 	int timerId;
 	
 protected:
 	void focusInEvent(QFocusEvent *event);
 	void focusOutEvent(QFocusEvent *event);
-	void keyPressEvent(QKeyEvent *e) { setData(e->key()); }
+	void keyPressEvent(QKeyEvent *e);
 	void timerEvent(QTimerEvent */*event*/);
 	
 public:
-	InputBox();
+	InputBox(QWidget *nextFocus = 0);
 	void setData(const SDL_Event &data) { setData(data.id, data.value); }
-	void setData(unsigned id,  unsigned value = KBD_VALUE);
+	void setData(unsigned id, int value = InputDialog::KBD_VALUE);
+	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
 	const SDL_Event& getData() const { return data; }
 };
 
-InputBox::InputBox() : timerId(0) {
-	setReadOnly(true);
-	setData(0);
+InputBox::InputBox(QWidget *nextFocus) : nextFocus(nextFocus), timerId(0) {
+// 	setReadOnly(true);
+	setData(0, InputDialog::NULL_VALUE);
 }
 
 void InputBox::focusInEvent(QFocusEvent *event) {
+	SDL_JoystickUpdate();
+	SDL_ClearEvents();
+	
 	if (!timerId)
 		timerId = startTimer(20);
 	
@@ -387,31 +425,33 @@ void InputBox::focusOutEvent(QFocusEvent *event) {
 	QLineEdit::focusOutEvent(event);
 }
 
+void InputBox::keyPressEvent(QKeyEvent *e) {
+	if (e->key() == Qt::Key_Escape) {
+		QLineEdit::keyPressEvent(e);
+	} else {
+		setData(e->key());
+		
+		if (nextFocus)
+			nextFocus->setFocus();
+	}
+}
+
 void InputBox::timerEvent(QTimerEvent */*event*/) {
-	SDL_ClearEvents();
 	SDL_JoystickUpdate();
 	
 	SDL_Event ev;
 	int value = 0;
 	unsigned id = 0;
 	
-	while (SDL_PollEvent(&ev)) {
+	while (pollJsEvent(&ev)) {
 		switch (ev.type) {
 		case SDL_JOYAXISMOTION:
-			if (ev.value > JSPAXIS_VALUE) {
-				value = JSPAXIS_VALUE;
-			} else if (ev.value < JSNAXIS_VALUE) {
-				value = JSNAXIS_VALUE;
-			} else
-				continue;
-			break;
 		case SDL_JOYHATMOTION:
-			if (ev.value == SDL_HAT_CENTERED)
-				continue;
-			value = ev.value;
-			break;
 		case SDL_JOYBUTTONCHANGE:
-			value = JSBUTTON_VALUE;
+			if (!ev.value)
+				continue;
+			
+			value = ev.value;
 			break;
 		default: continue;
 		}
@@ -419,15 +459,25 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 		id = ev.id;
 	}
 	
-	if (id)
+	SDL_ClearEvents();
+	
+	if (id) {
 		setData(id, value);
+		
+		if (nextFocus)
+			nextFocus->setFocus();
+	}
 }
 
-void InputBox::setData(const unsigned id, const unsigned value) {
+void InputBox::setData(const unsigned id, const int value) {
 	data.id = id;
 	data.value = value;
 	
-	if (value) {
+	if (value == InputDialog::KBD_VALUE) {
+		setText(keyToString(id));
+	} else if (value == InputDialog::NULL_VALUE) {
+		setText("");
+	} else {
 		QString str(SDL_JoystickName(data.dev_num));
 		str.append(' ');
 		
@@ -436,12 +486,13 @@ void InputBox::setData(const unsigned id, const unsigned value) {
 			str.append("Axis ");
 			str.append(QString::number(data.num));
 			str.append(' ');
-			str.append(data.value < 0 ? '-' : '+');
+			str.append(data.value == AXIS_POSITIVE ? '+' : '-');
 			break;
 		case SDL_JOYHATMOTION:
 			str.append("Hat ");
 			str.append(QString::number(data.num));
 			str.append(' ');
+			
 			if (data.value & SDL_HAT_UP)
 				str.append("Up");
 			if (data.value & SDL_HAT_DOWN)
@@ -450,6 +501,7 @@ void InputBox::setData(const unsigned id, const unsigned value) {
 				str.append("Left");
 			if (data.value & SDL_HAT_RIGHT)
 				str.append("Right");
+			
 			break;
 		case SDL_JOYBUTTONCHANGE:
 			str.append("Button ");
@@ -458,80 +510,92 @@ void InputBox::setData(const unsigned id, const unsigned value) {
 		}
 		
 		setText(str);
-	} else
-		setText(keyToString(id));
+	}
 }
 
-InputDialog::InputDialog(const std::vector<std::string> &buttonLabels,
-                         const std::vector<int> &buttonDefaults,
+void InputBoxPair::clear() {
+	if (altBox->getData().value != InputDialog::NULL_VALUE)
+		altBox->setData(0, InputDialog::NULL_VALUE);
+	else
+		mainBox->setData(0, InputDialog::NULL_VALUE);
+}
+
+InputDialog::InputDialog(const std::vector<MediaSource::ButtonInfo> &buttonInfos,
                          QWidget *parent) :
 QDialog(parent),
-buttonLabels(buttonLabels),
-inputBoxes(buttonLabels.size(), 0),
-eventData(buttonDefaults.size())
+buttonInfos(buttonInfos),
+inputBoxPairs(buttonInfos.size(), 0),
+eventData(buttonInfos.size() * 2)
 {
-	assert(buttonLabels.size() <= buttonDefaults.size());
-	
 	setWindowTitle(tr("Input Settings"));
 	
-	for (unsigned i = 0; i < buttonLabels.size(); ++i)
-		inputBoxes[i] = new InputBox;
-	
 	QVBoxLayout *mainLayout = new QVBoxLayout;
-	QHBoxLayout *topLayout = new QHBoxLayout;
-	QVBoxLayout *vLayout;
-	QHBoxLayout *hLayout;
+	QPushButton *const okButton = new QPushButton(tr("OK"));
+	QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
 	
-	hLayout = new QHBoxLayout;
+	{
+		QTabWidget *const tabw = new QTabWidget;
+		
+		for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
+			if (!buttonInfos[i].label.isEmpty()) {
+				inputBoxPairs[i] = new InputBoxPair(new InputBox, new InputBox);
+				
+				int j = tabw->count() - 1;
+				
+				while (j >= 0 && tabw->tabText(j) != buttonInfos[i].category)
+					--j;
+				
+				if (j < 0) {
+					QWidget *const w = new QWidget;
+					QBoxLayout *const boxl = new QVBoxLayout;
+					boxl->addLayout(new QGridLayout);
+					boxl->setAlignment(Qt::AlignTop);
+					w->setLayout(boxl);
+					j = tabw->addTab(w, buttonInfos[i].category);
+				}
+				
+				QGridLayout *const gLayout = (QGridLayout*) tabw->widget(j)->layout()->itemAt(0);
+				
+				gLayout->addWidget(new QLabel(buttonInfos[i].label + ":"), i, 0);
+				gLayout->addWidget(inputBoxPairs[i]->mainBox, i, 1);
+				gLayout->addWidget(inputBoxPairs[i]->altBox, i, 2);
+				
+				QPushButton *const clearButton = new QPushButton(tr("Clear"));
+				gLayout->addWidget(clearButton, i, 3);
+				connect(clearButton, SIGNAL(clicked()), inputBoxPairs[i], SLOT(clear()));
+			}
+		}
+		
+		for (int tabi = 0; tabi < tabw->count(); ++tabi) {
+			QWidget *const w = tabw->widget(tabi);
+			
+			std::size_t i = 0;
+			
+			while (i < inputBoxPairs.size() && (!inputBoxPairs[i] || inputBoxPairs[i]->mainBox->parentWidget() != w))
+				++i;
+			
+			while (i < inputBoxPairs.size()) {
+				std::size_t j = i + 1;
+				
+				while (j < inputBoxPairs.size() && (!inputBoxPairs[j] || inputBoxPairs[j]->mainBox->parentWidget() != w))
+					++j;
+				
+				if (j < inputBoxPairs.size()) {
+					inputBoxPairs[i]->mainBox->setNextFocus(inputBoxPairs[j]->mainBox);
+					inputBoxPairs[i]->altBox->setNextFocus(inputBoxPairs[j]->altBox);
+				} else {
+					inputBoxPairs[i]->mainBox->setNextFocus(okButton);
+					inputBoxPairs[i]->altBox->setNextFocus(okButton);
+				}
+				
+				i = j;
+			}
+		}
+		
+		mainLayout->addWidget(tabw);
+	}
 	
-	
-	vLayout = new QVBoxLayout;
-	
-	for (unsigned i = 0; i < buttonLabels.size() >> 1; ++i)
-		vLayout->addWidget(new QLabel(QString(buttonLabels[i].c_str()) + ":"));
-	
-	if (buttonLabels.size() & 1)
-		vLayout->addWidget(new QWidget());
-	
-	hLayout->addLayout(vLayout);
-	
-	
-	vLayout = new QVBoxLayout;
-	
-	for (unsigned i = 0; i < inputBoxes.size() >> 1; ++i)
-		vLayout->addWidget(inputBoxes[i]);
-	
-	if (inputBoxes.size() & 1)
-		vLayout->addWidget(new QWidget());
-
-	hLayout->addLayout(vLayout);
-	
-	
-	topLayout->addLayout(hLayout);
-	hLayout = new QHBoxLayout;
-	
-	
-	vLayout = new QVBoxLayout;
-	
-	for (unsigned i = buttonLabels.size() >> 1; i < buttonLabels.size(); ++i)
-		vLayout->addWidget(new QLabel(QString(buttonLabels[i].c_str()) + ":"));
-	
-	hLayout->addLayout(vLayout);
-	
-	
-	vLayout = new QVBoxLayout;
-	
-	for (unsigned i = inputBoxes.size() >> 1; i < inputBoxes.size(); ++i)
-		vLayout->addWidget(inputBoxes[i]);
-	
-	hLayout->addLayout(vLayout);
-	
-	topLayout->addLayout(hLayout);
-	mainLayout->addLayout(topLayout);
-	
-	QPushButton *okButton = new QPushButton(tr("OK"));
-	QPushButton *cancelButton = new QPushButton(tr("Cancel"));
-	hLayout = new QHBoxLayout;
+	QHBoxLayout *const hLayout = new QHBoxLayout;
 	hLayout->addWidget(okButton);
 	hLayout->addWidget(cancelButton);
 	mainLayout->addLayout(hLayout);
@@ -546,14 +610,22 @@ eventData(buttonDefaults.size())
 	QSettings settings;
 	settings.beginGroup("input");
 	
-	for (unsigned i = 0; i < buttonLabels.size(); ++i) {
-		eventData[i].id = settings.value(QString(buttonLabels[i].c_str()) + "Key", buttonDefaults[i]).toInt();
-		eventData[i].value = settings.value(QString(buttonLabels[i].c_str()) + "Value", KBD_VALUE).toInt();
-	}
-	
-	for (unsigned i = buttonLabels.size(); i < buttonDefaults.size(); ++i) {
-		eventData[i].id = buttonDefaults[i];
-		eventData[i].value = KBD_VALUE;
+	for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
+		if (!buttonInfos[i].label.isEmpty()) {
+			eventData[i * 2].id = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Key1", buttonInfos[i].defaultKey).toUInt();
+			eventData[i * 2].value = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Value1",
+			                                        buttonInfos[i].defaultKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE).toInt();
+			
+			eventData[i * 2 + 1].id = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Key2", buttonInfos[i].defaultAltKey).toUInt();
+			eventData[i * 2 + 1].value = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Value2",
+			                                            buttonInfos[i].defaultAltKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE).toInt();
+		} else {
+			eventData[i * 2].id = buttonInfos[i].defaultKey;
+			eventData[i * 2].value = buttonInfos[i].defaultKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE;
+			
+			eventData[i * 2 + 1].id = buttonInfos[i].defaultAltKey;
+			eventData[i * 2 + 1].value = buttonInfos[i].defaultAltKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE;
+		}
 	}
 	
 	settings.endGroup();
@@ -565,22 +637,37 @@ InputDialog::~InputDialog() {
 	QSettings settings;
 	settings.beginGroup("input");
 	
-	for (unsigned i = 0; i < buttonLabels.size(); ++i) {
-		settings.setValue(QString(buttonLabels[i].c_str()) + "Key", eventData[i].id);
-		settings.setValue(QString(buttonLabels[i].c_str()) + "Value", eventData[i].value);
+	for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
+		if (!buttonInfos[i].label.isEmpty()) {
+			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Key1", eventData[i * 2].id);
+			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Value1", eventData[i * 2].value);
+			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Key2", eventData[i * 2 + 1].id);
+			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Value2", eventData[i * 2 + 1].value);
+		}
 	}
 	
 	settings.endGroup();
+	
+	for (std::size_t i = 0; i < inputBoxPairs.size(); ++i)
+		delete inputBoxPairs[i];
 }
 
 void InputDialog::store() {
-	for (unsigned i = 0; i < inputBoxes.size(); ++i)
-		eventData[i] = inputBoxes[i]->getData();
+	for (std::size_t i = 0; i < inputBoxPairs.size(); ++i) {
+		if (inputBoxPairs[i]) {
+			eventData[i * 2] = inputBoxPairs[i]->mainBox->getData();
+			eventData[i * 2 + 1] = inputBoxPairs[i]->altBox->getData();
+		}
+	}
 }
 
 void InputDialog::restore() {
-	for (unsigned i = 0; i < inputBoxes.size(); ++i)
-		inputBoxes[i]->setData(eventData[i]);
+	for (std::size_t i = 0; i < inputBoxPairs.size(); ++i) {
+		if (inputBoxPairs[i]) {
+			inputBoxPairs[i]->mainBox->setData(eventData[i * 2]);
+			inputBoxPairs[i]->altBox->setData(eventData[i * 2 + 1]);
+		}
+	}
 }
 
 void InputDialog::accept() {
