@@ -31,6 +31,7 @@
 #include <QGroupBox>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <string>
 
 // #include <iostream>
 
