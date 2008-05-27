@@ -31,7 +31,6 @@
 #include <QGroupBox>
 #include <QApplication>
 #include <QDesktopWidget>
-#include <string>
 
 // #include <iostream>
 
@@ -46,7 +45,7 @@ static int filterValue(const int value, const int upper, const int lower = 0, co
 
 VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters,
                          const std::vector<MediaSource::VideoSourceInfo> &sourceInfos,
-                         const std::string &sourcesLabel,
+                         const QString &sourcesLabel,
                          const FullModeToggler *resHandler,
                          const QSize &aspectRatio,
                          QWidget *parent) :
@@ -106,7 +105,7 @@ sourceIndexStore(0)
 	}
 
 	hLayout = new QHBoxLayout;
-	hLayout->addWidget(new QLabel(sourcesLabel.c_str()));
+	hLayout->addWidget(new QLabel(sourcesLabel));
 	hLayout->addWidget(sourceSelector);
 	topLayout->addLayout(hLayout);
 

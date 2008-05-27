@@ -160,7 +160,7 @@ public:
 	MainWindow(MediaSource *source,
 	           const std::vector<MediaSource::ButtonInfo> &buttonInfos,
 	           const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
-	           const std::string &videoSourceLabel,
+	           const QString &videoSourceLabel,
 	           const QSize &aspectRatio,
 	           const std::vector<int> &sampleRates);
 	

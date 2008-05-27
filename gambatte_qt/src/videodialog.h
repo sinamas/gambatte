@@ -74,7 +74,7 @@ private slots:
 public:
 	VideoDialog(const std::vector<BlitterWidget*> &engines,
 	            const std::vector<MediaSource::VideoSourceInfo> &sourceInfos,
-	            const std::string &sourcesLabel,
+	            const QString &sourcesLabel,
 	            const FullModeToggler *resHandler,
 	            const QSize &aspectRatio,
 	            QWidget *parent = 0);
