@@ -205,6 +205,11 @@ static const QModelIndex schemeIndexOf(const QAbstractItemModel *const model, co
 			return model->index(i, 0);
 	}
 	
+	for (int i = 0; i < rows; ++i) {
+		if (model->index(i, 0).data().toString() == "Current Scheme")
+			return model->index(i, 0);
+	}
+	
 	return QModelIndex();
 }
 
@@ -224,7 +229,7 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 			savedir = savepath + "/";
 			QDir::root().mkpath(savedir + "stored/");
 			listView->setModel(new ImmutableStringListModel);
-			setSchemeList(savedir + "stored/", global, reinterpret_cast<QStringListModel*>(listView->model()));
+			setSchemeList();
 			frameLayout->addWidget(listView);
 			
 			{
@@ -276,7 +281,7 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 	connect(listView->selectionModel(), SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this, SLOT(schemeChanged(const QModelIndex&, const QModelIndex&)));
 	
 	if (global) {
-		schemeIndex = schemeIndexOf(listView->model(), "Global Palette");
+		schemeString = "Global Palette";
 		restore();
 		store();
 	} else {
@@ -299,7 +304,7 @@ PaletteDialog::~PaletteDialog() {
 }
 
 void PaletteDialog::saveSettings(QSettings &settings) {
-	settings.setValue("slectedScheme", schemeIndex.data());
+	settings.setValue("slectedScheme", schemeString);
 	
 	for (unsigned i = 0; i < 3; ++i)
 		for (unsigned j = 0; j < 4; ++j)
@@ -307,10 +312,7 @@ void PaletteDialog::saveSettings(QSettings &settings) {
 }
 
 void PaletteDialog::loadSettings(QSettings &settings) {
-	schemeIndex = schemeIndexOf(listView->model(), settings.value("slectedScheme", global ? "Global Palette" : "Default Grey").toString());
-	
-	if (!schemeIndex.isValid())
-		schemeIndex = schemeIndexOf(listView->model(), "Current Scheme");
+	schemeString = settings.value("slectedScheme", global ? "Global Palette" : "Default Grey").toString();
 	
 	for (unsigned i = 0; i < 3; ++i)
 		for (unsigned j = 0; j < 4; ++j)
@@ -322,7 +324,7 @@ void PaletteDialog::loadSettings(QSettings &settings) {
 
 void PaletteDialog::saveToSettingsFile() {
 	if (!settingsFile.isEmpty()) {
-		if (schemeIndex.data().toString() == "Global Palette") {
+		if (schemeString == "Global Palette") {
 			QDir(savedir).remove(settingsFile);
 		} else {
 			QSettings settings(savedir + settingsFile, QSettings::IniFormat);
@@ -331,13 +333,17 @@ void PaletteDialog::saveToSettingsFile() {
 	}
 }
 
+void PaletteDialog::setSchemeList() {
+	::setSchemeList(savedir + "stored/", global, reinterpret_cast<QStringListModel*>(listView->model()));
+}
+
 void PaletteDialog::rmScheme() {
 	{
 		QDir(savedir + "stored/").remove(listView->currentIndex().data().toString() + ".pal");
 	}
 	
 	listView->selectionModel()->clear();
-	setSchemeList(savedir + "stored/", global, reinterpret_cast<QStringListModel*>(listView->model()));
+	setSchemeList();
 }
 
 void PaletteDialog::saveScheme() {
@@ -348,7 +354,8 @@ void PaletteDialog::saveScheme() {
 	if (!ok)
 		return;
 	
-	if (text.isEmpty() || "Global Palette" == text || "Current Scheme" == text || "Default Grey" == text || text.contains('/')) {
+	if (text.isEmpty() || "Global Palette" == text || "Current Scheme" == text || "Default Grey" == text ||
+			text.size() > 200 || text.contains(QRegExp("[" + QRegExp::escape("<>:\"/\\|?*") + "]"))) {
 		QMessageBox::information(this, "Invalid scheme name", "Invalid scheme name.");
 		return;
 	}
@@ -361,7 +368,7 @@ void PaletteDialog::saveScheme() {
 				settings.setValue(quads[i]->title() + QString::number(j), quads[i]->getColor(j));
 	}
 	
-	setSchemeList(savedir + "stored/", global, reinterpret_cast<QStringListModel*>(listView->model()));
+	setSchemeList();
 	
 	listView->setCurrentIndex(schemeIndexOf(listView->model(), text));
 }
@@ -405,17 +412,16 @@ void PaletteDialog::store() {
 	if (!listView->currentIndex().isValid())
 		listView->setCurrentIndex(schemeIndexOf(listView->model(), "Current Scheme")); //obs: will emit currentChanged()
 	
-	schemeIndex = listView->currentIndex();
+	schemeString = listView->currentIndex().data().toString();
 }
 
 void PaletteDialog::restore() {
-	listView->setCurrentIndex(schemeIndex);
+	listView->setCurrentIndex(schemeIndexOf(listView->model(), schemeString));
 }
 
 void PaletteDialog::externalChange() {
-	const QString &str = schemeIndex.data().toString();
-	setSchemeList(savedir + "stored/", global, reinterpret_cast<QStringListModel*>(listView->model()));
-	listView->setCurrentIndex(schemeIndexOf(listView->model(), str));
+	setSchemeList();
+	restore();
 	store();
 }
 
@@ -435,5 +441,6 @@ void PaletteDialog::accept() {
 
 void PaletteDialog::reject() {
 	restore();
-	QDialog::reject();
+// 	QDialog::reject();
+	QDialog::accept();
 }

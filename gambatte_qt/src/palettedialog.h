@@ -90,13 +90,14 @@ class PaletteDialog : public QDialog {
 	QPushButton *const rmSchemeButton;
 	ColorQuad *quads[3];
 	QRgb currentColors[3][4];
-	QModelIndex schemeIndex;
+	QString schemeString;
 	QString savedir;
 	QString settingsFile;
 	
 	void saveSettings(QSettings &settings);
 	void loadSettings(QSettings &settings);
 	void saveToSettingsFile();
+	void setSchemeList();
 	void store();
 	void restore();
 	
