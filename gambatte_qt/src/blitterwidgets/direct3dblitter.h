@@ -27,7 +27,7 @@ class QCheckBox;
 class QComboBox;
 
 class Direct3DBlitter : public BlitterWidget {
-	typedef IDirect3D9* (*Direct3DCreate9Ptr)(UINT);
+	typedef IDirect3D9* (WINAPI *Direct3DCreate9Ptr)(UINT);
 	
 	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *const adapterSelector;

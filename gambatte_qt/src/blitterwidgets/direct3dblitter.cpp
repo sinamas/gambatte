@@ -154,6 +154,9 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 		confWidget->setLayout(mainLayout);
 	}
 	
+	vblankflipBox->setEnabled(false);
+	triplebufBox->setEnabled(false);
+	
 	connect(flippingBox, SIGNAL(toggled(bool)), vblankflipBox, SLOT(setEnabled(bool)));
 	connect(flippingBox, SIGNAL(toggled(bool)), triplebufBox, SLOT(setEnabled(bool)));
 	
