@@ -31,31 +31,6 @@ static const MediaSource::ButtonInfo constructButtonInfo(const char *label, cons
 	return bi;
 }
 
-const std::vector<MediaSource::ButtonInfo> GambatteSource::generateButtonInfos() {
-	std::vector<MediaSource::ButtonInfo> v(18);
-	
-	v[0] = constructButtonInfo("Up", "Game", Qt::Key_Up);
-	v[1] = constructButtonInfo("Down", "Game", Qt::Key_Down);
-	v[2] = constructButtonInfo("Left", "Game", Qt::Key_Left);
-	v[3] = constructButtonInfo("Right", "Game", Qt::Key_Right);
-	v[4] = constructButtonInfo("A", "Game", Qt::Key_D);
-	v[5] = constructButtonInfo("B", "Game", Qt::Key_C);
-	v[6] = constructButtonInfo("Start", "Game", Qt::Key_Return);
-	v[7] = constructButtonInfo("Select", "Game", Qt::Key_Shift);
-	v[8] = constructButtonInfo("Pause", "Play", Qt::Key_Pause);
-	v[9] = constructButtonInfo("Frame step", "Play", Qt::Key_F1);
-	v[10] = constructButtonInfo("Decrease frame rate", "Play", Qt::Key_F2);
-	v[11] = constructButtonInfo("Increase frame rate", "Play", Qt::Key_F3);
-	v[12] = constructButtonInfo("Reset frame rate", "Play", Qt::Key_F4);
-	v[13] = constructButtonInfo("Fast forward", "Play", Qt::Key_Tab);
-	v[14] = constructButtonInfo("Save state", "State", Qt::Key_F5);
-	v[15] = constructButtonInfo("Load state", "State", Qt::Key_F8);
-	v[16] = constructButtonInfo("Previous state slot", "State", Qt::Key_F6);
-	v[17] = constructButtonInfo("Next state slot", "State", Qt::Key_F7);
-	
-	return v;
-}
-
 const std::vector<MediaSource::VideoSourceInfo> GambatteSource::generateVideoSourceInfos() {
 	const std::vector<const Gambatte::FilterInfo*> &fi = gb.filterInfo();
 	std::vector<MediaSource::VideoSourceInfo> v(fi.size());
@@ -69,49 +44,114 @@ const std::vector<MediaSource::VideoSourceInfo> GambatteSource::generateVideoSou
 	return v;
 }
 
-const std::vector<int> GambatteSource::generateSampleRates() {
-	std::vector<int> v(2);
+const MediaSource::SampleRateInfo GambatteSource::generateSampleRateInfo() {
+	SampleRateInfo srinfo;
 	
-	v[0] = 48000;
-	v[1] = 44100;
+	srinfo.rates.push_back(48000);
+	srinfo.rates.push_back(44100);
+	srinfo.defaultRateIndex = 0;
+	srinfo.minCustomRate = 32000;
+	srinfo.maxCustomRate = 192000;
+	
+	return srinfo;
+}
+
+enum {
+	UP_BUTTON, DOWN_BUTTON, LEFT_BUTTON, RIGHT_BUTTON,
+	A_BUTTON, B_BUTTON, START_BUTTON, SELECT_BUTTON,
+	PAUSE_BUTTON, FRAME_STEP_BUTTON, DECREASE_FRAME_RATE_BUTTON, INCREASE_FRAME_RATE_BUTTON,
+	RESET_FRAME_RATE_BUTTON, FAST_FORWARD_BUTTON, SAVE_STATE_BUTTON, LOAD_STATE_BUTTON,
+	PREVIOUS_STATE_SLOT_BUTTON, NEXT_STATE_SLOT_BUTTON,
+		
+	NUMBER_OF_BUTTONS
+};
+
+const std::vector<MediaSource::ButtonInfo> GambatteSource::generateButtonInfos() {
+	std::vector<MediaSource::ButtonInfo> v(NUMBER_OF_BUTTONS);
+	
+	v[UP_BUTTON]                   = constructButtonInfo("Up",                  "Game",  Qt::Key_Up);
+	v[DOWN_BUTTON]                 = constructButtonInfo("Down",                "Game",  Qt::Key_Down);
+	v[LEFT_BUTTON]                 = constructButtonInfo("Left",                "Game",  Qt::Key_Left);
+	v[RIGHT_BUTTON]                = constructButtonInfo("Right",               "Game",  Qt::Key_Right);
+	v[A_BUTTON]                    = constructButtonInfo("A",                   "Game",  Qt::Key_D);
+	v[B_BUTTON]                    = constructButtonInfo("B",                   "Game",  Qt::Key_C);
+	v[START_BUTTON]                = constructButtonInfo("Start",               "Game",  Qt::Key_Return);
+	v[SELECT_BUTTON]               = constructButtonInfo("Select",              "Game",  Qt::Key_Shift);
+	v[PAUSE_BUTTON]                = constructButtonInfo("Pause",               "Play",  Qt::Key_Pause);
+	v[FRAME_STEP_BUTTON]           = constructButtonInfo("Frame step",          "Play",  Qt::Key_F1);
+	v[DECREASE_FRAME_RATE_BUTTON]  = constructButtonInfo("Decrease frame rate", "Play",  Qt::Key_F2);
+	v[INCREASE_FRAME_RATE_BUTTON]  = constructButtonInfo("Increase frame rate", "Play",  Qt::Key_F3);
+	v[RESET_FRAME_RATE_BUTTON]     = constructButtonInfo("Reset frame rate",    "Play",  Qt::Key_F4);
+	v[FAST_FORWARD_BUTTON]         = constructButtonInfo("Fast forward",        "Play",  Qt::Key_Tab);
+	v[SAVE_STATE_BUTTON]           = constructButtonInfo("Save state",          "State", Qt::Key_F5);
+	v[LOAD_STATE_BUTTON]           = constructButtonInfo("Load state",          "State", Qt::Key_F8);
+	v[PREVIOUS_STATE_SLOT_BUTTON]  = constructButtonInfo("Previous state slot", "State", Qt::Key_F6);
+	v[NEXT_STATE_SLOT_BUTTON]      = constructButtonInfo("Next state slot",     "State", Qt::Key_F7);
 	
 	return v;
 }
 
 void GambatteSource::buttonPressEvent(unsigned buttonIndex) {
 	switch (buttonIndex) {
-	case 0: inputGetter.is.dpadUp = true; inputGetter.is.dpadDown = false; break;
-	case 1: inputGetter.is.dpadDown = true; inputGetter.is.dpadUp = false; break;
-	case 2: inputGetter.is.dpadLeft = true; inputGetter.is.dpadRight = false; break;
-	case 3: inputGetter.is.dpadRight = true; inputGetter.is.dpadLeft = false; break;
-	case 4: inputGetter.is.aButton = true; break;
-	case 5: inputGetter.is.bButton = true; break;
-	case 6: inputGetter.is.startButton = true; break;
-	case 7: inputGetter.is.selectButton = true; break;
-	case 8: emit togglePause(); break;
-	case 9: emit frameStep(); break;
-	case 10: emit decFrameRate(); break;
-	case 11: emit incFrameRate(); break;
-	case 12: emit resetFrameRate(); break;
-	case 13: emit setTurbo(true); break;
-	case 14: saveState(); break;
-	case 15: loadState(); break;
-	case 16: emit prevStateSlot(); break;
-	case 17: emit nextStateSlot(); break;
+	case UP_BUTTON:
+		inputGetter.is.dpadUp = true; inputGetter.is.dpadDown = false; break;
+	case DOWN_BUTTON:
+		inputGetter.is.dpadDown = true; inputGetter.is.dpadUp = false; break;
+	case LEFT_BUTTON:
+		inputGetter.is.dpadLeft = true; inputGetter.is.dpadRight = false; break;
+	case RIGHT_BUTTON:
+		inputGetter.is.dpadRight = true; inputGetter.is.dpadLeft = false; break;
+	case A_BUTTON:
+		inputGetter.is.aButton = true; break;
+	case B_BUTTON:
+		inputGetter.is.bButton = true; break;
+	case START_BUTTON:
+		inputGetter.is.startButton = true; break;
+	case SELECT_BUTTON:
+		inputGetter.is.selectButton = true; break;
+	case PAUSE_BUTTON:
+		emit togglePause(); break;
+	case FRAME_STEP_BUTTON:
+		emit frameStep(); break;
+	case DECREASE_FRAME_RATE_BUTTON:
+		emit decFrameRate(); break;
+	case INCREASE_FRAME_RATE_BUTTON:
+		emit incFrameRate(); break;
+	case RESET_FRAME_RATE_BUTTON:
+		emit resetFrameRate(); break;
+	case FAST_FORWARD_BUTTON:
+		emit setTurbo(true); break;
+	case SAVE_STATE_BUTTON:
+		saveState(); break;
+	case LOAD_STATE_BUTTON:
+		loadState(); break;
+	case PREVIOUS_STATE_SLOT_BUTTON:
+		emit prevStateSlot(); break;
+	case NEXT_STATE_SLOT_BUTTON:
+		emit nextStateSlot(); break;
 	}
 }
 
 void GambatteSource::buttonReleaseEvent(unsigned buttonIndex) {
 	switch (buttonIndex) {
-	case 0: inputGetter.is.dpadUp = false; break;
-	case 1: inputGetter.is.dpadDown = false; break;
-	case 2: inputGetter.is.dpadLeft = false; break;
-	case 3: inputGetter.is.dpadRight = false; break;
-	case 4: inputGetter.is.aButton = false; break;
-	case 5: inputGetter.is.bButton = false; break;
-	case 6: inputGetter.is.startButton = false; break;
-	case 7: inputGetter.is.selectButton = false; break;
-	case 13: emit setTurbo(false); break;
+	case UP_BUTTON:
+		inputGetter.is.dpadUp = false; break;
+	case DOWN_BUTTON:
+		inputGetter.is.dpadDown = false; break;
+	case LEFT_BUTTON:
+		inputGetter.is.dpadLeft = false; break;
+	case RIGHT_BUTTON:
+		inputGetter.is.dpadRight = false; break;
+	case A_BUTTON:
+		inputGetter.is.aButton = false; break;
+	case B_BUTTON:
+		inputGetter.is.bButton = false; break;
+	case START_BUTTON:
+		inputGetter.is.startButton = false; break;
+	case SELECT_BUTTON:
+		inputGetter.is.selectButton = false; break;
+	case FAST_FORWARD_BUTTON:
+		emit setTurbo(false); break;
 	}
 }
 

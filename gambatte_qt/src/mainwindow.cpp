@@ -101,7 +101,7 @@ MainWindow::MainWindow(MediaSource *source,
                        const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
                        const QString &videoSourceLabel,
                        const QSize &aspectRatio,
-                       const std::vector<int> &sampleRates) :
+                       const MediaSource::SampleRateInfo &sampleRateInfo) :
 	source(source),
 	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
 	blitter(NULL),
@@ -139,7 +139,7 @@ MainWindow::MainWindow(MediaSource *source,
 	
 	addAudioEngines(audioEngines, winId());
 	audioEngines.push_back(new NullAudioEngine);
-	soundDialog = new SoundDialog(audioEngines, sampleRates, this);
+	soundDialog = new SoundDialog(audioEngines, sampleRateInfo, this);
 	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundSettingsChange()));
 	
 	inputDialog = new InputDialog(buttonInfos, this);
@@ -416,8 +416,8 @@ void MainWindow::setAspectRatio(const QSize &aspectRatio) {
 	videoDialog->setAspectRatio(aspectRatio);
 }
 
-void MainWindow::setSampleRates(const std::vector<int> &sampleRates) {
-	soundDialog->setRates(sampleRates);
+void MainWindow::setSampleRates(const MediaSource::SampleRateInfo &sampleRateInfo) {
+	soundDialog->setRates(sampleRateInfo);
 }
 
 void MainWindow::setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos) {
@@ -636,7 +636,7 @@ void MainWindow::showCursor() {
 void MainWindow::keyPressEvent(QKeyEvent *e) {
 	e->ignore();
 	
-	if (isRunning()) {
+	if (isRunning() && !e->isAutoRepeat()) {
 		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
 		while (range.first != range.second) {
@@ -651,7 +651,7 @@ void MainWindow::keyPressEvent(QKeyEvent *e) {
 void MainWindow::keyReleaseEvent(QKeyEvent *e) {
 	e->ignore();
 	
-	if (isRunning()) {
+	if (isRunning() && !e->isAutoRepeat()) {
 		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
 		
 		while (range.first != range.second) {

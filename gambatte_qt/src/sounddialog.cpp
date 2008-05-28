@@ -25,6 +25,8 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QSettings>
+#include <QSize>
+#include <QInputDialog>
 #include <cassert>
 
 #include "audioengine.h"
@@ -36,7 +38,47 @@ static int filterValue(const int value, const int upper, const int lower = 0, co
 	return value;
 }
 
-SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::vector<int> &rates, QWidget *parent) :
+static void populateRateSelector(QComboBox *rateSelector, const MediaSource::SampleRateInfo &rateInfo) {
+	assert(!rateInfo.rates.empty());
+	assert(rateInfo.defaultRateIndex < rateInfo.rates.size());
+	
+	for (std::size_t i = 0; i < rateInfo.rates.size(); ++i)
+		rateSelector->addItem(QString::number(rateInfo.rates[i]) + " Hz", rateInfo.rates[i]);
+	
+	if (rateInfo.minCustomRate > 0 && rateInfo.maxCustomRate > rateInfo.minCustomRate) {
+		rateSelector->addItem(SoundDialog::tr("Other..."), QSize(rateInfo.minCustomRate, rateInfo.maxCustomRate));
+	}
+	
+	rateSelector->setCurrentIndex(rateInfo.defaultRateIndex);
+}
+
+static int getCustomIndex(const QComboBox *rateSelector) {
+	int i = rateSelector->count() - 2;
+	
+	while (i < rateSelector->count() && rateSelector->itemText(i).at(0).isNumber())
+		++i;
+	
+	return i;
+}
+
+static void setRate(QComboBox *rateSelector, const int r) {
+	const int customIndex = getCustomIndex(rateSelector);
+	const int newIndex = rateSelector->findData(r);
+	
+	if (newIndex < 0) {
+		if (customIndex < rateSelector->count()) {
+			rateSelector->addItem(QString::number(r) + " Hz", r);
+			
+			if (customIndex + 2 != rateSelector->count())
+				rateSelector->removeItem(customIndex + 1);
+			
+			rateSelector->setCurrentIndex(customIndex + 1);
+		}
+	} else
+		rateSelector->setCurrentIndex(newIndex);
+}
+
+SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSource::SampleRateInfo &rateInfo, QWidget *parent) :
 	QDialog(parent),
 	engines(engines),
 	topLayout(new QVBoxLayout),
@@ -45,8 +87,6 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::ve
 	latencySelector(new QSpinBox(this)),
 	engineWidget(NULL)
 {
-	assert(!rates.empty());
-	
 	setWindowTitle(tr("Sound Settings"));
 	
 	QVBoxLayout *const mainLayout = new QVBoxLayout;
@@ -66,8 +106,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::ve
 		QHBoxLayout *const hLayout = new QHBoxLayout;
 		hLayout->addWidget(new QLabel(tr("Sample rate:")));
 		
-		for (unsigned i = 0; i < rates.size(); ++i)
-			rateSelector->addItem(QString::number(rates[i]) + " Hz", rates[i]);
+		populateRateSelector(rateSelector, rateInfo);
 		
 		hLayout->addWidget(rateSelector);
 		topLayout->addLayout(hLayout);
@@ -106,12 +145,14 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const std::ve
 	QSettings settings;
 	settings.beginGroup("sound");
 	engineIndex = filterValue(settings.value("engineIndex", 0).toInt(), engineSelector->count());
-	rateIndex = filterValue(settings.value("rateIndex", 0).toInt(), rateSelector->count());
-	latency = filterValue(settings.value("latency", 133).toInt(), latencySelector->maximum(), latencySelector->minimum());
+	setRate(rateSelector, settings.value("rate", rateSelector->itemData(rateSelector->currentIndex())).toInt());
+	latency = filterValue(settings.value("latency", 67).toInt(), latencySelector->maximum(), latencySelector->minimum(), 67);
 	settings.endGroup();
 	
+	rate = rateSelector->itemData(rateSelector->currentIndex()).toInt();
 	engineChange(engineSelector->currentIndex());
 	connect(engineSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(engineChange(int)));
+	connect(rateSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(rateIndexChange(int)));
 	
 	restore();
 }
@@ -120,7 +161,7 @@ SoundDialog::~SoundDialog() {
 	QSettings settings;
 	settings.beginGroup("sound");
 	settings.setValue("engineIndex", engineIndex);
-	settings.setValue("rateIndex", rateIndex);
+	settings.setValue("rate", rate);
 	settings.setValue("latency", latency);
 	settings.endGroup();
 }
@@ -135,12 +176,27 @@ void SoundDialog::engineChange(int index) {
 		topLayout->insertWidget(1, engineWidget);
 }
 
+void SoundDialog::rateIndexChange(const int index) {
+	if (getCustomIndex(rateSelector) == index) {
+		const QSize &sz = rateSelector->itemData(index).toSize();
+		const int currentRate = getRate();
+		bool ok = false;
+		
+		int r = QInputDialog::getInteger(this, tr("Set Sample Rate"), tr("Sample rate (Hz):"), getRate(), sz.width(), sz.height(), 1, &ok);
+		
+		if (!ok)
+			r = currentRate;
+		
+		setRate(rateSelector, r);
+	}
+}
+
 void SoundDialog::store() {
 	for (std::size_t i = 0; i < engines.size(); ++i)
 		engines[i]->acceptSettings();
 	
 	engineIndex = engineSelector->currentIndex();
-	rateIndex = rateSelector->currentIndex();
+	rate = rateSelector->itemData(rateSelector->currentIndex()).toInt();
 	latency = latencySelector->value();
 }
 
@@ -149,23 +205,16 @@ void SoundDialog::restore() {
 		engines[i]->rejectSettings();
 	
 	engineSelector->setCurrentIndex(engineIndex);
-	rateSelector->setCurrentIndex(rateIndex);
+	setRate(rateSelector, rate);
 	latencySelector->setValue(latency);
 }
 
-void SoundDialog::setRates(const std::vector<int> &rates) {
+void SoundDialog::setRates(const MediaSource::SampleRateInfo &rateInfo) {
 	restore();
 	
-	const int oldVal = rateSelector->itemData(rateIndex).toInt();
 	rateSelector->clear();
-	
-	for (unsigned i = 0; i < rates.size(); ++i)
-		rateSelector->addItem(QString::number(rates[i]) + " Hz", rates[i]);
-	
-	const int newIndex = rateSelector->findData(oldVal);
-	
-	if (newIndex >= 0)
-		rateSelector->setCurrentIndex(newIndex);
+	populateRateSelector(rateSelector, rateInfo);
+	setRate(rateSelector, rate);
 	
 	store();
 	emit accepted();
@@ -179,8 +228,4 @@ void SoundDialog::accept() {
 void SoundDialog::reject() {
 	restore();
 	QDialog::reject();
-}
-
-int SoundDialog::getRate() const {
-	return rateSelector->itemData(rateIndex).toInt();
 }

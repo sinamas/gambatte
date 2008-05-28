@@ -154,15 +154,15 @@ public:
 	  *                    to get fewer window sizes listed. Can be changed later with the setAspectRatio
 	  *                    method.
 	  *
-	  * @param sampleRates Sample rates (samples pr second) selectable in the sound dialog. At least
-	  *                    one is required. Can be changed later with the setSampleRates method.
+	  * @param sampleRateInfo Information about sample rates selectable in the sound dialog.
+	  *                       Can be changed later with the setSampleRates method.
 	  */
 	MainWindow(MediaSource *source,
 	           const std::vector<MediaSource::ButtonInfo> &buttonInfos,
 	           const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
 	           const QString &videoSourceLabel,
 	           const QSize &aspectRatio,
-	           const std::vector<int> &sampleRates);
+	           const MediaSource::SampleRateInfo &sampleRateInfo);
 	
 	~MainWindow();
 	const QSize& aspectRatio() const;
@@ -189,7 +189,7 @@ public:
 	  * from MainWindow, and unpaused when the dialog is closed. pauseOnDialogExec is on by default.
 	  */
 	void setPauseOnDialogExec(bool enable) { pauseOnDialogExec = enable; }
-	void setSampleRates(const std::vector<int> &sampleRates);
+	void setSampleRates(const MediaSource::SampleRateInfo &sampleRateInfo);
 	void setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos);
 	
 	/**

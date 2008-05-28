@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 	                                source.generateVideoSourceInfos(),
 	                                MainWindow::tr("Video filter:"),
 	                                QSize(160, 144),
-	                                source.generateSampleRates());
+	                                source.generateSampleRateInfo());
 	GambatteMenuHandler mh(mw, &source, argc, argv);
 	mw->show();
 	return app.exec();

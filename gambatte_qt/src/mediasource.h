@@ -21,6 +21,7 @@
 
 #include <QtGlobal>
 #include <QString>
+#include <vector>
 
 //TODO: stop dictating audio/video formats.
 //      Choice based on:
@@ -73,6 +74,21 @@ public:
 		int defaultAltKey;
 	};
 	
+	struct SampleRateInfo {
+		enum { NOT_SUPPORTED = -1 };
+		
+		// Distinct sample rate (stereo samples per second) alternatives selectable in the sound settings dialog.
+		std::vector<int> rates;
+		
+		// The index of the rate in the rates list to be selected by default.
+		std::size_t defaultRateIndex;
+		
+		// Minimum and maximum custom sample rates selectable in the sound settings dialog.
+		// Set to NOT_SUPPORTED if you don't want to allow custom sample rates.
+		int minCustomRate;
+		int maxCustomRate;
+	};
+	
 	/**
 	  * Reimplement to get buttonPress events for buttons of corresponding index to the
 	  * buttonInfos given to MainWindow.
@@ -97,9 +113,7 @@ public:
 	  * signed 16-bit interleaved stereo for now.) Can be assumed to be big enough to have space
 	  * for the number of samples requested on each update call. Also gives the currently active
 	  * sample rate. which may differ slightly from the alternatives given to MainWindow, since
-	  * some engines set a near sample rate if they can't give an exact native one. sampleRate
-	  * may be somewhat redundant information, since the number of samples wanted pr frame is given to
-	  * the update method, but it's there for convenience (mainly for fixed sample rate sources).
+	  * some engines set a near sample rate if they can't give an exact native one.
 	  */
 	virtual void setSampleBuffer(qint16 *sampleBuffer, unsigned sampleRate) = 0;
 	

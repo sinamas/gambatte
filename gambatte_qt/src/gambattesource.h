@@ -55,7 +55,7 @@ public:
 	
 	static const std::vector<ButtonInfo> generateButtonInfos();
 	const std::vector<MediaSource::VideoSourceInfo> generateVideoSourceInfos();
-	static const std::vector<int> generateSampleRates();
+	static const SampleRateInfo generateSampleRateInfo();
 	
 	void emitBlit() { emit blit(); }
 	
