@@ -139,7 +139,7 @@ public:
 SaveStateOsdElement::SaveStateOsdElement(const char *fileName, unsigned stateNo) :
 OsdElement((stateNo ? stateNo - 1 : 9) * ((160 - StateSaver::SS_WIDTH) / 10) + ((160 - StateSaver::SS_WIDTH) / 10) / 2, 4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT),
 life(4 * 60) {
-	std::ifstream file(fileName);
+	std::ifstream file(fileName, std::ios_base::binary);
 	
 	if (file.is_open()) {
 		file.ignore(5);
