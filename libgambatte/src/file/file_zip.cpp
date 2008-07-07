@@ -19,6 +19,8 @@ Free Software Foundation, Inc.,
 
 #include "file.h"
 
+#include <cstring>
+
 namespace zlib {
 #include "unzip/unzip.h"
 }

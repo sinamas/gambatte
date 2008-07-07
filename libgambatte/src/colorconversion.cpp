@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -39,9 +39,9 @@ void Rgb32ToUyvy::operator()(const Gambatte::uint_least32_t *s, Gambatte::uint_l
 				const unsigned long g = *s >> 8 & 0x000000FF | *(s+1) << 8 & 0x00FF0000;
 				const unsigned long b = *s & 0x000000FF | *(s+1) << 16 & 0x00FF0000;
 				
-				const unsigned long y = r * 66 + g * 129 + b * 25 + (16 * 256 + 128) * 0x00010001;
-				const unsigned long u = b * 112 - r * 38 - g * 74 + (128 * 256 + 128) * 0x00010001;
-				const unsigned long v = r * 112 - g * 94 - b * 18 + (128 * 256 + 128) * 0x00010001;
+				const unsigned long y = r * 66 + g * 129 + b * 25 + (16 * 256 + 128) * 0x00010001ul;
+				const unsigned long u = b * 112 - r * 38 - g * 74 + (128 * 256 + 128) * 0x00010001ul;
+				const unsigned long v = r * 112 - g * 94 - b * 18 + (128 * 256 + 128) * 0x00010001ul;
 				
 #ifdef WORDS_BIGENDIAN
 				*d++ = cache[*s & cache_mask].uyvy = u << 16 & 0xFF000000 | y << 8 & 0x00FF0000 | v & 0x0000FF00 | y >> 8 & 0x000000FF;
