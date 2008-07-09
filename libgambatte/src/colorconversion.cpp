@@ -21,9 +21,9 @@
 
 Rgb32ToUyvy::Rgb32ToUyvy() {
 #ifdef WORDS_BIGENDIAN
-	const CacheUnit c = { 0, 128 << 24 | 16 << 16 | 128 << 8 | 16 };
+	const CacheUnit c = { 0, 128ul << 24 | 16ul << 16 | 128 << 8 | 16 };
 #else
-	const CacheUnit c = { 0, 16 << 24 | 128 << 16 | 16 << 8 | 128 };
+	const CacheUnit c = { 0, 16ul << 24 | 128ul << 16 | 16 << 8 | 128 };
 #endif
 	std::fill(cache, cache + cache_size, c);
 }
@@ -34,15 +34,15 @@ void Rgb32ToUyvy::operator()(const Gambatte::uint_least32_t *s, Gambatte::uint_l
 			if (cache[*s & cache_mask].rgb32 - *s | cache[*(s+1) & cache_mask].rgb32 - *(s+1)) {
 				cache[*s & cache_mask].rgb32 = *s;
 				cache[*(s+1) & cache_mask].rgb32 = *(s+1);
-				
+
 				const unsigned long r = *s >> 16 & 0x000000FF | *(s+1) & 0x00FF0000;
 				const unsigned long g = *s >> 8 & 0x000000FF | *(s+1) << 8 & 0x00FF0000;
 				const unsigned long b = *s & 0x000000FF | *(s+1) << 16 & 0x00FF0000;
-				
+
 				const unsigned long y = r * 66 + g * 129 + b * 25 + (16 * 256 + 128) * 0x00010001ul;
 				const unsigned long u = b * 112 - r * 38 - g * 74 + (128 * 256 + 128) * 0x00010001ul;
 				const unsigned long v = r * 112 - g * 94 - b * 18 + (128 * 256 + 128) * 0x00010001ul;
-				
+
 #ifdef WORDS_BIGENDIAN
 				*d++ = cache[*s & cache_mask].uyvy = u << 16 & 0xFF000000 | y << 8 & 0x00FF0000 | v & 0x0000FF00 | y >> 8 & 0x000000FF;
 				*d++ = cache[*(s+1) & cache_mask].uyvy = u & 0xFF000000 | y >> 8 & 0x00FF0000 | v >> 16 & 0x0000FF00 | y >> 24;
@@ -54,10 +54,10 @@ void Rgb32ToUyvy::operator()(const Gambatte::uint_least32_t *s, Gambatte::uint_l
 				*d++ = cache[*s & cache_mask].uyvy;
 				*d++ = cache[*(s+1) & cache_mask].uyvy;
 			}
-			
+
 			s += 2;
 		}
-		
+
 		d += d_pitch - w;
 	}
 }
@@ -66,11 +66,11 @@ unsigned long rgb32ToUyvy(unsigned long rgb32) {
 	const unsigned r = rgb32 >> 16 & 0xFF;
 	const unsigned g = rgb32 >> 8 & 0xFF;
 	const unsigned b = rgb32 & 0xFF;
-	
+
 	const unsigned long y = r * 66 + g * 129 + b * 25 + 16 * 256 + 128 >> 8;
 	const unsigned long u = b * 112 - r * 38 - g * 74 + 128 * 256 + 128 >> 8;
 	const unsigned long v = r * 112 - g * 94 - b * 18 + 128 * 256 + 128 >> 8;
-	
+
 #ifdef WORDS_BIGENDIAN
 	return u << 24 | y << 16 | v << 8 | y;
 #else
@@ -81,12 +81,12 @@ unsigned long rgb32ToUyvy(unsigned long rgb32) {
 void rgb32ToRgb16(const Gambatte::uint_least32_t *s, Gambatte::uint_least16_t *d, const unsigned w, unsigned h, const unsigned dstPitch) {
 	do {
 		unsigned n = w;
-		
+
 		do {
 			*d++ = *s >> 8 & 0xF800 | *s >> 5 & 0x07E0 | *s >> 3 & 0x001F;
 			++s;
 		} while (--n);
-		
+
 		d += dstPitch - w;
 	} while (--h);
 }
