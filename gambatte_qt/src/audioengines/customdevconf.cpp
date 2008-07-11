@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,13 +24,13 @@
 #include <QVBoxLayout>
 #include <QSettings>
 
-CustomDevConf::CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup) :
+CustomDevConf::CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup, const char *customdevstr) :
 defaultstr(defaultstr),
 confgroup(confgroup),
 confWidget(new QWidget),
 customDevBox(new QCheckBox(QString(desc))),
 customDevEdit(new QLineEdit),
-customDevStr(defaultstr),
+customDevStr(customdevstr ? customdevstr : defaultstr),
 useCustomDev(false)
 {
 	confWidget->setLayout(new QVBoxLayout);

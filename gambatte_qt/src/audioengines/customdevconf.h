@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -42,7 +42,7 @@ private slots:
 	void customDevBoxChange(bool checked);
 	
 public:
-	CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup);
+	CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup, const char *customdevstr = 0);
 	~CustomDevConf();
 	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();

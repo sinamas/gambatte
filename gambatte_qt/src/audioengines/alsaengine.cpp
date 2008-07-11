@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,7 +20,7 @@
 
 AlsaEngine::AlsaEngine() :
 	AudioEngine("ALSA"),
-	conf("Custom PCM device:", "hw:0,0", "alsaengine"),
+	conf("Custom PCM device:", "default", "alsaengine", "hw:0,0"),
 	pcm_handle(NULL),
 	bufSize(0)
 {}
