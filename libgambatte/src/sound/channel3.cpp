@@ -22,7 +22,7 @@
 #include <algorithm>
 
 static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
-	return 0x800 - (nr4 << 8 & 0x700 | nr3);
+	return 0x800 - ((nr4 << 8 & 0x700) | nr3);
 }
 
 Channel3::Channel3() :
@@ -63,7 +63,7 @@ void Channel3::setNr4(const unsigned data) {
 	
 	if (data & nr0/* & 0x80*/) {
 		if (!cgb && waveCounter == cycleCounter + 1) {
-			const unsigned pos = (wavePos + 1 & 0x1F) >> 1;
+			const unsigned pos = ((wavePos + 1) & 0x1F) >> 1;
 			
 			if (pos < 4)
 				waveRam[0] = waveRam[pos];
@@ -82,7 +82,7 @@ void Channel3::setSo(const bool so1, const bool so2) {
 }
 
 void Channel3::reset() {
-	cycleCounter = 0x1000 | cycleCounter & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
 
 // 	lengthCounter.reset();
 	sampleBuf = 0;

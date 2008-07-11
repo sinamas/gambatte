@@ -48,7 +48,7 @@ static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) 
 			if (gsum > 0x00FF00) gsum = 0x00FF00;
 			if (bsum > 0x0000FF) bsum = 0x0000FF;
 			
-			*dest++ = rsum & 0xFF0000 | gsum & 0x00FF00 | bsum;
+			*dest++ = (rsum & 0xFF0000) | (gsum & 0x00FF00) | bsum;
 		}
 		
 		{
@@ -83,7 +83,7 @@ static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) 
 			if (gsum > 0x00FF00) gsum = 0x00FF00;
 			if (bsum > 0x0000FF) bsum = 0x0000FF;
 			
-			*dest++ = rsum & 0xFF0000 | gsum & 0x00FF00 | bsum;
+			*dest++ = (rsum & 0xFF0000) | (gsum & 0x00FF00) | bsum;
 		}
 		
 		++sums;

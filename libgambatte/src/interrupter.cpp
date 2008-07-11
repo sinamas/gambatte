@@ -32,10 +32,10 @@ unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycle
 	
 	halted = false;
 	cycleCounter += 8;
-	SP = SP - 1 & 0xFFFF;
+	SP = (SP - 1) & 0xFFFF;
 	memory.write(SP, PC >> 8, cycleCounter);
 	cycleCounter += 4;
-	SP = SP - 1 & 0xFFFF;
+	SP = (SP - 1) & 0xFFFF;
 	memory.write(SP, PC & 0xFF, cycleCounter);
 	PC = address;
 	cycleCounter += 8;

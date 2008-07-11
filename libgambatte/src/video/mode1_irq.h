@@ -41,7 +41,7 @@ public:
 	}
 	
 	void setM1StatIrqEnabled(const bool enabled) {
-		flags = enabled * 2 | 1;
+		flags = (enabled * 2) | 1;
 	}
 };
 

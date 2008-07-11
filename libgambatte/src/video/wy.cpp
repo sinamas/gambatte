@@ -61,14 +61,14 @@ void Wy::WyReader3::doEvent() {
 }
 
 unsigned long Wy::WyReader3::schedule(const unsigned wxSrc, const ScxReader &scxReader, const LyCounter &lyCounter, const unsigned long cycleCounter) {
-	const unsigned curLineCycle = 456 - (lyCounter.time() - cycleCounter >> lyCounter.isDoubleSpeed());
+	const unsigned curLineCycle = 456 - ((lyCounter.time() - cycleCounter) >> lyCounter.isDoubleSpeed());
 	const unsigned baseTime = 78 + lyCounter.isDoubleSpeed() * 6 + wxSrc;
 	
 	if (curLineCycle >= 82U + lyCounter.isDoubleSpeed() * 3) {
 		if (baseTime + scxReader.scxAnd7() > curLineCycle)
-			return lyCounter.time() + (baseTime + scxReader.scxAnd7() << lyCounter.isDoubleSpeed()) - lyCounter.lineTime();
+			return lyCounter.time() + ((baseTime + scxReader.scxAnd7()) << lyCounter.isDoubleSpeed()) - lyCounter.lineTime();
 		else
-			return lyCounter.time() + (baseTime + scxReader.getSource() << lyCounter.isDoubleSpeed());
+			return lyCounter.time() + ((baseTime + scxReader.getSource()) << lyCounter.isDoubleSpeed());
 	} else
 		return lyCounter.nextLineCycle(baseTime + scxReader.getSource(), cycleCounter);
 }

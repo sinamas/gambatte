@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -46,7 +46,7 @@ unsigned long LCD::gbcToRgb32(const unsigned bgr15) {
 	const unsigned long g = bgr15 >> 5 & 0x1F;
 	const unsigned long b = bgr15 >> 10 & 0x1F;
 
-	return (r * 13 + g * 2 + b >> 1) << 16 | g * 3 + b << 9 | r * 3 + g * 2 + b * 11 >> 1;
+	return ((r * 13 + g * 2 + b) >> 1) << 16 | ((g * 3 + b) << 9) | ((r * 3 + g * 2 + b * 11) >> 1);
 }
 
 unsigned long LCD::gbcToRgb16(const unsigned bgr15) {
@@ -54,7 +54,7 @@ unsigned long LCD::gbcToRgb16(const unsigned bgr15) {
 	const unsigned g = bgr15 >> 5 & 0x1F;
 	const unsigned b = bgr15 >> 10 & 0x1F;
 
-	return r * 13 + g * 2 + b + 8 << 7 & 0xF800 | (g * 3 + b + 1 >> 1) << 5 | r * 3 + g * 2 + b * 11 + 8 >> 4;
+	return (((r * 13 + g * 2 + b + 8) << 7) & 0xF800) | ((g * 3 + b + 1) >> 1) << 5 | ((r * 3 + g * 2 + b * 11 + 8) >> 4);
 }
 
 unsigned long LCD::gbcToUyvy(const unsigned bgr15) {
@@ -66,9 +66,9 @@ unsigned long LCD::gbcToUyvy(const unsigned bgr15) {
 	// u = (b5 * 397544 - r5 * 68824 - g5 * 328720) / 225930 + 128;
 	// v = (r5 * 491176 - g5 * 328720 - b5 * 162456) / 178755 + 128;
 
-	const unsigned long y = r5 * 116 + g5 * 216 + b5 * 107 + 16 * 64 + 32 >> 6;
-	const unsigned long u = b5 * 225 - r5 * 39 - g5 * 186 + 128 * 128 + 64 >> 7;
-	const unsigned long v = r5 * 176 - g5 * 118 - b5 * 58 + 128 * 64 + 32 >> 6;
+	const unsigned long y = (r5 * 116 + g5 * 216 + b5 * 107 + 16 * 64 + 32) >> 6;
+	const unsigned long u = (b5 * 225 - r5 * 39 - g5 * 186 + 128 * 128 + 64) >> 7;
+	const unsigned long v = (r5 * 176 - g5 * 118 - b5 * 58 + 128 * 64 + 32) >> 6;
 
 #ifdef WORDS_BIGENDIAN
 	return u << 24 | y << 16 | v << 8 | y;
@@ -204,7 +204,7 @@ void LCD::saveState(SaveState &state) const {
 	state.ppu.winYPos = winYPos;
 	state.ppu.drawStartCycle = drawStartCycle;
 	state.ppu.scReadOffset = scReadOffset;
-	state.ppu.lcdc = enabled << 7 | wdTileMap - vram - 0x1800 >> 4 | (tileIndexSign ^ 0x80) >> 3 | bgTileMap - vram - 0x1800 >> 7 | spriteEnable << 1 | bgEnable;
+	state.ppu.lcdc = enabled << 7 | ((wdTileMap - vram - 0x1800) >> 4) | (tileIndexSign ^ 0x80) >> 3 | ((bgTileMap - vram - 0x1800) >> 7) | spriteEnable << 1 | bgEnable;
 	state.ppu.lycIrqSkip = lycIrq.skips();
 
 	scReader.saveState(state);
@@ -346,7 +346,7 @@ void LCD::updateScreen(const unsigned long cycleCounter) {
 				for (unsigned h = osdElement->h(); h--;) {
 					for (unsigned w = osdElement->w(); w--;) {
 						if (*s != 0xFFFFFFFF)
-							*d = *s * 7 + *d - ((*s & 0x070707) * 7 + (*d & 0x070707) & 0x070707) >> 3;
+							*d = (*s * 7 + *d - (((*s & 0x070707) * 7 + (*d & 0x070707)) & 0x070707)) >> 3;
 
 						++d;
 						++s;
@@ -441,7 +441,7 @@ bool LCD::isMode0IrqPeriod(const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= 456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed) << doubleSpeed && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed)) << doubleSpeed && timeToNextLy > 4;
 }
 
 bool LCD::isMode2IrqPeriod(const unsigned long cycleCounter) {
@@ -459,7 +459,7 @@ bool LCD::isLycIrqPeriod(const unsigned lycReg, const unsigned endCycles, const 
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return lyCounter.ly() == lycReg && timeToNextLy > endCycles || lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy <= 456U - 8U << doubleSpeed;
+	return (lyCounter.ly() == lycReg && timeToNextLy > endCycles) || (lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy <= (456U - 8U) << doubleSpeed);
 }
 
 bool LCD::isMode1IrqPeriod(const unsigned long cycleCounter) {
@@ -477,7 +477,7 @@ bool LCD::isHdmaPeriod(const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169U + doubleSpeed * 3 + 80U + m3ExtraCycles(lyCounter.ly()) + 2 - doubleSpeed) << doubleSpeed) && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= ((456U - (169U + doubleSpeed * 3 + 80U + m3ExtraCycles(lyCounter.ly()) + 2 - doubleSpeed)) << doubleSpeed) && timeToNextLy > 4;
 }
 
 unsigned long LCD::nextHdmaTime(const unsigned long cycleCounter) {
@@ -550,7 +550,7 @@ bool LCD::oamAccessible(const unsigned long cycleCounter) {
 			} else {
 				const unsigned m0start = 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly());
 
-				if (lineCycles < m0start || !doubleSpeed && lineCycles >= 452)
+				if (lineCycles < m0start || (!doubleSpeed && lineCycles >= 452))
 					accessible = false;
 			}
 		}
@@ -712,7 +712,7 @@ void LCD::lcdstatChange(const unsigned data, const unsigned long cycleCounter) {
 		addFixedtimeEvent(irqEventQueue, &lycIrq, LycIrq::schedule(data, lycIrq.lycReg(), lyCounter, cycleCounter));
 	}
 
-	if (((data & 0x10) && !(old & 0x10) || !cgb) && !((old & 0x40) && lycIrqPeriod) && isMode1IrqPeriod(cycleCounter))
+	if ((((data & 0x10) && !(old & 0x10)) || !cgb) && !((old & 0x40) && lycIrqPeriod) && isMode1IrqPeriod(cycleCounter))
 		ifReg |= 2;
 
 	if ((data ^ old) & 0x08) {
@@ -813,8 +813,8 @@ unsigned LCD::get_stat(const unsigned lycReg, const unsigned long cycleCounter) 
 			}
 		}
 
-		if (lyCounter.ly() == lycReg && timeToNextLy > 4U - doubleSpeed * 4U ||
-				lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy >> doubleSpeed <= 456 - 8) {
+		if ((lyCounter.ly() == lycReg && timeToNextLy > 4U - doubleSpeed * 4U) ||
+				(lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy >> doubleSpeed <= 456 - 8)) {
 			stat |= 4;
 		}
 	}
@@ -911,7 +911,7 @@ void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, con
 	if (palNum > 2 || colorNum > 3)
 		return;
 
-	setDmgPaletteColor(palNum * 4 | colorNum, rgb32);
+	setDmgPaletteColor((palNum * 4) | colorNum, rgb32);
 	refreshPalettes();
 }
 
@@ -1015,8 +1015,8 @@ static const unsigned char xflipt[0x100] = {
 /*
 #define PREP(u8) (u8)
 
-#define EXPAND(u8) ( PREP(u8) << 7 & 0x4000 | PREP(u8) << 6 & 0x1000 | PREP(u8) << 5 & 0x0400 | PREP(u8) << 4 & 0x0100 | \
-                     PREP(u8) << 3 & 0x0040 | PREP(u8) << 2 & 0x0010 | PREP(u8) << 1 & 0x0004 | PREP(u8) & 0x0001 )
+#define EXPAND(u8) (( PREP(u8) << 7 & 0x4000) | (PREP(u8) << 6 & 0x1000) | (PREP(u8) << 5 & 0x0400) | PREP(u8) << 4 & 0x0100 | \
+                     PREP(u8) << 3 & 0x0040 | (PREP(u8) << 2 & 0x0010) | (PREP(u8) << 1 & 0x0004) | (PREP(u8) & 0x0001 ))
 
 #define EXPAND_ROW(n) EXPAND((n)|0x0), EXPAND((n)|0x1), EXPAND((n)|0x2), EXPAND((n)|0x3), \
                       EXPAND((n)|0x4), EXPAND((n)|0x5), EXPAND((n)|0x6), EXPAND((n)|0x7), \
@@ -1032,8 +1032,8 @@ static const unsigned short expand_lut[0x200] = {
 	EXPAND_TABLE,
 
 #undef PREP
-#define PREP(u8) ( (u8) << 7 & 0x80 | (u8) << 5 & 0x40 | (u8) << 3 & 0x20 | (u8) << 1 & 0x10 | \
-                   (u8) >> 1 & 0x08 | (u8) >> 3 & 0x04 | (u8) >> 5 & 0x02 | (u8) >> 7 & 0x01 )
+#define PREP(u8) (( (u8) << 7 & 0x80) | ((u8) << 5 & 0x40) | ((u8) << 3 & 0x20) | (u8) << 1 & 0x10 | \
+                   (u8) >> 1 & 0x08 | ((u8) >> 3 & 0x04) | ((u8) >> 5 & 0x02) | ((u8) >> 7 & 0x01 ))
 
 	EXPAND_TABLE
 };
@@ -1054,8 +1054,8 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 	const unsigned sign = tileIndexSign;
 
 	while (xpos < end) {
-		if ((scx + xpos & 7) || xpos + 7 >= end) {
-			const unsigned char *const maptmp = tilemap + (scx + xpos >> 3 & 0x1F);
+		if (((scx + xpos) & 7) || xpos + 7 >= end) {
+			const unsigned char *const maptmp = tilemap + (((scx + xpos) >> 3) & 0x1F);
 			const unsigned tile = maptmp[0];
 			const unsigned attributes = maptmp[0x2000];
 			const unsigned char *const data = tiledata + (attributes << 10 & 0x2000) +
@@ -1072,15 +1072,15 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 			byte2 <<= 1;
 
 			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
-			unsigned tmp = 7 - (scx + xpos & 7);
+			unsigned tmp = 7 - ((scx + xpos) & 7);
 
 			do {
-				buffer_line[xpos++] = palette[byte2 >> tmp & 2 | byte1 >> tmp & 1];
+				buffer_line[xpos++] = palette[(byte2 >> tmp & 2) | (byte1 >> tmp & 1)];
 			} while (tmp-- && xpos < end);
 		}
 
 		while (xpos + 7 < end) {
-			const unsigned char *const maptmp = tilemap + (scx + xpos >> 3 & 0x1F);
+			const unsigned char *const maptmp = tilemap + (((scx + xpos) >> 3) & 0x1F);
 			const unsigned tile = maptmp[0];
 			const unsigned attributes = maptmp[0x2000];
 			const unsigned char *const data = tiledata + (attributes << 10 & 0x2000) +
@@ -1099,14 +1099,14 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
 			T * const buf = buffer_line + xpos;
 
-			buf[0] = palette[(byte2 & 0x100 | byte1) >> 7];
-			buf[1] = palette[(byte2 & 0x80 | byte1 & 0x40) >> 6];
-			buf[2] = palette[(byte2 & 0x40 | byte1 & 0x20) >> 5];
-			buf[3] = palette[(byte2 & 0x20 | byte1 & 0x10) >> 4];
-			buf[4] = palette[(byte2 & 0x10 | byte1 & 0x8) >> 3];
-			buf[5] = palette[(byte2 & 0x8 | byte1 & 0x4) >> 2];
-			buf[6] = palette[(byte2 & 0x4 | byte1 & 0x2) >> 1];
-			buf[7] = palette[byte2 & 0x2 | byte1 & 0x1];
+			buf[0] = palette[((byte2 & 0x100) | byte1) >> 7];
+			buf[1] = palette[((byte2 & 0x80) | (byte1 & 0x40)) >> 6];
+			buf[2] = palette[((byte2 & 0x40) | (byte1 & 0x20)) >> 5];
+			buf[3] = palette[((byte2 & 0x20) | (byte1 & 0x10)) >> 4];
+			buf[4] = palette[((byte2 & 0x10) | (byte1 & 0x8)) >> 3];
+			buf[5] = palette[((byte2 & 0x8) | (byte1 & 0x4)) >> 2];
+			buf[6] = palette[((byte2 & 0x4) | (byte1 & 0x2)) >> 1];
+			buf[7] = palette[(byte2 & 0x2) | (byte1 & 0x1)];
 
 			xpos += 8;
 		}
@@ -1134,7 +1134,7 @@ static unsigned cgb_prioritizedBG_mask(const unsigned spx, const unsigned bgStar
 
 		if (offset) {
 			bgbyte <<= offset;
-			maptmp = tilemap + ((pos >> 3) + 1 & 0x1F);
+			maptmp = tilemap + (((pos >> 3) + 1) & 0x1F);
 			tile = maptmp[0];
 			attributes = maptmp[0x2000];
 
@@ -1176,7 +1176,7 @@ static unsigned cgb_toplayerBG_mask(const unsigned spx, const unsigned bgStart, 
 
 		if (offset) {
 			bgbyte <<= offset;
-			maptmp = tilemap + ((pos >> 3) + 1 & 0x1F);
+			maptmp = tilemap + (((pos >> 3) + 1) & 0x1F);
 			attributes = maptmp[0x2000];
 
 			if (attributes & 0x80) {
@@ -1268,21 +1268,21 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 				T * const buf = buffer_line + spx - 8;
 				unsigned color;
 
-				if ((color = (byte2 & 0x100 | byte1) >> 7))
+				if ((color = ((byte2 & 0x100) | byte1) >> 7))
 					buf[0] = palette[color];
-				if ((color = byte2 & 0x80 | byte1 & 0x40))
+				if ((color = (byte2 & 0x80) | (byte1 & 0x40)))
 					buf[1] = palette[color >> 6];
-				if ((color = byte2 & 0x40 | byte1 & 0x20))
+				if ((color = (byte2 & 0x40) | (byte1 & 0x20)))
 					buf[2] = palette[color >> 5];
-				if ((color = byte2 & 0x20 | byte1 & 0x10))
+				if ((color = (byte2 & 0x20) | (byte1 & 0x10)))
 					buf[3] = palette[color >> 4];
-				if ((color = byte2 & 0x10 | byte1 & 0x8))
+				if ((color = (byte2 & 0x10) | (byte1 & 0x8)))
 					buf[4] = palette[color >> 3];
-				if ((color = byte2 & 0x8 | byte1 & 0x4))
+				if ((color = (byte2 & 0x8) | (byte1 & 0x4)))
 					buf[5] = palette[color >> 2];
-				if ((color = byte2 & 0x4 | byte1 & 0x2))
+				if ((color = (byte2 & 0x4) | (byte1 & 0x2)))
 					buf[6] = palette[color >> 1];
-				if ((color = byte2 & 0x2 | byte1 & 0x1))
+				if ((color = (byte2 & 0x2) | (byte1 & 0x1)))
 					buf[7] = palette[color];
 			} else {
 				const unsigned end = spx >= 160 ? 160 : spx;
@@ -1290,7 +1290,7 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 				unsigned u32temp = 7 - (xpos + 8 - spx);
 
 				while (xpos < end) {
-					const unsigned color = byte2 >> u32temp & 2 | byte1 >> u32temp & 1;
+					const unsigned color = (byte2 >> u32temp & 2) | (byte1 >> u32temp & 1);
 
 					if (color)
 						buffer_line[xpos] = palette[color];
@@ -1311,32 +1311,32 @@ void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end
 	const unsigned sign = tileIndexSign;
 
 	while (xpos < end) {
-		if ((scx + xpos & 7) || xpos + 7 >= end) {
-			const unsigned tile = tilemap[scx + xpos >> 3 & 0x1F];
+		if (((scx + xpos) & 7) || xpos + 7 >= end) {
+			const unsigned tile = tilemap[((scx + xpos) >> 3) & 0x1F];
 			const unsigned char *const data = tiledata + tile * 16 - (tile & sign) * 32;
 			const unsigned byte1 = data[0];
 			const unsigned byte2 = data[1] << 1;
-			unsigned tmp = 7 - (scx + xpos & 7);
+			unsigned tmp = 7 - ((scx + xpos) & 7);
 
 			do {
-				buffer_line[xpos++] = bgPalette[byte2 >> tmp & 2 | byte1 >> tmp & 1];
+				buffer_line[xpos++] = bgPalette[(byte2 >> tmp & 2) | (byte1 >> tmp & 1)];
 			} while (tmp-- && xpos < end);
 		}
 
 		while (xpos + 7 < end) {
-			const unsigned tile = tilemap[scx + xpos >> 3 & 0x1F];
+			const unsigned tile = tilemap[((scx + xpos) >> 3) & 0x1F];
 			const unsigned char *const data = tiledata + tile * 16 - (tile & sign) * 32;
 			const unsigned byte1 = data[0];
 			const unsigned byte2 = data[1] << 1;
 			T * const buf = buffer_line + xpos;
-			buf[0] = bgPalette[(byte2 & 0x100 | byte1) >> 7];
-			buf[1] = bgPalette[(byte2 & 0x80 | byte1 & 0x40) >> 6];
-			buf[2] = bgPalette[(byte2 & 0x40 | byte1 & 0x20) >> 5];
-			buf[3] = bgPalette[(byte2 & 0x20 | byte1 & 0x10) >> 4];
-			buf[4] = bgPalette[(byte2 & 0x10 | byte1 & 0x8) >> 3];
-			buf[5] = bgPalette[(byte2 & 0x8 | byte1 & 0x4) >> 2];
-			buf[6] = bgPalette[(byte2 & 0x4 | byte1 & 0x2) >> 1];
-			buf[7] = bgPalette[byte2 & 0x2 | byte1 & 0x1];
+			buf[0] = bgPalette[((byte2 & 0x100) | byte1) >> 7];
+			buf[1] = bgPalette[((byte2 & 0x80) | (byte1 & 0x40)) >> 6];
+			buf[2] = bgPalette[((byte2 & 0x40) | (byte1 & 0x20)) >> 5];
+			buf[3] = bgPalette[((byte2 & 0x20) | (byte1 & 0x10)) >> 4];
+			buf[4] = bgPalette[((byte2 & 0x10) | (byte1 & 0x8)) >> 3];
+			buf[5] = bgPalette[((byte2 & 0x8) | (byte1 & 0x4)) >> 2];
+			buf[6] = bgPalette[((byte2 & 0x4) | (byte1 & 0x2)) >> 1];
+			buf[7] = bgPalette[(byte2 & 0x2) | (byte1 & 0x1)];
 			xpos += 8;
 		}
 	}
@@ -1357,7 +1357,7 @@ static unsigned prioritizedBG_mask(const unsigned spx, const unsigned bgStart, c
 
 		if (offset) {
 			bgbyte <<= offset;
-			tile = tilemap[(pos >> 3) + 1 & 0x1F];
+			tile = tilemap[((pos >> 3) + 1) & 0x1F];
 			data = tiledata + tile * 16 - (tile & sign) * 32;
 			bgbyte |= (data[0] | data[1]) >> (8 - offset);
 		}
@@ -1433,21 +1433,21 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 				T * const buf = buffer_line + spx - 8;
 				unsigned color;
 
-				if ((color = (byte2 & 0x100 | byte1) >> 7))
+				if ((color = ((byte2 & 0x100) | byte1) >> 7))
 					buf[0] = palette[color];
-				if ((color = byte2 & 0x80 | byte1 & 0x40))
+				if ((color = (byte2 & 0x80) | (byte1 & 0x40)))
 					buf[1] = palette[color >> 6];
-				if ((color = byte2 & 0x40 | byte1 & 0x20))
+				if ((color = (byte2 & 0x40) | (byte1 & 0x20)))
 					buf[2] = palette[color >> 5];
-				if ((color = byte2 & 0x20 | byte1 & 0x10))
+				if ((color = (byte2 & 0x20) | (byte1 & 0x10)))
 					buf[3] = palette[color >> 4];
-				if ((color = byte2 & 0x10 | byte1 & 0x8))
+				if ((color = (byte2 & 0x10) | (byte1 & 0x8)))
 					buf[4] = palette[color >> 3];
-				if ((color = byte2 & 0x8 | byte1 & 0x4))
+				if ((color = (byte2 & 0x8) | (byte1 & 0x4)))
 					buf[5] = palette[color >> 2];
-				if ((color = byte2 & 0x4 | byte1 & 0x2))
+				if ((color = (byte2 & 0x4) | (byte1 & 0x2)))
 					buf[6] = palette[color >> 1];
-				if ((color = byte2 & 0x2 | byte1 & 0x1))
+				if ((color = (byte2 & 0x2) | (byte1 & 0x1)))
 					buf[7] = palette[color];
 			} else {
 				const unsigned end = spx >= 160 ? 160 : spx;
@@ -1455,7 +1455,7 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 				unsigned u32temp = 7 - (xpos + 8 - spx);
 
 				while (xpos < end) {
-					const unsigned color = byte2 >> u32temp & 2 | byte1 >> u32temp & 1;
+					const unsigned color = (byte2 >> u32temp & 2) | (byte1 >> u32temp & 1);
 
 					if (color)
 						buffer_line[xpos] = palette[color];

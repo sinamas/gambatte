@@ -26,7 +26,7 @@ static inline bool toOutState(const unsigned duty, const unsigned pos) {
 }
 
 static inline unsigned toPeriod(const unsigned freq) {
-	return 2048 - freq << 1;
+	return (2048 - freq) << 1;
 }
 
 void DutyUnit::updatePos(const unsigned long cc) {
@@ -52,7 +52,7 @@ void DutyUnit::setCounter() {
 	};
 	
 	if (enableEvents && nextPosUpdate != COUNTER_DISABLED)
-		counter = nextPosUpdate + period * nextStateDistance[duty * 8 | pos];
+		counter = nextPosUpdate + period * nextStateDistance[(duty * 8) | pos];
 	else
 		counter = COUNTER_DISABLED;
 }
@@ -82,11 +82,11 @@ void DutyUnit::nr1Change(const unsigned newNr1, const unsigned long cc) {
 }
 
 void DutyUnit::nr3Change(const unsigned newNr3, const unsigned long cc) {
-	setFreq(getFreq() & 0x700 | newNr3, cc);
+	setFreq((getFreq() & 0x700) | newNr3, cc);
 }
 
 void DutyUnit::nr4Change(const unsigned newNr4, const unsigned long cc) {
-	setFreq(newNr4 << 8 & 0x700 | getFreq() & 0xFF, cc);
+	setFreq((newNr4 << 8 & 0x700) | (getFreq() & 0xFF), cc);
 	
 	if (newNr4 & 0x80) {
 		nextPosUpdate = (cc & ~1) + period;
@@ -121,7 +121,7 @@ void DutyUnit::loadState(const SaveState::SPU::Duty &dstate, const unsigned nr1,
 	nextPosUpdate = std::max(dstate.nextPosUpdate, cc);
 	pos = dstate.pos & 7;
 	setDuty(nr1);
-	period = toPeriod(nr4 << 8 & 0x700 | dstate.nr3);
+	period = toPeriod((nr4 << 8 & 0x700) | dstate.nr3);
 	enableEvents = true;
 	setCounter();
 }

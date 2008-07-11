@@ -103,7 +103,7 @@ void PSG::accumulate_channels(const unsigned long cycles) {
 }
 
 void PSG::generate_samples(const unsigned long cycleCounter, const unsigned doubleSpeed) {
-	const unsigned long cycles = cycleCounter - lastUpdate >> (1 + doubleSpeed);
+	const unsigned long cycles = (cycleCounter - lastUpdate) >> (1 + doubleSpeed);
 	lastUpdate += cycles << (1 + doubleSpeed);
 
 	if (bufferSize - bufferPos < cycles)
@@ -153,8 +153,8 @@ void PSG::fill_buffer(Gambatte::uint_least16_t *stream, const unsigned samples) 
 				so1 += so1Tmp;
 				so2 += so2Tmp;
 				
-				*stream++ = (so2 / 4389) * samples + 8192 >> 14;
-				*stream++ = (so1 / 4389) * samples + 8192 >> 14;
+				*stream++ = ((so2 / 4389) * samples + 8192) >> 14;
+				*stream++ = ((so1 / 4389) * samples + 8192) >> 14;
 				
 				so1 = (borderSample & 0xFFFF0000) - so1Tmp;
 				so2 = (borderSample << 16 & 0xFFFFFFFF) - so2Tmp;
@@ -171,7 +171,7 @@ void PSG::fill_buffer(Gambatte::uint_least16_t *stream, const unsigned samples) 
 }
 
 void PSG::set_so_volume(const unsigned nr50) {
-	soVol = (nr50 & 0x7) + 1ul << 16 | (nr50 >> 4 & 0x7) + 1;
+	soVol = (((nr50 & 0x7) + 1ul) << 16) | ((nr50 >> 4 & 0x7) + 1);
 }
 
 void PSG::map_so(const unsigned nr51) {

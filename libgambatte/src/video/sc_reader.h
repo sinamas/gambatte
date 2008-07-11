@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -41,7 +41,7 @@ public:
 	void doEvent();
 	
 	unsigned scx() const {
-		return scx_[0] & ~0x7 | scxSrc & 0x7;
+		return (scx_[0] & ~0x7) | (scxSrc & 0x7);
 	}
 	
 	unsigned scy() const {
@@ -49,7 +49,7 @@ public:
 	}
 	
 	static unsigned long schedule(const unsigned long lastUpdate, const unsigned long videoCycles, const unsigned scReadOffset, const bool dS) {
-		return lastUpdate + (8u - (videoCycles - scReadOffset & 7) << dS);
+		return lastUpdate + ((8u - ((videoCycles - scReadOffset) & 7)) << dS);
 	}
 	
 	void setDoubleSpeed(bool dS_in);

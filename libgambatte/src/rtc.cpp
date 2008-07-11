@@ -45,7 +45,7 @@ void Rtc::doLatch() {
 		dataDh |= 0x80;
 	}
 	
-	dataDl = tmp / 86400 & 0xFF;
+	dataDl = (tmp / 86400) & 0xFF;
 	dataDh &= 0xFE;
 	dataDh |= ((tmp / 86400) & 0x100) >> 8;
 	tmp %= 86400;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -43,7 +43,7 @@ unsigned long LyCounter::nextLineCycle(const unsigned lineCycle, const unsigned 
 }
 
 unsigned long LyCounter::nextFrameCycle(const unsigned long frameCycle, const unsigned long cycleCounter) const {
-	unsigned long tmp = time() + ((153U - ly()) * 456U + frameCycle << ds);
+	unsigned long tmp = time() + (((153U - ly()) * 456U + frameCycle) << ds);
 	
 	if (tmp - cycleCounter > 70224U << ds)
 		tmp -= 70224U << ds;
@@ -53,7 +53,7 @@ unsigned long LyCounter::nextFrameCycle(const unsigned long frameCycle, const un
 
 void LyCounter::reset(const unsigned long videoCycles, const unsigned long lastUpdate) {
 	ly_ = videoCycles / 456;
-	setTime(lastUpdate + (456 - (videoCycles - ly_ * 456ul) << isDoubleSpeed()));
+	setTime(lastUpdate + ((456 - (videoCycles - ly_ * 456ul)) << isDoubleSpeed()));
 }
 
 void LyCounter::setDoubleSpeed(const bool ds_in) {

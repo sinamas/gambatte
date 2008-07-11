@@ -19,6 +19,7 @@
 #include <gambatte.h>
 #include <SDL.h>
 #include <SDL_thread.h>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <sstream>
@@ -340,11 +341,11 @@ void AudioData::write(const Uint16 *const inBuf) {
 	
 	SDL_mutexP(mut);
 	
-	if (rPos - wPos + (wPos > rPos ? bufSz : 0) >> 1 < samplesPrFrame)
+	if ((rPos - wPos + (wPos > rPos ? bufSz : 0)) >> 1 < samplesPrFrame)
 		SDL_CondWait(bufReadyCond, mut);
 	
 	{
-		const unsigned samples1 = std::min(bufSz - wPos >> 1, samplesPrFrame);
+		const unsigned samples1 = std::min((bufSz - wPos) >> 1, samplesPrFrame);
 		const unsigned samples2 = samplesPrFrame - samples1;
 		
 		std::memcpy(buffer + wPos, inBuf, samples1 * 4);
@@ -376,7 +377,7 @@ void AudioData::read(Uint8 *const stream, const int len) {
 	if ((rPos += len >> 1) >= bufSz)
 		rPos -= bufSz;
 	
-	if (rPos - wPos + (wPos > rPos ? bufSz : 0) >> 1 >= samplesPrFrame)
+	if ((rPos - wPos + (wPos > rPos ? bufSz : 0)) >> 1 >= samplesPrFrame)
 		SDL_CondSignal(bufReadyCond);
 	
 	SDL_mutexV(mut);

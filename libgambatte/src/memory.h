@@ -190,7 +190,7 @@ public:
 	}
 	
 	void ff_write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
-		if ((P + 1 & 0xFF) < 0x81)
+		if (((P + 1) & 0xFF) < 0x81)
 			nontrivial_ff_write(P, data, cycleCounter);
 		else
 			ioamhram[P - 0xFE00] = data;

@@ -45,7 +45,7 @@ static const unsigned char* addLineCycles(const unsigned char *const start, cons
 			break;
 		
 		unsigned cycles = 6;
-		const unsigned posAnd7 = scwxAnd7 + spx & 7;
+		const unsigned posAnd7 = (scwxAnd7 + spx) & 7;
 		
 		if (posAnd7 < 5) {
 			cycles = 11 - posAnd7;
@@ -56,7 +56,7 @@ static const unsigned char* addLineCycles(const unsigned char *const start, cons
 				if (spx - bSpx > 4U)
 					break;
 				
-				if ((scwxAnd7 + bSpx & 7) < 4 || spx == bSpx) {
+				if (((scwxAnd7 + bSpx) & 7) < 4 || spx == bSpx) {
 					cycles = 6;
 					break;
 				}

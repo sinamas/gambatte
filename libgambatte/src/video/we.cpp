@@ -51,7 +51,7 @@ We::We(M3ExtraCycles &m3ExtraCycles) :
 }
 
 void We::saveState(SaveState &state) const {
-	state.ppu.lcdc = state.ppu.lcdc & ~0x20 | we_ << 5;
+	state.ppu.lcdc = (state.ppu.lcdc & ~0x20) | we_ << 5;
 }
 
 void We::loadState(const SaveState &state) {

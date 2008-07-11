@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -55,19 +55,19 @@ void Channel4::Lfsr::updateBackupCounter(const unsigned long cc) {
 			if (nr3 & 8) {
 				while (periods > 6) {
 					const unsigned xored = (reg << 1 ^ reg) & 0x7E;
-					reg = reg >> 6 & ~0x7E | xored | xored << 8;
+					reg = (reg >> 6 & ~0x7E) | xored | xored << 8;
 					periods -= 6;
 				}
 				
-				const unsigned xored = (reg ^ reg >> 1) << 7 - periods & 0x7F;
-				reg = reg >> periods & ~(0x80 - (0x80 >> periods)) | xored | xored << 8;
+				const unsigned xored = ((reg ^ reg >> 1) << (7 - periods)) & 0x7F;
+				reg = (reg >> periods & ~(0x80 - (0x80 >> periods))) | xored | xored << 8;
 			} else {
 				while (periods > 15) {
 					reg = reg ^ reg >> 1;
 					periods -= 15;
 				}
 				
-				reg = reg >> periods | (reg ^ reg >> 1) << 15 - periods & 0x7FFF;
+				reg = reg >> periods | (((reg ^ reg >> 1) << (15 - periods)) & 0x7FFF);
 			}
 		}
 	}
@@ -97,7 +97,7 @@ void Channel4::Lfsr::event() {
 		reg = shifted | xored << 14;
 		
 		if (nr3 & 8)
-			reg = reg & ~0x40 | xored << 6;
+			reg = (reg & ~0x40) | xored << 6;
 	}
 	
 	counter += toPeriod(nr3);
@@ -106,7 +106,7 @@ void Channel4::Lfsr::event() {
 	
 	/*if (nr3 < 0xE0) {
 		const unsigned periods = nextStateDistance[reg & 0x3F];
-		const unsigned xored = (reg ^ reg >> 1) << 7 - periods & 0x7F;
+		const unsigned xored = ((reg ^ reg >> 1) << (7 - periods)) & 0x7F;
 		
 		reg = reg >> periods | xored << 8;
 		
@@ -223,7 +223,7 @@ void Channel4::setSo(const bool so1, const bool so2) {
 }
 
 void Channel4::reset() {
-	cycleCounter = 0x1000 | cycleCounter & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
 
 // 	lengthCounter.reset();
 	lfsr.reset(cycleCounter);

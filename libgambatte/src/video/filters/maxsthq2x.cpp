@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 2003 MaxSt                                              *
@@ -28,7 +28,7 @@ typedef unsigned long (*pixelop)(const unsigned long w[]);
 static pixelop lut[0x400];
 
 static inline unsigned long Interp2(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
-	const unsigned long lowbits = (c1 * 2 & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303) & 0x030303;
+	const unsigned long lowbits = (((c1 * 2) & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303)) & 0x030303;
 	
 	return (c1 * 2 + c2 + c3 - lowbits) >> 2;
 }
@@ -38,17 +38,17 @@ static inline unsigned long Interp1(const unsigned long c1, const unsigned long 
 }
 
 static inline unsigned long Interp5(const unsigned long c1, const unsigned long c2) {
-	return c1 + c2 - ((c1 ^ c2) & 0x010101) >> 1;
+	return (c1 + c2 - ((c1 ^ c2) & 0x010101)) >> 1;
 }
 
 static inline unsigned long Interp6(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
-	const unsigned long lowbits = (c1 * 4 & 0x040404) + (c1 & 0x070707) + (c2 * 2 & 0x060606) + (c3 & 0x070707) & 0x070707;
+	const unsigned long lowbits = (((c1 * 4) & 0x040404) + (c1 & 0x070707) + (c2 * 2 & 0x060606) + (c3 & 0x070707)) & 0x070707;
 	
 	return ((c1 * 5 + c2 * 2 + c3) - lowbits) >> 3;
 }
 
 static inline unsigned long Interp7(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
-	const unsigned long lowbits = ((c1 * 2 & 0x020202) + (c1 & 0x030303)) * 2 + (c2 & 0x070707) + (c3 & 0x070707) & 0x070707;
+	const unsigned long lowbits = ((((c1 * 2) & 0x020202) + (c1 & 0x030303)) * 2 + (c2 & 0x070707) + (c3 & 0x070707)) & 0x070707;
 	
 	return ((c1 * 6 + c2 + c3) - lowbits) >> 3;
 }
@@ -59,14 +59,14 @@ static inline unsigned long Interp9(unsigned long c1, const unsigned long c2, co
 	const unsigned long rb = (c1 & 0x01FE01FE) + ((c2 & 0xFF00FF) + (c3 & 0xFF00FF)) * 3;
 	const unsigned long g = (c1 & 0x0001FE00) + ((c2 & 0x00FF00) + (c3 & 0x00FF00)) * 3;
 	
-	return (rb & 0x07F807F8 | g & 0x0007F800) >> 3;
+	return ((rb & 0x07F807F8) | (g & 0x0007F800)) >> 3;
 }
 
 static inline unsigned long Interp10(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
 	const unsigned long rb = (c1 & 0xFF00FF) * 14 + (c2 & 0xFF00FF) + (c3 & 0xFF00FF);
 	const unsigned long g = (c1 & 0x00FF00) * 14 + (c2 & 0x00FF00) + (c3 & 0x00FF00);
 	
-	return (rb & 0x0FF00FF0 | g & 0x000FF000) >> 4;
+	return ((rb & 0x0FF00FF0) | (g & 0x000FF000)) >> 4;
 }
 
 static inline unsigned long pixel00_0(const unsigned long w[]) { return w[5]; }

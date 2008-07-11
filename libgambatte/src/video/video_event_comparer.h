@@ -24,7 +24,7 @@
 class VideoEventComparer {
 public:
 	bool less(const VideoEvent *const a, const VideoEvent *const b) const {
-		return a->time() < b->time() || a->time() == b->time() && a->priority() < b->priority();
+		return a->time() < b->time() || (a->time() == b->time() && a->priority() < b->priority());
 	}
 };
 

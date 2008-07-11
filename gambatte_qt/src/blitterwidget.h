@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -59,7 +59,7 @@ public:
 	virtual void blit() = 0;
 	virtual bool isUnusable() const { return false; }
 	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
-	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) { setGeometry(w - new_w >> 1, h - new_h >> 1, new_w, new_h); }
+	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) { setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h); }
 	virtual void setFrameTime(Rational ft);
 	virtual const Rational frameTime() const;
 	virtual int sync(bool turbo);

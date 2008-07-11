@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -63,7 +63,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 	unsigned char *const hcoeffs = new unsigned char[outWidth - 1];
 	
 	{
-		unsigned long hppos = outWidth + inWidth >> 1;
+		unsigned long hppos = (outWidth + inWidth) >> 1;
 		unsigned w = inWidth;
 		unsigned char *coeff = hcoeffs;
 		
@@ -77,7 +77,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		} while (--w);
 	}
 	
-	unsigned long vppos = outHeight + inHeight >> 1;
+	unsigned long vppos = (outHeight + inHeight) >> 1;
 	unsigned srcPitch = 0;
 	unsigned h = inHeight;
 	unsigned hn = 2;
@@ -97,7 +97,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 						const T p2c13 = *(s+srcPitch) & c13mask;
 						const T p2c2 = *(s+srcPitch) & c2mask;
 						
-						sum->c13 = p1c13 + ((p2c13 - p1c13) * coeff >> c13distance) & c13mask;
+						sum->c13 = (p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask;
 						sum->c2 = (p1c2 << c13distance) + (p2c2 - p1c2) * coeff;
 						
 						++sum;
@@ -109,14 +109,14 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 				
 				{
 					const Colorsum *sum = sums;
-					unsigned long hppos = outWidth + inWidth >> 1;
+					unsigned long hppos = (outWidth + inWidth) >> 1;
 					const unsigned char *coeff = hcoeffs;
 					unsigned w = inWidth;
 					
 					do {
 						while (hppos < outWidth) {
-							*dst++ = sum->c13 + (((sum+1)->c13 - sum->c13) * *coeff >> c13distance) & c13mask |
-								(sum->c2 << c13distance) + ((sum+1)->c2 - sum->c2) * *coeff >> c13distance * 2 & c2mask;
+							*dst++ = ((sum->c13 + (((sum+1)->c13 - sum->c13) * *coeff >> c13distance)) & c13mask) |
+								((((sum->c2 << c13distance) + ((sum+1)->c2 - sum->c2) * *coeff) >> c13distance * 2) & c2mask);
 							hppos += inWidth;
 							++coeff;
 						}
@@ -126,9 +126,9 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 					} while (--w);
 					
 					do {
-						*dst++ = sum->c13 | sum->c2 >> c13distance & c2mask;
+						*dst++ = sum->c13 | (sum->c2 >> c13distance & c2mask);
 						hppos += inWidth;
-					} while (hppos < outWidth + inWidth >> 1);
+					} while (hppos < (outWidth + inWidth) >> 1);
 				}
 				
 				dst += dstPitch - outWidth;
@@ -142,7 +142,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		
 		h = 1;
 		srcPitch = 0;
-		vppos += outHeight - (outHeight + inHeight >> 1);
+		vppos += outHeight - ((outHeight + inHeight) >> 1);
 	} while (--hn);
 	
 	delete []sums;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -203,8 +203,8 @@ void QGLBlitter::SubWidget::paintGL() {
 void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	glViewport(0, 0, w, h);
 	
-	const unsigned itop = h - corrected_h >> 1;
-	const unsigned ileft = w - corrected_w >> 1;
+	const unsigned itop = (h - corrected_h) >> 1;
+	const unsigned ileft = (w - corrected_w) >> 1;
 	
 	const double top = static_cast<double>(itop) / h;
 	const double left = static_cast<double>(ileft) / w;

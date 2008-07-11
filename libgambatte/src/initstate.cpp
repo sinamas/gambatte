@@ -96,7 +96,7 @@ void setInitState(SaveState &state, const bool cgb) {
 	state.cpu.cycleCounter = 0x102A0;
 	state.cpu.PC = 0x100;
 	state.cpu.SP = 0xFFFE;
-	state.cpu.A = cgb * 0x10 | 0x01;
+	state.cpu.A = (cgb * 0x10) | 0x01;
 	state.cpu.B = 0x00;
 	state.cpu.C = 0x13;
 	state.cpu.D = 0x00;
@@ -202,7 +202,7 @@ void setInitState(SaveState &state, const bool cgb) {
 	}
 	
 	for (unsigned pos = 0; pos < 80; ++pos)
-		state.ppu.oamReaderBuf.ptr[pos] = state.mem.ioamhram.ptr[pos * 2 & ~3 | pos & 1];
+		state.ppu.oamReaderBuf.ptr[pos] = state.mem.ioamhram.ptr[((pos * 2) & ~3) | (pos & 1)];
 	
 	std::fill_n(state.ppu.oamReaderSzbuf.ptr, 40, false);
 	
@@ -221,7 +221,7 @@ void setInitState(SaveState &state, const bool cgb) {
 	state.ppu.lycIrqSkip = false;
 	
 	
-	state.spu.cycleCounter = 0x1000 | (state.cpu.cycleCounter >> 1) & 0xFFF; // spu.cycleCounter >> 12 & 7 represents the frame sequencer position.
+	state.spu.cycleCounter = 0x1000 | ((state.cpu.cycleCounter >> 1) & 0xFFF); // spu.cycleCounter >> 12 & 7 represents the frame sequencer position.
 	
 	state.spu.ch1.sweep.counter = SoundUnit::COUNTER_DISABLED;
 	state.spu.ch1.sweep.shadow = 0;
@@ -240,7 +240,7 @@ void setInitState(SaveState &state, const bool cgb) {
 	state.spu.ch2.duty.nextPosUpdate = (state.spu.cycleCounter & ~1) + 2048 * 2;
 	state.spu.ch2.duty.nr3 = 0;
 	state.spu.ch2.duty.pos = 0;
-	state.spu.ch2.env.counter = state.spu.cycleCounter - (state.spu.cycleCounter - 0x1000 & 0x7FFF) + 8ul * 0x8000;
+	state.spu.ch2.env.counter = state.spu.cycleCounter - ((state.spu.cycleCounter - 0x1000) & 0x7FFF) + 8ul * 0x8000;
 	state.spu.ch2.env.volume = 0;
 	state.spu.ch2.lcounter.counter = SoundUnit::COUNTER_DISABLED;
 	state.spu.ch2.lcounter.lengthCounter = 0x40;
@@ -262,7 +262,7 @@ void setInitState(SaveState &state, const bool cgb) {
 	
 	state.spu.ch4.lfsr.counter = state.spu.cycleCounter + 4;
 	state.spu.ch4.lfsr.reg = 0xFF;
-	state.spu.ch4.env.counter = state.spu.cycleCounter - (state.spu.cycleCounter - 0x1000 & 0x7FFF) + 8ul * 0x8000;
+	state.spu.ch4.env.counter = state.spu.cycleCounter - ((state.spu.cycleCounter - 0x1000) & 0x7FFF) + 8ul * 0x8000;
 	state.spu.ch4.env.volume = 0;
 	state.spu.ch4.lcounter.counter = SoundUnit::COUNTER_DISABLED;
 	state.spu.ch4.lcounter.lengthCounter = 0x40;

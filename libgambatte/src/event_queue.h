@@ -108,7 +108,7 @@ void event_queue<T,Comparer>::internalDec(std::size_t i, const T e) {
 	a[i] = e;
 	
 	while (i != 0) {
-		const std::size_t parentI = i - 1 >> 1;
+		const std::size_t parentI = (i - 1) >> 1;
 		
 		if (!comparer.less(e, a[parentI]))
 			break;
@@ -147,7 +147,7 @@ void event_queue<T,Comparer>::remove(const T e) {
 	std::size_t i = indexOf(e);
 	
 	while (i != 0) {
-		const std::size_t parentI = i - 1 >> 1;
+		const std::size_t parentI = (i - 1) >> 1;
 		
 		a[i] = a[parentI];
 		a[parentI] = e;

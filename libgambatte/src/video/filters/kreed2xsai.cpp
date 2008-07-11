@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 1999 Derek Liauw Kie Fa (Kreed)                         *
@@ -59,13 +59,13 @@ static inline int getResult2(const unsigned long a, const unsigned long b, const
 }
 
 static inline unsigned long interpolate(const unsigned long a, const unsigned long b) {
-	return a + b - ((a ^ b) & 0x010101) >> 1;
+	return (a + b - ((a ^ b) & 0x010101)) >> 1;
 }
 
 static inline unsigned long qInterpolate(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
-	const unsigned long lowBits = (a & 0x030303) + (b & 0x030303) + (c & 0x030303) + (d & 0x030303) & 0x030303;
+	const unsigned long lowBits = ((a & 0x030303) + (b & 0x030303) + (c & 0x030303) + (d & 0x030303)) & 0x030303;
 	
-	return a + b + c + d - lowBits >> 2;
+	return (a + b + c + d - lowBits) >> 2;
 }
 
 static void filter(Gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,

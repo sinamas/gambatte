@@ -100,9 +100,9 @@ static void write(std::ofstream &file, const bool *data, const unsigned long sz)
 static unsigned long get24(std::ifstream &file) {
 	unsigned long tmp = file.get() & 0xFF;
 	
-	tmp = tmp << 8 | file.get() & 0xFF;
+	tmp = tmp << 8 | (file.get() & 0xFF);
 	
-	return tmp << 8 | file.get() & 0xFF;
+	return tmp << 8 | (file.get() & 0xFF);
 }
 
 static unsigned long read(std::ifstream &file) {
@@ -116,10 +116,10 @@ static unsigned long read(std::ifstream &file) {
 	unsigned long out = 0;
 	
 	switch (size) {
-	case 4: out = (out | file.get() & 0xFF) << 8;
-	case 3: out = (out | file.get() & 0xFF) << 8;
-	case 2: out = (out | file.get() & 0xFF) << 8;
-	case 1: out = out | file.get() & 0xFF;
+	case 4: out = (out | (file.get() & 0xFF)) << 8;
+	case 3: out = (out | (file.get() & 0xFF)) << 8;
+	case 2: out = (out | (file.get() & 0xFF)) << 8;
+	case 1: out = out | (file.get() & 0xFF);
 	}
 	
 	return out;
@@ -341,7 +341,7 @@ static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *p
 						g += (pixels[x * StateSaver::SS_DIV + y * pitch + xx] & 0x00FF00) * w[y] * w[xx];
 					}
 				
-				buf[x] = rb >> 8 & 0xFF00FF | g >> 8 & 0x00FF00;
+				buf[x] = (rb >> 8 & 0xFF00FF) | (g >> 8 & 0x00FF00);
 			}
 			
 			file.write(reinterpret_cast<const char*>(buf), sizeof(buf));

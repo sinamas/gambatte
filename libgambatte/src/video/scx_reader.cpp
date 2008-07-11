@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -49,7 +49,7 @@ static void rescheduleEvent(event_queue<VideoEvent*,VideoEventComparer> &m3Event
 }
 
 void ScxReader::doEvent() {
-	const unsigned long diff = static_cast<unsigned long>(src) - static_cast<unsigned long>(scxAnd7_) << dS;
+	const unsigned long diff = (static_cast<unsigned long>(src) - static_cast<unsigned long>(scxAnd7_)) << dS;
 	scxAnd7_ = src;
 	
 // 	rescheduleEvent(m3EventQueue, wyReader3, diff);

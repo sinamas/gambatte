@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -135,7 +135,7 @@ void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
 	rombank = state.mem.rombank % rombanks;
 	dmaSource = state.mem.dmaSource;
 	dmaDestination = state.mem.dmaDestination;
-	rambank = state.mem.rambank & rambanks - 1;
+	rambank = state.mem.rambank & (rambanks - 1);
 	oamDmaPos = state.mem.oamDmaPos;
 	IME = state.mem.IME;
 	enable_ram = state.mem.enable_ram;
@@ -179,12 +179,12 @@ void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
 		next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
 	}
 	
-	next_timatime = (ioamhram[0x107] & 4) ? tima_lastUpdate + (256u - ioamhram[0x105] << timaClock[ioamhram[0x107] & 3]) + 1 : static_cast<unsigned long>(COUNTER_DISABLED);
+	next_timatime = (ioamhram[0x107] & 4) ? tima_lastUpdate + ((256u - ioamhram[0x105]) << timaClock[ioamhram[0x107] & 3]) + 1 : static_cast<unsigned long>(COUNTER_DISABLED);
 	set_irqEvent();
 	rescheduleIrq(cycleCounter);
 	
 	if (oldDs != isDoubleSpeed())
-		next_endtime = cycleCounter - (isDoubleSpeed() ? oldCc - next_endtime << 1 : oldCc - next_endtime >> 1);
+		next_endtime = cycleCounter - (isDoubleSpeed() ?( oldCc - next_endtime) << 1 :( oldCc - next_endtime) >> 1);
 	else
 		next_endtime = cycleCounter - (oldCc - next_endtime);
 	
@@ -318,7 +318,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			
 			unsigned length = hdma_transfer ? 0x10 : dmaLength;
 			
-			if (static_cast<unsigned long>(dmaDest) + length & 0x10000) {
+			if ((static_cast<unsigned long>(dmaDest) + length) & 0x10000) {
 				length = 0x10000 - dmaDest;
 				ioamhram[0x155] |= 0x80;
 			}
@@ -339,7 +339,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 					cycleCounter += 2 << doubleSpeed;
 					
 					if (cycleCounter - 3 > lOamDmaUpdate) {
-						oamDmaPos = oamDmaPos + 1 & 0xFF;
+						oamDmaPos = (oamDmaPos + 1) & 0xFF;
 						lOamDmaUpdate += 4;
 							
 						if (oamDmaPos < 0xA0) {
@@ -353,7 +353,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 						}
 					}
 					
-					nontrivial_write(0x8000 | dmaDest++ & 0x1FFF, data, cycleCounter);
+					nontrivial_write(0x8000 | (dmaDest++ & 0x1FFF), data, cycleCounter);
 				}
 				
 				lastOamDmaUpdate = lOamDmaUpdate;
@@ -363,7 +363,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			
 			dmaSource = dmaSrc;
 			dmaDestination = dmaDest;
-			ioamhram[0x155] = dmaLength / 0x10 - 0x1 & 0xFF | ioamhram[0x155] & 0x80;
+			ioamhram[0x155] = ((dmaLength / 0x10 - 0x1) & 0xFF) | (ioamhram[0x155] & 0x80);
 			
 			if (ioamhram[0x155] & 0x80) {
 				next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
@@ -504,7 +504,7 @@ void Memory::speedChange(const unsigned long cycleCounter) {
 		}
 		
 		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
-		next_endtime = cycleCounter + (isDoubleSpeed() ? next_endtime - cycleCounter << 1 : (next_endtime - cycleCounter >> 1));
+		next_endtime = cycleCounter + (isDoubleSpeed() ?( next_endtime - cycleCounter) << 1 : ((next_endtime - cycleCounter) >> 1));
 		set_irqEvent();
 		rescheduleIrq(cycleCounter);
 		set_event();
@@ -524,8 +524,8 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 	const unsigned long oldCC = cycleCounter;
 	
 	{
-		const unsigned long divinc = cycleCounter - div_lastUpdate >> 8;
-		ioamhram[0x104] = ioamhram[0x104] + divinc & 0xFF;
+		const unsigned long divinc = (cycleCounter - div_lastUpdate) >> 8;
+		ioamhram[0x104] = (ioamhram[0x104] + divinc) & 0xFF;
 		div_lastUpdate += divinc << 8;
 	}
 
@@ -603,7 +603,7 @@ void Memory::updateInput() {
 void Memory::setRombank() {
 	unsigned bank = rombank;
 	
-	if (romtype == mbc1 && !(bank & 0x1F) || romtype == mbc5 && !bank)
+	if ((romtype == mbc1 && !(bank & 0x1F)) || (romtype == mbc5 && !bank))
 		++bank;
 	
 	romdata[1] = romdata[0] + bank * 0x4000ul - 0x4000;
@@ -644,10 +644,10 @@ void Memory::setBanks() {
 }
 
 void Memory::updateOamDma(const unsigned long cycleCounter) {
-	unsigned cycles = cycleCounter - lastOamDmaUpdate >> 2;
+	unsigned cycles = (cycleCounter - lastOamDmaUpdate) >> 2;
 	
 	while (cycles--) {
-		oamDmaPos = oamDmaPos + 1 & 0xFF;
+		oamDmaPos = (oamDmaPos + 1) & 0xFF;
 		lastOamDmaUpdate += 4;
 		
 		//TODO: reads from vram while the ppu is reading vram should return whatever the ppu is reading.
@@ -736,7 +736,7 @@ void Memory::endOamDma(const unsigned long cycleCounter) {
 }
 
 void Memory::update_tima(const unsigned long cycleCounter) {
-	const unsigned long ticks = cycleCounter - tima_lastUpdate >> timaClock[ioamhram[0x107] & 3];
+	const unsigned long ticks = (cycleCounter - tima_lastUpdate) >> timaClock[ioamhram[0x107] & 3];
 	
 	tima_lastUpdate += ticks << timaClock[ioamhram[0x107] & 3];
 	
@@ -778,8 +778,8 @@ unsigned Memory::nontrivial_ff_read(const unsigned P, const unsigned long cycleC
 	case 0x04:
 // 		printf("div read\n");
 		{
-			const unsigned long divcycles = cycleCounter - div_lastUpdate >> 8;
-			ioamhram[0x104] = ioamhram[0x104] + divcycles & 0xFF;
+			const unsigned long divcycles = (cycleCounter - div_lastUpdate) >> 8;
+			ioamhram[0x104] = (ioamhram[0x104] + divcycles) & 0xFF;
 			div_lastUpdate += divcycles << 8;
 		}
 		
@@ -883,7 +883,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 	
 	switch (P & 0xFF) {
 	case 0x00:
-		data = ioamhram[0x100] & 0xCF | data & 0xF0;
+		data = (ioamhram[0x100] & 0xCF) | (data & 0xF0);
 		break;
 	case 0x01:
 		update_irqEvents(cycleCounter);
@@ -950,7 +950,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			
 			if (data & 4) {
 				tima_lastUpdate = (cycleCounter >> timaClock[data & 3]) << timaClock[data & 3];
-				next_timatime = tima_lastUpdate + (256u - ioamhram[0x105] << timaClock[data & 3]) + 1;
+				next_timatime = tima_lastUpdate + ((256u - ioamhram[0x105]) << timaClock[data & 3]) + 1;
 			}
 			
 			set_irqEvent();
@@ -1101,7 +1101,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			}
 		}
 		
-		data = data & 0x80 | ioamhram[0x126] & 0x7F;
+		data = (data & 0x80) | (ioamhram[0x126] & 0x7F);
 		break;
 	case 0x30:
 	case 0x31:
@@ -1180,7 +1180,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 	case 0x41:
 		display.lcdstatChange(data, cycleCounter);
 		rescheduleIrq(cycleCounter);
-		data = ioamhram[0x141] & 0x87 | data & 0x78;
+		data = (ioamhram[0x141] & 0x87) | (data & 0x78);
 		break;
 	case 0x42:
 		display.scyChange(data, cycleCounter);
@@ -1268,16 +1268,16 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		
 		return;
 	case 0x51:
-		dmaSource = data << 8 | dmaSource & 0xFF;
+		dmaSource = data << 8 | (dmaSource & 0xFF);
 		return;
 	case 0x52:
-		dmaSource = dmaSource & 0xFF00 | data & 0xF0;
+		dmaSource = (dmaSource & 0xFF00) | (data & 0xF0);
 		return;
 	case 0x53:
-		dmaDestination = data << 8 | dmaDestination & 0xFF;
+		dmaDestination = data << 8 | (dmaDestination & 0xFF);
 		return;
 	case 0x54:
-		dmaDestination = dmaDestination & 0xFF00 | data & 0xF0;
+		dmaDestination = (dmaDestination & 0xFF00) | (data & 0xF0);
 		return;
 	case 0x55:
 		if (!isCgb())
@@ -1333,7 +1333,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			
 			display.cgbBgColorChange(index, data, cycleCounter);
 			
-			ioamhram[0x168] = ioamhram[0x168] & ~0x3F | index + (ioamhram[0x168] >> 7) & 0x3F;
+			ioamhram[0x168] = (ioamhram[0x168] & ~0x3F) | ((index + (ioamhram[0x168] >> 7)) & 0x3F);
 		}
 		
 		return;
@@ -1349,7 +1349,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			
 			display.cgbSpColorChange(index, data, cycleCounter);
 			
-			ioamhram[0x16A] = ioamhram[0x16A] & ~0x3F | index + (ioamhram[0x16A] >> 7) & 0x3F;
+			ioamhram[0x16A] = (ioamhram[0x16A] & ~0x3F) | ((index + (ioamhram[0x16A] >> 7)) & 0x3F);
 		}
 		
 		return;
@@ -1419,7 +1419,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 		case plain:
 			return;
 		case mbc5:
-			rombank = rombank & 0x100 | data;
+			rombank = (rombank & 0x100) | data;
 			rombank = rombank % rombanks;
 			setRombank();
 			return;
@@ -1429,7 +1429,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 	case 0x3:
 		switch (romtype) {
 		case mbc1:
-			rombank = rambank_mode ? data & 0x1F : (rombank & 0x60 | data & 0x1F);
+			rombank = rambank_mode ? data & 0x1F : ((rombank & 0x60) | (data & 0x1F));
 			break;
 		case mbc2:
 			if (P & 0x0100) {
@@ -1442,7 +1442,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 			rombank = data & 0x7F;
 			break;
 		case mbc5:
-			rombank = (data & 0x1) << 8 | rombank & 0xFF;
+			rombank = (data & 0x1) << 8 | (rombank & 0xFF);
 			break;
 		default:
 			return;
@@ -1463,7 +1463,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 				break;
 			}
 			
-			rombank = (data & 0x03) << 5 | rombank & 0x1F;
+			rombank = (data & 0x03) << 5 | (rombank & 0x1F);
 			rombank = rombank % rombanks;
 			setRombank();
 			return;
@@ -1527,7 +1527,7 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 				rtc.write(data);
 		} else
 			wramdata[P >> 12 & 1][P & 0xFFF] = data;
-	} else if ((P + 1 & 0xFFFF) < 0xFF81) {
+	} else if (((P + 1) & 0xFFFF) < 0xFF81) {
 		if (P < 0xFF00) {
 			if (display.oamAccessible(cycleCounter) && oamDmaPos >= 0xA0) {
 				display.oamChange(cycleCounter);
@@ -1774,9 +1774,9 @@ void Memory::loadSavedata() {
 		if (file.is_open()) {
 			unsigned long basetime = file.get() & 0xFF;
 			
-			basetime = basetime << 8 | file.get() & 0xFF;
-			basetime = basetime << 8 | file.get() & 0xFF;
-			basetime = basetime << 8 | file.get() & 0xFF;
+			basetime = basetime << 8 | (file.get() & 0xFF);
+			basetime = basetime << 8 | (file.get() & 0xFF);
+			basetime = basetime << 8 | (file.get() & 0xFF);
 			
 			rtc.setBaseTime(basetime);
 		}

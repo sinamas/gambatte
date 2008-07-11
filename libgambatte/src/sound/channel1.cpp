@@ -75,7 +75,7 @@ void Channel1::SweepUnit::nr4Init(const unsigned long cc) {
 	const unsigned shift = nr0 & 0x07;
 	
 	if (period | shift)
-		counter = (cc >> 14) + (period ? period : 8) << 14;
+		counter = ((cc >> 14) + (period ? period : 8)) << 14;
 	else
 		counter = COUNTER_DISABLED;
 	
@@ -175,7 +175,7 @@ void Channel1::setSo(const bool so1, const bool so2) {
 }
 
 void Channel1::reset() {
-	cycleCounter = 0x1000 | cycleCounter & 0xFFF; // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
 
 // 	lengthCounter.reset();
 	dutyUnit.reset();

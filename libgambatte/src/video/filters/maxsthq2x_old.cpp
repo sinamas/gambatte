@@ -24,7 +24,7 @@
 #include <cstring>
 
 static inline unsigned Interp2(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned lowbits = (c1 * 2 & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303) & 0x030303;
+	const unsigned lowbits = (((c1 * 2) & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303)) & 0x030303;
 	
 	return (c1 * 2 + c2 + c3 - lowbits) >> 2;
 }
@@ -38,13 +38,13 @@ static inline unsigned Interp5(const unsigned c1, const unsigned c2) {
 }
 
 static inline unsigned Interp6(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned lowbits = (c1 * 4 & 0x040404) + (c1 & 0x070707) + (c2 * 2 & 0x060606) + (c3 & 0x070707) & 0x070707;
+	const unsigned lowbits = (((c1 * 4) & 0x040404) + (c1 & 0x070707) + (c2 * 2 & 0x060606) + (c3 & 0x070707)) & 0x070707;
 	
 	return ((c1 * 5 + c2 * 2 + c3) - lowbits) >> 3;
 }
 
 static inline unsigned Interp7(const unsigned c1, const unsigned c2, const unsigned c3) {
-	const unsigned lowbits = ((c1 * 2 & 0x020202) + (c1 & 0x030303)) * 2 + (c2 & 0x070707) + (c3 & 0x070707) & 0x070707;
+	const unsigned lowbits = (((c1 * 2) & 0x020202) + (c1 & 0x030303)) * 2 + (c2 & 0x070707) + (c3 & 0x070707) & 0x070707;
 	
 	return ((c1 * 6 + c2 + c3) - lowbits) >> 3;
 }

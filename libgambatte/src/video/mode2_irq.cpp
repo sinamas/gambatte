@@ -50,7 +50,7 @@ unsigned long Mode2Irq::schedule(const unsigned statReg, const LyCounter &lyCoun
 	
 	unsigned next = lyCounter.time() - cycleCounter;
 	
-	if (lyCounter.ly() >= 143 || lyCounter.ly() == 142 && next <= 4) {
+	if (lyCounter.ly() >= 143 || (lyCounter.ly() == 142 && next <= 4)) {
 		next += (153u - lyCounter.ly()) * lyCounter.lineTime();
 	} else {
 		if (next <= 4)

@@ -71,7 +71,7 @@ bool EnvelopeUnit::nr4Init(const unsigned long cc) {
 		if (!(cc & 0x7000))
 			++period;
 		
-		counter = cc - (cc - 0x1000 & 0x7FFF) + period * 0x8000;
+		counter = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
 	}
 	
 	volume = nr2 >> 4;

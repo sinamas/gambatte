@@ -35,7 +35,7 @@ SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned ch
 	unsigned distance = 80;
 	
 	while (distance--) {
-		buf[pos] = oamram[pos * 2 & ~3 | pos & 1];
+		buf[pos] = oamram[((pos * 2) & ~3) | (pos & 1)];
 		++pos;
 	}
 }
@@ -56,7 +56,7 @@ void SpriteMapper::OamReader::update(const unsigned long cc) {
 		unsigned pos = std::min(lulc, 40u);
 		unsigned distance = 40;
 		
-		if (cc - lu >> lyCounter.isDoubleSpeed() < 456) {
+		if ((cc - lu) >> lyCounter.isDoubleSpeed() < 456) {
 			const unsigned cclc = toPosCycles(cc, lyCounter);
 			
 			distance = std::min(cclc, 40u) - pos + (cclc < lulc ? 40 : 0);

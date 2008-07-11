@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -48,7 +48,7 @@ void Mode0Irq::doEvent() {
 		nextTime += lyCounter.lineTime() * 10;
 	}
 	
-	nextTime += baseCycle(lyCounter.isDoubleSpeed()) + m3ExtraCycles(nextLy) << lyCounter.isDoubleSpeed();
+	nextTime += (baseCycle(lyCounter.isDoubleSpeed()) + m3ExtraCycles(nextLy)) << lyCounter.isDoubleSpeed();
 	
 	setTime(nextTime);
 }
@@ -67,7 +67,7 @@ void Mode0Irq::mode3CyclesChange() {
 		}
 	}
 	
-	nextTime += baseCycle(lyCounter.isDoubleSpeed()) + m3ExtraCycles(nextLy) << lyCounter.isDoubleSpeed();
+	nextTime += (baseCycle(lyCounter.isDoubleSpeed()) + m3ExtraCycles(nextLy)) << lyCounter.isDoubleSpeed();
 	
 	setTime(nextTime);
 }
