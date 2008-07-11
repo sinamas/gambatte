@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,13 +19,20 @@
 #include "xrandrtoggler.h"
 
 #include <QX11Info>
+#include <iostream>
 
 bool XRandRToggler::isUsable() {
-	int unused;
-	return XRRQueryExtension(QX11Info::display(), &unused, &unused) && XRRQueryVersion(QX11Info::display(), &unused, &unused);
+	int unused = 0;
+	int major = 1;
+	int minor = 1;
+	
+	return XRRQueryExtension(QX11Info::display(), &unused, &unused) &&
+			XRRQueryVersion(QX11Info::display(), &major, &minor) &&
+			major == 1 && minor >= 1;
 }
 
 XRandRToggler::XRandRToggler() :
+config(0),
 originalResIndex(0),
 fullResIndex(0),
 rotation(0),
@@ -33,7 +40,7 @@ fullRateIndex(0),
 originalRate(0),
 isFull(false)
 {
-	XRRScreenConfiguration *config = XRRGetScreenInfo(QX11Info::display(), QX11Info::appRootWindow());
+	config = XRRGetScreenInfo(QX11Info::display(), QX11Info::appRootWindow());
 	fullResIndex = originalResIndex = XRRConfigCurrentConfiguration(config, &rotation);
 	originalRate = XRRConfigCurrentRate(config);
 	
@@ -65,21 +72,17 @@ isFull(false)
 		
 		fullRateIndex = i;
 	}
-	
-	XRRFreeScreenConfigInfo(config);
 }
 
 XRandRToggler::~XRandRToggler() {
 	setFullMode(false);
-// 	XRRFreeScreenConfigInfo(config);
+	XRRFreeScreenConfigInfo(config);
 }
 
 const QRect XRandRToggler::fullScreenRect(const QWidget */*wdgt*/) const {
 	int w, h;
 	
 	{
-		XRRScreenConfiguration *config = XRRGetScreenInfo(QX11Info::display(), QX11Info::appRootWindow());
-		
 		int nSizes = 0;
 		XRRScreenSize *randrSizes = XRRConfigSizes(config, &nSizes);
 		
@@ -93,8 +96,6 @@ const QRect XRandRToggler::fullScreenRect(const QWidget */*wdgt*/) const {
 			w = infoVector[fullResIndex].w;
 			h = infoVector[fullResIndex].h;
 		}
-		
-		XRRFreeScreenConfigInfo(config);
 	}
 	
 	return QRect(0, 0, w, h);
@@ -109,8 +110,6 @@ void XRandRToggler::setMode(unsigned /*screen*/, const unsigned resIndex, const 
 }
 
 void XRandRToggler::setFullMode(const bool enable) {
-	XRRScreenConfiguration *config = XRRGetScreenInfo(QX11Info::display(), QX11Info::appRootWindow());
-	
 	SizeID currentID = XRRConfigCurrentConfiguration(config, &rotation);
 	int currentRate = XRRConfigCurrentRate(config);
 	
@@ -137,13 +136,9 @@ void XRandRToggler::setFullMode(const bool enable) {
 			emit rateChange(newRate);
 	}
 	
-	XRRFreeScreenConfigInfo(config);
-	
 	isFull = enable;
 }
 
 void XRandRToggler::emitRate() {
-	XRRScreenConfiguration *config = XRRGetScreenInfo(QX11Info::display(), QX11Info::appRootWindow());
 	emit rateChange(XRRConfigCurrentRate(config));
-	XRRFreeScreenConfigInfo(config);
 }

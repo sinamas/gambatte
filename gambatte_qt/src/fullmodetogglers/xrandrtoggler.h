@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -33,6 +33,7 @@ class XRandRToggler : public FullModeToggler {
 	Q_OBJECT
 		
 	std::vector<ResInfo> infoVector;
+	XRRScreenConfiguration *config;
 	unsigned originalResIndex;
 	unsigned fullResIndex;
 	Rotation rotation;
