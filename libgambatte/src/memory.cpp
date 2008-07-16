@@ -511,6 +511,11 @@ void Memory::speedChange(const unsigned long cycleCounter) {
 	}
 }
 
+static void decCycles(unsigned long &counter, const unsigned long dec) {
+	if (counter != Memory::COUNTER_DISABLED)
+		counter -= dec;
+}
+
 unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 	std::printf("resetting counters\n");
 	
@@ -534,36 +539,26 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 	}
 	
 	const unsigned long dec = cycleCounter < 0x10000 ? 0 : (cycleCounter & ~0x7FFFul) - 0x8000;
-
-	div_lastUpdate -= dec;
+	
+	minIntTime = minIntTime < cycleCounter ? 0 : minIntTime - dec;
 	
 	if (ioamhram[0x107] & 0x04)
-		tima_lastUpdate -= dec;
+		decCycles(tima_lastUpdate, dec);
 	
-	if (lastOamDmaUpdate != COUNTER_DISABLED)
-		lastOamDmaUpdate -= dec;
-	
-	if (minIntTime < cycleCounter)
-		minIntTime = 0;
-	else
-		minIntTime -= dec;
-	
-	next_eventtime -= dec;
-	if (next_irqEventTime != COUNTER_DISABLED)
-		next_irqEventTime -= dec;
-	if (next_timatime != COUNTER_DISABLED)
-		next_timatime -= dec;
-	if (next_blittime != COUNTER_DISABLED)
-		next_blittime -= dec;
-	if (nextOamEventTime != COUNTER_DISABLED)
-		nextOamEventTime -= dec;
-	next_endtime -= dec;
-	if (next_dmatime != COUNTER_DISABLED) next_dmatime -= dec;
-	if (next_hdmaReschedule != COUNTER_DISABLED) next_hdmaReschedule -= dec;
-	if (nextIntTime != COUNTER_DISABLED) nextIntTime -= dec;
-	if (next_serialtime != COUNTER_DISABLED) next_serialtime -= dec;
-	if (tmatime != COUNTER_DISABLED)
-		tmatime -= dec;
+	decCycles(div_lastUpdate, dec);
+	decCycles(lastOamDmaUpdate, dec);
+	decCycles(next_eventtime, dec);
+	decCycles(next_irqEventTime, dec);
+	decCycles(next_timatime, dec);
+	decCycles(next_blittime, dec);
+	decCycles(nextOamEventTime, dec);
+	decCycles(next_endtime, dec);
+	decCycles(next_dmatime, dec);
+	decCycles(next_hdmaReschedule, dec);
+	decCycles(nextIntTime, dec);
+	decCycles(next_serialtime, dec);
+	decCycles(tmatime, dec);
+	decCycles(next_unhalttime, dec);
 	
 	cycleCounter -= dec;
 	
