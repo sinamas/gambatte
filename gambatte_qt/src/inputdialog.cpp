@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,7 +18,8 @@
  ***************************************************************************/
 #include "inputdialog.h"
 
-#include <QLineEdit>
+#include <QMenu>
+#include <QContextMenuEvent>
 #include <QKeyEvent>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -384,28 +385,23 @@ int pollJsEvent(SDL_Event *ev) {
 	return returnVal;
 }
 
-class InputBox : public QLineEdit {
-	QWidget *nextFocus;
-	SDL_Event data;
-	int timerId;
-	
-protected:
-	void focusInEvent(QFocusEvent *event);
-	void focusOutEvent(QFocusEvent *event);
-	void keyPressEvent(QKeyEvent *e);
-	void timerEvent(QTimerEvent */*event*/);
-	
-public:
-	InputBox(QWidget *nextFocus = 0);
-	void setData(const SDL_Event &data) { setData(data.id, data.value); }
-	void setData(unsigned id, int value = InputDialog::KBD_VALUE);
-	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
-	const SDL_Event& getData() const { return data; }
-};
-
 InputBox::InputBox(QWidget *nextFocus) : nextFocus(nextFocus), timerId(0) {
 // 	setReadOnly(true);
 	setData(0, InputDialog::NULL_VALUE);
+	connect(this, SIGNAL(textEdited(const QString&)), this, SLOT(textEditedSlot(const QString&)));
+}
+
+void InputBox::contextMenuEvent(QContextMenuEvent *event) {
+	QMenu *const menu = new QMenu(this);
+	
+	menu->addAction(tr("&Copy"), this, SLOT(copy()))->setEnabled(hasSelectedText());
+	menu->addSeparator();
+	menu->addAction(tr("&Select All"), this, SLOT(selectAll()))->setEnabled(!displayText().isEmpty());
+	menu->addSeparator();
+	menu->addAction(tr("C&lear"), this, SLOT(clearData()))->setEnabled(getData().value != InputDialog::NULL_VALUE);
+	menu->exec(event->globalPos());
+	
+	delete menu;
 }
 
 void InputBox::focusInEvent(QFocusEvent *event) {
@@ -515,9 +511,9 @@ void InputBox::setData(const unsigned id, const int value) {
 
 void InputBoxPair::clear() {
 	if (altBox->getData().value != InputDialog::NULL_VALUE)
-		altBox->setData(0, InputDialog::NULL_VALUE);
+		altBox->clearData();
 	else
-		mainBox->setData(0, InputDialog::NULL_VALUE);
+		mainBox->clearData();
 }
 
 InputDialog::InputDialog(const std::vector<MediaSource::ButtonInfo> &buttonInfos,

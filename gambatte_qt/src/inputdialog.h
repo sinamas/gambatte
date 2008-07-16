@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@
 #define INPUTDIALOG_H
 
 #include <QDialog>
+#include <QLineEdit>
 #include <vector>
 #include "SDL_Joystick/include/SDL_event.h"
 #include "mediasource.h"
@@ -30,20 +31,7 @@ enum { AXIS_CENTERED = 0, AXIS_POSITIVE = 1, AXIS_NEGATIVE = 2 };
 // only hats can have multiple bits set at once. In practice only axis values are converted (to AXIS_CENTERED, AXIS_POSITIVE or AXIS_NEGATIVE).
 int pollJsEvent(SDL_Event *ev);
 
-class InputBox;
-
-class InputBoxPair : public QObject {
-	Q_OBJECT
-
-public:
-	InputBox *const mainBox;
-	InputBox *const altBox;
-	
-	InputBoxPair(InputBox *mainBox, InputBox *altBox) : mainBox(mainBox), altBox(altBox) {}
-	
-public slots:
-	void clear();
-};
+class InputBoxPair;
 
 class InputDialog : public QDialog {
 	Q_OBJECT
@@ -67,6 +55,49 @@ public:
 public slots:
 	void accept();
 	void reject();
+};
+
+class InputBox : public QLineEdit {
+	Q_OBJECT
+
+	QWidget *nextFocus;
+	SDL_Event data;
+	int timerId;
+	
+private slots:
+	void textEditedSlot(const QString &) {
+		setData(data);
+	}
+	
+protected:
+	void contextMenuEvent(QContextMenuEvent *event);
+	void focusInEvent(QFocusEvent *event);
+	void focusOutEvent(QFocusEvent *event);
+	void keyPressEvent(QKeyEvent *e);
+	void timerEvent(QTimerEvent */*event*/);
+	
+public:
+	InputBox(QWidget *nextFocus = 0);
+	void setData(const SDL_Event &data) { setData(data.id, data.value); }
+	void setData(unsigned id, int value = InputDialog::KBD_VALUE);
+	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
+	const SDL_Event& getData() const { return data; }
+
+public slots:
+	void clearData() { setData(0, InputDialog::NULL_VALUE); }
+};
+
+class InputBoxPair : public QObject {
+	Q_OBJECT
+
+public:
+	InputBox *const mainBox;
+	InputBox *const altBox;
+	
+	InputBoxPair(InputBox *mainBox, InputBox *altBox) : mainBox(mainBox), altBox(altBox) {}
+	
+public slots:
+	void clear();
 };
 
 #endif
