@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -249,18 +249,22 @@ public:
 	unsigned get_stat(unsigned lycReg, unsigned long cycleCounter);
 
 	unsigned getLyReg(const unsigned long cycleCounter) {
-		if (cycleCounter >= lyCounter.time())
-			update(cycleCounter);
-			
-		unsigned lyReg = lyCounter.ly();
+		unsigned lyReg = 0;
 		
-		if (lyCounter.time() - cycleCounter <= 4) {
-			if (lyReg == 153)
+		if (enabled) {
+			if (cycleCounter >= lyCounter.time())
+				update(cycleCounter);
+				
+			lyReg = lyCounter.ly();
+			
+			if (lyCounter.time() - cycleCounter <= 4) {
+				if (lyReg == 153)
+					lyReg = 0;
+				else
+					++lyReg;
+			} else if (lyReg == 153)
 				lyReg = 0;
-			else
-				++lyReg;
-		} else if (lyReg == 153)
-			lyReg = 0;
+		}
 
 		return lyReg;
 	}
