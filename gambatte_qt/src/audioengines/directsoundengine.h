@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -42,10 +42,11 @@ class DirectSoundEngine : public AudioEngine {
 	
 	static BOOL CALLBACK enumCallback(LPGUID, const char*, const char*, LPVOID);
 	
+	int doInit(int rate, unsigned latency);
+	
 public:
 	DirectSoundEngine(HWND hwnd);
 	~DirectSoundEngine();
-	int init(int rate, unsigned latency);
 	void uninit();
 	int write(void *buffer, unsigned frames);
 	const BufferState bufferState() const;

@@ -234,10 +234,15 @@ void Memory::ei(const unsigned long cycleCounter) {
 	rescheduleIrq(cycleCounter);
 }
 
-void Memory::inc_endtime(const unsigned long inc) {
+void Memory::incEndtime(const unsigned long inc) {
 	active = true;
 	next_endtime += inc << isDoubleSpeed();
 	set_event();
+}
+
+void Memory::setEndtime(const unsigned long cycleCounter, const unsigned long inc) {
+	next_endtime = cycleCounter;
+	incEndtime(inc);
 }
 
 void Memory::set_irqEvent() {
@@ -1831,9 +1836,9 @@ void Memory::set_savedir(const char *dir) {
 	}
 }
 
-void Memory::sound_fill_buffer(Gambatte::uint_least16_t *const stream, const unsigned samples, const unsigned long cycleCounter) {
+unsigned Memory::fillSoundBuffer(const unsigned long cycleCounter) {
 	sound.generate_samples(cycleCounter, isDoubleSpeed());
-	sound.fill_buffer(stream, samples);
+	return sound.fillBuffer();
 }
 
 void Memory::setVideoBlitter(Gambatte::VideoBlitter *const vb) {

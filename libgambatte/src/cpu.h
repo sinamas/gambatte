@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -98,9 +98,8 @@ public:
 	
 	bool load(const char* romfile);
 	
-	void sound_fill_buffer(Gambatte::uint_least16_t *const stream, const unsigned samples) {
-		memory.sound_fill_buffer(stream, samples, cycleCounter_);
-	}
+	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
+	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }
 	
 	bool isCgb() const { return memory.isCgb(); }
 	

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -30,6 +30,7 @@ Channel3::Channel3() :
 	lengthCounter(disableMaster, 0xFF),
 	cycleCounter(0),
 	soMask(0),
+	prevOut(0),
 	waveCounter(SoundUnit::COUNTER_DISABLED),
 	lastReadTime(0),
 	nr0(0),
@@ -77,8 +78,8 @@ void Channel3::setNr4(const unsigned data) {
 	}
 }
 
-void Channel3::setSo(const bool so1, const bool so2) {
-	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
+void Channel3::setSo(const unsigned long soMask) {
+	this->soMask = soMask;
 }
 
 void Channel3::reset() {
@@ -146,43 +147,42 @@ void Channel3::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseV
 	if (outBase && rShift != 4) {
 		const unsigned long endCycles = cycleCounter + cycles;
 		
-		while (cycleCounter < endCycles) {
-			const unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul : 0 - 15ul);
+		for (;;) {
+			const unsigned long nextMajorEvent = lengthCounter.getCounter() < endCycles ? lengthCounter.getCounter() : endCycles;
+			unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul : 0 - 15ul);
+		
+			while (waveCounter <= nextMajorEvent) {
+				*buf += out - prevOut;
+				prevOut = out;
+				buf += waveCounter - cycleCounter;
+				cycleCounter = waveCounter;
 			
-			unsigned long multiplier = endCycles;
-			
-			if (waveCounter <= multiplier || lengthCounter.getCounter() <= multiplier) {
-				if (lengthCounter.getCounter() < waveCounter) {
-					multiplier = lengthCounter.getCounter();
-					lengthCounter.event();
-				} else {
-					lastReadTime = multiplier = waveCounter;
-					waveCounter += toPeriod(nr3, nr4);
-					++wavePos;
-					wavePos &= 0x1F;
-					sampleBuf = waveRam[wavePos >> 1];
-				}
+				lastReadTime = waveCounter;
+				waveCounter += toPeriod(nr3, nr4);
+				++wavePos;
+				wavePos &= 0x1F;
+				sampleBuf = waveRam[wavePos >> 1];
+				out = outBase * (/*master ? */((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul/* : 0 - 15ul*/);
 			}
-			
-			multiplier -= cycleCounter;
-			cycleCounter += multiplier;
-			
-			Gambatte::uint_least32_t *const bufend = buf + multiplier;
-			
-			if (out) {
-				while (buf != bufend)
-					(*buf++) += out;
+		
+			if (cycleCounter < nextMajorEvent) {
+				*buf += out - prevOut;
+				prevOut = out;
+				buf += nextMajorEvent - cycleCounter;
+				cycleCounter = nextMajorEvent;
 			}
-			
-			buf = bufend;
+		
+			if (lengthCounter.getCounter() == nextMajorEvent) {
+				lengthCounter.event();
+			} else
+				break;
 		}
 	} else {
 		if (outBase) {
 			const unsigned long out = outBase * (0 - 15ul);
-			Gambatte::uint_least32_t *const bufend = buf + cycles;
 			
-			while (buf != bufend)
-				(*buf++) += out;
+			*buf += out - prevOut;
+			prevOut = out;
 		}
 		
 		cycleCounter += cycles;

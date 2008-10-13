@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -39,7 +39,21 @@ public:
 	GB();
 	~GB();
 	bool load(const char* romfile);
-	void runFor(unsigned long cycles);
+	
+	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer.
+	  * There are 35112 stereo sound samples in a video frame.
+	  * May run for uptil 2064 stereo samples too long.
+	  * A stereo sample consists of two native endian 2s complement 16-bit PCM samples,
+	  * with the left sample preceding the right one. Usually casting soundBuf to/from
+	  * short* is OK and recommended. The reason for not using a short* in the interface
+	  * is to avoid implementation defined behaviour without compromising performance.
+	  *
+	  * @param soundBuf buffer with space >= samples + 2064
+	  * @param samples number of stereo samples to produce
+	  * @return actual number of samples produced
+	  */
+	unsigned runFor(Gambatte::uint_least32_t *soundBuf, unsigned samples);
+	
 	void reset();
 	void setVideoBlitter(VideoBlitter *vb);
 	void videoBufferChange();
@@ -50,8 +64,6 @@ public:
 	void setVideoFilter(unsigned n);
 	std::vector<const FilterInfo*> filterInfo() const;
 	void setInputStateGetter(InputStateGetter *getInput);
-
-	void fill_buffer(uint_least16_t *stream, unsigned samples);
 	
 	void set_savedir(const char *sdir);
 	bool isCgb() const;

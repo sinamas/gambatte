@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -331,11 +331,11 @@ XvBlitter::~XvBlitter() {
 	settings.endGroup();
 }
 
-int XvBlitter::sync(const bool turbo) {
+long XvBlitter::sync(const long ft) {
 	if (failed || subBlitter->failed())
 		return -1;
 	
-	return BlitterWidget::sync(turbo);
+	return BlitterWidget::sync(ft);
 }
 
 void XvBlitter::paintEvent(QPaintEvent *event) {

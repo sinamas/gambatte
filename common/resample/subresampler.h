@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,23 +16,18 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef SUBRESAMPLER_H
+#define SUBRESAMPLER_H
 
 #include <cstddef>
 
-template<typename T>
-class Array {
-	T *a;
-	
-	Array(const Array &ar);
-	
+class SubResampler {
 public:
-	Array(const std::size_t size = 0) : a(size ? new T[size] : 0) {}
-	~Array() { delete []a; }
-	void reset(const std::size_t size) { delete []a; a = size ? new T[size] : 0; }
-	operator T*() { return a; }
-	operator const T*() const { return a; }
+	virtual std::size_t resample(short *out, const short *in, std::size_t inlen) = 0;
+	virtual unsigned mul() const = 0;
+	virtual unsigned div() const = 0;
+	virtual void adjustDiv(unsigned /*div*/) {}
+	virtual ~SubResampler() {}
 };
 
 #endif

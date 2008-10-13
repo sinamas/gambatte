@@ -89,7 +89,7 @@ void Channel4::Lfsr::reviveCounter(const unsigned long cc) {
 	3, 1, 1, 2, 2, 1, 1, 6,
 };*/
 
-void Channel4::Lfsr::event() {
+inline void Channel4::Lfsr::event() {
 	if (nr3 < 0xE0) {
 		const unsigned shifted = reg >> 1;
 		const unsigned xored = (reg ^ shifted) & 1;
@@ -168,6 +168,7 @@ Channel4::Channel4() :
 	envelopeUnit(staticOutputTest),
 	cycleCounter(0),
 	soMask(0),
+	prevOut(0),
 	nr4(0),
 	master(false)
 {
@@ -175,8 +176,8 @@ Channel4::Channel4() :
 }
 
 void Channel4::setEvent() {
-	nextEventUnit = &lfsr;
-	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
+// 	nextEventUnit = &lfsr;
+// 	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &envelopeUnit;
 	if (lengthCounter.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &lengthCounter;
@@ -216,8 +217,8 @@ void Channel4::setNr4(const unsigned data) {
 	setEvent();
 }
 
-void Channel4::setSo(const bool so1, const bool so2) {
-	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
+void Channel4::setSo(const unsigned long soMask) {
+	this->soMask = soMask;
 	staticOutputTest(cycleCounter);
 	setEvent();
 }
@@ -257,30 +258,36 @@ void Channel4::loadState(const SaveState &state) {
 
 void Channel4::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
+	const unsigned long outLow = outBase * (0 - 15ul);
 	const unsigned long endCycles = cycleCounter + cycles;
 	
-	while (cycleCounter < endCycles) {
-		const unsigned long out = outBase * ((/*master && */lfsr.isHighState()) ? envelopeUnit.getVolume() * 2 - 15ul : 0 - 15ul);
+	for (;;) {
+		const unsigned long outHigh = /*master ? */outBase * (envelopeUnit.getVolume() * 2 - 15ul)/* : outLow*/;
+		const unsigned long nextMajorEvent = nextEventUnit->getCounter() < endCycles ? nextEventUnit->getCounter() : endCycles;
+		unsigned long out = lfsr.isHighState() ? outHigh : outLow;
 		
-		unsigned long multiplier = nextEventUnit->getCounter();
+		while (lfsr.getCounter() <= nextMajorEvent) {
+			*buf += out - prevOut;
+			prevOut = out;
+			buf += lfsr.getCounter() - cycleCounter;
+			cycleCounter = lfsr.getCounter();
+			
+			lfsr.event();
+			out = lfsr.isHighState() ? outHigh : outLow;
+		}
 		
-		if (multiplier <= endCycles) {
+		if (cycleCounter < nextMajorEvent) {
+			*buf += out - prevOut;
+			prevOut = out;
+			buf += nextMajorEvent - cycleCounter;
+			cycleCounter = nextMajorEvent;
+		}
+		
+		if (nextEventUnit->getCounter() == nextMajorEvent) {
 			nextEventUnit->event();
 			setEvent();
 		} else
-			multiplier = endCycles;
-		
-		multiplier -= cycleCounter;
-		cycleCounter += multiplier;
-		
-		Gambatte::uint_least32_t *const bufend = buf + multiplier;
-		
-		if (out) {
-			while (buf != bufend)
-				(*buf++) += out;
-		}
-		
-		buf = bufend;
+			break;
 	}
 	
 	if (cycleCounter & SoundUnit::COUNTER_MAX) {

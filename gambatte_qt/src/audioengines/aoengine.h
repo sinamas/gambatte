@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,10 +26,11 @@
 class AoEngine : public AudioEngine {
 	ao_device *aoDevice;
 	
+	int doInit(int rate, unsigned latency);
+	
 public:
 	AoEngine();
 	~AoEngine();
-	int init(int rate, unsigned latency);
 	void uninit();
 	int write(void *buffer, unsigned samples);
 };

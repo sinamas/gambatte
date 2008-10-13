@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -44,11 +44,11 @@ class OpenAlEngine : public AudioEngine {
 	int rate;
 	
 	void deleteProcessedBufs() const;
+	int doInit(int rate, unsigned latency);
 	
 public:
 	OpenAlEngine();
 	~OpenAlEngine();
-	int init(int rate, unsigned latency);
 	void uninit();
 	int write(void *buffer, unsigned samples);
 	const BufferState bufferState() const;

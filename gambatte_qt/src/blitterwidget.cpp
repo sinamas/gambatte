@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,11 +17,35 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "blitterwidget.h"
+#include <adaptivesleep.h>
+#include <cstdlib>
+#include <iostream>
 
-struct Time {
-	long sec;
-	long rsec;
-};
+void FtEst::init(const long frameTime) {
+	this->frameTime = frameTime;
+	ft = 0;
+	ftAvg = frameTime * COUNT;
+	ftVar = ftAvg >> 12;
+	last = 0;
+	count = COUNT;
+}
+
+void FtEst::update(const usec_t t) {
+	if (t - last < static_cast<unsigned long>(frameTime + (frameTime >> 2))) {
+		ft += t - last;
+		
+		if (--count == 0) {
+			count = COUNT;
+			long oldFtAvg = ftAvg;
+			ftAvg = (ftAvg * 15 + ft + 8) >> 4;
+			ftVar = (ftVar * 15 + std::abs(ftAvg - oldFtAvg) + 8) >> 4;
+			std::cout << "ftAvg: " << est() << " ftVar: " << var() << std::endl;
+			ft = 0;
+		}
+	}
+	
+	last = t;
+}
 
 #ifdef Q_WS_WIN
 
@@ -38,7 +62,7 @@ public:
 		freq = qpf ? li.QuadPart : 1000;
 	}
 	
-	void get(Time *const time, const long denom) const {
+	usec_t get() const {
 		LARGE_INTEGER li;
 		
 		if (qpf)
@@ -46,35 +70,33 @@ public:
 		else
 			li.QuadPart = timeGetTime();
 		
-		time->sec = li.QuadPart / freq;
-		time->rsec = (li.QuadPart % freq) * denom / freq;
+		return static_cast<ULONGLONG>(li.QuadPart) * 1000000 / freq;
 	}
 };
 
 static Timer timer;
 
-static void getTime(Time *const time, const long denom) {
-	timer.get(time, denom);
+usec_t getusecs() {
+	return timer.get();
 }
 
-static void sleep(const long secnum, const long secdenom) {
-	Sleep(static_cast<qlonglong>(secnum) * 1000 / secdenom);
+void usecsleep(const usec_t usecs) {
+	Sleep((usecs + 999) / 1000);
 }
 
 #else
 
 #include <sys/time.h>
 
-static void getTime(Time *const time, const long denom) {
+usec_t getusecs() {
 	timeval t;
 	gettimeofday(&t, NULL);
-	time->sec = t.tv_sec;
-	time->rsec = static_cast<qlonglong>(t.tv_usec) * denom / 1000000;
+	return t.tv_sec * usec_t(1000000) + t.tv_usec;
 }
 
-static void sleep(const long secnum, const long secdenom) {
+void usecsleep(const usec_t usecs) {
 	timespec tspec = { tv_sec: 0,
-	                   tv_nsec: static_cast<qlonglong>(secnum) * 1000000000 / secdenom };
+	                   tv_nsec: usecs * 1000 };
 
 	nanosleep(&tspec, NULL);
 }
@@ -82,65 +104,16 @@ static void sleep(const long secnum, const long secdenom) {
 #endif /*Q_WS_WIN*/
 
 class BlitterWidget::Impl {
-	Time last;
-	long ftnum;
-	long ftdenom;
-	long late;
-	unsigned noSleep;
+	AdaptiveSleep asleep;
+	usec_t last;
 	
 public:
-	Impl() : ftnum(Rational().numerator), ftdenom(Rational().denominator), late(0), noSleep(60) { getTime(&last, ftdenom); }
+	Impl() : last(0) {}
 	
-	void setFrameTime(const Rational &ft) {
-		last.rsec = static_cast<qulonglong>(last.rsec) * ft.denominator / ftdenom;
-		ftnum = ft.numerator;
-		ftdenom = ft.denominator;
-		late = 0;
-	}
-	
-	const Rational frameTime() const {
-		return Rational(ftnum, ftdenom);
-	}
-	
-	int sync(const bool turbo) {
-		if (turbo)
-			return 0;
-		
-		Time current;
-		getTime(&current, ftdenom);
-		
-		long diff = (current.sec - last.sec) * ftdenom + current.rsec - last.rsec;
-		
-		if (diff < ftnum) {
-			diff = ftnum - diff;
-			
-			if (diff > late) {
-				sleep(diff - late, ftdenom);
-				
-				getTime(&current, ftdenom);
-				late += ((current.sec - last.sec) * ftdenom + current.rsec - last.rsec - ftnum) / 2;
-				
-				if (late < 0)
-					late = 0;
-				
-				noSleep = 60;
-			} else if (noSleep-- == 0) {
-				noSleep = 60;
-				late = 0;
-			}
-			
-			while ((current.sec - last.sec) * ftdenom + current.rsec - last.rsec < ftnum)
-				getTime(&current, ftdenom);
-			
-			last.rsec += ftnum;
-			
-			if (last.rsec >= ftdenom) {
-				last.rsec -= ftdenom;
-				++last.sec;
-			}
-		} else {
-			//quickfix:catches up to current time
-			last = current;
+	long sync(const long ft) {
+		if (ft) {
+			last += asleep.sleepUntil(last, ft);
+			last += ft;
 		}
 		
 		return 0;
@@ -153,6 +126,7 @@ BlitterWidget::BlitterWidget(PixelBufferSetter setPixelBuffer,
                              QWidget *parent) :
 QWidget(parent),
 impl(new Impl),
+ft(1000000/60),
 setPixelBuffer(setPixelBuffer),
 nameString(name),
 integerOnlyScaler(integerOnlyScaler)
@@ -164,14 +138,6 @@ BlitterWidget::~BlitterWidget() {
 	delete impl;
 }
 
-void BlitterWidget::setFrameTime(Rational ft) {
-	impl->setFrameTime(ft);
-}
-
-const BlitterWidget::Rational BlitterWidget::frameTime() const {
-	return impl->frameTime();
-}
-
-int BlitterWidget::sync(const bool turbo) {
-	return impl->sync(turbo);
+long BlitterWidget::sync(const long ft) {
+	return impl->sync(ft);
 }

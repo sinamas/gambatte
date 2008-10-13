@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -38,6 +38,7 @@
 #include <QSettings>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <cstring>
 
 ColorPicker::ColorPicker(QRgb color, QWidget *parent)
 : QFrame(parent), w(new QWidget)
@@ -216,6 +217,7 @@ static const QModelIndex schemeIndexOf(const QAbstractItemModel *const model, co
 PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *global, QWidget *parent)
 : QDialog(parent), global(global), listView(new QListView), rmSchemeButton(new QPushButton("Remove Scheme"))
 {
+	std::memset(currentColors, 0, sizeof(currentColors));
 	setWindowTitle(global ? "Current ROM Palette" : "Global Palette");
 	
 	QBoxLayout *const mainLayout = new QVBoxLayout;
@@ -228,7 +230,7 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 			QBoxLayout *const frameLayout = new QVBoxLayout;
 			savedir = savepath + "/";
 			QDir::root().mkpath(savedir + "stored/");
-			listView->setModel(new ImmutableStringListModel);
+			listView->setModel(new ImmutableStringListModel(this));
 			setSchemeList();
 			frameLayout->addWidget(listView);
 			

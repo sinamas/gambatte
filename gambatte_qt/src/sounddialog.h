@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -34,10 +34,12 @@ class SoundDialog : public QDialog {
 	const std::vector<AudioEngine*> &engines;
 	QVBoxLayout *const topLayout;
 	QComboBox *const engineSelector;
+	QComboBox *const resamplerSelector;
 	QComboBox *const rateSelector;
 	QSpinBox *const latencySelector;
 	QWidget *engineWidget;
 	int engineIndex;
+	int resamplerNum;	
 	int rate;
 	int latency;
 	
@@ -52,6 +54,7 @@ public:
 	SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSource::SampleRateInfo &rateInfo, QWidget *parent = 0);
 	~SoundDialog();
 	int getEngineIndex() const { return engineIndex; }
+	int getResamplerNum() const { return resamplerNum; }
 	int getRate() const { return rate; }
 	int getLatency() const { return latency; };
 	void setRates(const MediaSource::SampleRateInfo &rateInfo);

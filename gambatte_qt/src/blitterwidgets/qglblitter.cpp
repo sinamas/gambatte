@@ -368,11 +368,11 @@ void QGLBlitter::setCorrectedGeometry(int w, int h, int new_w, int new_h) {
 		subWidget->forcedResize();
 }
 
-void QGLBlitter::setFrameTime(Rational ft) {
+void QGLBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
 	
-	hz1 = (ft.denominator + (ft.numerator >> 1)) / ft.numerator;
-	hz2 = (ft.denominator * 2 + (ft.numerator >> 1)) / ft.numerator;
+	hz1 = (1000000 + (ft >> 1)) / ft;
+	hz2 = (1000000 * 2 + (ft >> 1)) / ft;
 	
 	QString text("Sync to vertical blank in ");
 	text += QString::number(hz1);
@@ -390,18 +390,26 @@ void QGLBlitter::setFrameTime(Rational ft) {
 	resetSubWidget();
 }
 
-const BlitterWidget::Rational QGLBlitter::frameTime() const {
+const BlitterWidget::Estimate QGLBlitter::frameTimeEst() const {
+	if (subWidget->getSwapInterval()) {
+		const Estimate est = { ftEst.est(), ftEst.var() };
+		return est;
+	}
+	
+	return BlitterWidget::frameTimeEst();
+}
+
+/*const BlitterWidget::Rational QGLBlitter::frameTime() const {
 	if (subWidget->getSwapInterval()) {
 		return Rational(subWidget->getSwapInterval(), hz);
 	}
 	
 	return BlitterWidget::frameTime();
-}
+}*/
 
-int QGLBlitter::sync(const bool turbo) {
-	if (!subWidget->getSwapInterval()) {
-		BlitterWidget::sync(turbo);
-	}
+long QGLBlitter::sync(const long ft) {
+	if (!subWidget->getSwapInterval())
+		BlitterWidget::sync(ft);
 
 	subWidget->makeCurrent();
 	
@@ -414,6 +422,9 @@ int QGLBlitter::sync(const bool turbo) {
 	subWidget->swapBuffers();
 	subWidget->blitted = false;
 // 	}
+	
+	if (subWidget->getSwapInterval())
+		ftEst.update(getusecs());
 	
 	return 0;
 }
@@ -443,6 +454,7 @@ void QGLBlitter::resetSubWidget() {
 	subWidget->corrected_h = corrected_h;
 	subWidget->setGeometry(0, 0, width(), height());
 	subWidget->show();
+	ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
 	
 	if (buffer)
 		subWidget->setBufferDimensions(w, h);

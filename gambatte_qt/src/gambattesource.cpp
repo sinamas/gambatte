@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,8 +19,8 @@
 #include "gambattesource.h"
 
 GambatteSource::GambatteSource() :
-blitter(*this),
-sampleBuffer(NULL) {
+MediaSource(Rational(35112), 2064),
+blitter(*this) {
 	gb.setInputStateGetter(&inputGetter);
 	gb.setVideoBlitter(&blitter);
 }
@@ -50,7 +50,7 @@ const MediaSource::SampleRateInfo GambatteSource::generateSampleRateInfo() {
 	srinfo.rates.push_back(48000);
 	srinfo.rates.push_back(44100);
 	srinfo.defaultRateIndex = 0;
-	srinfo.minCustomRate = 32000;
+	srinfo.minCustomRate = 8000;
 	srinfo.maxCustomRate = 192000;
 	
 	return srinfo;
@@ -168,7 +168,6 @@ void GambatteSource::setPixelBuffer(void *pixels, PixelFormat format, unsigned p
 	gb.videoBufferChange();
 }
 
-void GambatteSource::update(const unsigned samples) {
-	gb.runFor(70224);
-	gb.fill_buffer(reinterpret_cast<quint16*>(sampleBuffer), samples);
+unsigned GambatteSource::update(qint16 *sampleBuf, const unsigned samples) {
+	return gb.runFor(reinterpret_cast<Gambatte::uint_least32_t*>(sampleBuf), samples);
 }

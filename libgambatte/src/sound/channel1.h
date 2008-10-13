@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -62,6 +62,7 @@ class Channel1 {
 	
 	unsigned long cycleCounter;
 	unsigned long soMask;
+	unsigned long prevOut;
 	
 	unsigned char nr4;
 	bool master;
@@ -76,7 +77,7 @@ public:
 	void setNr3(unsigned data);
 	void setNr4(unsigned data);
 	
-	void setSo(bool so1, bool so2);
+	void setSo(unsigned long soMask);
 	bool isActive() const { return master; }
 	
 	void update(Gambatte::uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);

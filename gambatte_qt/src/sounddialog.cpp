@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,7 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "sounddialog.h"
-
+#include <resample/resamplerinfo.h>
 #include <QComboBox>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -83,9 +83,14 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSo
 	engines(engines),
 	topLayout(new QVBoxLayout),
 	engineSelector(new QComboBox(this)),
+	resamplerSelector(new QComboBox(this)),
 	rateSelector(new QComboBox(this)),
 	latencySelector(new QSpinBox(this)),
-	engineWidget(NULL)
+	engineWidget(NULL),
+	engineIndex(0),
+	resamplerNum(1),
+	rate(0),
+	latency(68)
 {
 	setWindowTitle(tr("Sound Settings"));
 	
@@ -99,6 +104,17 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSo
 			engineSelector->addItem(engines[i]->nameString);
 		
 		hLayout->addWidget(engineSelector);
+		topLayout->addLayout(hLayout);
+	}
+	
+	{
+		QHBoxLayout *const hLayout = new QHBoxLayout;
+		hLayout->addWidget(new QLabel(tr("Resampler:")));
+		
+		for (unsigned i = 0; i < ResamplerInfo::num(); ++i)
+			resamplerSelector->addItem(ResamplerInfo::get(i).desc);
+		
+		hLayout->addWidget(resamplerSelector);
 		topLayout->addLayout(hLayout);
 	}
 	
@@ -144,9 +160,10 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSo
 	
 	QSettings settings;
 	settings.beginGroup("sound");
-	engineIndex = filterValue(settings.value("engineIndex", 0).toInt(), engineSelector->count());
+	engineIndex = filterValue(settings.value("engineIndex", engineIndex).toInt(), engineSelector->count());
+	resamplerNum = filterValue(settings.value("resamplerNum", resamplerNum).toInt(), resamplerSelector->count(), 0, resamplerNum);
 	setRate(rateSelector, settings.value("rate", rateSelector->itemData(rateSelector->currentIndex())).toInt());
-	latency = filterValue(settings.value("latency", 67).toInt(), latencySelector->maximum(), latencySelector->minimum(), 67);
+	latency = filterValue(settings.value("latency", latency).toInt(), latencySelector->maximum(), latencySelector->minimum(), latency);
 	settings.endGroup();
 	
 	rate = rateSelector->itemData(rateSelector->currentIndex()).toInt();
@@ -161,6 +178,7 @@ SoundDialog::~SoundDialog() {
 	QSettings settings;
 	settings.beginGroup("sound");
 	settings.setValue("engineIndex", engineIndex);
+	settings.setValue("resamplerNum", resamplerNum);
 	settings.setValue("rate", rate);
 	settings.setValue("latency", latency);
 	settings.endGroup();
@@ -196,6 +214,7 @@ void SoundDialog::store() {
 		engines[i]->acceptSettings();
 	
 	engineIndex = engineSelector->currentIndex();
+	resamplerNum = resamplerSelector->currentIndex();
 	rate = rateSelector->itemData(rateSelector->currentIndex()).toInt();
 	latency = latencySelector->value();
 }
@@ -205,6 +224,7 @@ void SoundDialog::restore() {
 		engines[i]->rejectSettings();
 	
 	engineSelector->setCurrentIndex(engineIndex);
+	resamplerSelector->setCurrentIndex(resamplerNum);
 	setRate(rateSelector, rate);
 	latencySelector->setValue(latency);
 }

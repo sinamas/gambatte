@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,6 +25,9 @@
 #include <cassert>
 #include <QApplication>
 #include <QTimer>
+#include <cstdlib>
+
+#include <resample/resamplerinfo.h>
 
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
@@ -96,6 +99,31 @@ MainWindow::JoystickIniter::~JoystickIniter() {
 	SDL_JoystickQuit();
 }
 
+MainWindow::SampleBuffer::SampleBuffer(const std::size_t maxInSamples) : sndInBuffer(maxInSamples * 2), spfnum(0), samplesBuffered(0) {}
+
+std::size_t MainWindow::SampleBuffer::update(qint16 *const out, MediaSource *const source, Resampler *const resampler) {
+	spfnum += source->samplesPerFrame.num;
+	const long insamples = spfnum / source->samplesPerFrame.denom;
+	spfnum -= insamples * source->samplesPerFrame.denom;
+	
+	samplesBuffered += source->update(sndInBuffer + samplesBuffered * 2, insamples - samplesBuffered);
+	samplesBuffered -= insamples;
+	
+	std::size_t outsamples = 0;
+	
+	if (out) {
+		if (resampler->inRate() == resampler->outRate()) {
+			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
+			outsamples = insamples;
+		} else
+			outsamples = resampler->resample(out, sndInBuffer, insamples);
+	}
+	
+	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered * sizeof(qint16) * 2);
+	
+	return outsamples;
+}
+
 MainWindow::MainWindow(MediaSource *source,
                        const std::vector<MediaSource::ButtonInfo> &buttonInfos,
                        const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
@@ -106,16 +134,16 @@ MainWindow::MainWindow(MediaSource *source,
 	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
 	blitter(NULL),
 	fullModeToggler(getFullModeToggler(winId())),
-	sndBuffer(NULL),
+	sampleBuffer((source->samplesPerFrame.num - 1) / source->samplesPerFrame.denom + 1 + source->overupdate),
+	sndOutBuffer(0),
 	ae(NULL),
 	cursorTimer(NULL),
 	jsTimer(NULL),
-	samplesPrFrame(0),
 	ftNum(1),
 	ftDenom(60),
 	paused(0),
-	sampleRate(0),
 	timerId(0),
+	estSrate(0),
 	running(false),
 	turbo(false),
 	pauseOnDialogExec(true),
@@ -193,8 +221,6 @@ MainWindow::~MainWindow() {
 	
 	for (uint i = 0; i < audioEngines.size(); ++i)
 		delete audioEngines[i];
-	
-	delete []sndBuffer;
 }
 
 void MainWindow::resetWindowSize(const QSize &s) {
@@ -375,7 +401,7 @@ void MainWindow::videoSettingsChange() {
 		}
 	}
 	
-	setSamplesPrFrame();
+// 	setSampleRate();
 	
 	blitterContainer->updateLayout();
 }
@@ -426,9 +452,7 @@ void MainWindow::setVideoSources(const std::vector<MediaSource::VideoSourceInfo>
 
 void MainWindow::doSetFrameTime(unsigned num, unsigned denom) {
 	for (unsigned i = 0; i < blitters.size(); ++i)
-		blitters[i]->setFrameTime(BlitterWidget::Rational(num, denom));
-	
-	setSamplesPrFrame();
+		blitters[i]->setFrameTime(num * 1000000.0f / denom + 0.5f);
 }
 
 void MainWindow::setFrameTime(unsigned num, unsigned denom) {
@@ -445,18 +469,36 @@ void MainWindow::setFrameTime(unsigned num, unsigned denom) {
 	
 	if (!turbo)
 		doSetFrameTime(num, denom);
+	
+	setSampleRate();
 }
 
-void MainWindow::setSamplesPrFrame() {
-	const BlitterWidget::Rational r = blitter->frameTime();
-	const unsigned old = samplesPrFrame;
-	samplesPrFrame = (sampleRate * r.numerator) / r.denominator + 1;
+static long maxSamplesPerFrame(const MediaSource *const source) {
+	return (source->samplesPerFrame.num - 1) / source->samplesPerFrame.denom + 1;
+}
+
+static void resetSndOutBuf(Array<qint16> &sndOutBuf, const Resampler *const resampler, const long maxspf) {
+	const std::size_t sz = resampler->maxOut(maxspf) * 2;
 	
-	if (old != samplesPrFrame) {
-		delete []sndBuffer;
-		sndBuffer = new qint16[(samplesPrFrame + 4) * 2];
-		source->setSampleBuffer(sndBuffer, sampleRate);
-		samplesCalc.setBaseSamples(samplesPrFrame);
+	if (sz != sndOutBuf.size())
+		sndOutBuf.reset(sz);
+}
+
+static void adjustResamplerRate(Array<qint16> &sndOutBuf, Resampler *const resampler, const long maxspf, const long outRate) {
+	resampler->adjustRate(resampler->inRate(), outRate);
+	resetSndOutBuf(sndOutBuf, resampler, maxspf);
+}
+
+void MainWindow::setSampleRate() {
+	if (ae) {
+		const Rational fr(ftDenom, ftNum);
+		const long insrate = fr.toDouble() * source->samplesPerFrame.toDouble() + 0.5;
+		const long maxspf = maxSamplesPerFrame(source);
+		
+		resampler.reset();
+		resampler.reset(ResamplerInfo::get(soundDialog->getResamplerNum()).create(insrate, ae->rate(), maxspf));
+		
+		resetSndOutBuf(sndOutBuffer, resampler.get(), maxspf);
 	}
 }
 
@@ -466,12 +508,12 @@ void MainWindow::initAudio() {
 	
 	ae = audioEngines[soundDialog->getEngineIndex()];
 	
-	if ((sampleRate = ae->init(soundDialog->getRate(), soundDialog->getLatency())) < 0) {
+	if (ae->init(soundDialog->getRate(), soundDialog->getLatency()) < 0) {
 		ae = NULL;
-		sampleRate = 0;
-	}
+	} else
+		estSrate = ae->rate();
 	
-	setSamplesPrFrame();
+	setSampleRate();
 }
 
 void MainWindow::soundEngineFailure() {
@@ -487,9 +529,40 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 	
 	updateJoysticks();
 	
-	source->update(samplesCalc.getSamples());
+	const std::size_t outsamples = sampleBuffer.update(turbo ? NULL : static_cast<qint16*>(sndOutBuffer), source, resampler.get());
 	
-	if (blitter->sync(turbo)) {
+	long syncft = 0;
+	
+	if (!turbo) {
+		if (ae->write(sndOutBuffer, outsamples) < 0) {
+			ae->pause();
+			soundEngineFailure();
+			return;
+		}
+		
+		{
+			const RateEst::Result &rsrate = ae->rateEstimate();
+			const long newEstSrate = rsrate.est + (rsrate.var * 2);
+			
+			if (std::abs(newEstSrate - estSrate) > rsrate.var * 2)
+				estSrate = newEstSrate;
+		}
+		
+		const long usecft = blitter->frameTime();
+		syncft = static_cast<float>(usecft - (usecft >> 11)) * ae->rate() / estSrate;
+		
+		const BlitterWidget::Estimate &estft = blitter->frameTimeEst();
+		
+		if (estft.est) {
+			long resorate = estSrate * static_cast<float>(estft.est + (estft.est >> 11) + estft.var * 2) / usecft;
+			
+			if (static_cast<float>(std::abs(resorate - resampler->outRate())) * usecft > static_cast<float>(estft.var * 2) * estSrate)
+				adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), resorate);
+		} else if (resampler->outRate() != ae->rate())
+			adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), ae->rate());
+	}
+	
+	if (blitter->sync(syncft) < 0) {
 		QMessageBox::critical(this, tr("Error"), tr("Video engine failure."));
 		uninitBlitter();
 		blitter->init();
@@ -499,19 +572,6 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 		
 		videoDialog->exec();
 		return;
-	}
-	
-	if (!turbo) {
-		const unsigned lastSamples = samplesCalc.getSamples();
-		const AudioEngine::BufferState bufState = ae->bufferState();
-		
-		if (bufState.fromUnderrun != AudioEngine::BufferState::NOT_SUPPORTED)
-			samplesCalc.update(bufState.fromUnderrun, bufState.fromOverflow);
-		
-		if (ae->write(sndBuffer, lastSamples) < 0) {
-			ae->pause();
-			soundEngineFailure();
-		}
 	}
 }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -30,14 +30,15 @@ OssEngine::OssEngine() :
 AudioEngine("OSS"),
 conf("Custom DSP device:", "/dev/dsp", "ossengine"),
 audio_fd(-1),
-bufSize(0)
+bufSize(0),
+prevfur(0)
 {}
 
 OssEngine::~OssEngine() {
 	uninit();
 }
 
-int OssEngine::init(int speed, const unsigned latency) {
+int OssEngine::doInit(int speed, const unsigned latency) {
 	if ((audio_fd = open(conf.device(), O_WRONLY, 0)) == -1) {
 		perror(conf.device());
 		goto fail;
@@ -96,8 +97,11 @@ int OssEngine::init(int speed, const unsigned latency) {
 			goto fail;
 		}
 		
-		bufSize = info.fragstotal * info.fragsize >> 2;
+		bufSize = info.bytes >> 2;
 	}
+	
+	prevfur = 0;
+	est.init(speed);
 	
 	return speed;
 	
@@ -114,6 +118,17 @@ void OssEngine::uninit() {
 }
 
 int OssEngine::write(void *const buffer, const unsigned samples) {
+	const BufferState &bstate = bufferState();
+	
+	if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
+		if (bstate.fromUnderrun)
+			est.feed(prevfur - bstate.fromUnderrun);
+		else
+			est.init(std::min(est.result().est + (est.result().est >> 10), (long) rate() + (rate() >> 4)));
+	}
+	
+	prevfur = bstate.fromUnderrun + samples;
+	
 	if (::write(audio_fd, buffer, samples * 4) != static_cast<int>(samples * 4))
 		return -1;
 	
@@ -124,9 +139,14 @@ const AudioEngine::BufferState OssEngine::bufferState() const {
 	BufferState s;
 	audio_buf_info info;
 	
-	if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info) == -1 || info.bytes < 0) {
+	if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info) == -1) {
 		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
 	} else {
+		if (info.bytes < 0)
+			info.bytes = 0;
+		else if (static_cast<unsigned>(info.bytes >> 2) > bufSize)
+			info.bytes = bufSize;
+		
 		s.fromUnderrun = bufSize - (info.bytes >> 2);
 		s.fromOverflow = info.bytes >> 2;
 	}

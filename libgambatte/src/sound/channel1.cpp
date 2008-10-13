@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -109,6 +109,7 @@ Channel1::Channel1() :
 	sweepUnit(disableMaster, dutyUnit),
 	cycleCounter(0),
 	soMask(0),
+	prevOut(0),
 	nr4(0),
 	master(false)
 {
@@ -116,8 +117,8 @@ Channel1::Channel1() :
 }
 
 void Channel1::setEvent() {
-	nextEventUnit = &dutyUnit;
-	if (sweepUnit.getCounter() < nextEventUnit->getCounter())
+// 	nextEventUnit = &dutyUnit;
+// 	if (sweepUnit.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &sweepUnit;
 	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &envelopeUnit;
@@ -168,8 +169,8 @@ void Channel1::setNr4(const unsigned data) {
 	setEvent();
 }
 
-void Channel1::setSo(const bool so1, const bool so2) {
-	soMask = (so1 ? 0xFFFF0000 : 0) | (so2 ? 0xFFFF : 0);
+void Channel1::setSo(const unsigned long soMask) {
+	this->soMask = soMask;
 	staticOutputTest(cycleCounter);
 	setEvent();
 }
@@ -213,26 +214,36 @@ void Channel1::loadState(const SaveState &state) {
 
 void Channel1::update(Gambatte::uint_least32_t *buf, const unsigned long soBaseVol, unsigned long cycles) {
 	const unsigned long outBase = envelopeUnit.dacIsOn() ? soBaseVol & soMask : 0;
+	const unsigned long outLow = outBase * (0 - 15ul);
 	const unsigned long endCycles = cycleCounter + cycles;
 	
-	while (cycleCounter < endCycles) {
-		const unsigned long out = 15 * 8 * 4 * 0x00010001ul +
-		                     outBase * ((master && dutyUnit.isHighState()) ? envelopeUnit.getVolume() * 2 - 15ul : 0 - 15ul);
+	for (;;) {
+		const unsigned long outHigh = master ? outBase * (envelopeUnit.getVolume() * 2 - 15ul) : outLow;
+		const unsigned long nextMajorEvent = nextEventUnit->getCounter() < endCycles ? nextEventUnit->getCounter() : endCycles;
+		unsigned long out = dutyUnit.isHighState() ? outHigh : outLow;
 		
-		unsigned long multiplier = nextEventUnit->getCounter();
+		while (dutyUnit.getCounter() <= nextMajorEvent) {
+			*buf = out - prevOut;
+			prevOut = out;
+			buf += dutyUnit.getCounter() - cycleCounter;
+			cycleCounter = dutyUnit.getCounter();
+			
+			dutyUnit.event();
+			out = dutyUnit.isHighState() ? outHigh : outLow;
+		}
 		
-		if (multiplier <= endCycles) {
+		if (cycleCounter < nextMajorEvent) {
+			*buf = out - prevOut;
+			prevOut = out;
+			buf += nextMajorEvent - cycleCounter;
+			cycleCounter = nextMajorEvent;
+		}
+		
+		if (nextEventUnit->getCounter() == nextMajorEvent) {
 			nextEventUnit->event();
 			setEvent();
 		} else
-			multiplier = endCycles;
-		
-		multiplier -= cycleCounter;
-		cycleCounter += multiplier;
-		
-		std::fill_n(buf, multiplier, out);
-			
-		buf += multiplier;
+			break;
 	}
 	
 	if (cycleCounter & SoundUnit::COUNTER_MAX) {

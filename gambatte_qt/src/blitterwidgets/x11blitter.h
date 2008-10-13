@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -55,7 +55,7 @@ public:
 	void init();
 	void uninit();
 	bool isUnusable() const;
-	int sync(bool turbo);
+	long sync(long ft);
 	void setBufferDimensions(const unsigned width, const unsigned height);
 	void blit();
 	QWidget* settingsWidget() { return confWidget.get(); }

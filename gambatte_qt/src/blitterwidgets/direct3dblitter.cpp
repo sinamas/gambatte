@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -341,12 +341,12 @@ void Direct3DBlitter::setSwapInterval(const unsigned hz1, const unsigned hz2) {
 	if (newSwapInterval != swapInterval) {
 		swapInterval = newSwapInterval;
 		resetDevice();
+		ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
 	}
 }
 
 void Direct3DBlitter::setSwapInterval() {
-	const Rational &ft = BlitterWidget::frameTime();
-	setSwapInterval((ft.denominator + (ft.numerator >> 1)) / ft.numerator, (ft.denominator * 2 + (ft.numerator >> 1)) / ft.numerator);
+	setSwapInterval((1000000 + (frameTime() >> 1)) / frameTime(), (1000000 * 2 + (frameTime() >> 1)) / frameTime());
 }
 
 void Direct3DBlitter::draw() {
@@ -473,11 +473,14 @@ void Direct3DBlitter::blit() {
 	}
 }
 
-int Direct3DBlitter::sync(const bool turbo) {
+long Direct3DBlitter::sync(const long ft) {
 	if (!swapInterval)
-		BlitterWidget::sync(turbo);
+		BlitterWidget::sync(ft);
 	
 	present();
+	
+	if (swapInterval)
+		ftEst.update(getusecs());
 	
 	if (!device)
 		return -1;
@@ -485,11 +488,11 @@ int Direct3DBlitter::sync(const bool turbo) {
 	return 0;
 }
 
-void Direct3DBlitter::setFrameTime(Rational ft) {
+void Direct3DBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
 	
-	const unsigned hz1 = (ft.denominator + (ft.numerator >> 1)) / ft.numerator;
-	const unsigned hz2 = (ft.denominator * 2 + (ft.numerator >> 1)) / ft.numerator;
+	const unsigned hz1 = (1000000 + (ft >> 1)) / ft;
+	const unsigned hz2 = (1000000 * 2 + (ft >> 1)) / ft;
 	
 	{
 		QString text("Sync to vertical blank in " + QString::number(hz1));
@@ -503,12 +506,21 @@ void Direct3DBlitter::setFrameTime(Rational ft) {
 	setSwapInterval(hz1, hz2);
 }
 
-const BlitterWidget::Rational Direct3DBlitter::frameTime() const {
+const BlitterWidget::Estimate Direct3DBlitter::frameTimeEst() const {
+	if (swapInterval) {
+		const Estimate est = { ftEst.est(), ftEst.var() };
+		return est;
+	}
+	
+	return BlitterWidget::frameTimeEst();
+}
+
+/*const BlitterWidget::Rational Direct3DBlitter::frameTime() const {
 	if (swapInterval)
 		return Rational(swapInterval, hz);
 	
 	return BlitterWidget::frameTime();
-}
+}*/
 
 void Direct3DBlitter::setExclusive(const bool exclusive) {
 	if (exclusive != this->exclusive) {

@@ -267,11 +267,11 @@ X11Blitter::~X11Blitter() {
 	settings.endGroup();
 }
 
-int X11Blitter::sync(const bool turbo) {
+long X11Blitter::sync(const long ft) {
 	if (subBlitter->failed())
 		return -1;
 	
-	return BlitterWidget::sync(turbo);
+	return BlitterWidget::sync(ft);
 }
 
 /*

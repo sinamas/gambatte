@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -41,22 +41,18 @@ S	1       -           Clock       -
 S) start step on sound power on.
 */
 
-static const unsigned bufferSize = 35112 + 16 + 2048; //FIXME: DMA can prevent process from returning for up to 4096 cycles.
+// static const unsigned bufferSize = 35112 + 16 + 2048; //FIXME: DMA can prevent process from returning for up to 4096 cycles.
 
 PSG::PSG() :
-buffer(new Gambatte::uint_least32_t[bufferSize]),
+buffer(NULL),
 lastUpdate(0),
 soVol(0),
+rsum(0x8000), // initialize to 0x8000 to prevent borrows from high word, xor away later
 bufferPos(0),
 enabled(false)
 {}
 
-PSG::~PSG() {
-	delete[] buffer;
-}
-
 void PSG::init(const bool cgb) {
-// 	bufferPos = 0;
 	ch1.init(cgb);
 	ch2.init(cgb);
 	ch3.init(cgb);
@@ -96,6 +92,7 @@ void PSG::loadState(const SaveState &state) {
 void PSG::accumulate_channels(const unsigned long cycles) {
 	Gambatte::uint_least32_t *const buf = buffer + bufferPos;
 	
+	std::memset(buf, 0, cycles * sizeof(Gambatte::uint_least32_t));
 	ch1.update(buf, soVol, cycles);
 	ch2.update(buf, soVol, cycles);
 	ch3.update(buf, soVol, cycles);
@@ -105,9 +102,6 @@ void PSG::accumulate_channels(const unsigned long cycles) {
 void PSG::generate_samples(const unsigned long cycleCounter, const unsigned doubleSpeed) {
 	const unsigned long cycles = (cycleCounter - lastUpdate) >> (1 + doubleSpeed);
 	lastUpdate += cycles << (1 + doubleSpeed);
-
-	if (bufferSize - bufferPos < cycles)
-		bufferPos = bufferSize - cycles;
 
 	if (cycles)
 		accumulate_channels(cycles);
@@ -120,65 +114,40 @@ void PSG::resetCounter(const unsigned long newCc, const unsigned long oldCc, con
 	lastUpdate = newCc - (oldCc - lastUpdate);
 }
 
-void PSG::fill_buffer(Gambatte::uint_least16_t *stream, const unsigned samples) {
-	const unsigned long endPos = std::min(bufferPos, 35112U);
+unsigned PSG::fillBuffer() {
+	Gambatte::uint_least32_t sum = rsum;
+	Gambatte::uint_least32_t *b = buffer;
+	unsigned n = bufferPos;
 	
-	if (stream && samples && endPos >= samples) {
-		Gambatte::uint_least16_t *const streamEnd = stream + samples * 2;
-		const Gambatte::uint_least32_t *buf = buffer;
-	
-		const unsigned long ratio = (endPos << 16) / samples;
-		
-		unsigned whole = ratio >> 16;
-		unsigned frac = ratio & 0xFFFF;
-		unsigned long so1 = 0;
-		unsigned long so2 = 0;
-		
-		while (stream < streamEnd) {
-			{
-				unsigned long soTmp = 0;
-				
-				for (const Gambatte::uint_least32_t *const end = buf + whole; buf != end;)
-					soTmp += *buf++;
-				
-				so1 += soTmp & 0xFFFF0000;
-				so2 += soTmp << 16 & 0xFFFFFFFF;
-			}
-			
-			{
-				const unsigned long borderSample = *buf++;
-				const unsigned long so1Tmp = (borderSample >> 16) * frac;
-				const unsigned long so2Tmp = (borderSample & 0xFFFF) * frac;
-				
-				so1 += so1Tmp;
-				so2 += so2Tmp;
-				
-				*stream++ = ((so2 / 4389) * samples + 8192) >> 14;
-				*stream++ = ((so1 / 4389) * samples + 8192) >> 14;
-				
-				so1 = (borderSample & 0xFFFF0000) - so1Tmp;
-				so2 = (borderSample << 16 & 0xFFFFFFFF) - so2Tmp;
-			}
-			
-			const unsigned long nextTotal = ratio - ((1ul << 16) - frac);
-			whole = nextTotal >> 16;
-			frac = nextTotal & 0xFFFF;
-		}
+	while (n--) {
+		sum += *b;
+		*b++ = sum ^ 0x8000; // xor away the initial rsum value of 0x8000 (which prevents borrows from the high word) from the low word
 	}
-
-	bufferPos -= endPos;
-	std::memmove(buffer, buffer + endPos, bufferPos * sizeof(Gambatte::uint_least32_t));
+	
+	rsum = sum;
+	
+	return bufferPos;
 }
 
+#ifdef WORDS_BIGENDIAN
+static const unsigned long so1Mul = 0x00000001;
+static const unsigned long so2Mul = 0x00010000;
+#else
+static const unsigned long so1Mul = 0x00010000;
+static const unsigned long so2Mul = 0x00000001;
+#endif
+
 void PSG::set_so_volume(const unsigned nr50) {
-	soVol = (((nr50 & 0x7) + 1ul) << 16) | ((nr50 >> 4 & 0x7) + 1);
+	soVol = (((nr50 & 0x7) + 1) * so1Mul + ((nr50 >> 4 & 0x7) + 1) * so2Mul) * 64;
 }
 
 void PSG::map_so(const unsigned nr51) {
-	ch1.setSo(nr51 & 0x01, (nr51 & 0x10) != 0);
-	ch2.setSo((nr51 & 0x02) != 0, (nr51 & 0x20) != 0);
-	ch3.setSo((nr51 & 0x04) != 0, (nr51 & 0x40) != 0);
-	ch4.setSo((nr51 & 0x08) != 0, (nr51 & 0x80) != 0);
+	const unsigned long tmp = nr51 * so1Mul + (nr51 >> 4) * so2Mul;
+	
+	ch1.setSo((tmp      & 0x00010001) * 0xFFFF);
+	ch2.setSo((tmp >> 1 & 0x00010001) * 0xFFFF);
+	ch3.setSo((tmp >> 2 & 0x00010001) * 0xFFFF);
+	ch4.setSo((tmp >> 3 & 0x00010001) * 0xFFFF);
 }
 
 unsigned PSG::getStatus() const {

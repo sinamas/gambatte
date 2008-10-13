@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,7 +24,7 @@ AoEngine::~AoEngine() {
 	uninit();
 }
 
-int AoEngine::init(const int rate, unsigned /*latency*/) {
+int AoEngine::doInit(const int rate, unsigned /*latency*/) {
 	ao_initialize();
 	
 	aoDevice = NULL;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,8 +22,12 @@
 class QWidget;
 
 #include <QString>
+#include <rateest.h>
 
 class AudioEngine {
+	int rate_;
+	
+	virtual int doInit(int rate, unsigned msLatency) = 0;
 public:
 	struct BufferState {
 		enum { NOT_SUPPORTED = 0xFFFFFFFFu };
@@ -32,12 +36,14 @@ public:
 	};
 	
 	const QString nameString;
+	int rate() const { return rate_; }
 	
-	AudioEngine(const QString &name) : nameString(name) {}
+	AudioEngine(const QString &name) : rate_(0), nameString(name) {}
 	virtual ~AudioEngine() {}
-	virtual int init(int rate, unsigned msLatency) = 0;
+	int init(int rate, unsigned msLatency) { return rate_ = doInit(rate, msLatency); }
 	virtual void uninit() {}
 	virtual int write(void *buffer, unsigned samples) = 0;
+	virtual const RateEst::Result rateEstimate() const { const RateEst::Result r = { rate_, 0 }; return r; }
 	virtual const BufferState bufferState() const { static const BufferState s = { BufferState::NOT_SUPPORTED, BufferState::NOT_SUPPORTED }; return s; }
 	virtual void pause() {}
 	virtual QWidget* settingsWidget() { return NULL; }

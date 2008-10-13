@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -530,7 +530,7 @@ void CPU::loadState(const SaveState &state) {
 } while (0)
 
 void CPU::process(const unsigned long cycles) {
-	memory.inc_endtime(cycles);
+	memory.setEndtime(cycleCounter_, cycles);
 	
 	unsigned char A = A_;
 	unsigned long cycleCounter = cycleCounter_;

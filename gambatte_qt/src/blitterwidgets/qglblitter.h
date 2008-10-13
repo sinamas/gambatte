@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -27,6 +27,7 @@ class QCheckBox;
 class QGLBlitter : public BlitterWidget {
 	class SubWidget;
 	
+	FtEst ftEst;
 	SubWidget *subWidget;
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vsyncBox;
@@ -51,10 +52,10 @@ public:
 	bool isUnusable() const;
 	void setBufferDimensions(unsigned int width, unsigned int height);
 	void setCorrectedGeometry(int w, int h, int new_w, int new_h);
-	void setFrameTime(Rational ft);
+	void setFrameTime(long ft);
+	const Estimate frameTimeEst() const;
 	void blit();
-	const Rational frameTime() const;
-	int sync(bool turbo);
+	long sync(long ft);
 	QWidget* settingsWidget() { return confWidget.get(); }
 	
 // // 	public slots:

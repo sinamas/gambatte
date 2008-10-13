@@ -2,7 +2,7 @@ global_cflags = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer'
 global_cxxflags = ARGUMENTS.get('CXXFLAGS', global_cflags + ' -fno-exceptions -fno-rtti')
 global_defines = ' -DHAVE_STDINT_H -DCHAR_WIDTH_8'
 
-env = Environment(CPPPATH = ['src', 'include'],
+env = Environment(CPPPATH = ['src', 'include', '../common'],
                   CFLAGS = global_cflags + global_defines,
                   CXXFLAGS = global_cxxflags + global_defines)
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,6 +22,7 @@
 #include <QtGlobal>
 #include <QString>
 #include <vector>
+#include "rational.h"
 
 //TODO: stop dictating audio/video formats.
 //      Choice based on:
@@ -89,6 +90,11 @@ public:
 		int maxCustomRate;
 	};
 	
+	const Rational samplesPerFrame;
+	const unsigned overupdate;
+	
+	MediaSource(const Rational &samplesPerFrame, const unsigned overupdate = 0) : samplesPerFrame(samplesPerFrame), overupdate(overupdate) {}
+	
 	/**
 	  * Reimplement to get buttonPress events for buttons of corresponding index to the
 	  * buttonInfos given to MainWindow.
@@ -109,15 +115,6 @@ public:
 	virtual void setPixelBuffer(void *pixels, PixelFormat format, unsigned pitch) = 0;
 	
 	/**
-	  * Called by MainWindow to set the buffer to output audio samples to (always in native endian
-	  * signed 16-bit interleaved stereo for now.) Can be assumed to be big enough to have space
-	  * for the number of samples requested on each update call. Also gives the currently active
-	  * sample rate. which may differ slightly from the alternatives given to MainWindow, since
-	  * some engines set a near sample rate if they can't give an exact native one.
-	  */
-	virtual void setSampleBuffer(qint16 *sampleBuffer, unsigned sampleRate) = 0;
-	
-	/**
 	  * Sets video source to the one indicated by the corresponding index of the VideoSourceInfos
 	  * given to MainWindow. setPixelBuffer will be called if a buffer change is necessary.
 	  * Different video sources can have different dimensions and can for instance be used
@@ -125,21 +122,17 @@ public:
 	  */
 	virtual void setVideoSource(unsigned videoSourceIndex) = 0;
 	
-	/**
-	  * Called at a time interval given by the frameTime given to MainWindow. Approximately one
-	  * frame of video should be generated in the pixel buffer (followed by a call to MainWindow::blit)
-	  * pr update for best results. The number of audio samples requested should be outputted to the
-	  * (start of the) sample buffer. It's advised to adjust how much you update according to how many
-	  * samples are requested, rather than strictly doing one frame of video pr update, unless you
-	  * do resampling or dynamically generate samples in a way that allows you to always output the
-	  * right number of samples pr video frame. If the number of video frames generated pr update is
-	  * far off from one pr update, you could try adjusting the frame time (MainWindow::setFrameTime).
-	  * Obviously, if the sample rate selected for a fixed sample rate source is wrong, you can
-	  * expect the number of samples requested to be way off.
+	/** Updates until at least 'samples' stereo sound samples are produced in the supplied buffer.
+	  * May run for uptil overupdate stereo samples too long.
+	  * A stereo sample consists of two native endian 2s complement 16-bit PCM samples,
+	  * with the left sample preceding the right one.
 	  *
-	  * @param samples The number of stereo samples that should be written to sampleBuffer.
+	  * @param soundBuf buffer with space >= samples + overupdate
+	  * @param samples number of stereo samples to produce
+	  * @return actual number of samples produced
 	  */
-	virtual void update(unsigned samples) = 0;
+	virtual unsigned update(qint16 *soundBuf, unsigned samples) = 0;
+	
 	virtual ~MediaSource() {}
 };
 

@@ -17,23 +17,26 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "alsaengine.h"
+#include <algorithm>
+#include <cstdio>
 
 AlsaEngine::AlsaEngine() :
 	AudioEngine("ALSA"),
-	conf("Custom PCM device:", "default", "alsaengine", "hw:0,0"),
+	conf("Custom PCM device:", "default", "alsaengine", "hw"),
 	pcm_handle(NULL),
-	bufSize(0)
+	bufSize(0),
+	prevfur(0)
 {}
 
 AlsaEngine::~AlsaEngine() {
 	uninit();
 }
 
-int AlsaEngine::init(const int inrate, const unsigned latency) {
+int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 	unsigned rate = inrate;
 	
 	if (snd_pcm_open(&pcm_handle, conf.device(), SND_PCM_STREAM_PLAYBACK, 0) < 0) {
-		fprintf(stderr, "Error opening PCM device %s\n", conf.device());
+		std::fprintf(stderr, "Error opening PCM device %s\n", conf.device());
 		pcm_handle = NULL;
 		goto fail;
 	}
@@ -43,35 +46,35 @@ int AlsaEngine::init(const int inrate, const unsigned latency) {
 		snd_pcm_hw_params_alloca(&hwparams);
 		
 		if (snd_pcm_hw_params_any(pcm_handle, hwparams) < 0) {
-			fprintf(stderr, "Can not configure this PCM device.\n");
+			std::fprintf(stderr, "Can not configure this PCM device.\n");
 			goto fail;
 		}
 		
 		if (snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
-			fprintf(stderr, "Error setting access.\n");
+			std::fprintf(stderr, "Error setting access.\n");
 			goto fail;
 		}
 		
 		if (snd_pcm_hw_params_set_format(pcm_handle, hwparams, SND_PCM_FORMAT_S16) < 0) {
-			fprintf(stderr, "Error setting format.\n");
+			std::fprintf(stderr, "Error setting format.\n");
 			goto fail;
 		}
 		
 		if (snd_pcm_hw_params_set_rate_near(pcm_handle, hwparams, &rate, 0) < 0) {
-			fprintf(stderr, "Error setting rate.\n");
+			std::fprintf(stderr, "Error setting rate.\n");
 			goto fail;
 		}
 		
 		if (snd_pcm_hw_params_set_channels(pcm_handle, hwparams, 2) < 0) {
-			fprintf(stderr, "Error setting channels.\n");
+			std::fprintf(stderr, "Error setting channels.\n");
 			goto fail;
 		}
 		
-		{
+		/*{
 			unsigned periods = 2;
 			
 			if (snd_pcm_hw_params_set_periods_near(pcm_handle, hwparams, &periods, 0) < 0) {
-				fprintf(stderr, "Error setting periods %u.\n", periods);
+				std::fprintf(stderr, "Error setting periods %u.\n", periods);
 				goto fail;
 			}
 		}
@@ -80,18 +83,41 @@ int AlsaEngine::init(const int inrate, const unsigned latency) {
 			snd_pcm_uframes_t bSize = (rate * latency + 500) / 1000;
 			
 			if (snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hwparams, &bSize) < 0) {
-				fprintf(stderr, "Error setting buffer size %u.\n", static_cast<unsigned>(bSize));
+				std::fprintf(stderr, "Error setting buffer size %u.\n", static_cast<unsigned>(bSize));
+				goto fail;
+			}
+			
+			bufSize = bSize;
+		}*/
+		
+		{
+			unsigned ulatency = latency * 1000;
+			
+			if (snd_pcm_hw_params_set_buffer_time_near(pcm_handle, hwparams, &ulatency, 0) < 0) {
+				std::fprintf(stderr, "Error setting buffer latency %u.\n", ulatency);
+				goto fail;
+			}
+		}
+		
+		if (snd_pcm_hw_params(pcm_handle, hwparams) < 0) {
+			std::fprintf(stderr, "Error setting HW params.\n");
+			goto fail;
+		}
+		
+		{
+			snd_pcm_uframes_t bSize = 0;
+			
+			if (snd_pcm_hw_params_get_buffer_size(hwparams, &bSize) < 0) {
+				std::fprintf(stderr, "Error getting buffer size\n");
 				goto fail;
 			}
 			
 			bufSize = bSize;
 		}
-		
-		if (snd_pcm_hw_params(pcm_handle, hwparams) < 0) {
-			fprintf(stderr, "Error setting HW params.\n");
-			goto fail;
-		}
 	}
+	
+	prevfur = 0;
+	est.init(rate);
 	
 	return rate;
 	
@@ -108,9 +134,23 @@ void AlsaEngine::uninit() {
 }
 
 int AlsaEngine::write(void *const buffer, const unsigned samples) {
+	bool underrun = false;
+	const BufferState &bstate = bufferState();
+	
+	if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
+		est.feed(prevfur - bstate.fromUnderrun);
+		underrun = bstate.fromUnderrun == 0;
+	}
+	
+	prevfur = bstate.fromUnderrun + samples;
+	
 	while (snd_pcm_writei(pcm_handle, buffer, samples) < 0) {
 		snd_pcm_prepare(pcm_handle);
+		underrun = true;
 	}
+	
+	if (underrun)
+		est.init(std::min(est.result().est + (est.result().est >> 10), (long) rate() + (rate() >> 4)));
 	
 	return 0;
 }
@@ -119,14 +159,20 @@ const AudioEngine::BufferState AlsaEngine::bufferState() const {
 	BufferState s;
 	snd_pcm_sframes_t avail;
 	
-	if (snd_pcm_delay(pcm_handle, &avail)) {
+	snd_pcm_hwsync(pcm_handle);
+	avail = snd_pcm_avail_update(pcm_handle);
+	
+	if (avail == -EPIPE)
+		avail = bufSize;
+	
+	if (avail < 0) {
 		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
 	} else {
-		if (avail < 0)
-			avail = 0;
+		if (static_cast<unsigned>(avail) > bufSize)
+			avail = bufSize;
 		
-		s.fromUnderrun = avail;
-		s.fromOverflow = bufSize - avail;
+		s.fromUnderrun = bufSize - avail;
+		s.fromOverflow = avail;
 	}
 	
 	return s;

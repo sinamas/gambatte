@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,7 +23,7 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include "samplescalculator.h"
+#include <array.h>
 #include "SDL_Joystick/include/SDL_joystick.h"
 #include "SDL_Joystick/include/SDL_event.h"
 #include "mediasource.h"
@@ -38,6 +38,7 @@ class FullModeToggler;
 class BlitterContainer;
 class JoyObserver;
 class QTimer;
+class Resampler;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -66,7 +67,17 @@ private:
 		JoystickIniter();
 		~JoystickIniter();
 	};
+	
+	class SampleBuffer {
+		Array<qint16> sndInBuffer;
+		unsigned spfnum;
+		unsigned samplesBuffered;
 		
+	public:
+		SampleBuffer(std::size_t maxInSamples);
+		std::size_t update(qint16 *out, MediaSource *source, Resampler *resampler);
+	};
+	
 	typedef std::multimap<unsigned,InputObserver*> keymap_t;
 	typedef std::multimap<unsigned,JoyObserver*> joymap_t;
 	
@@ -83,19 +94,19 @@ private:
 	VideoDialog *videoDialog;
 	BlitterWidget *blitter;
 	const std::auto_ptr<FullModeToggler> fullModeToggler;
-	qint16 *sndBuffer;
+	std::auto_ptr<Resampler> resampler;
+	SampleBuffer sampleBuffer;
+	Array<qint16> sndOutBuffer;
 	AudioEngine *ae;
 	QTimer *cursorTimer;
 	QTimer *jsTimer;
 	
-	unsigned samplesPrFrame;
 	unsigned ftNum;
 	unsigned ftDenom;
 	unsigned paused;
-	int sampleRate;
 	int timerId;
+	int estSrate;
 	
-	SamplesCalculator samplesCalc;
 	JoystickIniter joyIniter;
 
 	bool running;
@@ -104,7 +115,7 @@ private:
 	bool cursorHidden;
 	
 	void initAudio();
-	void setSamplesPrFrame();
+	void setSampleRate();
 	void soundEngineFailure();
 	void clearInputVectors();
 	void pushInputObserver(const SDL_Event &data, InputObserver *observer);

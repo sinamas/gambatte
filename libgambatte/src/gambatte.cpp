@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -48,8 +48,11 @@ GB::~GB() {
 	delete z80;
 }
 
-void GB::runFor(const unsigned long cycles) {
-	z80->runFor(cycles);
+unsigned GB::runFor(Gambatte::uint_least32_t *const soundBuf, const unsigned samples) {
+	z80->setSoundBuffer(soundBuf);
+	z80->runFor(samples * 2);
+	
+	return z80->fillSoundBuffer();
 }
 
 void GB::reset() {
@@ -113,10 +116,6 @@ bool GB::load(const char* romfile) {
 	}
 	
 	return failed;
-}
-
-void GB::fill_buffer(uint_least16_t *const stream, const unsigned samples) {
-	z80->sound_fill_buffer(stream, samples);
 }
 
 bool GB::isCgb() const {

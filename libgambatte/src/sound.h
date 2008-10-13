@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -34,9 +34,12 @@ class PSG {
 	Channel3 ch3;
 	Channel4 ch4;
 		
-	Gambatte::uint_least32_t *const buffer;
+	Gambatte::uint_least32_t *buffer;
+	
 	unsigned long lastUpdate;
 	unsigned long soVol;
+	
+	Gambatte::uint_least32_t rsum;
 	
 	unsigned bufferPos;
 	
@@ -46,7 +49,6 @@ class PSG {
 
 public:
 	PSG();
-	~PSG();
 	void init(bool cgb);
 	void reset();
 	void setStatePtrs(SaveState &state);
@@ -55,7 +57,8 @@ public:
 
 	void generate_samples(unsigned long cycleCounter, unsigned doubleSpeed);
 	void resetCounter(unsigned long newCc, unsigned long oldCc, unsigned doubleSpeed);
-	void fill_buffer(Gambatte::uint_least16_t *stream, const unsigned samples);
+	unsigned fillBuffer();
+	void setBuffer(Gambatte::uint_least32_t *const buf) { buffer = buf; bufferPos = 0; }
 	
 	bool isEnabled() const { return enabled; }
 	void setEnabled(bool value) { enabled = value; }

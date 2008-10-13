@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -207,9 +207,11 @@ public:
 	}
 
 	void schedule_unhalt();
-	void inc_endtime(unsigned long inc);
+	void incEndtime(unsigned long inc);
+	void setEndtime(unsigned long cc, unsigned long inc);
 	
-	void sound_fill_buffer(Gambatte::uint_least16_t *stream, unsigned samples, unsigned long cycleCounter);
+	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { sound.setBuffer(buf); }
+	unsigned fillSoundBuffer(unsigned long cc);
 	void setVideoBlitter(Gambatte::VideoBlitter * vb);
 	void setVideoFilter(unsigned int n);
 	

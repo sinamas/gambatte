@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -48,7 +48,6 @@ class GambatteSource : public QObject, public MediaSource {
 	Gambatte::GB gb;
 	InputGetter inputGetter;
 	Blitter blitter;
-	qint16 *sampleBuffer;
 	
 public:
 	GambatteSource();
@@ -73,9 +72,8 @@ public:
 	void buttonPressEvent(unsigned buttonIndex);
 	void buttonReleaseEvent(unsigned buttonIndex);
 	void setPixelBuffer(void *pixels, PixelFormat format, unsigned pitch);
-	void setSampleBuffer(qint16 *sampleBuffer, unsigned /*sampleRate*/) { this->sampleBuffer = sampleBuffer; }
 	void setVideoSource(unsigned videoSourceIndex) { gb.setVideoFilter(videoSourceIndex); }
-	void update(unsigned samples);
+	unsigned update(qint16 *soundBuf, unsigned samples);
 	
 public slots:
 	void saveState() { gb.saveState(); }

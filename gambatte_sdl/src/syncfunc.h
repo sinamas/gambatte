@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,6 @@
 #ifndef SYNCFUNC_H
 #define SYNCFUNC_H
 
-void syncFunc();
+void syncfunc(long inc);
 
 #endif

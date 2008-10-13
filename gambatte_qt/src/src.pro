@@ -2,7 +2,6 @@ SOURCES += main.cpp \
     videodialog.cpp \
     blittercontainer.cpp \
     inputdialog.cpp \
-    samplescalculator.cpp \
     blitterwidgets/qglblitter.cpp \
     blitterwidgets/qpainterblitter.cpp \
     SDL_Joystick/src/SDL_event.cpp \
@@ -16,6 +15,11 @@ SOURCES += main.cpp \
     gambattemenuhandler.cpp \
     mainwindow.cpp \
     blitterwidget.cpp
+SOURCES += ../../common/resample/chainresampler.cpp \
+	../../common/resample/u48div.cpp \
+	../../common/resample/resamplerinfo.cpp \
+	../../common/adaptivesleep.cpp \
+	../../common/rateest.cpp
 HEADERS += blitterwidget.h \
     fullmodetoggler.h \
     videodialog.h \
@@ -23,7 +27,6 @@ HEADERS += blitterwidget.h \
     resinfo.h \
     inputdialog.h \
     audioengine.h \
-    samplescalculator.h \
     addaudioengines.h \
     addblitterwidgets.h \
     getfullmodetoggler.h \
@@ -47,7 +50,26 @@ HEADERS += blitterwidget.h \
     pixelbuffersetter.h \
     gambattemenuhandler.h \
     mainwindow.h \
-    swscale.h
+    swscale.h \
+    rational.h
+HEADERS += ../../common/resample/blackmansinc.h \
+	../../common/resample/chainresampler.h \
+	../../common/resample/cic2.h \
+	../../common/resample/cic3.h \
+	../../common/resample/cic4.h \
+	../../common/resample/convoluter.h \
+	../../common/resample/hammingsinc.h \
+	../../common/resample/linint.h \
+	../../common/resample/makesinckernel.h \
+	../../common/resample/rectsinc.h \
+	../../common/resample/resampler.h \
+	../../common/resample/subresampler.h \
+	../../common/resample/u48div.h \
+	../../common/resample/upsampler.h \
+	../../common/resample/resamplerinfo.h \
+	../../common/adaptivesleep.h \
+	../../common/usec.h \
+	../../common/rateest.h
 TEMPLATE = app
 CONFIG += warn_on \
     thread \
@@ -56,7 +78,8 @@ CONFIG += warn_on \
 QT += opengl
 TARGET = ../bin/gambatte_qt
 INCLUDEPATH += ../../libgambatte/include \
-    SDL_Joystick/include
+    SDL_Joystick/include \
+    ../../common
 LIBS += -L../../libgambatte \
     -lgambatte
 DEFINES += HAVE_STDINT_H

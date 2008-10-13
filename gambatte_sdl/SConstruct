@@ -2,7 +2,7 @@ global_cflags = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer'
 global_cxxflags = ARGUMENTS.get('CXXFLAGS', global_cflags + ' -fno-exceptions -fno-rtti')
 global_defines = ' -DHAVE_STDINT_H'
 
-env = Environment(CPPPATH = ['src', '../libgambatte/include'],
+env = Environment(CPPPATH = ['src', '../libgambatte/include', '../common'],
                   LIBS = ['gambatte'],
                   LIBPATH = '../libgambatte',
                   CFLAGS = global_cflags + global_defines,
@@ -12,10 +12,16 @@ env.ParseConfig('sdl-config --cflags --libs')
 
 sourceFiles = Split('''
 			src/gambatte_sdl.cpp
+			src/audiodata.cpp
 			src/parser.cpp
 			src/sdlblitter.cpp
 			src/str_to_sdlkey.cpp
 			src/syncfunc.cpp
+			../common/adaptivesleep.cpp
+			../common/resample/chainresampler.cpp
+			../common/resample/u48div.cpp
+			../common/resample/resamplerinfo.cpp
+			../common/rateest.cpp
 		   ''')
 
 conf = env.Configure()

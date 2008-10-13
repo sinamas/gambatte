@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -29,6 +29,7 @@ class QComboBox;
 class Direct3DBlitter : public BlitterWidget {
 	typedef IDirect3D9* (WINAPI *Direct3DCreate9Ptr)(UINT);
 	
+	FtEst ftEst;
 	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *const adapterSelector;
 	QCheckBox *const vblankBox;
@@ -82,9 +83,9 @@ public:
 	void uninit();
 	void setBufferDimensions(unsigned w, unsigned h);
 	void blit();
-	int sync(bool turbo);
-	void setFrameTime(Rational ft);
-	const Rational frameTime() const;
+	long sync(long ft);
+	void setFrameTime(long ft);
+	const Estimate frameTimeEst() const;
 	void setExclusive(bool exclusive);
 	bool isUnusable() const { return !d3d; }
 	QWidget* settingsWidget() { return confWidget.get(); }

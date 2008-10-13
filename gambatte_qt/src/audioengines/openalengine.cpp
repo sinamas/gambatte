@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -136,7 +136,7 @@ void OpenAlEngine::deleteProcessedBufs() const {
 	}
 }
 
-int OpenAlEngine::init(const int rate, unsigned latency) {
+int OpenAlEngine::doInit(const int rate, unsigned latency) {
 	class FailureCleaner {
 		OpenAlEngine *const engine;
 		

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -387,10 +387,10 @@ void DirectDrawBlitter::uninit() {
 	}
 }
 
-void DirectDrawBlitter::setFrameTime(Rational ft) {
+void DirectDrawBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
 	
-	vblankHz = (ft.denominator + (ft.numerator >> 1)) / ft.numerator;
+	vblankHz = (1000000 + (ft >> 1)) / ft;
 	
 	QString text("Sync to vertical blank in ");
 	text += QString::number(vblankHz);
@@ -398,15 +398,24 @@ void DirectDrawBlitter::setFrameTime(Rational ft) {
 	vblankBox->setText(text);
 }
 
-const BlitterWidget::Rational DirectDrawBlitter::frameTime() const {
+const BlitterWidget::Estimate DirectDrawBlitter::frameTimeEst() const {
+	if (vblank && hz == vblankHz) {
+		const Estimate est = { ftEst.est(), ftEst.var() };
+		return est;
+	}
+	
+	return BlitterWidget::frameTimeEst();
+}
+
+/*const BlitterWidget::Rational DirectDrawBlitter::frameTime() const {
 	if (vblank && hz == vblankHz) {
 		return Rational(1, hz);
 	}
 	
 	return BlitterWidget::frameTime();
-}
+}*/
 
-int DirectDrawBlitter::sync(const bool turbo) {
+long DirectDrawBlitter::sync(const long ft) {
 	if (lpDDSPrimary == NULL)
 		return -1;
 	
@@ -415,13 +424,15 @@ int DirectDrawBlitter::sync(const bool turbo) {
 	RECT rcRectDest;
 	GetWindowRect(winId(), &rcRectDest);
 	
-	if (vblank && hz == vblankHz) {
+	const bool vsync = vblank && hz == vblankHz;
+	
+	if (vsync) {
 		if (!(exclusive && flipping))
 			lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
 	} else
-		BlitterWidget::sync(turbo);
+		BlitterWidget::sync(ft);
 	
-	const bool dontwait = exclusive && flipping && !(vblank && hz == vblankHz);
+	const bool dontwait = exclusive && flipping && !vsync;
 	
 	HRESULT ddrval = lpDDSBack->Blt(&rcRectDest, lpDDSVideo, NULL, dontwait ? DDBLT_DONOTWAIT : DDBLT_WAIT, NULL);
 	
@@ -435,6 +446,9 @@ int DirectDrawBlitter::sync(const bool turbo) {
 	if (ddrval == DD_OK && exclusive && flipping) {
 		ddrval = lpDDSPrimary->Flip(NULL, dontwait ? DDFLIP_DONOTWAIT : DDFLIP_WAIT);
 	}
+	
+	if (vsync)
+		ftEst.update(getusecs());
 	
 	if (ddrval != DD_OK && ddrval != DDERR_WASSTILLDRAWING) {
 		std::cout << "final blit failed" << std::endl;
@@ -485,6 +499,7 @@ void DirectDrawBlitter::rejectSettings() {
 
 void DirectDrawBlitter::rateChange(int hz) {
 	this->hz = hz;
+	ftEst.init(hz ? 1000000 / hz : 0);
 }
 
 void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {

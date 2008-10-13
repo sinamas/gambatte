@@ -17,13 +17,18 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include <gambatte.h>
+#include <array.h>
+#include <resample/resamplerinfo.h>
+#include <rateest.h>
 #include <SDL.h>
-#include <SDL_thread.h>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <sstream>
+#include <algorithm>
+#include <memory>
 
+#include "audiodata.h"
 #include "syncfunc.h"
 #include "parser.h"
 #include "str_to_sdlkey.h"
@@ -63,13 +68,13 @@ public:
 	void exec(const char *const *argv, int index) {
 		int tmp = std::atoi(argv[index + 1]);
 		
-		if (tmp < 32000 || tmp > 192000)
+		if (tmp < 4000 || tmp > 192000)
 			return;
 		
 		rate = tmp;
 	}
 	
-	const char* getDesc() const { return " N\t\tUse sound sample rate of N Hz\n\t\t\t\t    32000 <= N <= 192000, default: 48000\n"; }
+	const char* getDesc() const { return " N\t\tUse audio sample rate of N Hz\n\t\t\t\t    4000 <= N <= 192000, default: 48000\n"; }
 	unsigned getRate() const { return rate; }
 };
 
@@ -120,6 +125,39 @@ public:
 	const char* getDesc() const { return "\t\tUse YUV overlay for (usually faster) scaling\n"; }
 	bool useYuv() const { return yuv; }
 };
+
+class ResamplerOption : public DescOption {
+	std::string s;
+	unsigned resamplerNo;
+public:
+	ResamplerOption();
+	
+	void exec(const char *const *argv, int index) {
+		const unsigned tmp = std::atoi(argv[index + 1]);
+		
+		if (tmp < ResamplerInfo::num())
+			resamplerNo = tmp;
+	}
+	
+	const char* getDesc() const { return s.c_str(); }
+	unsigned resamplerNumber() const { return resamplerNo; }
+};
+
+ResamplerOption::ResamplerOption() : DescOption("resampler", 0, 1), resamplerNo(1) {
+	std::stringstream ss;
+	ss << " N\t\tUse audio resampler number N\n";
+	
+	for (std::size_t i = 0; i < ResamplerInfo::num(); ++i) {
+		ss << "\t\t\t\t    " << i << " = " << ResamplerInfo::get(i).desc;
+		
+		if (i == resamplerNo)
+			ss << " [default]";
+		
+		ss << "\n";
+	}
+	
+	s = ss.str();
+}
 
 struct JoyData {
 	enum { CENTERED = SDL_HAT_CENTERED, LEFT = SDL_HAT_LEFT, RIGHT = SDL_HAT_RIGHT, UP = SDL_HAT_UP, DOWN = SDL_HAT_DOWN };
@@ -268,121 +306,6 @@ public:
 	}
 };
 
-static unsigned ceiledPowerOf2(unsigned t) {
-	--t;
-	t |= t >> 1;
-	t |= t >> 2;
-	t |= t >> 4;
-	t |= t >> 8;
-	t |= t >> 16;
-	++t;
-	
-	return t;
-}
-
-struct AudioData {
-	const unsigned samplesPrFrame;
-	
-	AudioData(unsigned sampleRate);
-	~AudioData();
-	void write(const Uint16 *inBuf);
-	void read(Uint8 *stream, int len);
-	
-private:
-	const unsigned bufSz;
-	SDL_mutex *const mut;
-	SDL_cond *const bufReadyCond;
-	Sint16 *const buffer;
-	unsigned rPos;
-	unsigned wPos;
-	bool failed;
-	
-	static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
-		reinterpret_cast<AudioData*>(data)->read(stream, len);
-	}
-};
-
-AudioData::AudioData(const unsigned srate) :
-samplesPrFrame(((srate * 4389) / 262144) + 2),
-bufSz(ceiledPowerOf2(samplesPrFrame) * 8),
-mut(SDL_CreateMutex()),
-bufReadyCond(SDL_CreateCond()),
-buffer(new Sint16[bufSz]),
-rPos(0),
-wPos(0),
-failed(false) {
-	std::memset(buffer, 0, bufSz * sizeof(Sint16));
-	
-	SDL_AudioSpec spec;
-	spec.freq = srate;
-	spec.format = AUDIO_S16SYS;
-	spec.channels = 2;
-	spec.samples = bufSz >> 3;
-	spec.callback = fill_buffer;
-	spec.userdata = this;
-	
-	if (SDL_OpenAudio(&spec, NULL) < 0) {
-		fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-		failed = true;
-	}
-}
-
-AudioData::~AudioData() {
-	SDL_PauseAudio(1);
-	SDL_CloseAudio();
-	delete []buffer;
-	SDL_DestroyCond(bufReadyCond);
-	SDL_DestroyMutex(mut);
-}
-
-void AudioData::write(const Uint16 *const inBuf) {
-	if (failed)
-		return;
-	
-	SDL_mutexP(mut);
-	
-	if ((rPos - wPos + (wPos > rPos ? bufSz : 0)) >> 1 < samplesPrFrame)
-		SDL_CondWait(bufReadyCond, mut);
-	
-	{
-		const unsigned samples1 = std::min((bufSz - wPos) >> 1, samplesPrFrame);
-		const unsigned samples2 = samplesPrFrame - samples1;
-		
-		std::memcpy(buffer + wPos, inBuf, samples1 * 4);
-		
-		if (samples2)
-			std::memcpy(buffer, inBuf + samples1 * 2, samples2 * 4);
-		
-		if ((wPos += samplesPrFrame * 2) >= bufSz)
-			wPos -= bufSz;
-	}
-	
-	SDL_mutexV(mut);
-}
-
-void AudioData::read(Uint8 *const stream, const int len) {
-	if (failed)
-		return;
-	
-	SDL_mutexP(mut);
-	
-	const unsigned bytes1 = std::min(static_cast<unsigned>(len), (bufSz - rPos) * 2);
-	const unsigned bytes2 = len - bytes1;
-	
-	std::memcpy(stream, buffer + rPos, bytes1);
-	
-	if (bytes2)
-		std::memcpy(stream + bytes1, buffer, bytes2);
-	
-	if ((rPos += len >> 1) >= bufSz)
-		rPos -= bufSz;
-	
-	if ((rPos - wPos + (wPos > rPos ? bufSz : 0)) >> 1 >= samplesPrFrame)
-		SDL_CondSignal(bufReadyCond);
-	
-	SDL_mutexV(mut);
-}
-
 class SdlIniter {
 	bool failed;
 public:
@@ -406,7 +329,9 @@ class GambatteSdl {
 	typedef std::multimap<SDLKey,bool*> keymap_t;
 	typedef std::multimap<JoyData,bool*> jmap_t;
 	
-	Uint16 *tmpBuf;
+	Array<Sint16> inBuf;
+	Array<Sint16> tmpBuf;
+	std::auto_ptr<Resampler> resampler;
 	GB gambatte;
 	SdlIniter sdlIniter;
 	SdlBlitter blitter;
@@ -427,13 +352,11 @@ public:
 	int exec();
 };
 
-GambatteSdl::GambatteSdl(int argc, char **argv) : tmpBuf(NULL), sampleRate(48000) {
+GambatteSdl::GambatteSdl(int argc, char **argv) : inBuf((35112 + 2064) * 2), sampleRate(48000) {
 	failed = init(argc, argv);
 }
 
 GambatteSdl::~GambatteSdl() {
-	delete []tmpBuf;
-	
 	for (std::size_t i = 0; i < joysticks.size(); ++i)
 		SDL_JoystickClose(joysticks[i]);
 }
@@ -473,6 +396,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&lkOption);
 		RateOption rateOption;
 		v.push_back(&rateOption);
+		ResamplerOption resamplerOption;
+		v.push_back(&resamplerOption);
 		ScaleOption scaleOption;
 		v.push_back(&scaleOption);
 		VfOption vfOption(gambatte.filterInfo());
@@ -532,6 +457,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 		blitter.setScale(scaleOption.getScale());
 		blitter.setYuv(yuvOption.useYuv());
 		gambatte.setVideoFilter(vfOption.filterNumber());
+		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, 35112));
 		
 		bool* gbbuts[8] = {
 			&inputGetter.is.startButton, &inputGetter.is.selectButton,
@@ -588,11 +514,13 @@ int GambatteSdl::exec() {
 		return 1;
 	
 	AudioData adata(sampleRate);
-	tmpBuf = new Uint16[adata.samplesPrFrame * 2];
+	tmpBuf.reset(resampler->maxOut(35112) * 2);
 	
 	gambatte.setVideoBlitter(&blitter);
 	
 	Uint8 *keys = SDL_GetKeyState(NULL);
+	unsigned samples = 0;
+	long estSrate = sampleRate;
 	
 	SDL_PauseAudio(0);
 	
@@ -680,16 +608,20 @@ int GambatteSdl::exec() {
 			}
 		}
 		
-		gambatte.runFor(70224);
+		samples += gambatte.runFor(reinterpret_cast<Gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, 35112 - samples);
+		const unsigned tmpsamples = resampler->resample(tmpBuf, inBuf, 35112);
+		samples -= 35112;
+		std::memmove(inBuf, inBuf + 35112 * 2, samples * sizeof(Sint16) * 2);
 		
 		if (!keys[SDLK_TAB]) {
-			gambatte.fill_buffer(tmpBuf, adata.samplesPrFrame);
+			const RateEst::Result &rsrate = adata.write(tmpBuf, tmpsamples);
+			const long newEstSrate = rsrate.est + (rsrate.var * 2);
+		
+			if (std::abs(newEstSrate - estSrate) > rsrate.var * 2)
+				estSrate = newEstSrate;
 			
-			adata.write(tmpBuf);
-			
-			syncFunc();
-		} else
-			gambatte.fill_buffer(0, 0);
+			syncfunc((16743ul - (16743 / 2048)) * sampleRate / estSrate);
+		}
 	}
 	
 	return 0;

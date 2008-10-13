@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -124,7 +124,7 @@ static unsigned nearestPowerOf2(const unsigned in) {
 	return out;
 }
 
-int DirectSoundEngine::init(const int rate, const unsigned latency) {
+int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 	if (DirectSoundCreate(deviceSelector->itemData(deviceIndex).value<GUID*>(), &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
 		goto fail;

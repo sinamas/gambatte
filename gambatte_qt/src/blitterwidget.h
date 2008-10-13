@@ -23,8 +23,28 @@
 #include <QWidget>
 #include <QString>
 #include <memory>
+#include <usec.h>
 
 class QHBoxLayout;
+
+class FtEst {
+	enum { COUNT_LOG2 = 4 };
+	enum { COUNT = 1 << COUNT_LOG2 };
+	
+	long frameTime;
+	long ft;
+	long ftAvg;
+	long ftVar;
+	usec_t last;
+	unsigned count;
+	
+public:
+	FtEst(long frameTime = 0) { init(frameTime); }
+	void init(long frameTime);
+	void update(usec_t t);
+	long est() const { return (ftAvg + COUNT / 2) >> COUNT_LOG2; }
+	long var() const { return (ftVar + COUNT / 2) >> COUNT_LOG2; }
+};
 
 class BlitterWidget : public QWidget {
 	Q_OBJECT
@@ -32,19 +52,17 @@ class BlitterWidget : public QWidget {
 	class Impl;
 	
 	Impl *const impl;
-
-public:
-	struct Rational {
-		unsigned numerator;
-		unsigned denominator;
-		
-		Rational(unsigned num = 1, unsigned den = 60) : numerator(num), denominator(den) {}
-	};
+	long ft;
 	
 protected:
 	PixelBufferSetter setPixelBuffer;
 	
 public:
+	struct Estimate {
+		long est;
+		long var;
+	};
+	
 	const QString nameString;
 	const bool integerOnlyScaler;
 	
@@ -60,9 +78,10 @@ public:
 	virtual bool isUnusable() const { return false; }
 	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
 	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) { setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h); }
-	virtual void setFrameTime(Rational ft);
-	virtual const Rational frameTime() const;
-	virtual int sync(bool turbo);
+	virtual void setFrameTime(const long ft) { this->ft = ft; }
+	long frameTime() const { return ft; }
+	virtual const Estimate frameTimeEst() const { static const Estimate e = { 0, 0 }; return e; }
+	virtual long sync(long ft);
 	virtual QWidget* settingsWidget() { return NULL; }
 	virtual void setExclusive(bool) {}
 

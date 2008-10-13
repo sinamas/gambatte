@@ -26,6 +26,8 @@
 #include "filterinfo.h"
 #include "savestate.h"
 #include "video/basic_add_event.h"
+#include <cstring>
+#include <algorithm>
 
 static void addEventIfActivated(event_queue<VideoEvent*,VideoEventComparer> &q, VideoEvent *const e, const unsigned long newTime) {
 	e->setTime(newTime);
@@ -118,6 +120,9 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	bgEnable(false),
 	spriteEnable(false)
 {
+	std::memset(bgpData, 0, sizeof(bgpData));
+	std::memset(objpData, 0, sizeof(objpData));
+	
 	for (unsigned i = 0; i < sizeof(dmgColorsRgb32) / sizeof(unsigned long); ++i) {
 		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
 	}

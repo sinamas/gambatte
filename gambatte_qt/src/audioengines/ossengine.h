@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,16 +24,21 @@
 
 class OssEngine : public AudioEngine {
 	CustomDevConf conf;
+	RateEst est;
 	int audio_fd;
 	unsigned bufSize;
+	unsigned prevfur;
+	
+	int doInit(int rate, unsigned latency);
 	
 public:
 	OssEngine();
 	~OssEngine();
-	int init(int rate, unsigned latency);
 	void uninit();
 	int write(void *buffer, unsigned samples);
+	const RateEst::Result rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
+	void pause() { prevfur = 0; est.init(est.result().est); }
 	QWidget* settingsWidget() { return conf.settingsWidget(); }
 	void acceptSettings() { conf.acceptSettings(); }
 	void rejectSettings() { conf.rejectSettings(); }
