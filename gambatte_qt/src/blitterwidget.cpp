@@ -19,7 +19,6 @@
 #include "blitterwidget.h"
 #include <adaptivesleep.h>
 #include <cstdlib>
-#include <iostream>
 
 void FtEst::init(const long frameTime) {
 	this->frameTime = frameTime;
@@ -39,7 +38,6 @@ void FtEst::update(const usec_t t) {
 			long oldFtAvg = ftAvg;
 			ftAvg = (ftAvg * 15 + ft + 8) >> 4;
 			ftVar = (ftVar * 15 + std::abs(ftAvg - oldFtAvg) + 8) >> 4;
-			std::cout << "ftAvg: " << est() << " ftVar: " << var() << std::endl;
 			ft = 0;
 		}
 	}
