@@ -23,7 +23,7 @@
 void FtEst::init(const long frameTime) {
 	this->frameTime = frameTime;
 	ft = 0;
-	ftAvg = frameTime * COUNT;
+	ftAvg = frameTime << COUNT_LOG2;
 	ftVar = ftAvg >> 12;
 	last = 0;
 	count = COUNT;
@@ -37,6 +37,12 @@ void FtEst::update(const usec_t t) {
 			count = COUNT;
 			long oldFtAvg = ftAvg;
 			ftAvg = (ftAvg * 15 + ft + 8) >> 4;
+			
+			if (ftAvg > ((frameTime + (frameTime >> 5)) << COUNT_LOG2))
+				ftAvg = (frameTime + (frameTime >> 5)) << COUNT_LOG2;
+			else if (ftAvg < ((frameTime - (frameTime >> 5)) << COUNT_LOG2))
+				ftAvg = (frameTime - (frameTime >> 5)) << COUNT_LOG2;
+			
 			ftVar = (ftVar * 15 + std::abs(ftAvg - oldFtAvg) + 8) >> 4;
 			ft = 0;
 		}
