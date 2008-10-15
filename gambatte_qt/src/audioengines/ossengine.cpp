@@ -124,7 +124,7 @@ int OssEngine::write(void *const buffer, const unsigned samples) {
 		if (bstate.fromUnderrun)
 			est.feed(prevfur - bstate.fromUnderrun);
 		else
-			est.init(std::min(est.result().est + (est.result().est >> 10), (long) rate() + (rate() >> 4)));
+			est.init(est.result().est + (est.result().est >> 10), rate());
 	}
 	
 	prevfur = bstate.fromUnderrun + samples;

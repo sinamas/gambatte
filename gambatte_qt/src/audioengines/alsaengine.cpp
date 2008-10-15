@@ -150,7 +150,7 @@ int AlsaEngine::write(void *const buffer, const unsigned samples) {
 	}
 	
 	if (underrun)
-		est.init(std::min(est.result().est + (est.result().est >> 10), (long) rate() + (rate() >> 4)));
+		est.init(est.result().est + (est.result().est >> 10), rate());
 	
 	return 0;
 }

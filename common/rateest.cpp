@@ -19,25 +19,35 @@
 #include "rateest.h"
 #include <cstdlib>
 
-void RateEst::init(const long srate) {
-	this->srate.est = srate;
-	this->srate.var = srate >> 13;
+static long limit(long est, const long reference) {
+	if (est > reference + (reference >> 4))
+		est = reference + (reference >> 4);
+	else if (est < reference - (reference >> 4))
+		est = reference - (reference >> 4);
+	
+	return est;
+}
+
+void RateEst::init(long srate, const long reference) {
+	this->srate.est = limit(srate, reference);
+	this->srate.var = srate >> 12;
 	last = 0;
+	this->reference = reference;
 	samples = 0;
-	count = 16;
+	count = 32;
 }
 
 void RateEst::feed(const long samplesIn) {
 	samples += samplesIn;
 		
 	if (--count == 0) {
-		count = 16;
+		count = 32;
 		
 		const usec_t now = getusecs();
 		
 		if (last) {
 			long est = samples * 1000000.0f / (now - last) + 0.5f;
-			est = (srate.est * 15 + est + 8) >> 4;
+			est = limit((srate.est * 31 + est + 16) >> 5, reference);
 			srate.var = (srate.var * 15 + std::abs(est - srate.est) + 8) >> 4;
 			srate.est = est;
 		}

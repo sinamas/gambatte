@@ -36,7 +36,7 @@ void FtEst::update(const usec_t t) {
 		if (--count == 0) {
 			count = COUNT;
 			long oldFtAvg = ftAvg;
-			ftAvg = (ftAvg * 15 + ft + 8) >> 4;
+			ftAvg = (ftAvg * 31 + ft + 16) >> 5;
 			
 			if (ftAvg > ((frameTime + (frameTime >> 5)) << COUNT_LOG2))
 				ftAvg = (frameTime + (frameTime >> 5)) << COUNT_LOG2;

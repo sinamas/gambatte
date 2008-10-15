@@ -31,12 +31,15 @@ public:
 private:
 	Result srate;
 	usec_t last;
+	long reference;
 	long samples;
 	unsigned count;
 	
 public:
-	RateEst(const long srate=0) { init(srate); }
-	void init(long srate);
+	RateEst(long srate = 0) { init(srate); }
+	RateEst(long srate, long reference) { init(srate, reference); }
+	void init(long srate) { init(srate, srate); }
+	void init(long srate, long reference);
 	void feed(long samples);
 	const Result& result() const { return srate; }
 };

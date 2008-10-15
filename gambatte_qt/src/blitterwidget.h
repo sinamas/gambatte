@@ -28,7 +28,7 @@
 class QHBoxLayout;
 
 class FtEst {
-	enum { COUNT_LOG2 = 4 };
+	enum { COUNT_LOG2 = 5 };
 	enum { COUNT = 1 << COUNT_LOG2 };
 	
 	long frameTime;
