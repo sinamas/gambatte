@@ -609,12 +609,10 @@ int GambatteSdl::exec() {
 		}
 		
 		samples += gambatte.runFor(reinterpret_cast<Gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, 35112 - samples);
-		const unsigned tmpsamples = resampler->resample(tmpBuf, inBuf, 35112);
 		samples -= 35112;
-		std::memmove(inBuf, inBuf + 35112 * 2, samples * sizeof(Sint16) * 2);
 		
 		if (!keys[SDLK_TAB]) {
-			const RateEst::Result &rsrate = adata.write(tmpBuf, tmpsamples);
+			const RateEst::Result &rsrate = adata.write(tmpBuf, resampler->resample(tmpBuf, inBuf, 35112));
 			const long newEstSrate = rsrate.est + (rsrate.var * 2);
 		
 			if (std::abs(newEstSrate - estSrate) > rsrate.var * 2)
@@ -622,6 +620,8 @@ int GambatteSdl::exec() {
 			
 			syncfunc((16743ul - (16743 / 2048)) * sampleRate / estSrate);
 		}
+		
+		std::memmove(inBuf, inBuf + 35112 * 2, samples * sizeof(Sint16) * 2);
 	}
 	
 	return 0;
