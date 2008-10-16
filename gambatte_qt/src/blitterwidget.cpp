@@ -38,10 +38,10 @@ void FtEst::update(const usec_t t) {
 			long oldFtAvg = ftAvg;
 			ftAvg = (ftAvg * 31 + ft + 16) >> 5;
 			
-			if (ftAvg > ((frameTime + (frameTime >> 5)) << COUNT_LOG2))
-				ftAvg = (frameTime + (frameTime >> 5)) << COUNT_LOG2;
-			else if (ftAvg < ((frameTime - (frameTime >> 5)) << COUNT_LOG2))
-				ftAvg = (frameTime - (frameTime >> 5)) << COUNT_LOG2;
+			if (ftAvg > ((frameTime + (frameTime >> 6)) << COUNT_LOG2))
+				ftAvg = (frameTime + (frameTime >> 6)) << COUNT_LOG2;
+			else if (ftAvg < ((frameTime - (frameTime >> 6)) << COUNT_LOG2))
+				ftAvg = (frameTime - (frameTime >> 6)) << COUNT_LOG2;
 			
 			ftVar = (ftVar * 15 + std::abs(ftAvg - oldFtAvg) + 8) >> 4;
 			ft = 0;
