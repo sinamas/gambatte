@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -33,8 +33,7 @@ int main(int argc, char *argv[]) {
 	                                source.generateButtonInfos(),
 	                                source.generateVideoSourceInfos(),
 	                                MainWindow::tr("Video filter:"),
-	                                QSize(160, 144),
-	                                source.generateSampleRateInfo());
+	                                QSize(160, 144));
 	GambatteMenuHandler mh(mw, &source, argc, argv);
 	mw->show();
 	return app.exec();

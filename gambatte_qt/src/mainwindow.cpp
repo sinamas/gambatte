@@ -132,8 +132,7 @@ MainWindow::MainWindow(MediaSource *source,
                        const std::vector<MediaSource::ButtonInfo> &buttonInfos,
                        const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
                        const QString &videoSourceLabel,
-                       const QSize &aspectRatio,
-                       const MediaSource::SampleRateInfo &sampleRateInfo) :
+                       const QSize &aspectRatio) :
 	source(source),
 	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
 	blitter(NULL),
@@ -170,7 +169,7 @@ MainWindow::MainWindow(MediaSource *source,
 	
 	addAudioEngines(audioEngines, winId());
 	audioEngines.push_back(new NullAudioEngine);
-	soundDialog = new SoundDialog(audioEngines, sampleRateInfo, this);
+	soundDialog = new SoundDialog(audioEngines, this);
 	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundSettingsChange()));
 	
 	inputDialog = new InputDialog(buttonInfos, this);
@@ -443,10 +442,6 @@ const QSize& MainWindow::aspectRatio() const {
 
 void MainWindow::setAspectRatio(const QSize &aspectRatio) {
 	videoDialog->setAspectRatio(aspectRatio);
-}
-
-void MainWindow::setSampleRates(const MediaSource::SampleRateInfo &sampleRateInfo) {
-	soundDialog->setRates(sampleRateInfo);
 }
 
 void MainWindow::setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos) {

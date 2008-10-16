@@ -44,18 +44,6 @@ const std::vector<MediaSource::VideoSourceInfo> GambatteSource::generateVideoSou
 	return v;
 }
 
-const MediaSource::SampleRateInfo GambatteSource::generateSampleRateInfo() {
-	SampleRateInfo srinfo;
-	
-	srinfo.rates.push_back(48000);
-	srinfo.rates.push_back(44100);
-	srinfo.defaultRateIndex = 0;
-	srinfo.minCustomRate = 8000;
-	srinfo.maxCustomRate = 192000;
-	
-	return srinfo;
-}
-
 enum {
 	UP_BUTTON, DOWN_BUTTON, LEFT_BUTTON, RIGHT_BUTTON,
 	A_BUTTON, B_BUTTON, START_BUTTON, SELECT_BUTTON,

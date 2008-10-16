@@ -31,6 +31,33 @@
 
 #include "audioengine.h"
 
+struct SampleRateInfo {
+	enum { NOT_SUPPORTED = -1 };
+	
+	// Distinct sample rate (stereo samples per second) alternatives selectable in the sound settings dialog.
+	std::vector<int> rates;
+	
+	// The index of the rate in the rates list to be selected by default.
+	std::size_t defaultRateIndex;
+	
+	// Minimum and maximum custom sample rates selectable in the sound settings dialog.
+	// Set to NOT_SUPPORTED if you don't want to allow custom sample rates.
+	int minCustomRate;
+	int maxCustomRate;
+};
+
+static SampleRateInfo generateSampleRateInfo() {
+	SampleRateInfo srinfo;
+	
+	srinfo.rates.push_back(48000);
+	srinfo.rates.push_back(44100);
+	srinfo.defaultRateIndex = 0;
+	srinfo.minCustomRate = 8000;
+	srinfo.maxCustomRate = 192000;
+	
+	return srinfo;
+}
+
 static int filterValue(const int value, const int upper, const int lower = 0, const int fallback = 0) {
 	if (value >= upper || value < lower)
 		return fallback;
@@ -38,7 +65,7 @@ static int filterValue(const int value, const int upper, const int lower = 0, co
 	return value;
 }
 
-static void populateRateSelector(QComboBox *rateSelector, const MediaSource::SampleRateInfo &rateInfo) {
+static void populateRateSelector(QComboBox *rateSelector, const SampleRateInfo &rateInfo) {
 	assert(!rateInfo.rates.empty());
 	assert(rateInfo.defaultRateIndex < rateInfo.rates.size());
 	
@@ -78,7 +105,7 @@ static void setRate(QComboBox *rateSelector, const int r) {
 		rateSelector->setCurrentIndex(newIndex);
 }
 
-SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSource::SampleRateInfo &rateInfo, QWidget *parent) :
+SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *parent) :
 	QDialog(parent),
 	engines(engines),
 	topLayout(new QVBoxLayout),
@@ -122,7 +149,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSo
 		QHBoxLayout *const hLayout = new QHBoxLayout;
 		hLayout->addWidget(new QLabel(tr("Sample rate:")));
 		
-		populateRateSelector(rateSelector, rateInfo);
+		populateRateSelector(rateSelector, generateSampleRateInfo());
 		
 		hLayout->addWidget(rateSelector);
 		topLayout->addLayout(hLayout);
@@ -227,17 +254,6 @@ void SoundDialog::restore() {
 	resamplerSelector->setCurrentIndex(resamplerNum);
 	setRate(rateSelector, rate);
 	latencySelector->setValue(latency);
-}
-
-void SoundDialog::setRates(const MediaSource::SampleRateInfo &rateInfo) {
-	restore();
-	
-	rateSelector->clear();
-	populateRateSelector(rateSelector, rateInfo);
-	setRate(rateSelector, rate);
-	
-	store();
-	emit accepted();
 }
 
 void SoundDialog::accept() {

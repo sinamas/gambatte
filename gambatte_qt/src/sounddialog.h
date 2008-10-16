@@ -51,13 +51,12 @@ private slots:
 	void rateIndexChange(int index);
 	
 public:
-	SoundDialog(const std::vector<AudioEngine*> &engines, const MediaSource::SampleRateInfo &rateInfo, QWidget *parent = 0);
+	SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *parent = 0);
 	~SoundDialog();
 	int getEngineIndex() const { return engineIndex; }
 	int getResamplerNum() const { return resamplerNum; }
 	int getRate() const { return rate; }
 	int getLatency() const { return latency; };
-	void setRates(const MediaSource::SampleRateInfo &rateInfo);
 	
 public slots:
 	void accept();

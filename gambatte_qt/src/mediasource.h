@@ -77,21 +77,6 @@ public:
 		int defaultAltKey;
 	};
 	
-	struct SampleRateInfo {
-		enum { NOT_SUPPORTED = -1 };
-		
-		// Distinct sample rate (stereo samples per second) alternatives selectable in the sound settings dialog.
-		std::vector<int> rates;
-		
-		// The index of the rate in the rates list to be selected by default.
-		std::size_t defaultRateIndex;
-		
-		// Minimum and maximum custom sample rates selectable in the sound settings dialog.
-		// Set to NOT_SUPPORTED if you don't want to allow custom sample rates.
-		int minCustomRate;
-		int maxCustomRate;
-	};
-	
 	const unsigned overupdate;
 	
 	/**
