@@ -20,7 +20,7 @@
 #include <SDL_thread.h>
 #include <cstdio>
 
-static unsigned ceiledPowerOf2(unsigned t) {
+/*static unsigned ceiledPowerOf2(unsigned t) {
 	--t;
 	t |= t >> 1;
 	t |= t >> 2;
@@ -30,10 +30,26 @@ static unsigned ceiledPowerOf2(unsigned t) {
 	++t;
 	
 	return t;
+}*/
+
+static unsigned nearestPowerOf2(const unsigned in) {
+	unsigned out = in;
+	
+	out |= out >> 1;
+	out |= out >> 2;
+	out |= out >> 4;
+	out |= out >> 8;
+	out |= out >> 16;
+	++out;
+	
+	if (!(out >> 2 & in))
+		out >>= 1;
+	
+	return out;
 }
 
-AudioData::AudioData(const unsigned srate) :
-rbuf(ceiledPowerOf2(((srate * 4389) / 262144) + 2) * 8),
+AudioData::AudioData(const unsigned srate, const unsigned latency, const unsigned periods) :
+rbuf(nearestPowerOf2(srate * latency / ((periods + 1) * 1000)) * periods * 2),
 rateEst(srate),
 mut(SDL_CreateMutex()),
 bufReadyCond(SDL_CreateCond()),
@@ -44,7 +60,7 @@ failed(false) {
 	spec.freq = srate;
 	spec.format = AUDIO_S16SYS;
 	spec.channels = 2;
-	spec.samples = rbuf.size() >> 3;
+	spec.samples = (rbuf.size() / 2) / periods;
 	spec.callback = fill_buffer;
 	spec.userdata = this;
 	
@@ -61,21 +77,31 @@ AudioData::~AudioData() {
 	SDL_DestroyMutex(mut);
 }
 
-const RateEst::Result AudioData::write(const Sint16 *const inBuf, const unsigned samples) {
-	if (failed)
-		return rateEst.result();
+const AudioData::Status AudioData::write(const Sint16 *inBuf, unsigned samples) {
+	if (failed) {
+		const Status status = { rbuf.size(), 0, rateEst.result() };
+		return status;
+	}
 	
 	SDL_mutexP(mut);
 	
-	while (rbuf.avail() < samples * 2)
-		SDL_CondWait(bufReadyCond, mut);
+	{
+		std::size_t avail;
+		
+		while ((avail = rbuf.avail() / 2) < samples) {
+			rbuf.write(inBuf, avail * 2);
+			inBuf += avail * 2;
+			samples -= avail;
+			SDL_CondWait(bufReadyCond, mut);
+		}
+	}
 	
-	rbuf.write(reinterpret_cast<const Sint16*>(inBuf), samples * 2);
-	const RateEst::Result srateEst = rateEst.result();
+	rbuf.write(inBuf, samples * 2);
+	const Status status = { rbuf.used(), rbuf.avail(), rateEst.result() };
 	
 	SDL_mutexV(mut);
 	
-	return srateEst;
+	return status;
 }
 
 void AudioData::read(Uint8 *const stream, const int len) {

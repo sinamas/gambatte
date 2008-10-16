@@ -78,6 +78,42 @@ public:
 	unsigned getRate() const { return rate; }
 };
 
+class LatencyOption : public DescOption {
+	unsigned latency;
+public:
+	LatencyOption() : DescOption("latency", 'l', 1), latency(133) {}
+	
+	void exec(const char *const *argv, int index) {
+		int tmp = std::atoi(argv[index + 1]);
+		
+		if (tmp < 16 || tmp > 5000)
+			return;
+		
+		latency = tmp;
+	}
+	
+	const char* getDesc() const { return " N\t\tUse audio buffer latency of N ms\n\t\t\t\t    16 <= N <= 5000, default: 133\n"; }
+	unsigned getLatency() const { return latency; }
+};
+
+class PeriodsOption : public DescOption {
+	unsigned periods;
+public:
+	PeriodsOption() : DescOption("periods", 'p', 1), periods(4) {}
+	
+	void exec(const char *const *argv, int index) {
+		int tmp = std::atoi(argv[index + 1]);
+		
+		if (tmp < 1 || tmp > 32)
+			return;
+		
+		periods = tmp;
+	}
+	
+	const char* getDesc() const { return " N\t\tUse N audio buffer periods\n\t\t\t\t    1 <= N <= 32, default: 4\n"; }
+	unsigned getPeriods() const { return periods; }
+};
+
 class ScaleOption : public DescOption {
 	Uint8 scale;
 public:
@@ -342,6 +378,8 @@ class GambatteSdl {
 	jmap_t jhMap;
 	std::vector<SDL_Joystick*> joysticks;
 	unsigned sampleRate;
+	unsigned latency;
+	unsigned periods;
 	bool failed;
 	
 	bool init(int argc, char **argv);
@@ -392,8 +430,12 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&fsOption);
 		InputOption inputOption;
 		v.push_back(&inputOption);
+		LatencyOption latencyOption;
+		v.push_back(&latencyOption);
 		ListKeysOption lkOption;
 		v.push_back(&lkOption);
+		PeriodsOption periodsOption;
+		v.push_back(&periodsOption);
 		RateOption rateOption;
 		v.push_back(&rateOption);
 		ResamplerOption resamplerOption;
@@ -454,6 +496,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 			blitter.setStartFull();
 		
 		sampleRate = rateOption.getRate();
+		latency = latencyOption.getLatency();
+		periods = periodsOption.getPeriods();
 		blitter.setScale(scaleOption.getScale());
 		blitter.setYuv(yuvOption.useYuv());
 		gambatte.setVideoFilter(vfOption.filterNumber());
@@ -513,14 +557,13 @@ int GambatteSdl::exec() {
 	if (failed)
 		return 1;
 	
-	AudioData adata(sampleRate);
+	AudioData adata(sampleRate, latency, periods);
 	tmpBuf.reset(resampler->maxOut(35112) * 2);
 	
 	gambatte.setVideoBlitter(&blitter);
 	
 	Uint8 *keys = SDL_GetKeyState(NULL);
 	unsigned samples = 0;
-	long estSrate = sampleRate;
 	
 	SDL_PauseAudio(0);
 	
@@ -612,13 +655,14 @@ int GambatteSdl::exec() {
 		samples -= 35112;
 		
 		if (!keys[SDLK_TAB]) {
-			const RateEst::Result &rsrate = adata.write(tmpBuf, resampler->resample(tmpBuf, inBuf, 35112));
-			const long newEstSrate = rsrate.est + (rsrate.var * 2);
-		
-			if (std::abs(newEstSrate - estSrate) > rsrate.var * 2)
-				estSrate = newEstSrate;
+			const AudioData::Status &status = adata.write(tmpBuf, resampler->resample(tmpBuf, inBuf, 35112));
 			
-			syncfunc((16743ul - (16743 / 2048)) * sampleRate / estSrate);
+			long ft = (16743ul - (16743 / 1024)) * sampleRate / status.rate.est;
+			
+			if (status.fromUnderrun < status.fromOverflow)
+				ft >>= 1;
+			
+			syncfunc(ft);
 		}
 		
 		std::memmove(inBuf, inBuf + 35112 * 2, samples * sizeof(Sint16) * 2);

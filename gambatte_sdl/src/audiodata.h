@@ -24,9 +24,15 @@
 #include <SDL.h>
 
 struct AudioData {
-	AudioData(unsigned sampleRate);
+	struct Status {
+		std::size_t fromUnderrun;
+		std::size_t fromOverflow;
+		RateEst::Result rate;
+	};
+	
+	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);
 	~AudioData();
-	const RateEst::Result write(const Sint16 *inBuf, unsigned samples);
+	const Status write(const Sint16 *inBuf, unsigned samples);
 	void read(Uint8 *stream, int len);
 	
 private:
