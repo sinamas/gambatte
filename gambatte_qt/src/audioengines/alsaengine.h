@@ -31,12 +31,14 @@ class AlsaEngine : public AudioEngine {
 	unsigned prevfur;
 	
 	int doInit(int rate, unsigned latency);
+	int write(void *buffer, unsigned samples, const BufferState &bstate);
 	
 public:
 	AlsaEngine();
 	~AlsaEngine();
 	void uninit();
 	int write(void *buffer, unsigned samples);
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
 	const RateEst::Result rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause() { prevfur = 0; est.init(est.result().est); }

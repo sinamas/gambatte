@@ -117,9 +117,7 @@ void OssEngine::uninit() {
 	audio_fd = -1;
 }
 
-int OssEngine::write(void *const buffer, const unsigned samples) {
-	const BufferState &bstate = bufferState();
-	
+int OssEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
 	if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
 		if (bstate.fromUnderrun)
 			est.feed(prevfur - bstate.fromUnderrun);
@@ -133,6 +131,16 @@ int OssEngine::write(void *const buffer, const unsigned samples) {
 		return -1;
 	
 	return 0;
+}
+
+int OssEngine::write(void *const buffer, const unsigned samples) {
+	return write(buffer, samples, bufferState());
+}
+
+int OssEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, RateEst::Result &rate) {
+	const int ret = write(buffer, samples, preBufState = bufferState());
+	rate = est.result();
+	return ret;
 }
 
 const AudioEngine::BufferState OssEngine::bufferState() const {

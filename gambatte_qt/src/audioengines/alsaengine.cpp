@@ -133,9 +133,8 @@ void AlsaEngine::uninit() {
 	pcm_handle = NULL;
 }
 
-int AlsaEngine::write(void *const buffer, const unsigned samples) {
+int AlsaEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
 	bool underrun = false;
-	const BufferState &bstate = bufferState();
 	
 	if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
 		est.feed(prevfur - bstate.fromUnderrun);
@@ -153,6 +152,16 @@ int AlsaEngine::write(void *const buffer, const unsigned samples) {
 		est.init(est.result().est + (est.result().est >> 10), rate());
 	
 	return 0;
+}
+
+int AlsaEngine::write(void *const buffer, const unsigned samples) {
+	return write(buffer, samples, bufferState());
+}
+
+int AlsaEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, RateEst::Result &rate) {
+	const int ret = write(buffer, samples, preBufState = bufferState());
+	rate = est.result();
+	return ret;
 }
 
 const AudioEngine::BufferState AlsaEngine::bufferState() const {

@@ -18,14 +18,13 @@
  ***************************************************************************/
 #include "mainwindow.h"
 
-// #include <iostream>
-
-#include <QtGui>
 #include <cstring>
 #include <cassert>
+#include <cstdlib>
+#include <cmath>
+#include <QtGui>
 #include <QApplication>
 #include <QTimer>
-#include <cstdlib>
 
 #include <resample/resamplerinfo.h>
 
@@ -143,7 +142,6 @@ MainWindow::MainWindow(MediaSource *source,
 	ftDenom(60),
 	paused(0),
 	timerId(0),
-	estSrate(0),
 	running(false),
 	turbo(false),
 	pauseOnDialogExec(true),
@@ -477,16 +475,13 @@ static long maxSamplesPerFrame(const MediaSource *const source) {
 	return (source->samplesPerFrame.num - 1) / source->samplesPerFrame.denom + 1;
 }
 
-static void resetSndOutBuf(Array<qint16> &sndOutBuf, const Resampler *const resampler, const long maxspf) {
-	const std::size_t sz = resampler->maxOut(maxspf) * 2;
-	
-	if (sz != sndOutBuf.size())
-		sndOutBuf.reset(sz);
-}
-
 static void adjustResamplerRate(Array<qint16> &sndOutBuf, Resampler *const resampler, const long maxspf, const long outRate) {
 	resampler->adjustRate(resampler->inRate(), outRate);
-	resetSndOutBuf(sndOutBuf, resampler, maxspf);
+	
+	const std::size_t sz = resampler->maxOut(maxspf) * 2;
+	
+	if (sz > sndOutBuf.size())
+		sndOutBuf.reset(sz);
 }
 
 void MainWindow::setSampleRate() {
@@ -497,8 +492,7 @@ void MainWindow::setSampleRate() {
 		
 		resampler.reset();
 		resampler.reset(ResamplerInfo::get(soundDialog->getResamplerNum()).create(insrate, ae->rate(), maxspf));
-		
-		resetSndOutBuf(sndOutBuffer, resampler.get(), maxspf);
+		sndOutBuffer.reset(resampler->maxOut(maxspf) * 2);
 	}
 }
 
@@ -508,10 +502,8 @@ void MainWindow::initAudio() {
 	
 	ae = audioEngines[soundDialog->getEngineIndex()];
 	
-	if (ae->init(soundDialog->getRate(), soundDialog->getLatency()) < 0) {
+	if (ae->init(soundDialog->getRate(), soundDialog->getLatency()) < 0)
 		ae = NULL;
-	} else
-		estSrate = ae->rate();
 	
 	setSampleRate();
 }
@@ -534,30 +526,31 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 	long syncft = 0;
 	
 	if (!turbo) {
-		if (ae->write(sndOutBuffer, outsamples) < 0) {
+		RateEst::Result rsrate;
+		AudioEngine::BufferState bstate;
+		
+		if (ae->write(sndOutBuffer, outsamples, bstate, rsrate) < 0) {
 			ae->pause();
 			soundEngineFailure();
 			return;
 		}
 		
-		{
-			const RateEst::Result &rsrate = ae->rateEstimate();
-			const long newEstSrate = rsrate.est + (rsrate.var * 2);
-			
-			if (std::abs(newEstSrate - estSrate) > rsrate.var * 2)
-				estSrate = newEstSrate;
-		}
-		
 		const long usecft = blitter->frameTime();
-		syncft = static_cast<float>(usecft - (usecft >> 11)) * ae->rate() / estSrate;
+		syncft = static_cast<float>(usecft - (usecft >> 10)) * ae->rate() / rsrate.est;
+		
+		if (bstate.fromUnderrun != AudioEngine::BufferState::NOT_SUPPORTED &&
+				  bstate.fromUnderrun + outsamples * 2 < bstate.fromOverflow)
+			syncft >>= 1;
 		
 		const BlitterWidget::Estimate &estft = blitter->frameTimeEst();
 		
 		if (estft.est) {
-			long resorate = estSrate * static_cast<float>(estft.est + (estft.est >> 11) + estft.var * 2) / usecft;
+			float est = static_cast<float>(rsrate.est) * estft.est;
+			const float var = static_cast<float>(rsrate.est + rsrate.var) * (estft.est + estft.var) - est;
+			est += var;
 			
-			if (static_cast<float>(std::abs(resorate - resampler->outRate())) * usecft > static_cast<float>(estft.var * 2) * estSrate)
-				adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), resorate);
+			if (std::fabs(est - resampler->outRate() * static_cast<float>(usecft - (usecft >> 11))) > var * 2)
+				adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), est / (usecft - (usecft >> 11)));
 		} else if (resampler->outRate() != ae->rate())
 			adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), ae->rate());
 	}

@@ -105,7 +105,6 @@ private:
 	unsigned ftDenom;
 	unsigned paused;
 	int timerId;
-	int estSrate;
 	
 	JoystickIniter joyIniter;
 

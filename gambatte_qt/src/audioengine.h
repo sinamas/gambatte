@@ -49,6 +49,13 @@ public:
 	virtual QWidget* settingsWidget() { return NULL; }
 	virtual void acceptSettings() {}
 	virtual void rejectSettings() {}
+	
+	virtual int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out) {
+		preBufState_out = bufferState();
+		const int ret = write(buffer, samples);
+		rate_out = rateEstimate();
+		return ret;
+	}
 };
 
 #endif
