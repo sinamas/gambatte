@@ -28,7 +28,6 @@
 #include <QVBoxLayout>
 #include <QCheckBox>
 #include <QSettings>
-#include <videoblitter.h>
 #include <iostream>
 
 class X11Blitter::SubBlitter {

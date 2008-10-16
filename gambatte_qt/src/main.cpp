@@ -19,7 +19,7 @@
 
 #include <QApplication>
 #include <QSize>
-#include "mainwindow.h"
+#include "framework/mainwindow.h"
 #include "gambattesource.h"
 #include "gambattemenuhandler.h"
 

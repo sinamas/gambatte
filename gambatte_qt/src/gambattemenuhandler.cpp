@@ -22,7 +22,7 @@
 #include <QActionGroup>
 #include <QFileInfo>
 #include "palettedialog.h"
-#include "mainwindow.h"
+#include "framework/mainwindow.h"
 #include "gambattesource.h"
 
 static const QString strippedName(const QString &fullFileName) {

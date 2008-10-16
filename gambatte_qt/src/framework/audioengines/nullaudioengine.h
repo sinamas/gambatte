@@ -19,7 +19,7 @@
 #ifndef NULLAUDIOENGINE_H
 #define NULLAUDIOENGINE_H
 
-#include "audioengine.h"
+#include "../audioengine.h"
 
 class NullAudioEngine : public AudioEngine {
 	int doInit(int rate, unsigned /*latency*/) { return rate; }

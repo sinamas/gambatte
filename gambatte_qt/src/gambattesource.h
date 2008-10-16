@@ -19,7 +19,7 @@
 #ifndef GAMBATTESOURCE_H
 #define GAMBATTESOURCE_H
 
-#include "mediasource.h"
+#include "framework/mediasource.h"
 #include <gambatte.h>
 #include <cstring>
 #include <QObject>
