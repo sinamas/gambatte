@@ -26,6 +26,11 @@ struct Rational {
 	Rational(const long num = 1, const long denom = 1) : num(num), denom(denom) {}
 	float toFloat() const { return static_cast<float>(num) / denom; }
 	double toDouble() const { return static_cast<double>(num) / denom; }
+	
+	// assumes positive num and denom
+	long ceil() const { return (num - 1) / denom + 1; }
+	long floor() const { return num / denom; }
+	long round() const { return (num + (denom >> 1)) / denom; }
 };
 
 #endif

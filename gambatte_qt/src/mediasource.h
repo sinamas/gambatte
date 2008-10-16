@@ -33,6 +33,8 @@
 //         (note that the source may support formats of higher details than it needs)
 
 class MediaSource {
+protected:
+	MediaSource(const unsigned overupdate = 0) : overupdate(overupdate) {}
 public:
 	/**
 	  * Formats that you'll have to deal with if a BlitterWidget decides to give you a buffer with such a format.
@@ -90,10 +92,7 @@ public:
 		int maxCustomRate;
 	};
 	
-	const Rational samplesPerFrame;
 	const unsigned overupdate;
-	
-	MediaSource(const Rational &samplesPerFrame, const unsigned overupdate = 0) : samplesPerFrame(samplesPerFrame), overupdate(overupdate) {}
 	
 	/**
 	  * Reimplement to get buttonPress events for buttons of corresponding index to the

@@ -70,11 +70,14 @@ private:
 	
 	class SampleBuffer {
 		Array<qint16> sndInBuffer;
-		unsigned spfnum;
+		Rational spf;
+		unsigned num;
 		unsigned samplesBuffered;
 		
 	public:
-		SampleBuffer(std::size_t maxInSamples);
+		SampleBuffer(const Rational &spf, unsigned overupdate) { reset(spf, overupdate); }
+		const Rational& samplesPerFrame() const { return spf; }
+		void reset(const Rational &spf, unsigned overupdate);
 		std::size_t update(qint16 *out, MediaSource *source, Resampler *resampler);
 	};
 	
@@ -190,9 +193,16 @@ public:
 	
 	/**
 	  * Sets time period in seconds between calls to source->update(). Eg. for 60 Hz updates
-	  * use setFrameTime(1, 60). Too high values of numerator or denominator _may_ lead to overflows.
+	  * use setFrameTime(1, 60).
 	  */
 	void setFrameTime(unsigned numerator, unsigned denominator);
+	
+	/**
+	  * Sets the number of audio stereo source samples per video frame.
+	  * Eg. for a source sample rate of 44100 Hz at a frame rate of 60 fps use setSamplesPerFrame(44100, 60)
+	  * or setSamplesPerFrame(735).
+	  */
+	void setSamplesPerFrame(long num, long denom = 1);
 	
 	/**
 	  * When pauseOnDialogExec is set, source->update()s will be paused when a dialog is launched

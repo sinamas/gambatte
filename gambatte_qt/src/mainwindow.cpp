@@ -98,12 +98,17 @@ MainWindow::JoystickIniter::~JoystickIniter() {
 	SDL_JoystickQuit();
 }
 
-MainWindow::SampleBuffer::SampleBuffer(const std::size_t maxInSamples) : sndInBuffer(maxInSamples * 2), spfnum(0), samplesBuffered(0) {}
+void MainWindow::SampleBuffer::reset(const Rational &spf, const unsigned overupdate) {
+	sndInBuffer.reset((spf.ceil() + overupdate) * 2);
+	this->spf = spf;
+	num = 0;
+	samplesBuffered = 0;
+}
 
 std::size_t MainWindow::SampleBuffer::update(qint16 *const out, MediaSource *const source, Resampler *const resampler) {
-	spfnum += source->samplesPerFrame.num;
-	const long insamples = spfnum / source->samplesPerFrame.denom;
-	spfnum -= insamples * source->samplesPerFrame.denom;
+	num += spf.num;
+	const long insamples = num / spf.denom;
+	num -= insamples * spf.denom;
 	
 	samplesBuffered += source->update(sndInBuffer + samplesBuffered * 2, insamples - samplesBuffered);
 	samplesBuffered -= insamples;
@@ -133,7 +138,7 @@ MainWindow::MainWindow(MediaSource *source,
 	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
 	blitter(NULL),
 	fullModeToggler(getFullModeToggler(winId())),
-	sampleBuffer((source->samplesPerFrame.num - 1) / source->samplesPerFrame.denom + 1 + source->overupdate),
+	sampleBuffer(Rational(735, 1), source->overupdate),
 	sndOutBuffer(0),
 	ae(NULL),
 	cursorTimer(NULL),
@@ -471,10 +476,6 @@ void MainWindow::setFrameTime(unsigned num, unsigned denom) {
 	setSampleRate();
 }
 
-static long maxSamplesPerFrame(const MediaSource *const source) {
-	return (source->samplesPerFrame.num - 1) / source->samplesPerFrame.denom + 1;
-}
-
 static void adjustResamplerRate(Array<qint16> &sndOutBuf, Resampler *const resampler, const long maxspf, const long outRate) {
 	resampler->adjustRate(resampler->inRate(), outRate);
 	
@@ -487,13 +488,18 @@ static void adjustResamplerRate(Array<qint16> &sndOutBuf, Resampler *const resam
 void MainWindow::setSampleRate() {
 	if (ae) {
 		const Rational fr(ftDenom, ftNum);
-		const long insrate = fr.toDouble() * source->samplesPerFrame.toDouble() + 0.5;
-		const long maxspf = maxSamplesPerFrame(source);
+		const long insrate = fr.toDouble() * sampleBuffer.samplesPerFrame().toDouble() + 0.5;
+		const long maxspf = sampleBuffer.samplesPerFrame().ceil();
 		
 		resampler.reset();
 		resampler.reset(ResamplerInfo::get(soundDialog->getResamplerNum()).create(insrate, ae->rate(), maxspf));
 		sndOutBuffer.reset(resampler->maxOut(maxspf) * 2);
 	}
+}
+
+void MainWindow::setSamplesPerFrame(const long num, const long denom) {
+	sampleBuffer.reset(Rational(num, denom), source->overupdate);
+	setSampleRate();
 }
 
 void MainWindow::initAudio() {
@@ -550,9 +556,9 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 			est += var;
 			
 			if (std::fabs(est - resampler->outRate() * static_cast<float>(usecft - (usecft >> 11))) > var * 2)
-				adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), est / (usecft - (usecft >> 11)));
+				adjustResamplerRate(sndOutBuffer, resampler.get(), sampleBuffer.samplesPerFrame().ceil(), est / (usecft - (usecft >> 11)));
 		} else if (resampler->outRate() != ae->rate())
-			adjustResamplerRate(sndOutBuffer, resampler.get(), maxSamplesPerFrame(source), ae->rate());
+			adjustResamplerRate(sndOutBuffer, resampler.get(), sampleBuffer.samplesPerFrame().ceil(), ae->rate());
 	}
 	
 	if (blitter->sync(syncft) < 0) {

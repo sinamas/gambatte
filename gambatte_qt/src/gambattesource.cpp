@@ -19,7 +19,7 @@
 #include "gambattesource.h"
 
 GambatteSource::GambatteSource() :
-MediaSource(Rational(35112), 2064),
+MediaSource(2064),
 blitter(*this) {
 	gb.setInputStateGetter(&inputGetter);
 	gb.setVideoBlitter(&blitter);
