@@ -270,7 +270,14 @@ long X11Blitter::sync(const long ft) {
 	if (subBlitter->failed())
 		return -1;
 	
-	return BlitterWidget::sync(ft);
+	BlitterWidget::sync(ft);
+	
+	if (buffer) {
+		subBlitter->blit(winId(), 0, 0, width(), height());
+		XSync(QX11Info::display(), 0);
+	}
+	
+	return 0;
 }
 
 /*
@@ -341,10 +348,10 @@ void X11Blitter::blit() {
 				                     inWidth, inHeight, width(), height(), subBlitter->pitch());
 			}
 		}
+	} else {
+		subBlitter->blit(winId(), 0, 0, width(), height());
+		XSync(QX11Info::display(), 0);
 	}
-	
-	subBlitter->blit(winId(), 0, 0, width(), height());
-	XSync(QX11Info::display(), 0);
 }
 
 void X11Blitter::resizeEvent(QResizeEvent */*event*/) {
