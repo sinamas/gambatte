@@ -177,16 +177,13 @@ isFull(false)
 			{
 				CrtcInfoPtr crtcInfo(resources, resources->crtcs[c]);
 				
-				if (crtcInfo) {
+				if (crtcInfo && (curMode = getModeInfo(resources, crtcInfo->mode))) {
 					OutputInfos outputInfos(resources, crtcInfo);
 					
 					for (int m = 0; m < resources->nmode; ++m) {
-						if (resources->modes[m].width <= crtcInfo->width && resources->modes[m].height <= crtcInfo->height) {
+						if (resources->modes[m].width <= curMode->width && resources->modes[m].height <= curMode->height) {
 							if (isGood(resources->modes[m].id, outputInfos.get()))
 								addMode(resources->modes[m], infoVector[c], NULL, NULL);
-							
-							if (resources->modes[m].id == crtcInfo->mode)
-								curMode = resources->modes + m;
 						}
 					}
 				}
