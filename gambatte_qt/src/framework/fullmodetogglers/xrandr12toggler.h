@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aam�s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,22 +16,44 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "getfullmodetoggler.h"
+#ifndef XRANDR12TOGGLER_H_
+#define XRANDR12TOGGLER_H_
 
-#include "fullmodetogglers/nulltoggler.h"
-// #include "fullmodetogglers/xf86vidmodetoggler.h"
-#include "fullmodetogglers/xrandrtoggler.h"
-#include "fullmodetogglers/xrandr12toggler.h"
+#include "../fullmodetoggler.h"
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
 
-std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
-	if (XRandR12Toggler::isUsable())
-		return std::auto_ptr<FullModeToggler>(new XRandR12Toggler);
+class XRandR12Toggler : public FullModeToggler {
+	Q_OBJECT
+		
+	RRMode originalMode;
+	XRRScreenResources *resources;
+	std::vector<std::vector<ResInfo> > infoVector;
+	std::vector<unsigned> fullResIndex;
+	std::vector<unsigned> fullRateIndex;
+	unsigned widgetScreen;
+	bool isFull;
 	
-	if (XRandRToggler::isUsable())
-		return std::auto_ptr<FullModeToggler>(new XRandRToggler);
+public:
+	static bool isUsable();
+	XRandR12Toggler();
+	~XRandR12Toggler();
+	unsigned currentResIndex(unsigned screen) const { return fullResIndex[screen]; }
+	unsigned currentRateIndex(unsigned screen) const { return fullRateIndex[screen]; }
+	const QRect fullScreenRect(const QWidget *w) const;
+	bool isFullMode() const { return isFull; }
+	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
+	void setFullMode(bool enable);
+	void emitRate();
+	const std::vector<ResInfo>& modeVector(unsigned screen) const { return infoVector[screen]; }
+	void setScreen(const QWidget *widget);
+	unsigned screen() const { return widgetScreen; }
+	unsigned screens() const { return infoVector.size(); }
 	
-// 	if (Xf86VidModeToggler::isUsable())
-// 		return std::auto_ptr<FullModeToggler>(new Xf86VidModeToggler(winId));
-	
-	return std::auto_ptr<FullModeToggler>(new NullToggler);
-}
+signals:
+	void rateChange(int newHz);
+//	void modeChange();
+};
+
+#endif
+ 

@@ -92,13 +92,15 @@ else:unix {
         framework/audioengines/ossengine.cpp \
         framework/blitterwidgets/xvblitter.cpp \
         framework/blitterwidgets/x11blitter.cpp \
-        framework/fullmodetogglers/xrandrtoggler.cpp #\
+        framework/fullmodetogglers/xrandrtoggler.cpp \
+        framework/fullmodetogglers/xrandr12toggler.cpp #\
 #        framework/fullmodetogglers/xf86vidmodetoggler.cpp
     HEADERS += framework/x11getprocaddress.h \
         framework/audioengines/ossengine.h \
         framework/blitterwidgets/xvblitter.h \
         framework/blitterwidgets/x11blitter.h \
-        framework/fullmodetogglers/xrandrtoggler.h #\
+        framework/fullmodetogglers/xrandrtoggler.h \
+        framework/fullmodetogglers/xrandr12toggler.h #\
 #        framework/fullmodetogglers/xf86vidmodetoggler.h
     LIBS += -L/usr/X11R6/lib \
         -lXv \
