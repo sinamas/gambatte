@@ -42,12 +42,12 @@ BlitterContainer::~BlitterContainer()
 void BlitterContainer::doLayout(const int w, const int h) {
 	if (!blitter)
 		return;
-	
+
 	if (videoDialog->scalingType() == UNRESTRICTED)
 		blitter->setCorrectedGeometry(w, h, w, h);
 	else if (videoDialog->scalingType() == KEEP_RATIO) {
 		const QSize &ar = videoDialog->aspectRatio();
-		
+
 		if (w * (ar).height() > h * ar.width()) {
 			const int new_w = (h * ar.width() + (ar.height() >> 1)) / ar.height();
 			blitter->setCorrectedGeometry(w, h, new_w, h);
@@ -70,13 +70,13 @@ void BlitterContainer::testExclusive() {
 }
 
 void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
-	if (blitter)
-		blitter->setParent(0);
-	
+//	if (blitter)
+//		blitter->setParent(0);
+
 	blitter = blitter_in;
-	
+
 	if (blitter) {
-		blitter->setParent(this);
+//		blitter->setParent(this);
 		updateLayout();
 		testExclusive();
 	}

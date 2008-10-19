@@ -30,24 +30,24 @@ void FtEst::init(const long frameTime) {
 }
 
 void FtEst::update(const usec_t t) {
-	if (t - last < static_cast<unsigned long>(frameTime + (frameTime >> 2))) {
+	if (t - last < static_cast<unsigned long>(frameTime + (frameTime >> 3))) {
 		ft += t - last;
-		
+
 		if (--count == 0) {
 			count = COUNT;
 			long oldFtAvg = ftAvg;
-			ftAvg = (ftAvg * 31 + ft + 16) >> 5;
-			
-			if (ftAvg > ((frameTime + (frameTime >> 6)) << COUNT_LOG2))
-				ftAvg = (frameTime + (frameTime >> 6)) << COUNT_LOG2;
-			else if (ftAvg < ((frameTime - (frameTime >> 6)) << COUNT_LOG2))
-				ftAvg = (frameTime - (frameTime >> 6)) << COUNT_LOG2;
-			
+			ftAvg = (ftAvg * 15 + ft + 8) >> 4;
+
+			if (ftAvg > ((frameTime + (frameTime >> 5)) << COUNT_LOG2))
+				ftAvg = (frameTime + (frameTime >> 5)) << COUNT_LOG2;
+			else if (ftAvg < ((frameTime - (frameTime >> 5)) << COUNT_LOG2))
+				ftAvg = (frameTime - (frameTime >> 5)) << COUNT_LOG2;
+
 			ftVar = (ftVar * 15 + std::abs(ftAvg - oldFtAvg) + 8) >> 4;
 			ft = 0;
 		}
 	}
-	
+
 	last = t;
 }
 
@@ -58,22 +58,22 @@ void FtEst::update(const usec_t t) {
 class Timer {
 	LONGLONG freq;
 	bool qpf;
-	
+
 public:
 	Timer() : freq(0), qpf(false) {
 		LARGE_INTEGER li;
 		qpf = QueryPerformanceFrequency(&li);
 		freq = qpf ? li.QuadPart : 1000;
 	}
-	
+
 	usec_t get() const {
 		LARGE_INTEGER li;
-		
+
 		if (qpf)
 			QueryPerformanceCounter(&li);
 		else
 			li.QuadPart = timeGetTime();
-		
+
 		return static_cast<ULONGLONG>(li.QuadPart) * 1000000 / freq;
 	}
 };
@@ -110,16 +110,16 @@ void usecsleep(const usec_t usecs) {
 class BlitterWidget::Impl {
 	AdaptiveSleep asleep;
 	usec_t last;
-	
+
 public:
 	Impl() : last(0) {}
-	
+
 	long sync(const long ft) {
 		if (ft) {
 			last += asleep.sleepUntil(last, ft);
 			last += ft;
 		}
-		
+
 		return 0;
 	}
 };

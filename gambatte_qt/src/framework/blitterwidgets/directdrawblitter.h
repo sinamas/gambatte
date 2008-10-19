@@ -51,7 +51,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	bool videoSurface;
 	bool exclusive;
 	bool flipping;
-	
+
 	static BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
 	bool initPrimarySurface();
 	bool initVideoSurface();
@@ -60,13 +60,13 @@ class DirectDrawBlitter : public BlitterWidget {
 	void videoSurfaceBlit();
 	//void detectExclusive();
 	void reinit();
-	
+
 protected:
 	void paintEvent(QPaintEvent *event);
 	/*void resizeEvent(QResizeEvent *event);
 	void moveEvent(QMoveEvent *event);
 	void hideEvent(QHideEvent *event);*/
-	
+
 public:
 	DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
 	~DirectDrawBlitter();
@@ -78,11 +78,13 @@ public:
 	long sync(long turbo);
 	void uninit();
 	void setExclusive(bool exclusive);
-	
+
 	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
-	
+
+	QPaintEngine* paintEngine () const { return NULL; }
+
 public slots:
 //	void modeChange();
 	void rateChange(int hz);

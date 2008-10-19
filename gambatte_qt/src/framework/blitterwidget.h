@@ -28,16 +28,16 @@
 class QHBoxLayout;
 
 class FtEst {
-	enum { COUNT_LOG2 = 5 };
+	enum { COUNT_LOG2 = 4 };
 	enum { COUNT = 1 << COUNT_LOG2 };
-	
+
 	long frameTime;
 	long ft;
 	long ftAvg;
 	long ftVar;
 	usec_t last;
 	unsigned count;
-	
+
 public:
 	FtEst(long frameTime = 0) { init(frameTime); }
 	void init(long frameTime);
@@ -50,28 +50,28 @@ class BlitterWidget : public QWidget {
 	Q_OBJECT
 
 	class Impl;
-	
+
 	Impl *const impl;
 	long ft;
-	
+
 protected:
 	PixelBufferSetter setPixelBuffer;
-	
+
 public:
 	struct Estimate {
 		long est;
 		long var;
 	};
-	
+
 	const QString nameString;
 	const bool integerOnlyScaler;
-	
+
 	BlitterWidget(PixelBufferSetter setPixelBuffer,
 	              const QString &name,
 	              bool integerOnlyScaler = false,
 	              QWidget *parent = 0);
 	virtual ~BlitterWidget();
-	
+
 	virtual void init() {}
 	virtual void uninit() {}
 	virtual void blit() = 0;

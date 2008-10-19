@@ -24,34 +24,37 @@ static long limit(long est, const long reference) {
 		est = reference + (reference >> 7);
 	else if (est < reference - (reference >> 7))
 		est = reference - (reference >> 7);
-	
+
 	return est;
 }
 
-void RateEst::init(long srate, const long reference) {
+void RateEst::init(long srate, long reference) {
+	srate <<= UPSHIFT;
+	reference <<= UPSHIFT;
+
 	this->srate.est = limit(srate, reference);
 	this->srate.var = srate >> 12;
 	last = 0;
 	this->reference = reference;
 	samples = 0;
-	count = 32;
+	count = 1;
 }
 
 void RateEst::feed(const long samplesIn) {
 	samples += samplesIn;
-		
+
 	if (--count == 0) {
 		count = 32;
-		
+
 		const usec_t now = getusecs();
-		
+
 		if (last) {
-			long est = samples * 1000000.0f / (now - last) + 0.5f;
+			long est = samples * (1000000.0f * UP) / (now - last) + 0.5f;
 			est = limit((srate.est * 31 + est + 16) >> 5, reference);
 			srate.var = (srate.var * 15 + std::abs(est - srate.est) + 8) >> 4;
 			srate.est = est;
 		}
-		
+
 		last = now;
 		samples = 0;
 	}

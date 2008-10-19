@@ -26,29 +26,34 @@ class QComboBox;
 #include <QList>
 #include <memory>
 #include <dsound.h>
+#include <usec.h>
 
 class DirectSoundEngine : public AudioEngine {
+	RateEst est;
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const globalBufBox;
 	QComboBox *const deviceSelector;
 	LPDIRECTSOUND lpDS;
 	LPDIRECTSOUNDBUFFER lpDSB;
 	QList<GUID> deviceList;
+	usec_t lastusecs;
 	unsigned bufSize;
 	unsigned deviceIndex;
 	DWORD offset;
+	DWORD lastpc;
 	HWND hwnd;
 	bool useGlobalBuf;
-	
+
 	static BOOL CALLBACK enumCallback(LPGUID, const char*, const char*, LPVOID);
-	
+
 	int doInit(int rate, unsigned latency);
-	
+
 public:
 	DirectSoundEngine(HWND hwnd);
 	~DirectSoundEngine();
 	void uninit();
 	int write(void *buffer, unsigned frames);
+	const RateEst::Result rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause();
 	QWidget* settingsWidget() { return confWidget.get(); }

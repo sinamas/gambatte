@@ -27,21 +27,25 @@ public:
 		long est;
 		long var;
 	};
-	
+
 private:
+	enum { UPSHIFT = 5 };
+	enum { UP = 1 << UPSHIFT };
+
 	Result srate;
 	usec_t last;
 	long reference;
 	long samples;
 	unsigned count;
-	
+
 public:
 	RateEst(long srate = 0) { init(srate); }
 	RateEst(long srate, long reference) { init(srate, reference); }
 	void init(long srate) { init(srate, srate); }
 	void init(long srate, long reference);
+	void reset() { count = 1; last = 0; }
 	void feed(long samples);
-	const Result& result() const { return srate; }
+	const Result result() const { const Result res = { (srate.est + UP / 2) >> UPSHIFT, (srate.var + UP / 2) >> UPSHIFT }; return res; }
 };
 
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,6 +26,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSettings>
+#include <iostream>
 
 Q_DECLARE_METATYPE(GUID*)
 
@@ -35,7 +36,7 @@ BOOL CALLBACK DirectSoundEngine::enumCallback(LPGUID lpGuid, const char *lpcstrD
 		thisptr->deviceList.append(*lpGuid);
 		thisptr->deviceSelector->addItem(lpcstrDescription, QVariant::fromValue(&thisptr->deviceList.last()));
 	}
-	
+
 	return true;
 }
 
@@ -46,51 +47,53 @@ DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) :
 	deviceSelector(new QComboBox),
 	lpDS(NULL),
 	lpDSB(NULL),
+	lastusecs(0),
 	bufSize(0),
 	deviceIndex(0),
 	offset(0),
+	lastpc(0),
 	hwnd(hwnd_in),
 	useGlobalBuf(false)
 {
 	DirectSoundEnumerateA(enumCallback, this);
-	
+
 	if (deviceSelector->count() < 1)
 		deviceSelector->addItem(QString(), QVariant::fromValue<GUID*>(NULL));
-	
+
 	{
 		QVBoxLayout *const mainLayout = new QVBoxLayout;
 		mainLayout->setMargin(0);
-		
+
 		if (deviceSelector->count() > 1) {
 			QHBoxLayout *const hlayout = new QHBoxLayout;
-			
+
 			hlayout->addWidget(new QLabel(QString("DirectSound device:")));
 			hlayout->addWidget(deviceSelector);
-			
+
 			mainLayout->addLayout(hlayout);
 		}
-		
+
 		mainLayout->addWidget(globalBufBox);
 		confWidget->setLayout(mainLayout);
 	}
-	
+
 	{
 		QSettings settings;
 		settings.beginGroup("directsoundengine");
 		useGlobalBuf = settings.value("useGlobalBuf", useGlobalBuf).toBool();
-		
+
 		if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
 			deviceIndex = 0;
-		
+
 		settings.endGroup();
 	}
-	
+
 	rejectSettings();
 }
 
 DirectSoundEngine::~DirectSoundEngine() {
 	uninit();
-	
+
 	QSettings settings;
 	settings.beginGroup("directsoundengine");
 	settings.setValue("useGlobalBuf", useGlobalBuf);
@@ -108,59 +111,56 @@ void DirectSoundEngine::rejectSettings() {
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
-static unsigned nearestPowerOf2(const unsigned in) {
+/*static unsigned nearestPowerOf2(const unsigned in) {
 	unsigned out = in;
-	
+
 	out |= out >> 1;
 	out |= out >> 2;
 	out |= out >> 4;
 	out |= out >> 8;
 	out |= out >> 16;
 	++out;
-	
+
 	if (!(out >> 2 & in))
 		out >>= 1;
-	
+
 	return out;
+}*/
+
+static unsigned bufferMsecs(unsigned bufSz, unsigned rate) {
+	return rate ? ((bufSz / 4) * 1000) / rate : 0;
 }
 
 int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 	if (DirectSoundCreate(deviceSelector->itemData(deviceIndex).value<GUID*>(), &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
+		std::cout << "DirectSoundCreate failed" << std::endl;
 		goto fail;
 	}
-	
-	if (lpDS->SetCooperativeLevel(hwnd, DSSCL_PRIORITY) != DS_OK)
+
+	if (lpDS->SetCooperativeLevel(hwnd, DSSCL_PRIORITY) != DS_OK) {
+		std::cout << "SetCooperativeLevel failed" << std::endl;
 		goto fail;
-	
+	}
+
 	{
 		DSBUFFERDESC dsbd;
 		std::memset(&dsbd, 0, sizeof(dsbd));
 		dsbd.dwSize = sizeof(dsbd);
 		dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | (useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0);
-		
+
 		{
-			/*int bufferSize = (((rate * 4389) / 262144) + 1) * 8 * 4;
-			
-			--bufferSize;
-			bufferSize |= bufferSize >> 1;
-			bufferSize |= bufferSize >> 2;
-			bufferSize |= bufferSize >> 4;
-			bufferSize |= bufferSize >> 8;
-			bufferSize |= bufferSize >> 16;
-			++bufferSize;*/
-			
-			int bufferSize = nearestPowerOf2(((rate * latency + 500) / 1000) * 4);
-			
+			int bufferSize = /*nearestPowerOf2*/(((rate * latency + 500) / 1000) * 4);
+
 			if (bufferSize < DSBSIZE_MIN)
 				bufferSize = DSBSIZE_MIN;
-			
+
 			if (bufferSize > DSBSIZE_MAX)
 				bufferSize = DSBSIZE_MAX;
-			
-			dsbd.dwBufferBytes = bufSize = bufferSize;
+
+			dsbd.dwBufferBytes = bufferSize;
 		}
-		
+
 		WAVEFORMATEX wfe;
 		std::memset(&wfe, 0, sizeof(wfe));
 		wfe.wFormatTag = WAVE_FORMAT_PCM;
@@ -169,23 +169,35 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 		wfe.wBitsPerSample = 16;
 		wfe.nBlockAlign = wfe.nChannels * wfe.wBitsPerSample >> 3;
 		wfe.nAvgBytesPerSec = rate * wfe.nBlockAlign;
-		
+
 		dsbd.lpwfxFormat = &wfe;
-		
+
 		{
 			GUID guidNULL;
 			std::memset(&guidNULL,0,sizeof(GUID));
 			dsbd.guid3DAlgorithm = guidNULL;
 		}
-		
+
 		if (lpDS->CreateSoundBuffer(&dsbd, &lpDSB, NULL) != DS_OK) {
 			lpDSB = NULL;
+			std::cout << "CreateSoundBuffer failed" << std::endl;
 			goto fail;
 		}
+
+		DSBCAPS dsbcaps;
+		std::memset(&dsbcaps, 0, sizeof(dsbcaps));
+		dsbcaps.dwSize = sizeof(dsbcaps);
+
+		if (lpDSB->GetCaps(&dsbcaps) != DS_OK)
+			goto fail;
+
+		bufSize = dsbcaps.dwBufferBytes;
 	}
-	
+
+	est.init(rate);
+
 	return rate;
-	
+
 fail:
 	uninit();
 	return -1;
@@ -196,87 +208,100 @@ void DirectSoundEngine::uninit() {
 		lpDSB->Stop();
 		lpDSB->Release();
 	}
-	
+
 	lpDSB = NULL;
-	
+
 	if (lpDS)
 		lpDS->Release();
-	
+
 	lpDS = NULL;
 }
 
 int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
 	DWORD status;
 	lpDSB->GetStatus(&status);
-	
+
 	if (status & DSBSTATUS_BUFFERLOST) {
 		lpDSB->Restore();
 		status &= ~DSBSTATUS_PLAYING;
 	}
-	
+
 	if (!(status & DSBSTATUS_PLAYING)) {
-// 		std:: cout << "notplaying" << std::endl;
 		offset = bufSize >> 1;
-		lpDSB->SetCurrentPosition(0);
-	} else for (DWORD pc, wc;;) {
+		lpDSB->SetCurrentPosition(lastpc = lastusecs = 0);
+		est.reset();
+	} else {
+		DWORD pc, wc;
+
 		if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
 			return -1;
-		
-		//std::cout << "wc-pc: " << ((wc < pc ? bufSize : 0) + wc - pc) << std::endl;
-		if (offset > pc && offset < wc) {
-// 			std::cout << "underrun" << std::endl;
-			offset = wc;
-			break;
+
+		const usec_t usecs = getusecs();
+
+		if (usecs - lastusecs > (bufferMsecs(bufSize, rate())) * 1000)
+			est.reset();
+
+		est.feed(((pc >= lastpc ? 0 : bufSize) + pc - lastpc) >> 2);
+		lastpc = pc;
+		lastusecs = usecs;
+
+		for (;;) {
+			if ((wc > pc ? wc : wc + bufSize) > (offset > pc ? offset : offset + bufSize)) {
+				//std::cout << "underrun" << std::endl;
+				offset = wc;
+				break;
+			}
+
+			if ((pc < offset ? bufSize : 0) + pc - offset >= frames * 4)
+				break;
+
+			Sleep(1);
+
+			if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
+				return -1;
 		}
-		
-		if ((pc < offset ? bufSize : 0) + pc - offset >= frames * 4)
-			break;
-		
-		Sleep(1);
 	}
-	
+
 	{
 		LPVOID ptr1;
 		LPVOID ptr2;
 		DWORD bytes1;
 		DWORD bytes2;
-		
+
 		if (lpDSB->Lock(offset, frames * 4, &ptr1, &bytes1, &ptr2, &bytes2, 0) != DS_OK)
 			return 0;
-		
+
 		std::memcpy(ptr1, buffer, bytes1);
-		
-		if (ptr2) {
+
+		if (ptr2)
 			std::memcpy(ptr2, static_cast<char*>(buffer) + bytes1, bytes2);
-		}
-		
+
 		lpDSB->Unlock(ptr1, bytes1, ptr2, bytes2);
 	}
-	
+
 	if ((offset += frames * 4) >= bufSize)
 		offset -= bufSize;
-	
-	if (!(status & DSBSTATUS_PLAYING)) {
+
+	if (!(status & DSBSTATUS_PLAYING))
 		lpDSB->Play(0, 0, DSBPLAY_LOOPING);
-	}
-	
+
 	return 0;
 }
 
 const AudioEngine::BufferState DirectSoundEngine::bufferState() const {
 	BufferState s;
 	DWORD pc, wc;
-	
+
 	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK) {
 		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
-	} else if (offset > pc && offset < wc) {
+	} else if ((wc > pc ? wc : wc + bufSize) > (offset > pc ? offset : offset + bufSize)) {
 		s.fromUnderrun = 0;
 		s.fromOverflow = bufSize >> 2;
 	} else {
-		s.fromUnderrun = (offset < wc ? bufSize : 0) + offset - wc >> 2;
-		s.fromOverflow = (pc < offset ? bufSize : 0) + pc - offset >> 2;
+		s.fromUnderrun = ((offset < wc ? bufSize : 0) + offset - wc) >> 2;
+		s.fromOverflow = ((pc < offset ? bufSize : 0) + pc - offset) >> 2;
 	}
-	
+
 	return s;
 }
 

@@ -28,7 +28,7 @@ class QComboBox;
 
 class Direct3DBlitter : public BlitterWidget {
 	typedef IDirect3D9* (WINAPI *Direct3DCreate9Ptr)(UINT);
-	
+
 	FtEst ftEst;
 	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *const adapterSelector;
@@ -38,7 +38,7 @@ class Direct3DBlitter : public BlitterWidget {
 	QCheckBox *const triplebufBox;
 	QCheckBox *const bfBox;
 	HMODULE d3d9handle;
-	Direct3DCreate9Ptr direct3DCreate9; 
+	Direct3DCreate9Ptr direct3DCreate9;
 	IDirect3D9 *d3d;
 	IDirect3DDevice9* device;
 	IDirect3DVertexBuffer9* vertexBuffer;
@@ -59,7 +59,7 @@ class Direct3DBlitter : public BlitterWidget {
 	bool vblankflip;
 	bool triplebuf;
 	bool bf;
-	
+
 	void getPresentParams(D3DPRESENT_PARAMETERS *presentParams) const;
 	void lockTexture();
 	void setVertexBuffer();
@@ -71,11 +71,11 @@ class Direct3DBlitter : public BlitterWidget {
 	void setSwapInterval();
 	void draw();
 	void present();
-	
+
 protected:
 	void paintEvent(QPaintEvent *e);
 	void resizeEvent(QResizeEvent *e);
-	
+
 public:
 	Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
 	~Direct3DBlitter();
@@ -91,7 +91,9 @@ public:
 	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
-	
+
+	QPaintEngine* paintEngine () const { return NULL; }
+
 public slots:
 	void rateChange(int hz);
 };

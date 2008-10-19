@@ -38,18 +38,18 @@ QPainterBlitter::QPainterBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	settings.beginGroup("qpainterblitter");
 	bf = settings.value("bf", false).toBool();
 	settings.endGroup();
-	
+
 	confWidget->setLayout(new QVBoxLayout);
 	confWidget->layout()->setMargin(0);
 	confWidget->layout()->addWidget(bfBox);
 	bfBox->setChecked(bf);
-	
+
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
 QPainterBlitter::~QPainterBlitter() {
 	uninit();
-	
+
 	QSettings settings;
 	settings.beginGroup("qpainterblitter");
 	settings.setValue("bf", bf);
@@ -61,13 +61,16 @@ void QPainterBlitter::blit() {
 }
 
 void QPainterBlitter::paintEvent(QPaintEvent *const event) {
+	if (!image.get())
+		return;
+
 	if (buffer) {
 		if (bf)
 			linearScale<quint32, 0xFF00FF, 0x00FF00, 8>(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, width(), height(), image->bytesPerLine() >> 2);
 		else
 			nearestNeighborScale(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, width(), height(), image->bytesPerLine() >> 2);
 	}
-	
+
 	QPainter painter(this);
 	painter.setClipRegion(event->region());
 	painter.drawImage(rect(), *image);
@@ -81,10 +84,10 @@ void QPainterBlitter::resizeEvent(QResizeEvent */*event*/) {
 void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned int h) {
 	inWidth = w;
 	inHeight = h;
-	
+
 	uninit();
 	image.reset(new QImage(width(), height(), QImage::Format_RGB32));
-	
+
 	if (width() != static_cast<int>(w) || height() != static_cast<int>(h)) {
 		buffer = new quint32[w * h];
 		setPixelBuffer(buffer, MediaSource::RGB32, w);
@@ -94,7 +97,7 @@ void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned i
 
 void QPainterBlitter::uninit() {
 	image.reset();
-	
+
 	delete []buffer;
 	buffer = NULL;
 }
