@@ -95,7 +95,6 @@ private:
 	InputDialog *inputDialog;
 	SoundDialog *soundDialog;
 	VideoDialog *videoDialog;
-	BlitterWidget *blitter;
 	const std::auto_ptr<FullModeToggler> fullModeToggler;
 	std::auto_ptr<Resampler> resampler;
 	SampleBuffer sampleBuffer;

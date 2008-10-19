@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,7 +25,7 @@
 BlitterContainer::BlitterContainer(const VideoDialog *videoDialog, QWidget *parent) :
 	QWidget(parent),
 	videoDialog(videoDialog),
-	blitter(NULL),
+	blitter_(NULL),
 	parentExclusive(false)
 {
 	QPalette pal = palette();
@@ -40,43 +40,43 @@ BlitterContainer::~BlitterContainer()
 {}
 
 void BlitterContainer::doLayout(const int w, const int h) {
-	if (!blitter)
+	if (!blitter_)
 		return;
 
 	if (videoDialog->scalingType() == UNRESTRICTED)
-		blitter->setCorrectedGeometry(w, h, w, h);
+		blitter_->setCorrectedGeometry(w, h, w, h);
 	else if (videoDialog->scalingType() == KEEP_RATIO) {
 		const QSize &ar = videoDialog->aspectRatio();
 
 		if (w * (ar).height() > h * ar.width()) {
 			const int new_w = (h * ar.width() + (ar.height() >> 1)) / ar.height();
-			blitter->setCorrectedGeometry(w, h, new_w, h);
+			blitter_->setCorrectedGeometry(w, h, new_w, h);
 		} else {
 			const int new_h = (w * ar.height() + (ar.width() >> 1)) / ar.width();
-			blitter->setCorrectedGeometry(w, h, w, new_h);
+			blitter_->setCorrectedGeometry(w, h, w, new_h);
 		}
 	} else {
 		const QSize &src = videoDialog->sourceSize();
 		const int scale = std::min(w / src.width(), h / src.height());
 		const int new_w = src.width() * scale;
 		const int new_h = src.height() * scale;
-		blitter->setCorrectedGeometry(w, h, new_w, new_h);
+		blitter_->setCorrectedGeometry(w, h, new_w, new_h);
 	}
 }
 
 void BlitterContainer::testExclusive() {
-	if (blitter)
-		blitter->setExclusive(parentExclusive && pos() == QPoint(0,0));
+	if (blitter_)
+		blitter_->setExclusive(parentExclusive && pos() == QPoint(0,0));
 }
 
 void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
-//	if (blitter)
-//		blitter->setParent(0);
+//	if (blitter_)
+//		blitter_->setParent(0);
 
-	blitter = blitter_in;
+	blitter_ = blitter_in;
 
-	if (blitter) {
-//		blitter->setParent(this);
+	if (blitter_) {
+//		blitter_->setParent(this);
 		updateLayout();
 		testExclusive();
 	}

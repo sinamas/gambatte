@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -27,7 +27,7 @@ class VideoDialog;
 
 class BlitterContainer : public QWidget {
 	const VideoDialog *const videoDialog;
-	BlitterWidget *blitter;
+	BlitterWidget *blitter_;
 	bool parentExclusive;
 	
 	void doLayout(int w, int h);
@@ -43,6 +43,7 @@ public:
 	void setBlitter(BlitterWidget *blitter);
 	void updateLayout() { doLayout(width(), height()); }
 	void parentExclusiveEvent(bool fs) { parentExclusive = fs; testExclusive(); }
+	BlitterWidget* blitter() { return blitter_; }
 };
 
 #endif

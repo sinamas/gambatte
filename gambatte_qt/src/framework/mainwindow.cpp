@@ -135,7 +135,6 @@ MainWindow::MainWindow(MediaSource *source,
                        const QSize &aspectRatio) :
 	source(source),
 	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
-	blitter(NULL),
 	fullModeToggler(getFullModeToggler(winId())),
 	sampleBuffer(Rational(735, 1), source->overupdate),
 	sndOutBuffer(0),
@@ -346,7 +345,7 @@ void MainWindow::soundSettingsChange() {
 }
 
 void MainWindow::uninitBlitter() {
-	blitter->uninit();
+	blitterContainer->blitter()->uninit();
 	source->setPixelBuffer(NULL, MediaSource::RGB32, 0);
 }
 
@@ -354,35 +353,34 @@ void MainWindow::videoSettingsChange() {
 	{
 		const int engineIndex = videoDialog->engine();
 
-		if (blitter != blitters[engineIndex]) {
+		if (blitterContainer->blitter() != blitters[engineIndex]) {
 			bool visible = false;
 
-			if (blitter) {
-				visible = blitter->isVisible();
-				disconnect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
+			if (blitterContainer->blitter()) {
+				visible = blitterContainer->blitter()->isVisible();
+				disconnect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitterContainer->blitter(), SLOT(rateChange(int)));
 
 				if (running)
 					uninitBlitter();
 
-				blitter->setVisible(false);
+				blitterContainer->blitter()->setVisible(false);
 			}
 
-			blitter = blitters[engineIndex];
-			//connect(fullResToggler, SIGNAL(modeChange()), blitter, SLOT(modeChange()));
-			connect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitter, SLOT(rateChange(int)));
+			blitterContainer->setBlitter(blitters[engineIndex]);
+			//connect(fullResToggler, SIGNAL(modeChange()), blitterContainer->blitter(), SLOT(modeChange()));
+			connect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitterContainer->blitter(), SLOT(rateChange(int)));
 			fullModeToggler->emitRate();
-			blitterContainer->setBlitter(blitter);
-			blitter->setVisible(visible);
+			blitterContainer->blitter()->setVisible(visible);
 
 			if (running)
-				blitter->init();
+				blitterContainer->blitter()->init();
 		}
 	}
 
 	source->setVideoSource(videoDialog->sourceIndex());
 
 	if (running)
-		blitter->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
+		blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
 
 	resetWindowSize(videoDialog->winRes());
 
@@ -539,14 +537,14 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 			return;
 		}
 
-		const long usecft = blitter->frameTime();
+		const long usecft = blitterContainer->blitter()->frameTime();
 		syncft = static_cast<float>(usecft - (usecft >> 10)) * ae->rate() / rsrate.est;
 
 		if (bstate.fromUnderrun != AudioEngine::BufferState::NOT_SUPPORTED &&
 				  bstate.fromUnderrun + outsamples * 2 < bstate.fromOverflow)
 			syncft >>= 1;
 
-		const BlitterWidget::Estimate &estft = blitter->frameTimeEst();
+		const BlitterWidget::Estimate &estft = blitterContainer->blitter()->frameTimeEst();
 
 		if (estft.est) {
 			float est = static_cast<float>(rsrate.est) * estft.est;
@@ -559,11 +557,11 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 			adjustResamplerRate(sndOutBuffer, resampler.get(), sampleBuffer.samplesPerFrame().ceil(), ae->rate());
 	}
 
-	if (blitter->sync(syncft) < 0) {
+	if (blitterContainer->blitter()->sync(syncft) < 0) {
 		QMessageBox::critical(this, tr("Error"), tr("Video engine failure."));
 		uninitBlitter();
-		blitter->init();
-		blitter->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
+		blitterContainer->blitter()->init();
+		blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
 
 		ae->pause();
 
@@ -584,9 +582,9 @@ void MainWindow::run() {
 
 	initAudio();
 
-	blitter->setVisible(true);
-	blitter->init();
-	blitter->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
+	blitterContainer->blitter()->setVisible(true);
+	blitterContainer->blitter()->init();
+	blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
 
 	if (!paused)
 		timerId = startTimer(0);
@@ -607,7 +605,7 @@ void MainWindow::stop() {
 	}
 
 	uninitBlitter();
-	blitter->setVisible(false);
+	blitterContainer->blitter()->setVisible(false);
 
 	if (ae)
 		ae->uninit();
@@ -802,5 +800,5 @@ void MainWindow::focusInEvent(QFocusEvent */*event*/) {
 }
 
 void MainWindow::blit() {
-	blitter->blit();
+	blitterContainer->blitter()->blit();
 }
