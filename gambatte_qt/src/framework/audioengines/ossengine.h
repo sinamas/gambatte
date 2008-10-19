@@ -40,7 +40,7 @@ public:
 	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
 	const RateEst::Result rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
-	void pause() { prevfur = 0; est.init(est.result().est); }
+	void pause() { prevfur = 0; est.reset(); }
 	QWidget* settingsWidget() { return conf.settingsWidget(); }
 	void acceptSettings() { conf.acceptSettings(); }
 	void rejectSettings() { conf.rejectSettings(); }
