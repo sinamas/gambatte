@@ -19,6 +19,7 @@
     Sam Lantinga
     slouken@libsdl.org
 */
+#undef UNICODE
 #include "SDL_config.h"
 
 /* Win32 MultiMedia Joystick driver, contributed by Andrei de A. Formiga */
