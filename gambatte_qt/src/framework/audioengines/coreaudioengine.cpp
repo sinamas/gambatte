@@ -255,8 +255,8 @@ int CoreAudioEngine::write(void *const buffer, const unsigned samples, BufferSta
 	if (mutlock.err)
 		return -1;
 	
-	preBufState_out.fromUnderrun = rbuf.used();
-	preBufState_out.fromOverflow = rbuf.avail();
+	preBufState_out.fromUnderrun = rbuf.used() / 2;
+	preBufState_out.fromOverflow = rbuf.avail() / 2;
 	rate_out.est = rateEst + 0.5;
 	rate_out.var = rateVar + 0.5;
 
@@ -274,7 +274,7 @@ int CoreAudioEngine::write(void *const buffer, const unsigned samples) {
 
 const AudioEngine::BufferState CoreAudioEngine::bufferState() const {
 	MutexLocker mutlock(mutex);
-	const BufferState bstate = { fromUnderrun: rbuf.used(), fromOverflow: rbuf.avail() };
+	const BufferState bstate = { fromUnderrun: rbuf.used() / 2, fromOverflow: rbuf.avail() / 2 };
 	return bstate;
 }
 
