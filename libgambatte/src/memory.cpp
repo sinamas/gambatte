@@ -132,7 +132,7 @@ void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
 	next_serialtime = state.mem.next_serialtime;
 	lastOamDmaUpdate = state.mem.lastOamDmaUpdate;
 	minIntTime = state.mem.minIntTime;
-	rombank = state.mem.rombank % rombanks;
+	rombank = state.mem.rombank & (rombanks - 1);
 	dmaSource = state.mem.dmaSource;
 	dmaDestination = state.mem.dmaDestination;
 	rambank = state.mem.rambank & (rambanks - 1);
@@ -615,15 +615,15 @@ void Memory::setRombank() {
 }
 
 void Memory::setRambank() {
+	rmem[0xB] = rmem[0xA] = rsrambankptr = rdisabled_ram - 0xA000;
+	wmem[0xB] = wmem[0xA] = wsrambankptr = wdisabled_ram - 0xA000;
+	
 	if (enable_ram) {
 		if (rtc.getActive()) {
 			wmem[0xB] = wmem[0xA] = rmem[0xB] = rmem[0xA] = wsrambankptr = rsrambankptr = NULL;
-		} else {
+		} else if (rambanks) {
 			wmem[0xB] = rmem[0xB] = wmem[0xA] = rmem[0xA] = wsrambankptr = rsrambankptr = rambankdata + rambank * 0x2000ul - 0xA000;
 		}
-	} else {
-		rmem[0xB] = rmem[0xA] = rsrambankptr = rdisabled_ram - 0xA000;
-		wmem[0xB] = wmem[0xA] = wsrambankptr = wdisabled_ram - 0xA000;
 	}
 	
 	if (oamDmaArea1Lower == 0xA0) {
@@ -1420,7 +1420,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 			return;
 		case mbc5:
 			rombank = (rombank & 0x100) | data;
-			rombank = rombank % rombanks;
+			rombank = rombank & (rombanks - 1);
 			setRombank();
 			return;
 		default:
@@ -1448,7 +1448,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 			return;
 		}
 		
-		rombank = rombank % rombanks;
+		rombank = rombank & (rombanks - 1);
 		setRombank();
 		break;
 		//MBC1 writes ???? ??nn to area 0x4000-0x5FFF either to determine rambank to load, or upper 2 bits of the rombank number to load, depending on rom-mode.
@@ -1464,7 +1464,7 @@ void Memory::mbc_write(const unsigned P, const unsigned data) {
 			}
 			
 			rombank = (data & 0x03) << 5 | (rombank & 0x1F);
-			rombank = rombank % rombanks;
+			rombank = rombank & (rombanks - 1);
 			setRombank();
 			return;
 		case mbc3:
@@ -1545,6 +1545,17 @@ static void enforce8bit(unsigned char *data, unsigned long sz) {
 	if (static_cast<unsigned char>(0x100))
 		while (sz--)
 			*data++ &= 0xFF;
+}
+
+static unsigned pow2ceil(unsigned n) {
+	--n;
+	n |= n >> 1;
+	n |= n >> 2;
+	n |= n >> 4;
+	n |= n >> 8;
+	++n;
+	
+	return n;
 }
 
 bool Memory::loadROM(const char *romfile, const bool forceDmg) {
@@ -1706,7 +1717,7 @@ bool Memory::loadROM(const char *romfile, const bool forceDmg) {
 		printf("rombanks: %u\n", rombanks);*/
 		
 		switch (header[0x0149]) {
-		case 0x00: /*cout << "No RAM\n"; rambankrom=0; break;*/
+		case 0x00: /*cout << "No RAM\n";*/ rambanks = 0; break;
 		case 0x01: /*cout << "2kB RAM\n";*/ /*rambankrom=1; break;*/
 		case 0x02: /*cout << "8kB RAM\n";*/
 			rambanks = 1;
@@ -1728,8 +1739,8 @@ bool Memory::loadROM(const char *romfile, const bool forceDmg) {
 	
 	std::printf("rambanks: %u\n", rambanks);
 	
-	rombanks = rom.size() / 0x4000;
-	std::printf("rombanks: %u\n", rombanks);
+	rombanks = pow2ceil(rom.size() / 0x4000);
+	std::printf("rombanks: %u\n", rom.size() / 0x4000);
 	
 	delete []memchunk;
 	memchunk = new unsigned char[0x4000 + rombanks * 0x4000ul + rambanks * 0x2000ul + (isCgb() ? 0x8000 : 0x2000) + 0x4000];
@@ -1744,7 +1755,9 @@ bool Memory::loadROM(const char *romfile, const bool forceDmg) {
 	std::memset(rdisabled_ram, 0xFF, 0x2000);
 	
 	rom.rewind();
-	rom.read(reinterpret_cast<char*>(romdata[0]), rombanks * 0x4000ul);
+	rom.read(reinterpret_cast<char*>(romdata[0]), (rom.size() / 0x4000) * 0x4000ul);
+	// In case rombanks isn't a power of 2, allocate a disabled area for invalid rombank addresses. This is only based on speculation.
+	std::memset(romdata[0] + (rom.size() / 0x4000) * 0x4000ul, 0xFF, (rombanks - rom.size() / 0x4000) * 0x4000ul);
 	enforce8bit(romdata[0], rombanks * 0x4000ul);
 	
 	if (rom.fail())

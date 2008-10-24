@@ -975,22 +975,21 @@ void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 		winYPos = /*ypos - wyReg.value()*/ 0;
 
 	T *const bufLine = static_cast<T*>(dbuffer) + ypos * static_cast<unsigned long>(dpitch);
-
-	if (bgEnable) {
-		if (!(enableWindow && win.wxReader.wx() <= xpos + 7)) {
+	
+	if (!(enableWindow && win.wxReader.wx() <= xpos + 7)) {
+		const unsigned end = std::min(enableWindow ? win.wxReader.wx() - 7 : 160U, endX);
+		
+		if (bgEnable) {
 			const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
-			const unsigned end = std::min(enableWindow ? win.wxReader.wx() - 7 : 160U, endX);
-
 			bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData + (fby & 7) * 2);
-		}
-
-		if (enableWindow && endX + 7 > win.wxReader.wx()) {
-			const unsigned start = std::max(win.wxReader.wx() < 7 ? 0U : (win.wxReader.wx() - 7), xpos);
-
-			bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
-		}
-	} else
-		std::fill_n(bufLine + xpos, endX - xpos, bgPalette[0]);
+		} else
+			std::fill_n(bufLine + xpos, end - xpos, bgPalette[0]);
+	}
+	
+	if (enableWindow && endX + 7 > win.wxReader.wx()) {
+		const unsigned start = std::max(win.wxReader.wx() < 7 ? 0U : (win.wxReader.wx() - 7), xpos);
+		bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
+	}
 
 	if (endX == 160) {
 		if (spriteEnable)
