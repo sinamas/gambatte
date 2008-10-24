@@ -38,7 +38,7 @@ class GB {
 public:
 	GB();
 	~GB();
-	bool load(const char* romfile);
+	bool load(const char* romfile, bool forceDmg = false);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer.
 	  * There are 35112 stereo sound samples in a video frame.

@@ -47,8 +47,8 @@ void CPU::runFor(const unsigned long cycles) {
 		cycleCounter_ = memory.resetCounters(cycleCounter_);
 }
 
-bool CPU::load(const char* romfile) {
-	bool tmp = memory.loadROM(romfile);
+bool CPU::load(const char* romfile, const bool forceDmg) {
+	bool tmp = memory.loadROM(romfile, forceDmg);
 	
 	return tmp;
 }

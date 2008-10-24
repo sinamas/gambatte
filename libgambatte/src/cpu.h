@@ -96,7 +96,7 @@ public:
 		memory.setOsdElement(osdElement);
 	}
 	
-	bool load(const char* romfile);
+	bool load(const char* romfile, bool forceDmg);
 	
 	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
 	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }

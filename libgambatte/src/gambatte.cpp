@@ -99,10 +99,10 @@ void GB::set_savedir(const char *sdir) {
 	z80->set_savedir(sdir);
 }
 
-bool GB::load(const char* romfile) {
+bool GB::load(const char* romfile, const bool forceDmg) {
 	z80->saveSavedata();
 	
-	const bool failed = z80->load(romfile);
+	const bool failed = z80->load(romfile, forceDmg);
 	
 	if (!failed) {
 		SaveState state;

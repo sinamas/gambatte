@@ -57,7 +57,7 @@ public:
 	
 	void emitBlit() { emit blit(); }
 	
-	bool load(const char* romfile) { return gb.load(romfile); }
+	bool load(const char* romfile, const bool forceDmg) { return gb.load(romfile, forceDmg); }
 	void reset() { gb.reset(); }
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
 	void setSavedir(const std::string &sdir) { gb.set_savedir(sdir.c_str()); }

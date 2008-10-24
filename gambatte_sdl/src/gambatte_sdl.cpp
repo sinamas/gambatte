@@ -60,6 +60,15 @@ public:
 	bool isExeced() const { return execed; }
 };
 
+class ForceDmgOption : public DescOption {
+	bool forceDmg_;
+public:
+	ForceDmgOption() : DescOption("force-dmg"), forceDmg_(false) {}
+	void exec(const char *const */*argv*/, int /*index*/) { forceDmg_ = true; }
+	const char* getDesc() const { return "\t\tForce DMG mode\n"; }
+	bool forceDmg() const { return forceDmg_; }
+};
+
 class RateOption : public DescOption {
 	unsigned rate;
 public:
@@ -426,6 +435,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		Parser parser;
 		
 		std::vector<DescOption*> v;
+		ForceDmgOption forceDmgOption;
+		v.push_back(&forceDmgOption);
 		FsOption fsOption;
 		v.push_back(&fsOption);
 		InputOption inputOption;
@@ -487,7 +498,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 			return 1;
 		}
 		
-		if (gambatte.load(argv[loadIndex])) {
+		if (gambatte.load(argv[loadIndex], forceDmgOption.forceDmg())) {
 			std::printf("failed to load ROM %s\n", argv[loadIndex]);
 			return 1;
 		}

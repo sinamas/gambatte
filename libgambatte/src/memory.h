@@ -199,7 +199,7 @@ public:
 	unsigned long event(unsigned long cycleCounter);
 	unsigned long resetCounters(unsigned long cycleCounter);
 
-	bool loadROM(const char* romfile);
+	bool loadROM(const char* romfile, bool forceDmg);
 	void set_savedir(const char *dir);
 
 	void setInputStateGetter(Gambatte::InputStateGetter *getInput) {

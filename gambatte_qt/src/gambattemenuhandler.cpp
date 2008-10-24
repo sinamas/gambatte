@@ -139,6 +139,9 @@ mw(mw), source(source), frameTime(4389, 262144) {
 	
 	settingsm->addSeparator();
 	
+	forceDmgAction = settingsm->addAction(tr("Force &DMG Mode"));
+	forceDmgAction->setCheckable(true);
+	
 	{
 		QMenu *const palm = settingsm->addMenu(tr("DMG &Palette"));
 		
@@ -237,7 +240,7 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	pauseAction->setChecked(false);
 	pauseChange();
 	
-	if (source->load((fileName.toAscii()).data())) {
+	if (source->load((fileName.toAscii()).data(), forceDmgAction->isChecked())) {
 		mw->stop();
 		
 		QMessageBox::critical(

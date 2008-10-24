@@ -1547,7 +1547,7 @@ static void enforce8bit(unsigned char *data, unsigned long sz) {
 			*data++ &= 0xFF;
 }
 
-bool Memory::loadROM(const char *romfile) {
+bool Memory::loadROM(const char *romfile, const bool forceDmg) {
 	romFilePath = romfile;
 	
 	File rom(romfile);
@@ -1560,7 +1560,7 @@ bool Memory::loadROM(const char *romfile) {
 		unsigned char header[0x150];
 		rom.read(reinterpret_cast<char*>(header), sizeof(header));
 		
-		cgb = header[0x0143] >> 7;
+		cgb = ~forceDmg & (header[0x0143] >> 7) & 1;
 	
 		switch (header[0x0147]) {
 		case 0x00: std::printf("Plain ROM loaded.\n");
