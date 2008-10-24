@@ -68,21 +68,23 @@ QT += opengl
 INCLUDEPATH += framework/SDL_Joystick/include
 INCLUDEPATH += $$COMMONPATH
 DEFINES += HAVE_STDINT_H
+QMAKE_CXXFLAGS += -fno-exceptions -fno-rtti
 
-# QMAKE_CXXFLAGS = -g
 macx { 
+    HEADERS += $$COMMONPATH/ringbuffer.h
     SOURCES += framework/addaudioengines_macx.cpp \
         framework/addblitterwidgets.cpp \
         framework/getfullmodetoggler_macx.cpp
     SOURCES += framework/SDL_Joystick/src/darwin/SDL_sysjoystick.c \
         framework/audioengines/openalengine.cpp \
+		framework/audioengines/coreaudioengine.cpp \
         framework/fullmodetogglers/quartztoggler.cpp
     HEADERS += framework/audioengines/openalengine.h \
+	    framework/audioengines/coreaudioengine.h \
         framework/fullmodetogglers/quartztoggler.h
-    LIBS += -framework \
-        IOKit \
-        -framework \
-        OpenAL
+    LIBS += -framework IOKit \
+	    -framework AudioUnit \
+        -framework OpenAL
 }
 else:unix { 
     DEFINES += PLATFORM_UNIX

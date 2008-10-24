@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,35 +16,41 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef AUDIODATA_H
-#define AUDIODATA_H
+#ifndef CORE_AUDIO_ENGINE_H
+#define CORE_AUDIO_ENGINE_H
 
+#include "../audioengine.h"
 #include <ringbuffer.h>
-#include <rateest.h>
-#include <SDL.h>
+#include <AudioUnit/AudioUnit.h>
+#include <pthread.h>
 
-struct AudioData {
-	struct Status {
-		std::size_t fromUnderrun;
-		std::size_t fromOverflow;
-		RateEst::Result rate;
-	};
+class CoreAudioEngine : public AudioEngine {
+	enum { UNIT_CLOSED = 0, UNIT_OPENED, UNIT_INITED };
+
+	RingBuffer<SInt16> rbuf;
+	AudioUnit outUnit;
+	int outUnitState;
+	pthread_mutex_t *mutex;
+	pthread_cond_t *availCond;
+	Float64 rateEst;
+	Float64 rateVar;
+	bool running;
 	
-	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);
-	~AudioData();
-	const Status write(const Sint16 *inBuf, unsigned samples);
-	void read(Uint8 *stream, int len);
+	static ComponentResult renderProc(void *inRefCon, AudioUnitRenderActionFlags *inActionFlags, const AudioTimeStamp *inTimeStamp,
+							   UInt32 inBusNumber, UInt32 inNumFrames, AudioBufferList *ioData);
+	unsigned read(void *stream, unsigned frames, Float64 rateScalar);
+	int doInit(int rate, unsigned latency);
+	int doWrite(void *buffer, unsigned frames);
 	
-private:
-	RingBuffer<Sint16> rbuf;
-	RateEst rateEst;
-	SDL_mutex *const mut;
-	SDL_cond *const bufReadyCond;
-	bool failed;
-	
-	static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
-		reinterpret_cast<AudioData*>(data)->read(stream, len);
-	}
+public:
+	CoreAudioEngine();
+	~CoreAudioEngine();
+	void uninit();
+	int write(void *buffer, unsigned frames);
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
+	const BufferState bufferState() const;
+	const RateEst::Result rateEstimate() const;
+	void pause();
 };
 
 #endif

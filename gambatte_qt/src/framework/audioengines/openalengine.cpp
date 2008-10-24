@@ -116,9 +116,7 @@ device(NULL),
 context(NULL),
 source(0),
 buffers(0),
-bufPos(0),
-fromUnderrun(0),
-rate(0) {
+bufPos(0) {
 }
 
 OpenAlEngine::~OpenAlEngine() {
@@ -179,11 +177,9 @@ int OpenAlEngine::doInit(const int rate, unsigned latency) {
 	}
 	
 	failureCleaner.failed = false;
-	this->rate = rate;
 	buffers = rate * latency / (BUF_SZ * 1000);
 	++buffers;
 // 	std::printf("buffers: %u\n", buffers);
-	fromUnderrun = 0;
 	buf = new qint16[BUF_SZ * 2];
 	bufPos = 0;
 	
@@ -251,7 +247,7 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 			{
 				ALuint bufid = 0;
 				alGenBuffers(1, &bufid);
-				alBufferData(bufid, AL_FORMAT_STEREO16, buf, BUF_SZ * sizeof(qint16) * 2, rate);
+				alBufferData(bufid, AL_FORMAT_STEREO16, buf, BUF_SZ * sizeof(qint16) * 2, rate());
 				alSourceQueueBuffers(source, 1, &bufid);
 			}
 		}
@@ -275,16 +271,16 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 const AudioEngine::BufferState OpenAlEngine::bufferState() const {
 	deleteProcessedBufs();
 	
-	ALint queued = getSourcei(source, AL_BUFFERS_QUEUED);
-// 	queued -= 1;
-	queued *= BUF_SZ;
-	queued += bufPos;
-	queued -= BUF_SZ >> 1;
+	unsigned fromUnderrun = 0;
 	
-	if (queued < 0)
-		queued = 0;
+	{
+		const ALint queued = getSourcei(source, AL_BUFFERS_QUEUED);
 	
-	fromUnderrun = fromUnderrun + queued >> 1;
+		if (queued > 0)
+			fromUnderrun = queued * BUF_SZ - (BUF_SZ >> 1);
+	}
+	
+	fromUnderrun += bufPos;
 	
 	const BufferState s = { fromUnderrun: fromUnderrun, fromOverflow: fromUnderrun > (buffers + 1) * BUF_SZ ? 0 : (buffers + 1) * BUF_SZ - fromUnderrun };
 	

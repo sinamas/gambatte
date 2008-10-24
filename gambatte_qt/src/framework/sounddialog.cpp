@@ -55,6 +55,10 @@ static SampleRateInfo generateSampleRateInfo() {
 	srinfo.minCustomRate = 8000;
 	srinfo.maxCustomRate = 192000;
 	
+#ifdef Q_WS_MAC
+	srinfo.defaultRateIndex = 1;
+#endif
+	
 	return srinfo;
 }
 

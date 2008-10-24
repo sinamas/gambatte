@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,20 +19,20 @@
 #ifndef RINGBUFFER_H
 #define RINGBUFFER_H
 
+#include "array.h"
 #include <cstddef>
 #include <algorithm>
 #include <cstring>
 
 template<typename T>
 class RingBuffer {
-	T *const buf;
-	const std::size_t sz;
+	Array<T> buf;
+	std::size_t sz;
 	std::size_t rpos;
 	std::size_t wpos;
 	
 public:
-	RingBuffer(const std::size_t sz_in) : buf(new T[sz_in + 1]), sz(sz_in + 1), rpos(0), wpos(0) {}
-	~RingBuffer() { delete []buf; }
+	RingBuffer(const std::size_t sz_in = 0) : sz(0), rpos(0), wpos(0) { reset(sz_in); }
 	
 	std::size_t avail() const {
 		return (wpos < rpos ? 0 : sz) + rpos - wpos - 1;
@@ -45,6 +45,8 @@ public:
 	void fill(T value);
 	
 	void read(T *out, std::size_t num);
+	
+	void reset(std::size_t sz_in);
 	
 	std::size_t size() const {
 		return sz - 1;
@@ -59,7 +61,7 @@ public:
 
 template<typename T>
 void RingBuffer<T>::fill(const T value) {
-	std::fill(buf, buf + sz, value);
+	std::fill(buf + 0, buf + sz, value);
 	rpos = 0;
 	wpos = sz - 1;
 }
@@ -80,6 +82,13 @@ void RingBuffer<T>::read(T *out, std::size_t num) {
 	
 	if ((rpos += num) == sz)
 		rpos = 0;
+}
+
+template<typename T>
+void RingBuffer<T>::reset(const std::size_t sz_in) {
+	sz = sz_in + 1;
+	rpos = wpos = 0;
+	buf.reset(sz_in ? sz : 0);
 }
 
 template<typename T>

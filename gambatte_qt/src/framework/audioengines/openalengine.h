@@ -40,8 +40,6 @@ class OpenAlEngine : public AudioEngine {
 	ALuint source;
 	unsigned buffers;
 	unsigned bufPos;
-	mutable unsigned fromUnderrun;
-	int rate;
 	
 	void deleteProcessedBufs() const;
 	int doInit(int rate, unsigned latency);
