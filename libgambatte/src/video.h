@@ -79,7 +79,6 @@ class LCD {
 	
 	unsigned long lastUpdate;
 	unsigned long videoCycles;
-	unsigned long enableDisplayM0Time;
 	
 	unsigned dpitch;
 	unsigned winYPos;

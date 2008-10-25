@@ -92,7 +92,6 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	dmgColors(dmgColorsRgb32),
 	lastUpdate(0),
 	videoCycles(0),
-	enableDisplayM0Time(0),
 	dpitch(0),
 	winYPos(0),
 	m3EventQueue(11, VideoEventComparer()),
@@ -159,8 +158,7 @@ void LCD::resetVideoState(const unsigned long cycleCounter) {
 	lyCounter.reset(videoCycles, lastUpdate);
 	vEventQueue.push(&lyCounter);
 
-	spriteMapper.resetCycleCounter(cycleCounter);
-	spriteMapper.oamChange(cycleCounter);
+	spriteMapper.resetVideoState();
 	m3ExtraCycles.invalidateCache();
 
 	addEventIfActivated(m3EventQueue, &scxReader, ScxReader::schedule(lyCounter, cycleCounter));
@@ -205,13 +203,13 @@ void LCD::setStatePtrs(SaveState &state) {
 
 void LCD::saveState(SaveState &state) const {
 	state.ppu.videoCycles = videoCycles;
-	state.ppu.enableDisplayM0Time = enableDisplayM0Time;
 	state.ppu.winYPos = winYPos;
 	state.ppu.drawStartCycle = drawStartCycle;
 	state.ppu.scReadOffset = scReadOffset;
 	state.ppu.lcdc = enabled << 7 | ((wdTileMap - vram - 0x1800) >> 4) | (tileIndexSign ^ 0x80) >> 3 | ((bgTileMap - vram - 0x1800) >> 7) | spriteEnable << 1 | bgEnable;
 	state.ppu.lycIrqSkip = lycIrq.skips();
 
+	spriteMapper.saveState(state);
 	scReader.saveState(state);
 	scxReader.saveState(state);
 	win.weMasterChecker.saveState(state);
@@ -228,7 +226,6 @@ void LCD::loadState(const SaveState &state, const unsigned char *oamram) {
 
 	lastUpdate = state.cpu.cycleCounter;
 	videoCycles = std::min(state.ppu.videoCycles, 70223ul);
-	enableDisplayM0Time = state.ppu.enableDisplayM0Time;
 	winYPos = state.ppu.winYPos > 143 ? 0xFF : state.ppu.winYPos;
 	drawStartCycle = state.ppu.drawStartCycle;
 	scReadOffset = state.ppu.scReadOffset;
@@ -254,6 +251,7 @@ void LCD::loadState(const SaveState &state, const unsigned char *oamram) {
 	win.wyReg.setSource(state.mem.ioamhram.get()[0x14A]);
 	win.wxReader.setSource(state.mem.ioamhram.get()[0x14B]);
 
+	spriteMapper.loadState(state);
 	scReader.loadState(state);
 	scxReader.loadState(state);
 	win.weMasterChecker.loadState(state);
@@ -403,10 +401,9 @@ void LCD::enableChange(const unsigned long cycleCounter) {
 		lycIrq.setSkip(false);
 		videoCycles = 0;
 		lastUpdate = cycleCounter;
-		enableDisplayM0Time = cycleCounter + 159;
 		winYPos = 0xFF;
 		win.weMasterChecker.unset();
-
+		spriteMapper.enableDisplay(cycleCounter);
 		resetVideoState(cycleCounter);
 	}
 
@@ -424,8 +421,8 @@ void LCD::preResetCounter(const unsigned long cycleCounter) {
 }
 
 void LCD::postResetCounter(const unsigned long oldCC, const unsigned long cycleCounter) {
-	enableDisplayM0Time = oldCC > enableDisplayM0Time ? 0 : (cycleCounter + enableDisplayM0Time - oldCC);
 	lastUpdate = cycleCounter - (oldCC - lastUpdate);
+	spriteMapper.resetCycleCounter(oldCC, cycleCounter);
 	resetVideoState(cycleCounter);
 }
 
@@ -446,7 +443,7 @@ bool LCD::isMode0IrqPeriod(const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3 + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed)) << doubleSpeed && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= (456U - (169 + doubleSpeed * 3U + 80 + m3ExtraCycles(lyCounter.ly()) + 1 - doubleSpeed)) << doubleSpeed && timeToNextLy > 4;
 }
 
 bool LCD::isMode2IrqPeriod(const unsigned long cycleCounter) {
@@ -473,7 +470,7 @@ bool LCD::isMode1IrqPeriod(const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return lyCounter.ly() > 143 && (lyCounter.ly() < 153 || doubleSpeed || timeToNextLy > 4);
+	return lyCounter.ly() > 143 && (lyCounter.ly() < 153 || timeToNextLy > 4U - doubleSpeed * 4U);
 }
 
 bool LCD::isHdmaPeriod(const unsigned long cycleCounter) {
@@ -482,7 +479,7 @@ bool LCD::isHdmaPeriod(const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
-	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= ((456U - (169U + doubleSpeed * 3 + 80U + m3ExtraCycles(lyCounter.ly()) + 2 - doubleSpeed)) << doubleSpeed) && timeToNextLy > 4;
+	return /*memory.enable_display && */lyCounter.ly() < 144 && timeToNextLy <= ((456U - (169U + doubleSpeed * 3U + 80U + m3ExtraCycles(lyCounter.ly()) + 2 - doubleSpeed)) << doubleSpeed) && timeToNextLy > 4;
 }
 
 unsigned long LCD::nextHdmaTime(const unsigned long cycleCounter) {
@@ -490,7 +487,7 @@ unsigned long LCD::nextHdmaTime(const unsigned long cycleCounter) {
 		update(cycleCounter);
 
 	unsigned line = lyCounter.ly();
-	int next = static_cast<int>(169 + doubleSpeed * 3 + 80 + 2 - doubleSpeed) - static_cast<int>(lyCounter.lineCycles(cycleCounter));
+	int next = static_cast<int>(169 + doubleSpeed * 3U + 80 + 2 - doubleSpeed) - static_cast<int>(lyCounter.lineCycles(cycleCounter));
 
 	if (line < 144 && next + static_cast<int>(m3ExtraCycles(line)) <= 0) {
 		next += 456;
@@ -516,7 +513,7 @@ bool LCD::vramAccessible(const unsigned long cycleCounter) {
 	if (enabled && lyCounter.ly() < 144) {
 		const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
 
-		if (lineCycles > 79 && lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()))
+		if (lineCycles > 79 && lineCycles < 80 + 169 + doubleSpeed * 3U + m3ExtraCycles(lyCounter.ly()))
 			accessible = false;
 	}
 
@@ -532,7 +529,7 @@ bool LCD::cgbpAccessible(const unsigned long cycleCounter) {
 	if (enabled && lyCounter.ly() < 144) {
 		const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
 
-		if (lineCycles > 79U + doubleSpeed && lineCycles < 80U + 169U + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()) + 4U - doubleSpeed * 2)
+		if (lineCycles > 79U + doubleSpeed && lineCycles < 80U + 169U + doubleSpeed * 3U + m3ExtraCycles(lyCounter.ly()) + 4U - doubleSpeed * 2U)
 			accessible = false;
 	}
 
@@ -546,19 +543,7 @@ bool LCD::oamAccessible(const unsigned long cycleCounter) {
 		if (cycleCounter >= vEventQueue.top()->time())
 			update(cycleCounter);
 
-		if (lyCounter.ly() < 144) {
-			const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
-
-			if (lineCycles < 80) {
-				if (cycleCounter > enableDisplayM0Time)
-					accessible = false;
-			} else {
-				const unsigned m0start = 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly());
-
-				if (lineCycles < m0start || (!doubleSpeed && lineCycles >= 452))
-					accessible = false;
-			}
-		}
+		accessible = spriteMapper.oamAccessible(cycleCounter);
 	}
 
 	return accessible;
@@ -617,13 +602,13 @@ void LCD::scxChange(const unsigned newScx, const unsigned long cycleCounter) {
 
 	const unsigned lineCycles = lyCounter.lineCycles(cycleCounter);
 
-	if (lineCycles < 82U + doubleSpeed * 4)
-		drawStartCycle = 90 + doubleSpeed * 4 + (newScx & 7);
+	if (lineCycles < 82U + doubleSpeed * 4U)
+		drawStartCycle = 90 + doubleSpeed * 4U + (newScx & 7);
 	else
 		addFixedtimeEvent(vEventQueue, &breakEvent, BreakEvent::schedule(lyCounter));
 
-	if (lineCycles < 86U + doubleSpeed * 2)
-		scReadOffset = std::max(drawStartCycle - (newScx & 7), 90U + doubleSpeed * 4);
+	if (lineCycles < 86U + doubleSpeed * 2U)
+		scReadOffset = std::max(drawStartCycle - (newScx & 7), 90U + doubleSpeed * 4U);
 
 	addEvent(vEventQueue, &scReader, ScReader::schedule(lastUpdate, videoCycles, scReadOffset, doubleSpeed));
 }
@@ -703,7 +688,7 @@ void LCD::lcdstatChange(const unsigned data, const unsigned long cycleCounter) {
 	if (!enabled)
 		return;
 
-	const bool lycIrqPeriod = isLycIrqPeriod(lycIrq.lycReg(), lycIrq.lycReg() == 153 ? lyCounter.lineTime() - (4 << (doubleSpeed*2)) : 4 ^ (doubleSpeed << 2), cycleCounter);
+	const bool lycIrqPeriod = isLycIrqPeriod(lycIrq.lycReg(), lycIrq.lycReg() == 153 ? lyCounter.lineTime() - (4 << (doubleSpeed*2)) : 4 - doubleSpeed * 4U, cycleCounter);
 
 	if (lycIrq.lycReg() < 154 && ((data ^ old) & 0x40)) {
 		if (data & 0x40) {
@@ -760,7 +745,7 @@ void LCD::lycRegChange(const unsigned data, const unsigned long cycleCounter) {
 	addEvent(irqEventQueue, &lycIrq, LycIrq::schedule(statReg, lycIrq.lycReg(), lyCounter, cycleCounter));
 
 	if (data < 154) {
-		if (isLycIrqPeriod(data, data == 153 ? lyCounter.lineTime() - doubleSpeed * 8 : 8, cycleCounter))
+		if (isLycIrqPeriod(data, data == 153 ? lyCounter.lineTime() - doubleSpeed * 8U : 8, cycleCounter))
 			ifReg |= 2;
 
 		if (lycIrq.isSkipPeriod(cycleCounter, doubleSpeed))
@@ -804,21 +789,19 @@ unsigned LCD::get_stat(const unsigned lycReg, const unsigned long cycleCounter) 
 		const unsigned timeToNextLy = lyCounter.time() - cycleCounter;
 
 		if (lyCounter.ly() > 143) {
-			if (lyCounter.ly() < 153 || doubleSpeed || timeToNextLy > 4)
+			if (lyCounter.ly() < 153 || timeToNextLy > 4 - doubleSpeed * 4U)
 				stat = 1;
 		} else {
 			const unsigned lineCycles = 456 - (timeToNextLy >> doubleSpeed);
 
 			if (lineCycles < 80) {
-				if (cycleCounter > enableDisplayM0Time)
+				if (!spriteMapper.inactivePeriodAfterDisplayEnable(cycleCounter))
 					stat = 2;
-			} else {
-				if (lineCycles < 80 + 169 + doubleSpeed * 3 + m3ExtraCycles(lyCounter.ly()))
-					stat = 3;
-			}
+			} else if (lineCycles < 80 + 169 + doubleSpeed * 3U + m3ExtraCycles(lyCounter.ly()))
+				stat = 3;
 		}
 
-		if ((lyCounter.ly() == lycReg && timeToNextLy > 4U - doubleSpeed * 4U) ||
+		if ((lyCounter.ly() == lycReg && timeToNextLy > 4 - doubleSpeed * 4U) ||
 				(lycReg == 0 && lyCounter.ly() == 153 && timeToNextLy >> doubleSpeed <= 456 - 8)) {
 			stat |= 4;
 		}

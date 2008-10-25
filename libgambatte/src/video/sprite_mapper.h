@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,6 +23,7 @@
 //#include "video_event_comparer.h"
 #include "ly_counter.h"
 #include "basic_add_event.h"
+#include "../savestate.h"
 
 class M3ExtraCycles;
 class SaveState;
@@ -48,11 +49,17 @@ class SpriteMapper : public VideoEvent {
 		bool changed() const { return lastChange != 0xFF; }
 		bool largeSprites(unsigned spNr) const { return szbuf[spNr]; }
 		const unsigned char *oam() const { return oamram; }
-		void resetCycleCounter(const unsigned newCc) { lu = newCc; }
+		void resetCycleCounter(const unsigned long oldCc, const unsigned long newCc) { lu = lu + newCc - oldCc; }
 		void setLargeSpritesSrc(const bool src) { largeSpritesSrc = src; }
 		void update(unsigned long cc);
 		const unsigned char *spritePosBuf() const { return buf; }
 		void setStatePtrs(SaveState &state);
+		void enableDisplay(unsigned long cc);
+		void saveState(SaveState &state) const { state.ppu.enableDisplayM0Time = lu; }
+		void loadState(const SaveState &state) { lu = state.ppu.enableDisplayM0Time; }
+		void resetVideoState() { change(lu); }
+		bool oamAccessible(unsigned long cycleCounter, const M3ExtraCycles &m3ExtraCycles) const;
+		bool inactivePeriodAfterDisplayEnable(const unsigned long cc) const { return cc < lu; }
 	};
 	
 	enum { NEED_SORTING_MASK = 0x80 };
@@ -88,54 +95,25 @@ public:
 	             const unsigned char *oamram_in);
 	
 	void doEvent();
+	bool isCgb() const { return cgb; }
+	bool largeSprites(unsigned spNr) const { return oamReader.largeSprites(spNr); }
+	unsigned numSprites(const unsigned ly) const { return num[ly] & ~NEED_SORTING_MASK; }
+	void oamChange(const unsigned long cc) { oamReader.change(cc); }
+	void oamChange(const unsigned char *oamram, const unsigned long cc) { oamReader.change(oamram, cc); }
+	const unsigned char *oamram() const { return oamReader.oam(); }
+	const unsigned char *posbuf() const { return oamReader.spritePosBuf(); }
+	void preCounterChange(const unsigned long cc) { oamReader.update(cc); }
 	
-	bool isCgb() const {
-		return cgb;
-	}
-	
-	bool largeSprites(unsigned spNr) const {
-		return oamReader.largeSprites(spNr);
-	}
-	
-	unsigned numSprites(const unsigned ly) const {
-		return num[ly] & ~NEED_SORTING_MASK;
-	}
-	
-	void oamChange(const unsigned long cc) {
-		oamReader.change(cc);
-	}
-	
-	void oamChange(const unsigned char *oamram, const unsigned long cc) {
-		oamReader.change(oamram, cc);
-	}
-	
-	const unsigned char *oamram() const {
-		return oamReader.oam();
-	}
-	
-	const unsigned char *posbuf() const {
-		return oamReader.spritePosBuf();
-	}
-	
-	void preCounterChange(const unsigned long cc) {
-		oamReader.update(cc);
-	}
-	
-	void resetCycleCounter(const unsigned long newCc) {
-		oamReader.resetCycleCounter(newCc);
+	void resetCycleCounter(const unsigned long oldCc, const unsigned long newCc) {
+		oamReader.resetCycleCounter(oldCc, newCc);
 	}
 	
 	static unsigned long schedule(const LyCounter &lyCounter, const unsigned long cycleCounter) {
 		return lyCounter.nextLineCycle(80, cycleCounter);
 	}
 	
-	void setCgb(const bool cgb_in) {
-		cgb = cgb_in;
-	}
-	
-	void setLargeSpritesSource(const bool src) {
-		oamReader.setLargeSpritesSrc(src);
-	}
+	void setCgb(const bool cgb_in) { cgb = cgb_in; }
+	void setLargeSpritesSource(const bool src) { oamReader.setLargeSpritesSrc(src); }
 	
 	const unsigned char* sprites(const unsigned ly) const {
 		if (num[ly] & NEED_SORTING_MASK)
@@ -145,6 +123,18 @@ public:
 	}
 	
 	void setStatePtrs(SaveState &state) { oamReader.setStatePtrs(state); }
+	void enableDisplay(unsigned long cc) { oamReader.enableDisplay(cc); }
+	void saveState(SaveState &state) const { oamReader.saveState(state); }
+	void loadState(const SaveState &state) { oamReader.loadState(state); }
+	void resetVideoState() { oamReader.resetVideoState(); }
+	
+	bool oamAccessible(unsigned long cycleCounter) const {
+		return oamReader.oamAccessible(cycleCounter, m3ExtraCycles);
+	}
+	
+	bool inactivePeriodAfterDisplayEnable(const unsigned long cc) const {
+		return oamReader.inactivePeriodAfterDisplayEnable(cc);
+	}
 };
 
 static inline void addEvent(event_queue<VideoEvent*,VideoEventComparer> &q, SpriteMapper *const e, const unsigned long newTime) {

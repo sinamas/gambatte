@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,7 +19,6 @@
 #include "sprite_mapper.h"
 #include "m3_extra_cycles.h"
 #include "../insertion_sort.h"
-#include "../savestate.h"
 #include <cstring>
 
 #include <algorithm>
@@ -27,7 +26,7 @@
 SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned char *oamram)
 : lyCounter(lyCounter), oamram(oamram) {
 	setLargeSpritesSrc(false);
-	lu = 0xFFFFFFFF;
+	lu = 0;
 	lastChange = 0xFF;
 	std::fill_n(szbuf, 40, largeSpritesSrc);
 	
@@ -41,7 +40,7 @@ SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned ch
 }
 
 static unsigned toPosCycles(const unsigned long cc, const LyCounter &lyCounter) {
-	unsigned lc = lyCounter.lineCycles(cc) + 4 - lyCounter.isDoubleSpeed() * 3;
+	unsigned lc = lyCounter.lineCycles(cc) + 4 - lyCounter.isDoubleSpeed() * 3u;
 	
 	if (lc >= 456)
 		lc -= 456;
@@ -50,50 +49,71 @@ static unsigned toPosCycles(const unsigned long cc, const LyCounter &lyCounter) 
 }
 
 void SpriteMapper::OamReader::update(const unsigned long cc) {
-	if (changed()) {
-		const unsigned lulc = toPosCycles(lu, lyCounter);
-		
-		unsigned pos = std::min(lulc, 40u);
-		unsigned distance = 40;
-		
-		if ((cc - lu) >> lyCounter.isDoubleSpeed() < 456) {
-			const unsigned cclc = toPosCycles(cc, lyCounter);
+	if (cc > lu) {
+		if (changed()) {
+			const unsigned lulc = toPosCycles(lu, lyCounter);
 			
-			distance = std::min(cclc, 40u) - pos + (cclc < lulc ? 40 : 0);
-		}
-		
-		{
-			const unsigned targetDistance = lastChange - pos + (lastChange <= pos ? 40 : 0);
+			unsigned pos = std::min(lulc, 40u);
+			unsigned distance = 40;
 			
-			if (targetDistance <= distance) {
-				distance = targetDistance;
-				lastChange = 0xFF;
+			if ((cc - lu) >> lyCounter.isDoubleSpeed() < 456) {
+				const unsigned cclc = toPosCycles(cc, lyCounter);
+				
+				distance = std::min(cclc, 40u) - pos + (cclc < lulc ? 40 : 0);
+			}
+			
+			{
+				const unsigned targetDistance = lastChange - pos + (lastChange <= pos ? 40 : 0);
+				
+				if (targetDistance <= distance) {
+					distance = targetDistance;
+					lastChange = 0xFF;
+				}
+			}
+			
+			while (distance--) {
+				if (pos >= 40)
+					pos = 0;
+				
+				szbuf[pos] = largeSpritesSrc;
+				buf[pos * 2] = oamram[pos * 4];
+				buf[pos * 2 + 1] = oamram[pos * 4 + 1];
+				
+				++pos;
 			}
 		}
 		
-		while (distance--) {
-			if (pos >= 40)
-				pos = 0;
-			
-			szbuf[pos] = largeSpritesSrc;
-			buf[pos * 2] = oamram[pos * 4];
-			buf[pos * 2 + 1] = oamram[pos * 4 + 1];
-			
-			++pos;
-		}
+		lu = cc;
 	}
-	
-	lu = cc;
 }
 
 void SpriteMapper::OamReader::change(const unsigned long cc) {
 	update(cc);
-	lastChange = std::min(toPosCycles(cc, lyCounter), 40u);
+	lastChange = std::min(toPosCycles(lu, lyCounter), 40u);
 }
 
 void SpriteMapper::OamReader::setStatePtrs(SaveState &state) {
 	state.ppu.oamReaderBuf.set(buf, sizeof buf);
 	state.ppu.oamReaderSzbuf.set(szbuf, sizeof(szbuf) / sizeof(bool));
+}
+
+void SpriteMapper::OamReader::enableDisplay(const unsigned long cc) {
+	std::memset(buf, 0x00, sizeof(buf));
+	std::fill(szbuf, szbuf + 40, false);
+	lu = cc + 160;
+	lastChange = 40;
+}
+
+bool SpriteMapper::OamReader::oamAccessible(const unsigned long cycleCounter, const M3ExtraCycles &m3ExtraCycles) const {
+	unsigned ly = lyCounter.ly();
+	unsigned lc = lyCounter.lineCycles(cycleCounter) + 4 - lyCounter.isDoubleSpeed() * 3u;
+		
+	if (lc >= 456) {
+		lc -= 456;
+		++ly;
+	}
+	
+	return cycleCounter < lu || ly >= 144 || lc >= 80 + 173 + m3ExtraCycles(ly);
 }
 
 SpriteMapper::SpriteMapper(M3ExtraCycles &m3ExtraCycles,
