@@ -87,7 +87,7 @@ private:
 	irqEvents next_irqEvent;
 	cartridgetype romtype;
 	
-	std::string romFilePath;
+	std::string defaultSaveBasePath;
 	std::string saveDir;
 	
 	unsigned short rombanks;

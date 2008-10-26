@@ -1541,6 +1541,37 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 		ioamhram[P - 0xFE00] = data;
 }
 
+static const std::string stripExtension(const std::string &str) {
+	const std::string::size_type lastDot = str.find_last_of('.');
+	const std::string::size_type lastSlash = str.find_last_of('/');
+	
+	if (lastDot != std::string::npos && (lastSlash == std::string::npos || lastSlash < lastDot))
+		return str.substr(0, lastDot);
+	
+	return str;
+}
+
+static const std::string stripDir(const std::string &str) {
+	const std::string::size_type lastSlash = str.find_last_of('/');
+	
+	if (lastSlash != std::string::npos)
+		return str.substr(lastSlash + 1);
+	
+	return str;
+}
+
+const std::string Memory::saveBasePath() const {
+	return saveDir.empty() ? defaultSaveBasePath : saveDir + stripDir(defaultSaveBasePath);
+}
+
+void Memory::set_savedir(const char *dir) {
+	saveDir = dir ? dir : "";
+	
+	if (!saveDir.empty() && saveDir[saveDir.length() - 1] != '/') {
+		saveDir += '/';
+	}
+}
+
 static void enforce8bit(unsigned char *data, unsigned long sz) {
 	if (static_cast<unsigned char>(0x100))
 		while (sz--)
@@ -1559,7 +1590,7 @@ static unsigned pow2ceil(unsigned n) {
 }
 
 bool Memory::loadROM(const char *romfile, const bool forceDmg) {
-	romFilePath = romfile;
+	defaultSaveBasePath = stripExtension(romfile);
 	
 	File rom(romfile);
 	
@@ -1571,7 +1602,12 @@ bool Memory::loadROM(const char *romfile, const bool forceDmg) {
 		unsigned char header[0x150];
 		rom.read(reinterpret_cast<char*>(header), sizeof(header));
 		
-		cgb = ~forceDmg & (header[0x0143] >> 7) & 1;
+		cgb = header[0x0143] >> 7 & 1;
+		
+		if (cgb & forceDmg) {
+			cgb = false;
+			defaultSaveBasePath += "_dmg";
+		}
 	
 		switch (header[0x0147]) {
 		case 0x00: std::printf("Plain ROM loaded.\n");
@@ -1813,39 +1849,6 @@ void Memory::saveSavedata() {
 		file.put(basetime >> 16 & 0xFF);
 		file.put(basetime >> 8 & 0xFF);
 		file.put(basetime & 0xFF);
-	}
-}
-
-static const std::string stripExtension(const std::string &str) {
-	const std::string::size_type lastDot = str.find_last_of('.');
-	const std::string::size_type lastSlash = str.find_last_of('/');
-	
-	if (lastDot != std::string::npos && (lastSlash == std::string::npos || lastSlash < lastDot))
-		return str.substr(0, lastDot);
-	
-	return str;
-}
-
-static const std::string stripDir(const std::string &str) {
-	const std::string::size_type lastSlash = str.find_last_of('/');
-	
-	if (lastSlash != std::string::npos)
-		return str.substr(lastSlash + 1);
-	
-	return str;
-}
-
-const std::string Memory::saveBasePath() const {
-	const std::string &extStrippedFilePath = stripExtension(romFilePath);
-	
-	return saveDir.empty() ? extStrippedFilePath : saveDir + stripDir(extStrippedFilePath);
-}
-
-void Memory::set_savedir(const char *dir) {
-	saveDir = dir ? dir : "";
-	
-	if (!saveDir.empty() && saveDir[saveDir.length() - 1] != '/') {
-		saveDir += '/';
 	}
 }
 
