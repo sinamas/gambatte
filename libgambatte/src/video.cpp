@@ -338,6 +338,30 @@ unsigned int LCD::videoHeight() const {
 	return filter ? filter->info().outHeight : 144;
 }
 
+template<class Blend>
+static void blitOsdElement(Gambatte::uint_least32_t *d, const Gambatte::uint_least32_t *s, const unsigned width, unsigned h, const unsigned dpitch, Blend blend) {
+	while (h--) {
+		for (unsigned w = width; w--;) {
+			if (*s != 0xFFFFFFFF)
+				*d = blend(*s, *d);
+
+			++d;
+			++s;
+		}
+					
+		d += dpitch - width;
+	}
+}
+
+template<const unsigned weight>
+struct Blend {
+	enum { SW = weight - 1 };
+	enum { LOWMASK = SW * 0x010101ul };
+	Gambatte::uint_least32_t operator()(const Gambatte::uint_least32_t s, const Gambatte::uint_least32_t d) const {
+		return (s * SW + d - (((s & LOWMASK) * SW + (d & LOWMASK)) & LOWMASK)) / weight;
+	}
+};
+
 void LCD::updateScreen(const unsigned long cycleCounter) {
 	update(cycleCounter);
 
@@ -347,18 +371,10 @@ void LCD::updateScreen(const unsigned long cycleCounter) {
 
 			if (s) {
 				Gambatte::uint_least32_t *d = static_cast<Gambatte::uint_least32_t*>(dbuffer) + osdElement->y() * dpitch + osdElement->x();
-
-				for (unsigned h = osdElement->h(); h--;) {
-					for (unsigned w = osdElement->w(); w--;) {
-						if (*s != 0xFFFFFFFF)
-							*d = (*s * 7 + *d - (((*s & 0x070707) * 7 + (*d & 0x070707)) & 0x070707)) >> 3;
-
-						++d;
-						++s;
-					}
-// 					std::memcpy(d, s, osdElement->w() * sizeof(Gambatte::uint_least32_t));
-// 					s += osdElement->w();
-					d += dpitch - osdElement->w();
+				
+				switch (osdElement->opacity()) {
+				case OsdElement::SEVEN_EIGHTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<8>()); break;
+				case OsdElement::THREE_FOURTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<4>()); break;
 				}
 			} else
 				osdElement.reset();

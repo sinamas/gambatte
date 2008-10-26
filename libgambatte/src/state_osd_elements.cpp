@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -50,7 +50,7 @@ public:
 };
 
 ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt) :
-OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT, width + 2, HEIGHT + 2),
+OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT, width + 2, HEIGHT + 2, THREE_FOURTHS),
 pixels(new Gambatte::uint_least32_t[w() * h()]),
 life(4 * 60) {
 	std::memset(pixels, 0xFF, w() * h() * sizeof(Gambatte::uint_least32_t));

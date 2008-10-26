@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,15 +22,21 @@
 #include "int.h"
 
 class OsdElement {
+public:
+	enum Opacity { SEVEN_EIGHTHS, THREE_FOURTHS };
+	
+private:
+	Opacity opacity_;
 	unsigned x_;
 	unsigned y_;
 	unsigned w_;
 	unsigned h_;
 	
 protected:
-	OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0) {
+	OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0, Opacity opacity = SEVEN_EIGHTHS) {
 		setPos(x, y);
 		setSize(w, h);
+		setOpacity(opacity);
 	}
 	
 	void setPos(unsigned x, unsigned y) {
@@ -43,12 +49,15 @@ protected:
 		h_ = h;
 	}
 	
+	void setOpacity(Opacity opacity) { opacity_ = opacity; }
+	
 public:
 	virtual ~OsdElement() {}
 	unsigned x() const { return x_; }
 	unsigned y() const { return y_; }
 	unsigned w() const { return w_; }
 	unsigned h() const { return h_; }
+	Opacity opacity() const { return opacity_; }
 	
 	virtual const Gambatte::uint_least32_t* update() = 0;
 };
