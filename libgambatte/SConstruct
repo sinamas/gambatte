@@ -47,6 +47,7 @@ sourceFiles = Split('''
 			src/video/filters/catrom3x.cpp
 			src/video/filters/kreed2xsai.cpp
 			src/video/filters/maxsthq2x.cpp
+			src/video/filters/maxsthq3x.cpp
 		   ''')
 
 conf = env.Configure()

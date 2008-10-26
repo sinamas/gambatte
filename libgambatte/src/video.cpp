@@ -23,6 +23,7 @@
 #include "video/filters/catrom3x.h"
 #include "video/filters/kreed2xsai.h"
 #include "video/filters/maxsthq2x.h"
+#include "video/filters/maxsthq3x.h"
 #include "filterinfo.h"
 #include "savestate.h"
 #include "video/basic_add_event.h"
@@ -131,6 +132,7 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	filters.push_back(new Catrom3x);
 	filters.push_back(new Kreed_2xSaI);
 	filters.push_back(new MaxSt_Hq2x);
+	filters.push_back(new MaxSt_Hq3x);
 
 	reset(false);
 	setDoubleSpeed(false);
