@@ -416,6 +416,20 @@ void LCD::enableChange(const unsigned long cycleCounter) {
 	}
 }
 
+//FIXME: needs testing
+void LCD::lyWrite(const unsigned long cycleCounter) {
+	update(cycleCounter);
+	lycIrq.setSkip(false);
+	videoCycles = 0;
+	lastUpdate = cycleCounter;
+	winYPos = 0xFF;
+	win.weMasterChecker.unset();
+	resetVideoState(cycleCounter);
+	
+// 	if ((statReg & 0x40) && lycIrq.lycReg() == 0)
+// 		ifReg |= 2;
+}
+
 void LCD::preResetCounter(const unsigned long cycleCounter) {
 	preSpeedChange(cycleCounter);
 }

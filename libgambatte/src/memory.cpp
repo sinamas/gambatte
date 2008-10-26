@@ -1192,19 +1192,13 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		break;
 		//If rom is trying to write to LY register, reset it to 0.
 	case 0x44:
-		std::printf("ly write\n");
-		ioamhram[0x144] = 0;
-		display.enableChange(cycleCounter);
-		display.enableChange(cycleCounter);
-		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
-		
-		if (hdma_transfer) {
-			next_dmatime = display.nextHdmaTime(cycleCounter);
-			next_hdmaReschedule = display.nextHdmaTimeInvalid();
+		if (ioamhram[0x140] & 0x80) {
+			std::printf("ly write\n");
+			display.lyWrite(cycleCounter);
+			rescheduleIrq(cycleCounter);
+			rescheduleHdmaReschedule();
 		}
-		
-		set_event();
-		rescheduleIrq(cycleCounter);
+
 		return;
 	case 0x45:
 		display.lycRegChange(data, cycleCounter);

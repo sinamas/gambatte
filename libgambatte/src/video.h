@@ -274,6 +274,7 @@ public:
 		return mode1Irq.time();
 	}
 	
+	void lyWrite(unsigned long cycleCounter);
 	void lcdstatChange(unsigned data, unsigned long cycleCounter);
 	void lycRegChange(unsigned data, unsigned long cycleCounter);
 	unsigned long nextIrqEvent() const;
