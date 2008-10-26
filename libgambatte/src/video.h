@@ -141,10 +141,12 @@ class LCD {
 	bool isLycIrqPeriod(unsigned lycReg, unsigned endCycles, unsigned long cycleCounter);
 	bool isMode1IrqPeriod(unsigned long cycleCounter);
 
-	template<typename T> void bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const unsigned char *tilemap, const unsigned char *tiledata);
+	template<typename T> void bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, unsigned tilemappos,
+			const unsigned char *tilemap, const unsigned char *tiledata);
 	template<typename T> void drawSprites(T *buffer_line, unsigned ypos);
 
-	template<typename T> void cgb_bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, const unsigned char *tilemap, const unsigned char *tiledata, unsigned tileline);
+	template<typename T> void cgb_bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, unsigned tilemappos,
+			const unsigned char *tilemap, const unsigned char *tiledata, unsigned tileline);
 	template<typename T> void cgb_drawSprites(T *buffer_line, unsigned ypos);
 	
 	void null_draw(unsigned xpos, unsigned ypos, unsigned endX);

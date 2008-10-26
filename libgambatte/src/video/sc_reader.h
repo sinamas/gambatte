@@ -41,7 +41,7 @@ public:
 	void doEvent();
 	
 	unsigned scx() const {
-		return (scx_[0] & ~0x7) | (scxSrc & 0x7);
+		return /*(*/scx_[0]/* & ~0x7) | (scxSrc & 0x7)*/;
 	}
 	
 	unsigned scy() const {

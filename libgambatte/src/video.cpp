@@ -930,13 +930,15 @@ void LCD::cgb_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 		const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
 		const unsigned end = std::min(enableWindow ? win.wxReader.wx() - 7 : 160U, endX);
 
-		cgb_bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData, fby & 7);
+		cgb_bg_drawPixels(bufLine, xpos, end, scxReader.scxAnd7(), ((xpos + effectiveScx) & ~7) + ((xpos + drawStartCycle - scReadOffset) & 7),
+				bgTileMap + (fby & 0xF8) * 4, bgTileData, fby & 7);
 	}
 
 	if (enableWindow && endX + 7 > win.wxReader.wx()) {
 		const unsigned start = std::max(win.wxReader.wx() < 7 ? 0U : (win.wxReader.wx() - 7), xpos);
 
-		cgb_bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData, winYPos & 7);
+		cgb_bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), start + (7u - win.wxReader.wx()),
+				wdTileMap + (winYPos & 0xF8) * 4, bgTileData, winYPos & 7);
 	}
 
 	if (endX == 160) {
@@ -964,13 +966,15 @@ void LCD::dmg_draw(unsigned xpos, const unsigned ypos, const unsigned endX) {
 			const unsigned fby = scReader.scy() + ypos /*& 0xFF*/;
 			const unsigned end = std::min(enableWindow ? win.wxReader.wx() - 7 : 160U, endX);
 
-			bg_drawPixels(bufLine, xpos, end, effectiveScx, bgTileMap + (fby & 0xF8) * 4, bgTileData + (fby & 7) * 2);
+			bg_drawPixels(bufLine, xpos, end, scxReader.scxAnd7(), ((xpos + effectiveScx) & ~7) + ((xpos + drawStartCycle - scReadOffset) & 7),
+					bgTileMap + (fby & 0xF8) * 4, bgTileData + (fby & 7) * 2);
 		}
 
 		if (enableWindow && endX + 7 > win.wxReader.wx()) {
 			const unsigned start = std::max(win.wxReader.wx() < 7 ? 0U : (win.wxReader.wx() - 7), xpos);
 
-			bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
+			bg_drawPixels(bufLine, start, endX, 7u - win.wxReader.wx(), start + (7u - win.wxReader.wx()),
+					wdTileMap + (winYPos & 0xF8) * 4, bgTileData + (winYPos & 7) * 2);
 		}
 	} else
 		std::fill_n(bufLine + xpos, endX - xpos, bgPalette[0]);
@@ -1000,11 +1004,10 @@ static const unsigned char xflipt[0x100] = {
 #undef FLIP_ROW
 #undef FLIP
 
-/*
 #define PREP(u8) (u8)
 
-#define EXPAND(u8) (( PREP(u8) << 7 & 0x4000) | (PREP(u8) << 6 & 0x1000) | (PREP(u8) << 5 & 0x0400) | PREP(u8) << 4 & 0x0100 | \
-                     PREP(u8) << 3 & 0x0040 | (PREP(u8) << 2 & 0x0010) | (PREP(u8) << 1 & 0x0004) | (PREP(u8) & 0x0001 ))
+#define EXPAND(u8) ((PREP(u8) << 7 & 0x4000) | (PREP(u8) << 6 & 0x1000) | (PREP(u8) << 5 & 0x0400) | (PREP(u8) << 4 & 0x0100) | \
+                    (PREP(u8) << 3 & 0x0040) | (PREP(u8) << 2 & 0x0010) | (PREP(u8) << 1 & 0x0004) | (PREP(u8)      & 0x0001))
 
 #define EXPAND_ROW(n) EXPAND((n)|0x0), EXPAND((n)|0x1), EXPAND((n)|0x2), EXPAND((n)|0x3), \
                       EXPAND((n)|0x4), EXPAND((n)|0x5), EXPAND((n)|0x6), EXPAND((n)|0x7), \
@@ -1020,8 +1023,8 @@ static const unsigned short expand_lut[0x200] = {
 	EXPAND_TABLE,
 
 #undef PREP
-#define PREP(u8) (( (u8) << 7 & 0x80) | ((u8) << 5 & 0x40) | ((u8) << 3 & 0x20) | (u8) << 1 & 0x10 | \
-                   (u8) >> 1 & 0x08 | ((u8) >> 3 & 0x04) | ((u8) >> 5 & 0x02) | ((u8) >> 7 & 0x01 ))
+#define PREP(u8) (((u8) << 7 & 0x80) | ((u8) << 5 & 0x40) | ((u8) << 3 & 0x20) | ((u8) << 1 & 0x10) | \
+                  ((u8) >> 1 & 0x08) | ((u8) >> 3 & 0x04) | ((u8) >> 5 & 0x02) | ((u8) >> 7 & 0x01))
 
 	EXPAND_TABLE
 };
@@ -1030,73 +1033,58 @@ static const unsigned short expand_lut[0x200] = {
 #undef EXPAND_ROW
 #undef EXPAND
 #undef PREP
-*/
 
 //shoud work for the window too, if -wx is passed as scx.
 //tilemap and tiledata must point to the areas in the first vram bank
 //the second vram bank has to be placed immediately after the first one in memory (0x4000 continous bytes that cover both).
 //tilemap needs to be offset to the right line
-
 template<typename T>
-void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end, const unsigned scx, const unsigned char *const tilemap, const unsigned char *const tiledata, const unsigned tileline) {
+void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end, const unsigned scx, unsigned tilemappos,
+			const unsigned char *const tilemap, const unsigned char *const tiledata, const unsigned tileline)
+{
 	const unsigned sign = tileIndexSign;
+	unsigned shift = (7 - ((scx + xpos) & 7)) * 2;
+	T *buf = buffer_line + xpos;
+	T *const bufend = buffer_line + end;
 
-	while (xpos < end) {
-		if (((scx + xpos) & 7) || xpos + 7 >= end) {
-			const unsigned char *const maptmp = tilemap + (((scx + xpos) >> 3) & 0x1F);
-			const unsigned tile = maptmp[0];
+	while (buf < bufend) {
+		if ((tilemappos & 7) || bufend - buf < 8) {
+			const unsigned char *const maptmp = tilemap + (tilemappos >> 3 & 0x1F);
 			const unsigned attributes = maptmp[0x2000];
-			const unsigned char *const data = tiledata + (attributes << 10 & 0x2000) +
-				tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
-
-			unsigned byte1 = data[0];
-			unsigned byte2 = data[1];
-
-			if (attributes & 0x20) {
-				byte1 = xflipt[byte1];
-				byte2 = xflipt[byte2];
-			}
-
-			byte2 <<= 1;
-
+			const unsigned char *const dataptr = tiledata + (attributes << 10 & 0x2000) +
+					maptmp[0] * 16 - (maptmp[0] & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+			const unsigned short *const exp_lut = expand_lut + (attributes << 3 & 0x100);
+			
+			const unsigned data = exp_lut[dataptr[0]] + exp_lut[dataptr[1]] * 2;
 			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
-			unsigned tmp = 7 - ((scx + xpos) & 7);
 
 			do {
-				buffer_line[xpos++] = palette[(byte2 >> tmp & 2) | (byte1 >> tmp & 1)];
-			} while (tmp-- && xpos < end);
+				*buf++ = palette[data >> shift & 3];
+				shift = (shift - 2) & 15;
+			} while ((++tilemappos & 7) && buf < bufend);
 		}
 
-		while (xpos + 7 < end) {
-			const unsigned char *const maptmp = tilemap + (((scx + xpos) >> 3) & 0x1F);
-			const unsigned tile = maptmp[0];
+		while (bufend - buf > 7) {
+			const unsigned char *const maptmp = tilemap + (tilemappos >> 3 & 0x1F);
 			const unsigned attributes = maptmp[0x2000];
-			const unsigned char *const data = tiledata + (attributes << 10 & 0x2000) +
-				tile * 16 - (tile & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+			const unsigned char *const dataptr = tiledata + (attributes << 10 & 0x2000) +
+					maptmp[0] * 16 - (maptmp[0] & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
+			const unsigned short *const exp_lut = expand_lut + (attributes << 3 & 0x100);
 
-			unsigned byte1 = data[0];
-			unsigned byte2 = data[1];
-
-			if (attributes & 0x20) {
-				byte1 = xflipt[byte1];
-				byte2 = xflipt[byte2];
-			}
-
-			byte2 <<= 1;
-
+			const unsigned data = exp_lut[dataptr[0]] + exp_lut[dataptr[1]] * 2;
 			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
-			T * const buf = buffer_line + xpos;
 
-			buf[0] = palette[((byte2 & 0x100) | byte1) >> 7];
-			buf[1] = palette[((byte2 & 0x80) | (byte1 & 0x40)) >> 6];
-			buf[2] = palette[((byte2 & 0x40) | (byte1 & 0x20)) >> 5];
-			buf[3] = palette[((byte2 & 0x20) | (byte1 & 0x10)) >> 4];
-			buf[4] = palette[((byte2 & 0x10) | (byte1 & 0x8)) >> 3];
-			buf[5] = palette[((byte2 & 0x8) | (byte1 & 0x4)) >> 2];
-			buf[6] = palette[((byte2 & 0x4) | (byte1 & 0x2)) >> 1];
-			buf[7] = palette[(byte2 & 0x2) | (byte1 & 0x1)];
+			buf[0] = palette[data >>   shift             & 3];
+			buf[1] = palette[data >> ((shift -  2) & 15) & 3];
+			buf[2] = palette[data >> ((shift -  4) & 15) & 3];
+			buf[3] = palette[data >> ((shift -  6) & 15) & 3];
+			buf[4] = palette[data >> ((shift -  8) & 15) & 3];
+			buf[5] = palette[data >> ((shift - 10) & 15) & 3];
+			buf[6] = palette[data >> ((shift - 12) & 15) & 3];
+			buf[7] = palette[data >> ((shift - 14) & 15) & 3];
 
-			xpos += 8;
+			buf += 8;
+			tilemappos += 8;
 		}
 	}
 }
@@ -1248,42 +1236,39 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 				byte2 &= mask;
 			}
 
-			byte2 <<= 1;
-
+			const unsigned bytes = expand_lut[byte1] + expand_lut[byte2] * 2;
 			const unsigned long *const palette = spPalette + (attributes & 7) * 4;
 
 			if (spx > 7 && spx < 161) {
 				T * const buf = buffer_line + spx - 8;
 				unsigned color;
 
-				if ((color = ((byte2 & 0x100) | byte1) >> 7))
+				if ((color = bytes >> 14    ))
 					buf[0] = palette[color];
-				if ((color = (byte2 & 0x80) | (byte1 & 0x40)))
-					buf[1] = palette[color >> 6];
-				if ((color = (byte2 & 0x40) | (byte1 & 0x20)))
-					buf[2] = palette[color >> 5];
-				if ((color = (byte2 & 0x20) | (byte1 & 0x10)))
-					buf[3] = palette[color >> 4];
-				if ((color = (byte2 & 0x10) | (byte1 & 0x8)))
-					buf[4] = palette[color >> 3];
-				if ((color = (byte2 & 0x8) | (byte1 & 0x4)))
-					buf[5] = palette[color >> 2];
-				if ((color = (byte2 & 0x4) | (byte1 & 0x2)))
-					buf[6] = palette[color >> 1];
-				if ((color = (byte2 & 0x2) | (byte1 & 0x1)))
+				if ((color = bytes >> 12 & 3))
+					buf[1] = palette[color];
+				if ((color = bytes >> 10 & 3))
+					buf[2] = palette[color];
+				if ((color = bytes >>  8 & 3))
+					buf[3] = palette[color];
+				if ((color = bytes >>  6 & 3))
+					buf[4] = palette[color];
+				if ((color = bytes >>  4 & 3))
+					buf[5] = palette[color];
+				if ((color = bytes >>  2 & 3))
+					buf[6] = palette[color];
+				if ((color = bytes       & 3))
 					buf[7] = palette[color];
 			} else {
 				const unsigned end = spx >= 160 ? 160 : spx;
 				unsigned xpos = spx <= 8 ? 0 : (spx - 8);
-				unsigned u32temp = 7 - (xpos + 8 - spx);
+				unsigned shift = (7 - (xpos + 8 - spx)) * 2;
 
 				while (xpos < end) {
-					const unsigned color = (byte2 >> u32temp & 2) | (byte1 >> u32temp & 1);
-
-					if (color)
+					if (const unsigned color = bytes >> shift & 3)
 						buffer_line[xpos] = palette[color];
 
-					--u32temp,
+					shift -= 2;
 					++xpos;
 				}
 			}
@@ -1295,37 +1280,40 @@ void LCD::cgb_drawSprites(T * const buffer_line, const unsigned ypos) {
 //shoud work for the window too, if -wx is passed as scx.
 //tilemap and tiledata need to be offset to the right line
 template<typename T>
-void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end, const unsigned scx, const unsigned char *const tilemap, const unsigned char *const tiledata) {
+void LCD::bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned end, const unsigned scx, unsigned tilemappos,
+			const unsigned char *const tilemap, const unsigned char *const tiledata)
+{
 	const unsigned sign = tileIndexSign;
+	unsigned shift = (7 - ((scx + xpos) & 7)) * 2;
+	T *buf = buffer_line + xpos;
+	T *const bufend = buffer_line + end;
 
-	while (xpos < end) {
-		if (((scx + xpos) & 7) || xpos + 7 >= end) {
-			const unsigned tile = tilemap[((scx + xpos) >> 3) & 0x1F];
-			const unsigned char *const data = tiledata + tile * 16 - (tile & sign) * 32;
-			const unsigned byte1 = data[0];
-			const unsigned byte2 = data[1] << 1;
-			unsigned tmp = 7 - ((scx + xpos) & 7);
+	while (buf < bufend) {
+		if ((tilemappos & 7) || bufend - buf < 8) {
+			const unsigned tile = tilemap[tilemappos >> 3 & 0x1F];
+			const unsigned char *const dataptr = tiledata + tile * 16 - (tile & sign) * 32;
+			const unsigned data = expand_lut[dataptr[0]] + expand_lut[dataptr[1]] * 2;
 
 			do {
-				buffer_line[xpos++] = bgPalette[(byte2 >> tmp & 2) | (byte1 >> tmp & 1)];
-			} while (tmp-- && xpos < end);
+				*buf++ = bgPalette[data >> shift & 3];
+				shift = (shift - 2) & 15;
+			} while ((++tilemappos & 7) && buf < bufend);
 		}
 
-		while (xpos + 7 < end) {
-			const unsigned tile = tilemap[((scx + xpos) >> 3) & 0x1F];
-			const unsigned char *const data = tiledata + tile * 16 - (tile & sign) * 32;
-			const unsigned byte1 = data[0];
-			const unsigned byte2 = data[1] << 1;
-			T * const buf = buffer_line + xpos;
-			buf[0] = bgPalette[((byte2 & 0x100) | byte1) >> 7];
-			buf[1] = bgPalette[((byte2 & 0x80) | (byte1 & 0x40)) >> 6];
-			buf[2] = bgPalette[((byte2 & 0x40) | (byte1 & 0x20)) >> 5];
-			buf[3] = bgPalette[((byte2 & 0x20) | (byte1 & 0x10)) >> 4];
-			buf[4] = bgPalette[((byte2 & 0x10) | (byte1 & 0x8)) >> 3];
-			buf[5] = bgPalette[((byte2 & 0x8) | (byte1 & 0x4)) >> 2];
-			buf[6] = bgPalette[((byte2 & 0x4) | (byte1 & 0x2)) >> 1];
-			buf[7] = bgPalette[(byte2 & 0x2) | (byte1 & 0x1)];
-			xpos += 8;
+		while (bufend - buf > 7) {
+			const unsigned tile = tilemap[tilemappos >> 3 & 0x1F];
+			const unsigned char *const dataptr = tiledata + tile * 16 - (tile & sign) * 32;
+			const unsigned data = expand_lut[dataptr[0]] + expand_lut[dataptr[1]] * 2;
+			buf[0] = bgPalette[data >>   shift             & 3];
+			buf[1] = bgPalette[data >> ((shift -  2) & 15) & 3];
+			buf[2] = bgPalette[data >> ((shift -  4) & 15) & 3];
+			buf[3] = bgPalette[data >> ((shift -  6) & 15) & 3];
+			buf[4] = bgPalette[data >> ((shift -  8) & 15) & 3];
+			buf[5] = bgPalette[data >> ((shift - 10) & 15) & 3];
+			buf[6] = bgPalette[data >> ((shift - 12) & 15) & 3];
+			buf[7] = bgPalette[data >> ((shift - 14) & 15) & 3];
+			buf += 8;
+			tilemappos += 8;
 		}
 	}
 }
@@ -1413,42 +1401,39 @@ void LCD::drawSprites(T * const buffer_line, const unsigned ypos) {
 				byte2 &= mask;
 			}
 
-			byte2 <<= 1;
-
+			const unsigned bytes = expand_lut[byte1] + expand_lut[byte2] * 2;
 			const unsigned long *const palette = spPalette + ((attributes >> 2) & 4);
 
 			if (spx > 7 && spx < 161) {
 				T * const buf = buffer_line + spx - 8;
 				unsigned color;
 
-				if ((color = ((byte2 & 0x100) | byte1) >> 7))
+				if ((color = bytes >> 14    ))
 					buf[0] = palette[color];
-				if ((color = (byte2 & 0x80) | (byte1 & 0x40)))
-					buf[1] = palette[color >> 6];
-				if ((color = (byte2 & 0x40) | (byte1 & 0x20)))
-					buf[2] = palette[color >> 5];
-				if ((color = (byte2 & 0x20) | (byte1 & 0x10)))
-					buf[3] = palette[color >> 4];
-				if ((color = (byte2 & 0x10) | (byte1 & 0x8)))
-					buf[4] = palette[color >> 3];
-				if ((color = (byte2 & 0x8) | (byte1 & 0x4)))
-					buf[5] = palette[color >> 2];
-				if ((color = (byte2 & 0x4) | (byte1 & 0x2)))
-					buf[6] = palette[color >> 1];
-				if ((color = (byte2 & 0x2) | (byte1 & 0x1)))
+				if ((color = bytes >> 12 & 3))
+					buf[1] = palette[color];
+				if ((color = bytes >> 10 & 3))
+					buf[2] = palette[color];
+				if ((color = bytes >>  8 & 3))
+					buf[3] = palette[color];
+				if ((color = bytes >>  6 & 3))
+					buf[4] = palette[color];
+				if ((color = bytes >>  4 & 3))
+					buf[5] = palette[color];
+				if ((color = bytes >>  2 & 3))
+					buf[6] = palette[color];
+				if ((color = bytes       & 3))
 					buf[7] = palette[color];
 			} else {
 				const unsigned end = spx >= 160 ? 160 : spx;
 				unsigned xpos = spx <= 8 ? 0 : (spx - 8);
-				unsigned u32temp = 7 - (xpos + 8 - spx);
+				unsigned shift = (7 - (xpos + 8 - spx)) * 2;
 
 				while (xpos < end) {
-					const unsigned color = (byte2 >> u32temp & 2) | (byte1 >> u32temp & 1);
-
-					if (color)
+					if (const unsigned color = bytes >> shift & 3)
 						buffer_line[xpos] = palette[color];
 
-					--u32temp,
+					shift -= 2;
 					++xpos;
 				}
 			}
