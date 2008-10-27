@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-Copyright (C) 2007 by Sindre Aamås
+Copyright (C) 2007 by Sindre AamÃ¥s
 aamas@stud.ntnu.no
 
 This program is free software; you can redistribute it and/or modify
@@ -32,8 +32,7 @@ front-end (gambatte_qt) using Trolltech's Qt4 toolkit, and a simple command-line
 SDL front-end (gambatte_sdl).
 
 The GUI front-end contains platform-specific extensions for video, sound and
-timers. It should work on MS Windows, Linux/BSD/UNIX-like OSes, and Mac OS X
-(although no testing or specific extensions have been done for Mac OS X yet).
+timers. It should work on MS Windows, Linux/BSD/UNIX-like OSes, and Mac OS X.
 
 The SDL front-end should be usable on all platforms with a working SDL port. It
 should also be quite trivial to create new (simple) front-ends (note that the
@@ -45,10 +44,15 @@ You will have to supply Gambatte with a ROM image file of the GB/GBC
 program/game you'd like to run/play, either as a command-line argument to
 gambatte_sdl, or through the File->Open... menu in gambatte_qt.
 
-Keyboard commands:
+gambatte_sdl keyboard commands:
 TAB    - fast-forward
 Ctrl-f - toggle full screen
 Ctrl-r - reset
+F5     - save state
+F6     - previous state slot
+F7     - next state slot
+F8     - load state
+0 to 9 - select state slot 0 to 9
 
 Default key mapping:
 Up:     Up
@@ -88,14 +92,14 @@ Requirements for building gambatte_qt:
   * MS Windows:
     - Win32 API headers and libraries.
     - DirectSound and DirectDraw7 headers and libraries.
+    - Direct3D9 headers
   * Linux/BSD/UNIX-like OSes:
     - POSIX/UNIX headers (unistd.h, fcntl.h, sys/ioctl.h, sys/time.h, sys/shm.h).
     - Open Sound System header (sys/soundcard.h).
     - X11 Xlib, XVideo, XRandR and XShm headers and libraries.
     - Alsa headers and library (Linux only).
   * Max OS X:
-    - POSIX/UNIX headers (sys/time.h).
-    - libao headers and library.
+    - Recent Mac OS X SDK (Panther Xcode/SDK should work)
 (- libgambatte.)
 
 Installing after a compile simply amounts to copying the generated binary
