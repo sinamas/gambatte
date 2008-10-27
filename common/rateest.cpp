@@ -20,10 +20,10 @@
 #include <cstdlib>
 
 static long limit(long est, const long reference) {
-	if (est > reference + (reference >> 7))
-		est = reference + (reference >> 7);
-	else if (est < reference - (reference >> 7))
-		est = reference - (reference >> 7);
+	if (est > reference + (reference >> 6))
+		est = reference + (reference >> 6);
+	else if (est < reference - (reference >> 6))
+		est = reference - (reference >> 6);
 
 	return est;
 }
