@@ -299,7 +299,7 @@ void MainWindow::toggleFullScreen() {
 #ifdef Q_WS_MAC // work around annoying random non-updating OpenGL on Mac OS X after full screen.
 		blitterContainer->hide();
 		blitterContainer->show();
-#else
+#endif
 		blitterContainer->parentExclusiveEvent(hasFocus());
 	}
 }
