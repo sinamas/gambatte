@@ -25,25 +25,25 @@
 
 static /*inline*/ unsigned long Interp1(const unsigned long c1, const unsigned long c2) {
 	const unsigned long lowbits = ((c1 & 0x030303) * 3 + (c2 & 0x030303)) & 0x030303;
-	
+
 	return (c1 * 3 + c2 - lowbits) >> 2;
 }
 
 static /*inline*/ unsigned long Interp2(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
 	const unsigned long lowbits = ((c1 * 2 & 0x020202) + (c2 & 0x030303) + (c3 & 0x030303)) & 0x030303;
-	
+
 	return (c1 * 2 + c2 + c3 - lowbits) >> 2;
 }
 
 static /*inline*/ unsigned long Interp3(const unsigned long c1, const unsigned long c2) {
 	const unsigned long lowbits = ((c1 & 0x070707) * 7 + (c2 & 0x070707)) & 0x070707;
-	
+
 	return (c1 * 7 + c2 - lowbits) >> 3;
 }
 
 static /*inline*/ unsigned long Interp4(const unsigned long c1, const unsigned long c2, const unsigned long c3) {
 	const unsigned long lowbits = ((c1 * 2 & 0x0E0E0E) + ((c2 & 0x0F0F0F) + (c3 & 0x0F0F0F)) * 7) & 0x0F0F0F;
-	
+
 	return (c1 * 2 + (c2 + c3) * 7 - lowbits) >> 4;
 }
 
@@ -109,7 +109,7 @@ static /*inline*/ bool Diff(const unsigned long w1, const unsigned long w2) {
 	const unsigned rdiff = (w1 >> 16) - (w2 >> 16);
 	const unsigned gdiff = (w1 >> 8 & 0xFF) - (w2 >> 8 & 0xFF);
 	const unsigned bdiff = (w1 & 0xFF) - (w2 & 0xFF);
-	
+
 	return rdiff + gdiff + bdiff + 0xC0U > 0xC0U * 2    ||
 		rdiff - bdiff + 0x1CU > 0x1CU * 2            ||
 		gdiff * 2 - rdiff - bdiff + 0x30U > 0x30U * 2;
@@ -119,7 +119,7 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 		   const Gambatte::uint_least32_t *pIn, const unsigned Xres, const unsigned Yres)
 {
 	unsigned long w[10];
-	
+
 	//   +----+----+----+
 	//   |    |    |    |
 	//   | w1 | w2 | w3 |
@@ -130,16 +130,16 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 	//   |    |    |    |
 	//   | w7 | w8 | w9 |
 	//   +----+----+----+
-	
+
 	for (unsigned j = 0; j < Yres; j++) {
 		const unsigned prevline = j > 0        ? Xres : 0;
 		const unsigned nextline = j < Yres - 1 ? Xres : 0;
-		
+
 		for (unsigned i = 0; i < Xres; i++) {
 			w[2] = *(pIn - prevline);
 			w[5] = *(pIn);
 			w[8] = *(pIn + nextline);
-			
+
 			if (i > 0) {
 				w[1] = *(pIn - prevline - 1);
 				w[4] = *(pIn - 1);
@@ -149,7 +149,7 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 				w[4] = w[5];
 				w[7] = w[8];
 			}
-			
+
 			if (i < Xres - 1) {
 				w[3] = *(pIn - prevline + 1);
 				w[6] = *(pIn + 1);
@@ -159,34 +159,34 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 				w[6] = w[5];
 				w[9] = w[8];
 			}
-			
+
 			unsigned pattern = 0;
-			
+
 			{
 				unsigned flag = 1;
-				
+
 				const unsigned r1 = w[5] >> 16;
 				const unsigned g1 = w[5] >> 8 & 0xFF;
 				const unsigned b1 = w[5] & 0xFF;
-				
+
 				for (unsigned k = 1; k < 10; ++k) {
 					if (k == 5) continue;
-					
+
 					if (w[k] != w[5]) {
 						const unsigned rdiff = r1 - (w[k] >> 16);
 						const unsigned gdiff = g1 - (w[k] >> 8 & 0xFF);
 						const unsigned bdiff = b1 - (w[k] & 0xFF);
-						
+
 						if (rdiff + gdiff + bdiff + 0xC0U > 0xC0U * 2  ||
 						    rdiff - bdiff + 0x1CU > 0x1CU * 2          ||
 						    gdiff * 2 - rdiff - bdiff + 0x30U > 0x30U * 2)
 							pattern |= flag;
 					}
-					
+
 					flag <<= 1;
 				}
 			}
-			
+
 			switch (pattern)
 			{
 				case 0:
@@ -3805,7 +3805,7 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 			++pIn;
 			pOut += 3;
 		}
-		pOut += dstPitch * 2;
+		pOut += dstPitch * 3 - Xres * 3;
 	}
 }
 
