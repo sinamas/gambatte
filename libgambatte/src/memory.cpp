@@ -1747,7 +1747,7 @@ bool Memory::loadROM(const char *romfile, const bool forceDmg) {
 		printf("rombanks: %u\n", rombanks);*/
 		
 		switch (header[0x0149]) {
-		case 0x00: /*cout << "No RAM\n";*/ rambanks = 0; break;
+		case 0x00: /*cout << "No RAM\n";*/ rambanks = romtype == mbc2; break;
 		case 0x01: /*cout << "2kB RAM\n";*/ /*rambankrom=1; break;*/
 		case 0x02: /*cout << "8kB RAM\n";*/
 			rambanks = 1;
