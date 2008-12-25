@@ -20,31 +20,37 @@
 #include <adaptivesleep.h>
 #include <cstdlib>
 
+static long limit(long est, const long ref) {
+	if (est > ref + (ref >> 5))
+		est = ref + (ref >> 5);
+	else if (est < ref - (ref >> 5))
+		est = ref - (ref >> 5);
+	
+	return est;
+}
+
 void FtEst::init(const long frameTime) {
 	this->frameTime = frameTime;
-	ft = 0;
-	ftAvg = frameTime << COUNT_LOG2;
+	ft = 4500000 << 6;
+	ftAvg = frameTime << UPSHIFT;
 	ftVar = ftAvg >> 12;
 	last = 0;
-	count = COUNT;
+	count = (ft + (frameTime >> 1)) / (frameTime ? frameTime : 1);
 }
 
 void FtEst::update(const usec_t t) {
 	if (t - last < static_cast<unsigned long>(frameTime + (frameTime >> 3))) {
-		ft += t - last;
-
-		if (--count == 0) {
-			count = COUNT;
-			long oldFtAvg = ftAvg;
-			ftAvg = (ftAvg * 15 + ft + 8) >> 4;
-
-			if (ftAvg > ((frameTime + (frameTime >> 5)) << COUNT_LOG2))
-				ftAvg = (frameTime + (frameTime >> 5)) << COUNT_LOG2;
-			else if (ftAvg < ((frameTime - (frameTime >> 5)) << COUNT_LOG2))
-				ftAvg = (frameTime - (frameTime >> 5)) << COUNT_LOG2;
-
-			ftVar = (ftVar * 15 + std::abs(ftAvg - oldFtAvg) + 8) >> 4;
-			ft = 0;
+		ft += (t - last) << 6;
+		count += 1 << 6;
+		
+		long ftAvgNew = static_cast<long>(static_cast<float>(ft) * UP / count + 0.5f);
+		ftAvgNew = limit((ftAvg * 31 + ftAvgNew + 16) >> 5, frameTime << UPSHIFT);
+		ftVar = (ftVar * 15 + std::abs(ftAvgNew - ftAvg) + 8) >> 4;
+		ftAvg = ftAvgNew;
+		
+		if (ft > (6000000 << 6)) {
+			ft = (ft * 3 + 2) >> 2;
+			count = (count * 3 + 2) >> 2;
 		}
 	}
 

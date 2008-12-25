@@ -552,7 +552,7 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 
 		if (estft.est) {
 			float est = static_cast<float>(rsrate.est) * estft.est;
-			const float var = static_cast<float>(rsrate.est + rsrate.var) * (estft.est + estft.var) - est;
+			const float var = static_cast<float>(rsrate.est + (rsrate.var ? rsrate.var : 1)) * (estft.est + (estft.var ? estft.var : 1)) - est;
 			est += var;
 
 			if (std::fabs(est - resampler->outRate() * static_cast<float>(usecft - (usecft >> 11))) > var * 2)

@@ -28,8 +28,8 @@
 class QHBoxLayout;
 
 class FtEst {
-	enum { COUNT_LOG2 = 4 };
-	enum { COUNT = 1 << COUNT_LOG2 };
+	enum { UPSHIFT= 5 };
+	enum { UP = 1 << UPSHIFT };
 
 	long frameTime;
 	long ft;
@@ -42,8 +42,8 @@ public:
 	FtEst(long frameTime = 0) { init(frameTime); }
 	void init(long frameTime);
 	void update(usec_t t);
-	long est() const { return (ftAvg + COUNT / 2) >> COUNT_LOG2; }
-	long var() const { return (ftVar + COUNT / 2) >> COUNT_LOG2; }
+	long est() const { return (ftAvg + UP / 2) >> UPSHIFT; }
+	long var() const { return (ftVar + UP / 2) >> UPSHIFT; }
 };
 
 class BlitterWidget : public QWidget {
