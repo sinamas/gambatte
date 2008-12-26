@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -57,7 +57,10 @@ QPainterBlitter::~QPainterBlitter() {
 }
 
 void QPainterBlitter::blit() {
+	const bool ue = updatesEnabled();
+	setUpdatesEnabled(true);
 	repaint();
+	setUpdatesEnabled(ue);
 }
 
 void QPainterBlitter::paintEvent(QPaintEvent *const event) {

@@ -359,9 +359,11 @@ void MainWindow::videoSettingsChange() {
 
 		if (blitterContainer->blitter() != blitters[engineIndex]) {
 			bool visible = false;
+			bool updatesEnabled = false;
 
 			if (blitterContainer->blitter()) {
 				visible = blitterContainer->blitter()->isVisible();
+				updatesEnabled = blitterContainer->blitter()->updatesEnabled();
 				disconnect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitterContainer->blitter(), SLOT(rateChange(int)));
 
 				if (running)
@@ -375,6 +377,7 @@ void MainWindow::videoSettingsChange() {
 			connect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitterContainer->blitter(), SLOT(rateChange(int)));
 			fullModeToggler->emitRate();
 			blitterContainer->blitter()->setVisible(visible);
+			blitterContainer->blitter()->setUpdatesEnabled(updatesEnabled);
 
 			if (running)
 				blitterContainer->blitter()->init();
@@ -629,6 +632,7 @@ void MainWindow::doPause() {
 	killTimer(timerId);
 	timerId = 0;
 	jsTimer->start();
+	blitterContainer->blitter()->setUpdatesEnabled(true);
 }
 
 void MainWindow::doUnpause() {
@@ -637,6 +641,7 @@ void MainWindow::doUnpause() {
 
 	jsTimer->stop();
 	timerId = startTimer(0);
+	blitterContainer->blitter()->setUpdatesEnabled(false);
 }
 
 void MainWindow::pause() {
