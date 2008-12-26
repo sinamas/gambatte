@@ -121,7 +121,7 @@ SoundDialog::SoundDialog(const std::vector<AudioEngine*> &engines, QWidget *pare
 	engineIndex(0),
 	resamplerNum(1),
 	rate(0),
-	latency(68)
+	latency(100)
 {
 	setWindowTitle(tr("Sound Settings"));
 	
