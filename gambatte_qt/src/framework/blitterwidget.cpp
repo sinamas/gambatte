@@ -139,7 +139,8 @@ impl(new Impl),
 ft(1000000/60),
 setPixelBuffer(setPixelBuffer),
 nameString(name),
-integerOnlyScaler(integerOnlyScaler)
+integerOnlyScaler(integerOnlyScaler),
+paused(true)
 {
 	setMouseTracking(true);
 }

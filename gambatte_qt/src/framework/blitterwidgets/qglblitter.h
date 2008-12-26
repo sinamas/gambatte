@@ -40,6 +40,7 @@ class QGLBlitter : public BlitterWidget {
 	bool bf;
 	
 	void resetSubWidget();
+	void privSetPaused(const bool /*paused*/) {}
 	
 protected:
 	void resizeEvent(QResizeEvent *event);

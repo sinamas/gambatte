@@ -56,7 +56,7 @@ class BlitterWidget : public QWidget {
 
 protected:
 	PixelBufferSetter setPixelBuffer;
-
+	
 public:
 	struct Estimate {
 		long est;
@@ -65,12 +65,20 @@ public:
 
 	const QString nameString;
 	const bool integerOnlyScaler;
+	
+private:
+	bool paused;
+	
+	virtual void privSetPaused(const bool paused) { setUpdatesEnabled(paused); }
 
+public:
 	BlitterWidget(PixelBufferSetter setPixelBuffer,
 	              const QString &name,
 	              bool integerOnlyScaler = false,
 	              QWidget *parent = 0);
 	virtual ~BlitterWidget();
+	bool isPaused() const { return paused; }
+	void setPaused(const bool paused) { this->paused = paused; privSetPaused(paused); }
 
 	virtual void init() {}
 	virtual void uninit() {}

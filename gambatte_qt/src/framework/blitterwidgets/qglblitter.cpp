@@ -59,11 +59,11 @@ protected:
 	void resizeGL(int w, int h);
 	
 public:
-	SubWidget(unsigned swapInterval, bool bf, QWidget *parent = 0);
+	SubWidget(unsigned swapInterval, bool bf, QGLBlitter *parent);
 	~SubWidget();
 	
 	void blit();
-// 	void blitFront();
+	void blitFront();
 	
 	unsigned getInWidth() const {
 		return inWidth;
@@ -102,7 +102,7 @@ static const QGLFormat getQGLFormat(const unsigned swapInterval) {
 	return f;
 }
 
-QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_in, QWidget *parent) :
+QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_in, QGLBlitter *parent) :
 	QGLWidget(getQGLFormat(swapInterval_in), parent),
 	corrected_w(160),
 	corrected_h(144),
@@ -180,24 +180,41 @@ void QGLBlitter::SubWidget::initializeGL() {
 	initialized = true;
 }
 
-/*void QGLBlitter::SubWidget::blitFront() {
-	GLint drawBuffer;
+void QGLBlitter::SubWidget::blitFront() {
+	GLint drawBuffer = GL_BACK;
 	glGetIntegerv(GL_DRAW_BUFFER, &drawBuffer);
+	
+	if (clear) {
+		--clear;
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+	
 	glDrawBuffer(GL_FRONT);
-	blit();
+	
+	if (clear) {
+		--clear;
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+	
+	glCallList(1);
 	glDrawBuffer(drawBuffer);
-}*/
+	glFlush();
+}
 
 void QGLBlitter::SubWidget::paintGL() {
 	clear = 2;
 
+	if (reinterpret_cast<const QGLBlitter*>(parentWidget())->isPaused()) {
 // 	if (swapInterval)
 // 		blitFront();
 // 	else {
-		blit();
+		if (!blitted)
+			blit();
+		
 		swapBuffers();
 		blitted = false;
 // 	}
+	}
 }
 
 void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
@@ -408,23 +425,29 @@ const BlitterWidget::Estimate QGLBlitter::frameTimeEst() const {
 }*/
 
 long QGLBlitter::sync(const long ft) {
-	if (!subWidget->getSwapInterval())
-		BlitterWidget::sync(ft);
-
+	const bool vsyncing = subWidget->getSwapInterval();
+	
 	subWidget->makeCurrent();
 	
-// 	if (subWidget->getSwapInterval() && turbo)
-// 		subWidget->blitFront();
-// 	else {
-	if (!subWidget->blitted)
-		subWidget->blit();
+	if (vsyncing && ft + (ft >> 2) < frameTime()) {
+		subWidget->blitFront();
+	} else {
+		if (subWidget->doubleBuffer() && !subWidget->blitted)
+			subWidget->blit();
+		
+		if (!vsyncing)
+			BlitterWidget::sync(ft);
+		
+		subWidget->swapBuffers();
+		
+		if (vsyncing)
+			ftEst.update(getusecs());
+		
+		if (!subWidget->blitted)
+			subWidget->blit();
+	}
 	
-	subWidget->swapBuffers();
 	subWidget->blitted = false;
-// 	}
-	
-	if (subWidget->getSwapInterval())
-		ftEst.update(getusecs());
 	
 	return 0;
 }
