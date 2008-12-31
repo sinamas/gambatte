@@ -42,7 +42,7 @@ class Resampler;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
-	
+
 public:
 	struct InputObserver {
 		virtual ~InputObserver() {}
@@ -54,36 +54,51 @@ private:
 	class ButtonHandler : public InputObserver {
 		MediaSource *source;
 		unsigned buttonIndex;
-		
+
 	public:
 		ButtonHandler(MediaSource *source, unsigned buttonIndex);
 		void pressEvent();
 		void releaseEvent();
 	};
-	
+
 	class JoystickIniter {
 		std::vector<SDL_Joystick*> joysticks;
 	public:
 		JoystickIniter();
 		~JoystickIniter();
 	};
-	
+
+	class SkipSched {
+		unsigned skipped;
+		unsigned skippedmax;
+
+	public:
+		SkipSched() { reset(); }
+
+		void reset() {
+			skipped = 0;
+			skippedmax = 2 - 1;
+		}
+
+		bool skipNext(bool wantskip);
+	};
+
 	class SampleBuffer {
 		Array<qint16> sndInBuffer;
 		Rational spf;
 		unsigned num;
 		unsigned samplesBuffered;
-		
+
 	public:
 		SampleBuffer(const Rational &spf, unsigned overupdate) { reset(spf, overupdate); }
 		const Rational& samplesPerFrame() const { return spf; }
 		void reset(const Rational &spf, unsigned overupdate);
 		std::size_t update(qint16 *out, MediaSource *source, Resampler *resampler);
 	};
-	
+
 	typedef std::multimap<unsigned,InputObserver*> keymap_t;
 	typedef std::multimap<unsigned,JoyObserver*> joymap_t;
-	
+
 	MediaSource *const source;
 	std::vector<AudioEngine*> audioEngines;
 	std::vector<BlitterWidget*> blitters;
@@ -97,24 +112,25 @@ private:
 	VideoDialog *videoDialog;
 	const std::auto_ptr<FullModeToggler> fullModeToggler;
 	std::auto_ptr<Resampler> resampler;
+	SkipSched skipSched;
 	SampleBuffer sampleBuffer;
 	Array<qint16> sndOutBuffer;
 	AudioEngine *ae;
 	QTimer *cursorTimer;
 	QTimer *jsTimer;
-	
+
 	unsigned ftNum;
 	unsigned ftDenom;
 	unsigned paused;
+	unsigned turbo;
 	int timerId;
-	
+
 	JoystickIniter joyIniter;
 
 	bool running;
-	bool turbo;
 	bool pauseOnDialogExec;
 	bool cursorHidden;
-	
+
 	void initAudio();
 	void setSampleRate();
 	void soundEngineFailure();
@@ -127,14 +143,14 @@ private:
 	void doUnpause();
 	void showCursor();
 	void correctFullScreenGeometry();
-	
+
 private slots:
 	void updateJoysticks();
 	void hideCursor();
 	void inputSettingsChange();
 	void soundSettingsChange();
 	void videoSettingsChange();
-	
+
 protected:
 	void timerEvent(QTimerEvent *event);
 	void keyPressEvent(QKeyEvent *e);
@@ -171,41 +187,41 @@ public:
 	           const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
 	           const QString &videoSourceLabel,
 	           const QSize &aspectRatio);
-	
+
 	~MainWindow();
 	const QSize& aspectRatio() const;
-	
+
 	/**
 	  * Convenience method for launching dialogs. Pauses source updates if pauseOnDialogExec is set.
 	  */
 	void execDialog(QDialog *dialog);
-	
+
 	bool isPaused() const { return paused & 1; }
 	bool isRunning() const { return running; }
 	bool isTurbo() const { return turbo; }
 	bool pausesOnDialogExec() const { return pauseOnDialogExec; }
 	void setAspectRatio(const QSize &aspectRatio);
-	
+
 	/**
 	  * Sets time period in seconds between calls to source->update(). Eg. for 60 Hz updates
 	  * use setFrameTime(1, 60).
 	  */
 	void setFrameTime(unsigned numerator, unsigned denominator);
-	
+
 	/**
 	  * Sets the number of audio stereo source samples per video frame.
 	  * Eg. for a source sample rate of 44100 Hz at a frame rate of 60 fps use setSamplesPerFrame(44100, 60)
 	  * or setSamplesPerFrame(735).
 	  */
 	void setSamplesPerFrame(long num, long denom = 1);
-	
+
 	/**
 	  * When pauseOnDialogExec is set, source->update()s will be paused when a dialog is launched
 	  * from MainWindow, and unpaused when the dialog is closed. pauseOnDialogExec is on by default.
 	  */
 	void setPauseOnDialogExec(bool enable) { pauseOnDialogExec = enable; }
 	void setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos);
-	
+
 	/**
 	  * Does a single source->update() if isRunning() && isPaused() (unless it's also paused by a dialog or similar)
 	  */
@@ -218,42 +234,42 @@ public slots:
 	  * complete buffer at the end of updates.
 	  */
 	void blit();
-	
+
 	// for launching settings dialogs.
 	void execVideoDialog();
 	void execInputDialog();
 	void execSoundDialog();
-	
+
 	/**
 	  * Pauses calls to source->update() (and audio output), while keeping the last blitted image
 	  * visible.
 	  */
 	void pause();
-	
+
 	/**
 	  * Initializes audio and video and starts source updates. Needed to start when in stopped
 	  * (!isRunning()) state. Must be called at least once initially to start source updates.
 	  */
 	void run();
-	
+
 	/**
 	  * Turbo is a fast-forward that can be seen as temporarily setting frame time to zero while
 	  * pausing audio output.
 	  */
 	void setTurbo(bool enable);
-	
+
 	/**
 	  * Stops source updates, and uninitializes audio and video.
 	  */
 	void stop();
-	
+
 	/**
 	  * The only method you should use to set/unset fullScreen. Will set MainWindow to fullScreen state,
 	  * and switch to a user selected full screen mode. Use of QWidget methods like showFullScreen and
 	  * methods changing window size/geometry is probably a bad idea.
 	  */
 	void toggleFullScreen();
-	
+
 	/**
 	  * Using any other way of hiding/showing the menuBar is not recommended. Add QMenus and QActions
 	  * to menuBar() to create a menu. You may also want to add QActions to MainWindow to have shortcuts
@@ -261,7 +277,7 @@ public slots:
 	  */
 	void toggleMenuHidden();
 	void toggleTurbo();
-	
+
 	/**
 	  * Resume source updates and audio output after pause.
 	  */

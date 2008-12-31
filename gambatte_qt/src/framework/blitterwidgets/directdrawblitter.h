@@ -32,6 +32,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
+	QCheckBox *const vblankflipBox;
 	QCheckBox *const videoSurfaceBox;
 	QComboBox *const deviceSelector;
 	LPDIRECTDRAW7 lpDD;
@@ -39,11 +40,14 @@ class DirectDrawBlitter : public BlitterWidget {
 	LPDIRECTDRAWSURFACE7 lpDDSBack;
 	LPDIRECTDRAWSURFACE7 lpDDSSystem;
 	LPDIRECTDRAWSURFACE7 lpDDSVideo;
+	LPDIRECTDRAWSURFACE7 lpDDSClear;
 	LPDIRECTDRAWCLIPPER lpClipper;
 	QList<GUID> deviceList;
 	MediaSource::PixelFormat pixelFormat;
+	usec_t lastblank;
+	unsigned clear;
 	unsigned hz;
-	unsigned vblankHz;
+	unsigned swapInterval;
 	unsigned deviceIndex;
 	unsigned inWidth;
 	unsigned inHeight;
@@ -51,13 +55,20 @@ class DirectDrawBlitter : public BlitterWidget {
 	bool videoSurface;
 	bool exclusive;
 	bool flipping;
+	bool vblankflip;
+	bool blitted;
 
 	static BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
-	bool initPrimarySurface();
-	bool initVideoSurface();
-	bool restoreSurfaces();
+	void initPrimarySurface();
+	void initVideoSurface();
+	void initClearSurface();
+	void restoreSurfaces();
 	void systemSurfaceBlit();
 	void videoSurfaceBlit();
+	void setSwapInterval(unsigned hz1, unsigned hz2);
+	void setSwapInterval();
+	HRESULT backBlit(IDirectDrawSurface7 *lpDDSSrc, RECT *rcRectDest, DWORD flags);
+	void finalBlit(DWORD waitFlag);
 	//void detectExclusive();
 	void reinit();
 

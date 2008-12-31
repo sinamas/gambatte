@@ -40,7 +40,7 @@ class QGLBlitter::SubWidget : public QGLWidget {
 public:
 	int corrected_w;
 	int corrected_h;
-	
+
 private:
 	unsigned textureRes;
 	unsigned inWidth;
@@ -49,56 +49,56 @@ private:
 	unsigned clear;
 	bool initialized;
 	bool bf;
-	
+
 public:
 	bool blitted;
-	
+
 protected:
 	void initializeGL();
 	void paintGL();
 	void resizeGL(int w, int h);
-	
+
 public:
 	SubWidget(unsigned swapInterval, bool bf, QGLBlitter *parent);
 	~SubWidget();
-	
+
 	void blit();
-	void blitFront();
-	
+	//void blitFront();
+
 	unsigned getInWidth() const {
 		return inWidth;
 	}
-	
+
 	unsigned getInHeight() const {
 		return inHeight;
 	}
-	
+
 	unsigned getSwapInterval() const {
 		return swapInterval;
 	}
-	
+
 	void setBilinearFiltering(bool on);
 	void setBufferDimensions(unsigned w, unsigned h);
-	
+
 	void forcedResize() {
 		if (initialized) {
 			makeCurrent();
 			resizeGL(width(), height());
 		}
 	}
-	
+
 	void updateTexture(quint32 *buffer);
-	
+
 	void uninit();
 };
 
 static const QGLFormat getQGLFormat(const unsigned swapInterval) {
 	QGLFormat f;
-	
+
 #ifndef PLATFORM_UNIX
 	f.setSwapInterval(swapInterval);
 #endif
-	
+
 	return f;
 }
 
@@ -118,7 +118,7 @@ QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_i
 	setAutoBufferSwap(false);
 	setMouseTracking(true);
 // 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-	
+
 // 	QSettings settings;
 // 	settings.beginGroup("qglsubwidget");
 // 	bf = settings.value("bf", true).toBool();
@@ -127,7 +127,7 @@ QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_i
 
 QGLBlitter::SubWidget::~SubWidget() {
 	uninit();
-	
+
 // 	QSettings settings;
 // 	settings.beginGroup("qglsubwidget");
 // 	settings.setValue("bf", bf);
@@ -139,7 +139,7 @@ void QGLBlitter::SubWidget::blit() {
 		--clear;
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
-	
+
 	glCallList(1);
 	glFlush();
 	blitted = true;
@@ -147,10 +147,10 @@ void QGLBlitter::SubWidget::blit() {
 
 void QGLBlitter::SubWidget::initializeGL() {
 // 	void *libHandle = dlopen("libgl.so", RTLD_LAZY);
-	
+
 // 	glXGetVideoSyncSGI_ptr = (glXGetVideoSyncSGI_Func) dlsym(libHandle, "glXGetVideoSyncSGI");
 // 	glXWaitVideoSyncSGI_ptr = (glXWaitVideoSyncSGI_Func) dlsym(libHandle, "glXWaitVideoSyncSGI");
-	
+
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bf ? GL_LINEAR : GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bf ? GL_LINEAR : GL_NEAREST);
 	glShadeModel(GL_FLAT);
@@ -163,43 +163,43 @@ void QGLBlitter::SubWidget::initializeGL() {
 	glDisable(GL_BLEND);
 	glDisable(GL_FOG);
 	glPixelZoom(1.0, 1.0);
-	
+
 	glClearColor(0.0, 0.0, 0.0, 0.0);
-	
+
 #ifdef PLATFORM_UNIX
 	if (swapInterval) {
 		static void (*const glXSwapIntervalSGI)(int) = reinterpret_cast<void (*)(int)>(x11GetProcAddress("glXSwapIntervalSGI"));
-		
+
 		if (glXSwapIntervalSGI) {
 			glXSwapIntervalSGI(swapInterval);
 		} else
 			swapInterval = 0;
 	}
 #endif
-	
+
 	initialized = true;
 }
 
-void QGLBlitter::SubWidget::blitFront() {
+/*void QGLBlitter::SubWidget::blitFront() {
 	GLint drawBuffer = GL_BACK;
 	glGetIntegerv(GL_DRAW_BUFFER, &drawBuffer);
-	
+
 	if (clear) {
 		--clear;
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
-	
+
 	glDrawBuffer(GL_FRONT);
-	
+
 	if (clear) {
 		--clear;
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
-	
+
 	glCallList(1);
 	glDrawBuffer(drawBuffer);
 	glFlush();
-}
+}*/
 
 void QGLBlitter::SubWidget::paintGL() {
 	clear = 2;
@@ -210,7 +210,7 @@ void QGLBlitter::SubWidget::paintGL() {
 // 	else {
 		if (!blitted)
 			blit();
-		
+
 		swapBuffers();
 		blitted = false;
 // 	}
@@ -219,18 +219,18 @@ void QGLBlitter::SubWidget::paintGL() {
 
 void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	glViewport(0, 0, w, h);
-	
+
 	const unsigned itop = (h - corrected_h) >> 1;
 	const unsigned ileft = (w - corrected_w) >> 1;
-	
+
 	const double top = static_cast<double>(itop) / h;
 	const double left = static_cast<double>(ileft) / w;
 	const double bot = static_cast<double>(itop + corrected_h) / h;
 	const double right = static_cast<double>(ileft + corrected_w) / w;
-	
+
 	const double ttop = 1.0 - static_cast<double>(inHeight) / textureRes;
 	const double tright = static_cast<double>(inWidth) / textureRes;
-	
+
 	glNewList(1, GL_COMPILE);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, ttop); glVertex2f(left, top);
@@ -239,14 +239,14 @@ void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	glTexCoord2f(tright, ttop); glVertex2f(right, top);
 	glEnd();
 	glEndList();
-	
+
 	clear = 2;
 }
 
 void QGLBlitter::SubWidget::setBilinearFiltering(const bool on) {
 	const bool oldbf = bf;
 	bf = on;
-	
+
 	if (bf != oldbf && initialized) {
 		makeCurrent();
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bf ? GL_LINEAR : GL_NEAREST);
@@ -257,9 +257,9 @@ void QGLBlitter::SubWidget::setBilinearFiltering(const bool on) {
 void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const unsigned int height) {
 	inWidth = width;
 	inHeight = height;
-	
+
 	textureRes = std::max(width, height);
-	
+
 	//Next power of 2
 	--textureRes;
 	textureRes |= textureRes >> 1;
@@ -268,23 +268,23 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 	textureRes |= textureRes >> 8;
 	textureRes |= textureRes >> 16;
 	++textureRes;
-	
+
 	if (!initialized)
 		glInit();
 	else
 		makeCurrent();
-	
+
 	glLoadIdentity();
-	
+
 	{
 		quint32 *const nulltexture = new quint32[textureRes * textureRes]; // avoids bilinear filter border garbage
 		std::memset(nulltexture, 0, textureRes * textureRes * sizeof(quint32));
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
 		delete []nulltexture;
 	}
-	
+
 	glOrtho(0, 1, 1, 0, -1, 1);
-	
+
 	resizeGL(this->width(), this->height());
 }
 
@@ -310,28 +310,28 @@ QGLBlitter::QGLBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
 // 	layout()->setMargin(0);
 // 	layout()->setSpacing(0);
 // 	layout()->addWidget(subWidget);
-	
+
 	QSettings settings;
 	settings.beginGroup("qglblitter");
 	vsync = settings.value("vsync", false).toBool();
 	bf = settings.value("bf", true).toBool();
 	settings.endGroup();
-	
+
 	confWidget->setLayout(new QVBoxLayout);
 	confWidget->layout()->setMargin(0);
 	confWidget->layout()->addWidget(vsyncBox);
 	confWidget->layout()->addWidget(bfBox);
 	vsyncBox->setChecked(vsync);
 	bfBox->setChecked(bf);
-	
+
 	subWidget = new SubWidget(0, bf, this);
 }
 
 QGLBlitter::~QGLBlitter() {
 	uninit();
-	
+
 // 	delete subWidget;
-	
+
 	QSettings settings;
 	settings.beginGroup("qglblitter");
 	settings.setValue("vsync", vsync);
@@ -345,7 +345,7 @@ void QGLBlitter::resizeEvent(QResizeEvent *const event) {
 
 void QGLBlitter::uninit() {
 	subWidget->uninit();
-	
+
 	delete []buffer;
 	buffer = NULL;
 }
@@ -357,7 +357,7 @@ bool QGLBlitter::isUnusable() const {
 void QGLBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
 	delete []buffer;
 	buffer = new quint32[width * height];
-	
+
 	subWidget->setBufferDimensions(width, height);
 	setPixelBuffer(buffer, MediaSource::RGB32, width);
 }
@@ -366,7 +366,7 @@ void QGLBlitter::blit() {
 	if (buffer) {
 		subWidget->makeCurrent();
 		subWidget->updateTexture(buffer);
-		
+
 		if (subWidget->doubleBuffer()) {
 			subWidget->blit();
 		}
@@ -376,9 +376,9 @@ void QGLBlitter::blit() {
 void QGLBlitter::setCorrectedGeometry(int w, int h, int new_w, int new_h) {
 	subWidget->corrected_w = new_w;
 	subWidget->corrected_h = new_h;
-	
+
 	const QRect geo(0, 0, w, h);
-	
+
 	if (geometry() != geo)
 		setGeometry(geo);
 	else
@@ -387,22 +387,22 @@ void QGLBlitter::setCorrectedGeometry(int w, int h, int new_w, int new_h) {
 
 void QGLBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
-	
+
 	hz1 = (1000000 + (ft >> 1)) / ft;
 	hz2 = (1000000 * 2 + (ft >> 1)) / ft;
-	
+
 	QString text("Sync to vertical blank in ");
 	text += QString::number(hz1);
-	
+
 	if (hz2 != hz1 * 2) {
 		text += ", ";
 		text += QString::number(hz2);
 	}
-	
+
 	text += " and ";
 	text += QString::number(hz1 * 2);
 	text += " Hz modes";
-	
+
 	vsyncBox->setText(text);
 	resetSubWidget();
 }
@@ -412,7 +412,7 @@ const BlitterWidget::Estimate QGLBlitter::frameTimeEst() const {
 		const Estimate est = { ftEst.est(), ftEst.var() };
 		return est;
 	}
-	
+
 	return BlitterWidget::frameTimeEst();
 }
 
@@ -420,56 +420,52 @@ const BlitterWidget::Estimate QGLBlitter::frameTimeEst() const {
 	if (subWidget->getSwapInterval()) {
 		return Rational(subWidget->getSwapInterval(), hz);
 	}
-	
+
 	return BlitterWidget::frameTime();
 }*/
 
 long QGLBlitter::sync(const long ft) {
 	const bool vsyncing = subWidget->getSwapInterval();
-	
+
 	subWidget->makeCurrent();
-	
-	if (vsyncing && ft + (ft >> 2) < frameTime()) {
-		subWidget->blitFront();
-	} else {
-		if (subWidget->doubleBuffer() && !subWidget->blitted)
-			subWidget->blit();
-		
-		if (!vsyncing)
-			BlitterWidget::sync(ft);
-		
-		subWidget->swapBuffers();
-		
-		if (vsyncing)
-			ftEst.update(getusecs());
-		
-		if (!subWidget->blitted)
-			subWidget->blit();
-	}
-	
+
+	if (subWidget->doubleBuffer() && !subWidget->blitted)
+		subWidget->blit();
+
+	if (!vsyncing)
+		BlitterWidget::sync(ft);
+
+	subWidget->swapBuffers();
+
+	if (vsyncing)
+		ftEst.update(getusecs());
+
+	if (!subWidget->blitted)
+		subWidget->blit();
+
 	subWidget->blitted = false;
-	
+
 	return 0;
 }
 
 void QGLBlitter::resetSubWidget() {
 	unsigned swapInterval = 0;
-	
+
 	if (vsync) {
 		if (hz == hz1)
 			swapInterval = 1;
 		else if (hz == hz2 || hz == hz1 * 2)
 			swapInterval = 2;
 	}
-	
+
 	if (swapInterval == subWidget->getSwapInterval())
 		return;
-	
+
 	const unsigned corrected_w = subWidget->corrected_w;
 	const unsigned corrected_h = subWidget->corrected_h;
 	const unsigned w = subWidget->getInWidth();
 	const unsigned h = subWidget->getInHeight();
-	
+
 // 	subWidget->hide();
 	delete subWidget;
 	subWidget = new SubWidget(swapInterval, bf, this);
@@ -478,7 +474,7 @@ void QGLBlitter::resetSubWidget() {
 	subWidget->setGeometry(0, 0, width(), height());
 	subWidget->show();
 	ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
-	
+
 	if (buffer)
 		subWidget->setBufferDimensions(w, h);
 }
@@ -486,7 +482,7 @@ void QGLBlitter::resetSubWidget() {
 void QGLBlitter::acceptSettings() {
 	bf = bfBox->isChecked();
 	subWidget->setBilinearFiltering(bf);
-	
+
 	vsync = vsyncBox->isChecked();
 	resetSubWidget();
 }

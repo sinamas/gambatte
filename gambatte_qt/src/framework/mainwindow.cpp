@@ -98,6 +98,22 @@ MainWindow::JoystickIniter::~JoystickIniter() {
 	SDL_JoystickQuit();
 }
 
+bool MainWindow::SkipSched::skipNext(bool skip) {
+	if (skipped) {
+		if (skipped < skippedmax / 2)
+			skip = true;
+		else
+			skipped = skip = 0;
+	} else if (skip) {
+		skippedmax += skippedmax / 2 < 8;
+	} else if (skippedmax / 2)
+		--skippedmax;
+
+	skipped += skip;
+
+	return skip;
+}
+
 void MainWindow::SampleBuffer::reset(const Rational &spf, const unsigned overupdate) {
 	sndInBuffer.reset((spf.ceil() + overupdate) * 2);
 	this->spf = spf;
@@ -144,9 +160,9 @@ MainWindow::MainWindow(MediaSource *source,
 	ftNum(1),
 	ftDenom(60),
 	paused(0),
+	turbo(0),
 	timerId(0),
 	running(false),
-	turbo(false),
 	pauseOnDialogExec(true),
 	cursorHidden(false)
 {
@@ -532,7 +548,8 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 
 	const std::size_t outsamples = sampleBuffer.update(turbo ? NULL : static_cast<qint16*>(sndOutBuffer), source, resampler.get());
 
-	long syncft = 0;
+	long syncft = blitterContainer->blitter()->frameTime();
+	bool suggestSkip = false;
 
 	if (!turbo) {
 		RateEst::Result rsrate;
@@ -544,12 +561,12 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 			return;
 		}
 
-		const long usecft = blitterContainer->blitter()->frameTime();
+		const long usecft = syncft;
 		syncft = static_cast<float>(usecft - (usecft >> 10)) * ae->rate() / rsrate.est;
 
 		if (bstate.fromUnderrun != AudioEngine::BufferState::NOT_SUPPORTED &&
 				  bstate.fromUnderrun + outsamples * 2 < bstate.fromOverflow)
-			syncft >>= 1;
+			suggestSkip = true;
 
 		const BlitterWidget::Estimate &estft = blitterContainer->blitter()->frameTimeEst();
 
@@ -564,7 +581,7 @@ void MainWindow::timerEvent(QTimerEvent */*event*/) {
 			adjustResamplerRate(sndOutBuffer, resampler.get(), sampleBuffer.samplesPerFrame().ceil(), ae->rate());
 	}
 
-	if (blitterContainer->blitter()->sync(syncft) < 0) {
+	if (!(turbo ? (turbo += 0x10) & 0xF0 : skipSched.skipNext(suggestSkip)) && blitterContainer->blitter()->sync(syncft) < 0) {
 		QMessageBox::critical(this, tr("Error"), tr("Video engine failure."));
 		uninitBlitter();
 		blitterContainer->blitter()->init();
@@ -592,6 +609,7 @@ void MainWindow::run() {
 	blitterContainer->blitter()->setVisible(true);
 	blitterContainer->blitter()->init();
 	blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
+	skipSched.reset();
 
 	if (!paused)
 		timerId = startTimer(0);
@@ -642,6 +660,7 @@ void MainWindow::doUnpause() {
 	jsTimer->stop();
 	timerId = startTimer(0);
 	blitterContainer->blitter()->setPaused(false);
+	skipSched.reset();
 }
 
 void MainWindow::pause() {
@@ -666,16 +685,16 @@ void MainWindow::frameStep() {
 }
 
 void MainWindow::setTurbo(bool enable) {
-	if (enable != turbo) {
+	if (enable != static_cast<bool>(turbo)) {
 		turbo = enable;
 
 		if (enable) {
 			if (ae)
 				ae->pause();
 
-			doSetFrameTime(1, 0xFFFF);
-		} else
-			doSetFrameTime(ftNum, ftDenom);
+			//doSetFrameTime(1, 0xFFFF);
+		}// else
+			//doSetFrameTime(ftNum, ftDenom);
 	}
 }
 

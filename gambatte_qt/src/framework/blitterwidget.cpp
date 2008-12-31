@@ -25,7 +25,7 @@ static long limit(long est, const long ref) {
 		est = ref + (ref >> 5);
 	else if (est < ref - (ref >> 5))
 		est = ref - (ref >> 5);
-	
+
 	return est;
 }
 
@@ -39,15 +39,15 @@ void FtEst::init(const long frameTime) {
 }
 
 void FtEst::update(const usec_t t) {
-	if (t - last < static_cast<unsigned long>(frameTime + (frameTime >> 3))) {
+	if (std::abs(static_cast<long>(t - last) - frameTime) < frameTime >> 3) {
 		ft += (t - last) << 6;
 		count += 1 << 6;
-		
+
 		long ftAvgNew = static_cast<long>(static_cast<float>(ft) * UP / count + 0.5f);
 		ftAvgNew = limit((ftAvg * 31 + ftAvgNew + 16) >> 5, frameTime << UPSHIFT);
 		ftVar = (ftVar * 15 + std::abs(ftAvgNew - ftAvg) + 8) >> 4;
 		ftAvg = ftAvgNew;
-		
+
 		if (ft > (6000000 << 6)) {
 			ft = (ft * 3 + 2) >> 2;
 			count = (count * 3 + 2) >> 2;

@@ -74,6 +74,7 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	textRes(1),
 	backBufferWidth(1),
 	backBufferHeight(1),
+	clear(0),
 	hz(0),
 	swapInterval(0),
 	adapterIndex(0),
@@ -209,7 +210,8 @@ void Direct3DBlitter::getPresentParams(D3DPRESENT_PARAMETERS *const presentParam
 	presentParams->AutoDepthStencilFormat = D3DFMT_UNKNOWN;
 	presentParams->Flags = 0;
 	presentParams->FullScreen_RefreshRateInHz = excl ? displayMode.RefreshRate : 0;
-	presentParams->PresentationInterval = swapInterval == 2 ? D3DPRESENT_INTERVAL_TWO : (swapInterval == 1 || excl & vblankflip ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE);
+	presentParams->PresentationInterval = swapInterval == 2 ? D3DPRESENT_INTERVAL_TWO :
+			(swapInterval == 1 || excl & vblankflip ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE);
 }
 
 void Direct3DBlitter::lockTexture() {
@@ -312,6 +314,7 @@ void Direct3DBlitter::resetDevice() {
 			backBufferWidth = presentParams.BackBufferWidth;
 			backBufferHeight = presentParams.BackBufferHeight;
 			windowed = presentParams.Windowed;
+			clear = presentParams.BackBufferCount + 1;
 			setDeviceState();
 			device->SetTexture(0, texture);
 			setVertexBuffer();
@@ -322,7 +325,7 @@ void Direct3DBlitter::resetDevice() {
 }
 
 void Direct3DBlitter::exclusiveChange() {
-	if (parentWidget()) {
+	if (isVisible()) {
 		if (exclusive & flipping) {
 			if (windowed)
 				resetDevice();
@@ -349,18 +352,22 @@ void Direct3DBlitter::setSwapInterval() {
 }
 
 void Direct3DBlitter::draw() {
-	if (device && SUCCEEDED(device->BeginScene())) {
-		device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
-		device->EndScene();
+	if (device) {
+		if (clear && !drawn) {
+			--clear;
+			device->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0xFF, 0, 0, 0), 1.0, 0);
+		}
+
+		if (SUCCEEDED(device->BeginScene())) {
+			device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+			device->EndScene();
+		}
 	}
 }
 
 void Direct3DBlitter::present() {
 	if (device && device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
 		resetDevice();
-
-	if (!drawn)
-		draw();
 
 	if (device) {
 		IDirect3DSwapChain9 *swapChain = NULL;
@@ -393,6 +400,7 @@ void Direct3DBlitter::init() {
 		backBufferWidth = presentParams.BackBufferWidth;
 		backBufferHeight = presentParams.BackBufferHeight;
 		windowed = presentParams.Windowed;
+		clear = presentParams.BackBufferCount + 1;
 	}
 
 	if (!device) {
@@ -473,6 +481,9 @@ void Direct3DBlitter::blit() {
 }
 
 long Direct3DBlitter::sync(const long ft) {
+	if (!drawn)
+		draw();
+
 	if (!swapInterval)
 		BlitterWidget::sync(ft);
 
@@ -575,5 +586,8 @@ void Direct3DBlitter::resizeEvent(QResizeEvent */*e*/) {
 }
 
 void Direct3DBlitter::paintEvent(QPaintEvent */*e*/) {
+	if (!drawn)
+		draw();
+
 	present();
 }

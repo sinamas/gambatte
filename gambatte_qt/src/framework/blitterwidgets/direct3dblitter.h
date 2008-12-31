@@ -48,6 +48,7 @@ class Direct3DBlitter : public BlitterWidget {
 	unsigned textRes;
 	unsigned backBufferWidth;
 	unsigned backBufferHeight;
+	unsigned clear;
 	unsigned hz;
 	unsigned swapInterval;
 	unsigned adapterIndex;
