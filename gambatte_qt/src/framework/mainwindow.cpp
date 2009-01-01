@@ -772,6 +772,15 @@ void MainWindow::updateJoysticks() {
 	}
 }
 
+#ifdef Q_WS_WIN // Avoids looping audio on title bar clicks/drags.
+bool MainWindow::event(QEvent *event) {
+	if (event->type() == QEvent::NonClientAreaMouseButtonPress && ae)
+		ae->pause();
+
+	return QMainWindow::event(event);
+}
+#endif
+
 void MainWindow::mouseMoveEvent(QMouseEvent */*e*/) {
 	showCursor();
 	cursorTimer->start();

@@ -152,6 +152,9 @@ private slots:
 	void videoSettingsChange();
 
 protected:
+#ifdef Q_WS_WIN
+	bool event(QEvent *event);
+#endif
 	void timerEvent(QTimerEvent *event);
 	void keyPressEvent(QKeyEvent *e);
 	void keyReleaseEvent(QKeyEvent *e);
