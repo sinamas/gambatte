@@ -34,7 +34,7 @@ class Direct3DBlitter : public BlitterWidget {
 	QComboBox *const adapterSelector;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
-	QCheckBox *const vblankflipBox;
+	QCheckBox *const vblankblitBox;
 	QCheckBox *const triplebufBox;
 	QCheckBox *const bfBox;
 	HMODULE d3d9handle;
@@ -57,7 +57,7 @@ class Direct3DBlitter : public BlitterWidget {
 	bool drawn;
 	bool vblank;
 	bool flipping;
-	bool vblankflip;
+	bool vblankblit;
 	bool triplebuf;
 	bool bf;
 

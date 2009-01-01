@@ -33,6 +33,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
 	QCheckBox *const vblankflipBox;
+	QCheckBox *const triplebufBox;
 	QCheckBox *const videoSurfaceBox;
 	QComboBox *const deviceSelector;
 	LPDIRECTDRAW7 lpDD;
@@ -56,6 +57,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	bool exclusive;
 	bool flipping;
 	bool vblankflip;
+	bool triplebuf;
 	bool blitted;
 
 	static BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);

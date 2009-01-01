@@ -47,8 +47,9 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	BlitterWidget(setPixelBuffer, "DirectDraw", parent),
 	confWidget(new QWidget),
 	vblankBox(new QCheckBox(QString("Sync to vertical blank in 60 Hz modes"))),
-	flippingBox(new QCheckBox(QString("Page flipping"))),
-	vblankflipBox(new QCheckBox("Only flip during vertical blank")),
+	flippingBox(new QCheckBox(QString("Exclusive full screen"))),
+	vblankflipBox(new QCheckBox("Only update during vertical blank")),
+	triplebufBox(new QCheckBox("Triple buffering")),
 	videoSurfaceBox(new QCheckBox(QString("Use video memory surface"))),
 	deviceSelector(new QComboBox),
 	lpDD(NULL),
@@ -71,6 +72,7 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	exclusive(false),
 	flipping(false),
 	vblankflip(true),
+	triplebuf(false),
 	blitted(false)
 {
 	setAttribute(Qt::WA_PaintOnScreen, true);
@@ -85,6 +87,7 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	vblank = settings.value("vblank", vblank).toBool();
 	flipping = settings.value("flipping", flipping).toBool();
 	vblankflip = settings.value("vblankflip", vblankflip).toBool();
+	triplebuf = settings.value("triplebuf", triplebuf).toBool();
 	videoSurface = settings.value("videoSurface", videoSurface).toBool();
 
 	if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
@@ -114,11 +117,21 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 		mainLayout->addLayout(l);
 	}
 
+
+	{
+		QHBoxLayout *l = new QHBoxLayout;
+		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
+		l->addWidget(triplebufBox);
+		mainLayout->addLayout(l);
+	}
+
 	mainLayout->addWidget(videoSurfaceBox);
 	confWidget->setLayout(mainLayout);
 
 	vblankflipBox->setEnabled(false);
+	triplebufBox->setEnabled(false);
 	connect(flippingBox, SIGNAL(toggled(bool)), vblankflipBox, SLOT(setEnabled(bool)));
+	connect(flippingBox, SIGNAL(toggled(bool)), triplebufBox, SLOT(setEnabled(bool)));
 
 	rejectSettings();
 }
@@ -131,6 +144,7 @@ DirectDrawBlitter::~DirectDrawBlitter() {
 	settings.setValue("vblank", vblank);
 	settings.setValue("flipping", flipping);
 	settings.setValue("vblankflip", vblankflip);
+	settings.setValue("triplebuf", triplebuf);
 	settings.setValue("videoSurface", videoSurface);
 	settings.setValue("deviceIndex", deviceIndex);
 	settings.endGroup();
@@ -203,7 +217,7 @@ void DirectDrawBlitter::initPrimarySurface() {
 
 	if (exclusive & flipping) {
 		ddsd.dwFlags |= DDSD_BACKBUFFERCOUNT;
-		ddsd.dwBackBufferCount = 1;
+		ddsd.dwBackBufferCount = triplebuf ? 2 : 1;
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_COMPLEX | DDSCAPS_FLIP;
 	}
 
@@ -272,7 +286,7 @@ void DirectDrawBlitter::initClearSurface() {
 		}
 	}
 
-	clear = 2;
+	clear = 2 + triplebuf;
 }
 
 void DirectDrawBlitter::init() {
@@ -611,6 +625,11 @@ void DirectDrawBlitter::acceptSettings() {
 
 	vblankflip = vblankflipBox->isChecked();
 
+	if (triplebuf != triplebufBox->isChecked()) {
+		triplebuf = triplebufBox->isChecked();
+		needReinit |= exclusive & flipping;
+	}
+
 	if (videoSurface != videoSurfaceBox->isChecked()) {
 		videoSurface = videoSurfaceBox->isChecked();
 
@@ -628,6 +647,7 @@ void DirectDrawBlitter::rejectSettings() {
 	vblankBox->setChecked(vblank);
 	flippingBox->setChecked(flipping);
 	vblankflipBox->setChecked(vblankflip);
+	triplebufBox->setChecked(triplebuf);
 	videoSurfaceBox->setChecked(videoSurface);
 	deviceSelector->setCurrentIndex(deviceIndex);
 }

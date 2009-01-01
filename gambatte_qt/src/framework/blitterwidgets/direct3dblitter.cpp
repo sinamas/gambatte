@@ -59,8 +59,8 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	confWidget(new QWidget),
 	adapterSelector(new QComboBox),
 	vblankBox(new QCheckBox("Sync to vertical blank in 60 and 120 Hz modes")),
-	flippingBox(new QCheckBox("Page flipping")),
-	vblankflipBox(new QCheckBox("Only flip during vertical blank")),
+	flippingBox(new QCheckBox("Exclusive full screen")),
+	vblankblitBox(new QCheckBox("Only update during vertical blank")),
 	triplebufBox(new QCheckBox("Triple buffering")),
 	bfBox(new QCheckBox("Bilinear filtering")),
 	d3d9handle(NULL),
@@ -83,8 +83,8 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	drawn(false),
 	vblank(false),
 	flipping(false),
-	vblankflip(true),
-	triplebuf(true),
+	vblankblit(false),
+	triplebuf(false),
 	bf(true)
 {
 	setAttribute(Qt::WA_PaintOnScreen, true);
@@ -117,7 +117,7 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 
 	vblank = settings.value("vblank", vblank).toBool();
 	flipping = settings.value("flipping", flipping).toBool();
-	vblankflip = settings.value("vblankflip", vblankflip).toBool();
+	vblankblit = settings.value("vblankblit", vblankblit).toBool();
 	triplebuf = settings.value("triplebuf", triplebuf).toBool();
 	bf = settings.value("bf", bf).toBool();
 	settings.endGroup();
@@ -135,30 +135,11 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 
 		mainLayout->addWidget(vblankBox);
 		mainLayout->addWidget(flippingBox);
-
-		{
-			QHBoxLayout *l = new QHBoxLayout;
-			l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
-			l->addWidget(vblankflipBox);
-			mainLayout->addLayout(l);
-		}
-
-		{
-			QHBoxLayout *l = new QHBoxLayout;
-			l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
-			l->addWidget(triplebufBox);
-			mainLayout->addLayout(l);
-		}
-
+		mainLayout->addWidget(vblankblitBox);
+		mainLayout->addWidget(triplebufBox);
 		mainLayout->addWidget(bfBox);
 		confWidget->setLayout(mainLayout);
 	}
-
-	vblankflipBox->setEnabled(false);
-	triplebufBox->setEnabled(false);
-
-	connect(flippingBox, SIGNAL(toggled(bool)), vblankflipBox, SLOT(setEnabled(bool)));
-	connect(flippingBox, SIGNAL(toggled(bool)), triplebufBox, SLOT(setEnabled(bool)));
 
 	rejectSettings();
 }
@@ -177,7 +158,7 @@ Direct3DBlitter::~Direct3DBlitter() {
 	settings.setValue("adapterIndex", adapterIndex);
 	settings.setValue("vblank", vblank);
 	settings.setValue("flipping", flipping);
-	settings.setValue("vblankflip", vblankflip);
+	settings.setValue("vblankblit", vblankblit);
 	settings.setValue("triplebuf", triplebuf);
 	settings.setValue("bf", bf);
 	settings.endGroup();
@@ -200,10 +181,10 @@ void Direct3DBlitter::getPresentParams(D3DPRESENT_PARAMETERS *const presentParam
 	presentParams->BackBufferWidth = excl ? displayMode.Width : width();
 	presentParams->BackBufferHeight = excl ? displayMode.Height : height();
 	presentParams->BackBufferFormat = displayMode.Format;
-	presentParams->BackBufferCount = excl & triplebuf ? 2 : 1;
+	presentParams->BackBufferCount = triplebuf ? 2 : 1;
 	presentParams->MultiSampleType = D3DMULTISAMPLE_NONE;
 	presentParams->MultiSampleQuality = 0;
-	presentParams->SwapEffect = excl ? D3DSWAPEFFECT_FLIP : D3DSWAPEFFECT_COPY;
+	presentParams->SwapEffect = excl ? D3DSWAPEFFECT_FLIP : D3DSWAPEFFECT_DISCARD;
 	presentParams->hDeviceWindow = excl ? parentWidget()->parentWidget()->winId() : winId();
 	presentParams->Windowed = excl ? FALSE : TRUE;
 	presentParams->EnableAutoDepthStencil = FALSE;
@@ -211,7 +192,7 @@ void Direct3DBlitter::getPresentParams(D3DPRESENT_PARAMETERS *const presentParam
 	presentParams->Flags = 0;
 	presentParams->FullScreen_RefreshRateInHz = excl ? displayMode.RefreshRate : 0;
 	presentParams->PresentationInterval = swapInterval == 2 ? D3DPRESENT_INTERVAL_TWO :
-			(swapInterval == 1 || excl & vblankflip ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE);
+			(swapInterval == 1 || vblankblit ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE);
 }
 
 void Direct3DBlitter::lockTexture() {
@@ -375,7 +356,7 @@ void Direct3DBlitter::present() {
 		device->GetSwapChain(0, &swapChain);
 
 		if (swapChain) {
-			swapChain->Present(NULL, NULL, 0, NULL, ~windowed & vblankflip && !swapInterval ? 1 : 0);
+			swapChain->Present(NULL, NULL, 0, NULL, vblankblit && !swapInterval ? 1 : 0);
 			swapChain->Release();
 		} else
 			device->Present(NULL, NULL, 0, NULL);
@@ -561,7 +542,7 @@ void Direct3DBlitter::acceptSettings() {
 		exclusiveChange();
 	}
 
-	vblankflip = vblankflipBox->isChecked();
+	vblankblit = vblankblitBox->isChecked();
 	triplebuf = triplebufBox->isChecked();
 	bf = bfBox->isChecked();
 	resetDevice();
@@ -571,7 +552,7 @@ void Direct3DBlitter::rejectSettings() {
 	adapterSelector->setCurrentIndex(adapterIndex);
 	vblankBox->setChecked(vblank);
 	flippingBox->setChecked(flipping);
-	vblankflipBox->setChecked(vblankflip);
+	vblankblitBox->setChecked(vblankblit);
 	triplebufBox->setChecked(triplebuf);
 	bfBox->setChecked(bf);
 }
