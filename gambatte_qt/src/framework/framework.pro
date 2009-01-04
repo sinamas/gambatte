@@ -109,7 +109,7 @@ else:unix {
         -lXrandr #\
 #        -lXxf86vm \
 #        -lXinerama
-    linux-g++ { 
+    linux-* { 
         SOURCES += framework/addaudioengines_linux.cpp \
             framework/audioengines/alsaengine.cpp \
             framework/SDL_Joystick/src/linux/SDL_sysjoystick.c
@@ -118,14 +118,14 @@ else:unix {
     }
     else { 
         SOURCES += framework/addaudioengines_unix.cpp
-        freebsd-g++|netbsd-g++|openbsd-g++ { 
+        freebsd-*|netbsd-*|openbsd-* { 
             exists( /usr/include/usb.h ):DEFINES += HAVE_USB_H
             exists( /usr/include/usbhid.h ):DEFINES += HAVE_USBHID_H
             exists( /usr/include/libusb.h ):DEFINES += HAVE_LIBUSB_H
             exists( /usr/include/libusbhid.h ):DEFINES += HAVE_LIBUSBHID_H
             SOURCES += framework/SDL_Joystick/src/bsd/SDL_sysjoystick.c
         }
-        else:darwin-g++:SOURCES += framework/SDL_Joystick/src/darwin/SDL_sysjoystick.c
+        else:darwin-*:SOURCES += framework/SDL_Joystick/src/darwin/SDL_sysjoystick.c
         else:SOURCES += framework/SDL_Joystick/src/dummy/SDL_sysjoystick.c
     }
 }
