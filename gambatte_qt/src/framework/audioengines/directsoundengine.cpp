@@ -43,17 +43,21 @@ BOOL CALLBACK DirectSoundEngine::enumCallback(LPGUID lpGuid, const char *lpcstrD
 DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) :
 	AudioEngine("DirectSound"),
 	confWidget(new QWidget),
+	primaryBufBox(new QCheckBox("Write to primary buffer")),
 	globalBufBox(new QCheckBox("Global buffer")),
 	deviceSelector(new QComboBox),
 	lpDS(NULL),
 	lpDSB(NULL),
 	lastusecs(0),
 	bufSize(0),
+	bufSzDiff(0),
 	deviceIndex(0),
 	offset(0),
 	lastpc(0),
 	hwnd(hwnd_in),
-	useGlobalBuf(false)
+	primaryBuf(false),
+	useGlobalBuf(false),
+	blankBuf(true)
 {
 	DirectSoundEnumerateA(enumCallback, this);
 
@@ -73,6 +77,7 @@ DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) :
 			mainLayout->addLayout(hlayout);
 		}
 
+		mainLayout->addWidget(primaryBufBox);
 		mainLayout->addWidget(globalBufBox);
 		confWidget->setLayout(mainLayout);
 	}
@@ -80,6 +85,7 @@ DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) :
 	{
 		QSettings settings;
 		settings.beginGroup("directsoundengine");
+		primaryBuf = settings.value("primaryBuf", primaryBuf).toBool();
 		useGlobalBuf = settings.value("useGlobalBuf", useGlobalBuf).toBool();
 
 		if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
@@ -96,17 +102,20 @@ DirectSoundEngine::~DirectSoundEngine() {
 
 	QSettings settings;
 	settings.beginGroup("directsoundengine");
+	settings.setValue("primaryBuf", primaryBuf);
 	settings.setValue("useGlobalBuf", useGlobalBuf);
 	settings.setValue("deviceIndex", deviceIndex);
 	settings.endGroup();
 }
 
 void DirectSoundEngine::acceptSettings() {
+	primaryBuf = primaryBufBox->isChecked();
 	useGlobalBuf = globalBufBox->isChecked();
 	deviceIndex = deviceSelector->currentIndex();
 }
 
 void DirectSoundEngine::rejectSettings() {
+	primaryBufBox->setChecked(primaryBuf);
 	globalBufBox->setChecked(useGlobalBuf);
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
@@ -138,7 +147,7 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 		goto fail;
 	}
 
-	if (lpDS->SetCooperativeLevel(hwnd, DSSCL_PRIORITY) != DS_OK) {
+	if (lpDS->SetCooperativeLevel(hwnd, primaryBuf ? DSSCL_WRITEPRIMARY : DSSCL_PRIORITY) != DS_OK) {
 		std::cout << "SetCooperativeLevel failed" << std::endl;
 		goto fail;
 	}
@@ -147,19 +156,7 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 		DSBUFFERDESC dsbd;
 		std::memset(&dsbd, 0, sizeof(dsbd));
 		dsbd.dwSize = sizeof(dsbd);
-		dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | (useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0);
-
-		{
-			int bufferSize = /*nearestPowerOf2*/(((rate * latency + 500) / 1000) * 4);
-
-			if (bufferSize < DSBSIZE_MIN)
-				bufferSize = DSBSIZE_MIN;
-
-			if (bufferSize > DSBSIZE_MAX)
-				bufferSize = DSBSIZE_MAX;
-
-			dsbd.dwBufferBytes = bufferSize;
-		}
+		dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | (primaryBuf ? DSBCAPS_PRIMARYBUFFER : (useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0));
 
 		WAVEFORMATEX wfe;
 		std::memset(&wfe, 0, sizeof(wfe));
@@ -170,7 +167,21 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 		wfe.nBlockAlign = wfe.nChannels * wfe.wBitsPerSample >> 3;
 		wfe.nAvgBytesPerSec = rate * wfe.nBlockAlign;
 
-		dsbd.lpwfxFormat = &wfe;
+		const unsigned desiredBufSz = /*nearestPowerOf2*/(((rate * latency + 500) / 1000) * 4);
+
+		if (!primaryBuf) {
+			dsbd.lpwfxFormat = &wfe;
+
+			int bufferSize = desiredBufSz;
+
+			if (bufferSize < DSBSIZE_MIN)
+				bufferSize = DSBSIZE_MIN;
+
+			if (bufferSize > DSBSIZE_MAX)
+				bufferSize = DSBSIZE_MAX;
+
+			dsbd.dwBufferBytes = bufferSize;
+		}
 
 		{
 			GUID guidNULL;
@@ -184,6 +195,11 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 			goto fail;
 		}
 
+		if (primaryBuf && lpDSB->SetFormat(&wfe) != DS_OK) {
+			std::cout << "lpDSB->SetFormat failed" << std::endl;
+			goto fail;
+		}
+
 		DSBCAPS dsbcaps;
 		std::memset(&dsbcaps, 0, sizeof(dsbcaps));
 		dsbcaps.dwSize = sizeof(dsbcaps);
@@ -192,8 +208,19 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 			goto fail;
 
 		bufSize = dsbcaps.dwBufferBytes;
+
+		// We use bufSzDiff to only use the lower desiredBufSz bytes of the buffer for effective latency closer to
+		// the desired one, since we can't set the primary buffer size.
+		bufSzDiff = primaryBuf && desiredBufSz < bufSize ? bufSize - desiredBufSz : 0;
 	}
 
+	// set offset for meaningful initial bufferState() results.
+	if (lpDSB->GetCurrentPosition(&offset, NULL) != DS_OK)
+		offset = 0;
+
+	offset += 1;
+
+	blankBuf = true;
 	est.init(rate);
 
 	return rate;
@@ -217,73 +244,158 @@ void DirectSoundEngine::uninit() {
 	lpDS = NULL;
 }
 
-int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
+static unsigned limitCursor(unsigned cursor, const unsigned bufSz) {
+	if (cursor >= bufSz)
+		cursor -= bufSz;
+
+	return cursor;
+}
+
+static int fromUnderrun(const int pc, const int wc, const int offset, const int bufSize) {
+	return (offset > pc ? offset : offset + bufSize) - (wc < pc ? wc + bufSize : wc);
+}
+
+static int fromOverflow(int pc, const int offset, const int bufSize) {
+	if ((pc -= offset) < 0)
+		pc += bufSize;
+
+	return pc;
+}
+
+static inline int decCursor(const int cursor, const int dec, const int bufSz) {
+	return fromOverflow(cursor, dec, bufSz);
+}
+
+int DirectSoundEngine::waitForSpace(DWORD &pc, DWORD &wc, const unsigned space) {
+	int fof = 0;
+	unsigned n = 100;
+	const int adjustedOffset = limitCursor(offset + bufSzDiff, bufSize);
+
+	while (n-- && static_cast<unsigned>(fof = fromOverflow(pc, adjustedOffset, bufSize)) < space) {
+		{
+			DWORD status;
+			lpDSB->GetStatus(&status);
+
+			if (!(status & DSBSTATUS_PLAYING)) {
+				const HRESULT res = lpDSB->Play(0, 0, DSBPLAY_LOOPING);
+
+				if (res != DS_OK) {
+					if (res != DSERR_BUFFERLOST)
+						return -1;
+
+					break;
+				}
+			}
+		}
+
+		Sleep(1);
+
+		if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
+			return -1;
+	}
+
+	{
+		// Decrementing pc has the same effect as incrementing offset as far as fromOverflow is concerned,
+		// but adjusting offset doesn't work well for fromUnderrun. We adjust offset rather than pc in the loop
+		// because it changes less often.
+		const int adjustedPc = decCursor(pc, bufSzDiff, bufSize);
+
+		if (fromUnderrun(adjustedPc, wc, offset, bufSize) < 0) {
+			//std::cout << "underrun" << std::endl;
+			offset = wc;
+			fof = fromOverflow(adjustedPc, offset, bufSize);
+		}
+	}
+
+	return fof;
+}
+
+static int write(LPDIRECTSOUNDBUFFER lpDSB, const unsigned offset, void *const buffer, const unsigned bytes) {
+	LPVOID ptr1;
+	LPVOID ptr2;
+	DWORD bytes1;
+	DWORD bytes2;
+
+	{
+		const HRESULT res = lpDSB->Lock(offset, bytes, &ptr1, &bytes1, &ptr2, &bytes2, 0);
+
+		if (res != DS_OK)
+			return res == DSERR_BUFFERLOST ? 0 : -1;
+	}
+
+	std::memcpy(ptr1, buffer, bytes1);
+
+	if (ptr2)
+		std::memcpy(ptr2, static_cast<char*>(buffer) + bytes1, bytes2);
+
+	lpDSB->Unlock(ptr1, bytes1, ptr2, bytes2);
+
+	return 0;
+}
+
+int DirectSoundEngine::write(void *buffer, const unsigned frames) {
 	DWORD status;
 	lpDSB->GetStatus(&status);
 
 	if (status & DSBSTATUS_BUFFERLOST) {
-		lpDSB->Restore();
+		if (lpDSB->Restore() != DS_OK)
+			return 0;
+
+		blankBuf = true;
 		status &= ~DSBSTATUS_PLAYING;
 	}
 
-	if (!(status & DSBSTATUS_PLAYING)) {
-		offset = bufSize >> 1;
-		lpDSB->SetCurrentPosition(lastpc = lastusecs = 0);
-		est.reset();
-	} else {
-		DWORD pc, wc;
+	DWORD pc, wc;
 
-		if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
-			return -1;
-
-		const usec_t usecs = getusecs();
-
-		if (usecs - lastusecs > (bufferMsecs(bufSize, rate())) * 1000)
-			est.reset();
-
-		est.feed(((pc >= lastpc ? 0 : bufSize) + pc - lastpc) >> 2);
-		lastpc = pc;
-		lastusecs = usecs;
-
-		for (;;) {
-			if ((wc > pc ? wc : wc + bufSize) > (offset > pc ? offset : offset + bufSize)) {
-				//std::cout << "underrun" << std::endl;
-				offset = wc;
-				break;
-			}
-
-			if ((pc < offset ? bufSize : 0) + pc - offset >= frames * 4)
-				break;
-
-			Sleep(1);
-
-			if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
-				return -1;
-		}
-	}
+	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
+		return -1;
 
 	{
-		LPVOID ptr1;
-		LPVOID ptr2;
-		DWORD bytes1;
-		DWORD bytes2;
+		const usec_t usecs = getusecs();
 
-		if (lpDSB->Lock(offset, frames * 4, &ptr1, &bytes1, &ptr2, &bytes2, 0) != DS_OK)
-			return 0;
+		if (!(status & DSBSTATUS_PLAYING)) {
+			if (blankBuf) { // make sure we write from pc, so no uninitialized samples are played
+				offset = wc = pc;
+				pc = pc ? pc - 1 : bufSize - 1; // off by one to fool fromOverflow()
+				blankBuf = !frames;
+			}
 
-		std::memcpy(ptr1, buffer, bytes1);
+			est.reset();
+		} else {
+			if (usecs - lastusecs > (bufferMsecs(bufSize, rate())) * 1000)
+				est.reset();
 
-		if (ptr2)
-			std::memcpy(ptr2, static_cast<char*>(buffer) + bytes1, bytes2);
+			est.feed(((pc >= lastpc ? pc : bufSize + pc) - lastpc) >> 2);
+		}
 
-		lpDSB->Unlock(ptr1, bytes1, ptr2, bytes2);
+		lastusecs = usecs;
+		lastpc = pc;
 	}
 
-	if ((offset += frames * 4) >= bufSize)
-		offset -= bufSize;
+	unsigned bytes = frames * 4;
+	const unsigned maxSpaceWait = (bufSize - bufSzDiff) / 8;
 
-	if (!(status & DSBSTATUS_PLAYING))
-		lpDSB->Play(0, 0, DSBPLAY_LOOPING);
+	while (bytes) {
+		const int fof = waitForSpace(pc, wc, bytes < maxSpaceWait ? bytes : maxSpaceWait);
+
+		if (fof <= 0)
+			return fof;
+
+		const unsigned n = static_cast<unsigned>(fof) < bytes ? static_cast<unsigned>(fof) : bytes;
+
+		if (::write(lpDSB, offset, buffer, n) < 0) {
+			std::cout << "::write fail" << std::endl;
+			return -1;
+		}
+
+		buffer = static_cast<char*>(buffer) + n;
+		bytes -= n;
+
+		offset = limitCursor(offset + n, bufSize);
+	}
+
+	if (wc != pc && static_cast<unsigned>(fromOverflow(pc, wc, bufSize)) <= bufSzDiff)
+		offset = pc; // cause annoying disturbance to make user realize this is a bad configuration if it happens often.
 
 	return 0;
 }
@@ -294,12 +406,17 @@ const AudioEngine::BufferState DirectSoundEngine::bufferState() const {
 
 	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK) {
 		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
-	} else if ((wc > pc ? wc : wc + bufSize) > (offset > pc ? offset : offset + bufSize)) {
-		s.fromUnderrun = 0;
-		s.fromOverflow = bufSize >> 2;
 	} else {
-		s.fromUnderrun = ((offset < wc ? bufSize : 0) + offset - wc) >> 2;
-		s.fromOverflow = ((pc < offset ? bufSize : 0) + pc - offset) >> 2;
+		const int adjustedPc = decCursor(pc, bufSzDiff, bufSize);
+		const int fur = fromUnderrun(adjustedPc, wc, offset, bufSize);
+
+		if (fur < 0) {
+			s.fromUnderrun = 0;
+			s.fromOverflow = fromOverflow(adjustedPc, wc, bufSize) >> 2;
+		} else {
+			s.fromUnderrun = fur >> 2;
+			s.fromOverflow = fromOverflow(adjustedPc, offset, bufSize) >> 2;
+		}
 	}
 
 	return s;

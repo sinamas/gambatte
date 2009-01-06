@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -31,6 +31,7 @@ class QComboBox;
 class DirectSoundEngine : public AudioEngine {
 	RateEst est;
 	const std::auto_ptr<QWidget> confWidget;
+	QCheckBox *const primaryBufBox;
 	QCheckBox *const globalBufBox;
 	QComboBox *const deviceSelector;
 	LPDIRECTSOUND lpDS;
@@ -38,15 +39,19 @@ class DirectSoundEngine : public AudioEngine {
 	QList<GUID> deviceList;
 	usec_t lastusecs;
 	unsigned bufSize;
+	unsigned bufSzDiff; // Difference between real buffer and desired buffer size.
 	unsigned deviceIndex;
 	DWORD offset;
 	DWORD lastpc;
 	HWND hwnd;
+	bool primaryBuf;
 	bool useGlobalBuf;
+	bool blankBuf;
 
 	static BOOL CALLBACK enumCallback(LPGUID, const char*, const char*, LPVOID);
 
 	int doInit(int rate, unsigned latency);
+	int waitForSpace(DWORD &pc, DWORD &wc, unsigned space);
 
 public:
 	DirectSoundEngine(HWND hwnd);
