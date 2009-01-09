@@ -137,12 +137,14 @@ else:win32 {
         framework/addaudioengines_win32.cpp \
         framework/addblitterwidgets_win32.cpp \
         framework/audioengines/directsoundengine.cpp \
+        framework/audioengines/wasapiengine.cpp \
         framework/blitterwidgets/directdrawblitter.cpp \
         framework/fullmodetogglers/gditoggler.cpp \
         framework/SDL_Joystick/src/win32/SDL_mmjoystick.c
     HEADERS += framework/gdisettings.h \
         framework/blitterwidgets/direct3dblitter.h \
         framework/audioengines/directsoundengine.h \
+        framework/audioengines/wasapiengine.h \
         framework/blitterwidgets/directdrawblitter.h \
         framework/fullmodetogglers/gditoggler.h
     LIBS += -lwinmm \

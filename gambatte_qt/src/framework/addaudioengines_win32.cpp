@@ -19,7 +19,9 @@
 #include "addaudioengines.h"
 
 #include "audioengines/directsoundengine.h"
+#include "audioengines/wasapiengine.h"
 
 void addAudioEngines(std::vector<AudioEngine*> &audioEngines, WId winId) {
 	audioEngines.push_back(new DirectSoundEngine(winId));
+	audioEngines.push_back(new WasapiEngine);
 }
