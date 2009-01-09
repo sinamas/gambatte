@@ -196,7 +196,7 @@ int WasapiEngine::doInit(const int rate, const unsigned latency) {
 			goto fail;
 		}
 
-		if (deviceSelector->count() > 0)
+		if (deviceSelector->count() > 1)
 			hr = pEnumerator->GetDevice(deviceSelector->itemData(deviceIndex).value<std::wstring>().c_str(), &pDevice);
 		else
 			hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
