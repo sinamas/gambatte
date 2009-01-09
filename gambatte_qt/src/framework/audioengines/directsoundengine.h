@@ -37,7 +37,6 @@ class DirectSoundEngine : public AudioEngine {
 	LPDIRECTSOUND lpDS;
 	LPDIRECTSOUNDBUFFER lpDSB;
 	QList<GUID> deviceList;
-	usec_t lastusecs;
 	unsigned bufSize;
 	unsigned bufSzDiff; // Difference between real buffer and desired buffer size.
 	unsigned deviceIndex;

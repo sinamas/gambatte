@@ -48,7 +48,6 @@ DirectSoundEngine::DirectSoundEngine(HWND hwnd_in) :
 	deviceSelector(new QComboBox),
 	lpDS(NULL),
 	lpDSB(NULL),
-	lastusecs(0),
 	bufSize(0),
 	bufSzDiff(0),
 	deviceIndex(0),
@@ -136,10 +135,6 @@ void DirectSoundEngine::rejectSettings() {
 	return out;
 }*/
 
-static unsigned bufferMsecs(unsigned bufSz, unsigned rate) {
-	return rate ? ((bufSz / 4) * 1000) / rate : 0;
-}
-
 int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 	if (DirectSoundCreate(deviceSelector->itemData(deviceIndex).value<GUID*>(), &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
@@ -221,7 +216,7 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 	offset += 1;
 
 	blankBuf = true;
-	est.init(rate);
+	est.init(rate, rate, bufSize >> 2);
 
 	return rate;
 
@@ -351,8 +346,6 @@ int DirectSoundEngine::write(void *buffer, const unsigned frames) {
 		return -1;
 
 	{
-		const usec_t usecs = getusecs();
-
 		if (!(status & DSBSTATUS_PLAYING)) {
 			if (blankBuf) { // make sure we write from pc, so no uninitialized samples are played
 				offset = wc = pc;
@@ -362,13 +355,9 @@ int DirectSoundEngine::write(void *buffer, const unsigned frames) {
 
 			est.reset();
 		} else {
-			if (usecs - lastusecs > (bufferMsecs(bufSize, rate())) * 1000)
-				est.reset();
-
 			est.feed(((pc >= lastpc ? pc : bufSize + pc) - lastpc) >> 2);
 		}
 
-		lastusecs = usecs;
 		lastpc = pc;
 	}
 
