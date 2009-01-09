@@ -328,38 +328,20 @@ static int write(LPDIRECTSOUNDBUFFER lpDSB, const unsigned offset, void *const b
 	return 0;
 }
 
-int DirectSoundEngine::write(void *buffer, const unsigned frames) {
-	DWORD status;
-	lpDSB->GetStatus(&status);
-
-	if (status & DSBSTATUS_BUFFERLOST) {
-		if (lpDSB->Restore() != DS_OK)
-			return 0;
-
-		blankBuf = true;
-		status &= ~DSBSTATUS_PLAYING;
-	}
-
-	DWORD pc, wc;
-
-	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
-		return -1;
-
-	{
-		if (!(status & DSBSTATUS_PLAYING)) {
-			if (blankBuf) { // make sure we write from pc, so no uninitialized samples are played
-				offset = wc = pc;
-				pc = pc ? pc - 1 : bufSize - 1; // off by one to fool fromOverflow()
-				blankBuf = !frames;
-			}
-
-			est.reset();
-		} else {
-			est.feed(((pc >= lastpc ? pc : bufSize + pc) - lastpc) >> 2);
+int DirectSoundEngine::doWrite(void *buffer, const unsigned frames, const DWORD status, DWORD pc, DWORD wc) {
+	if (!(status & DSBSTATUS_PLAYING)) {
+		if (blankBuf) { // make sure we write from pc, so no uninitialized samples are played
+			offset = wc = pc;
+			pc = pc ? pc - 1 : bufSize - 1; // off by one to fool fromOverflow()
+			blankBuf = !frames;
 		}
 
-		lastpc = pc;
+		est.reset();
+	} else {
+		est.feed(((pc >= lastpc ? pc : bufSize + pc) - lastpc) >> 2);
 	}
+
+	lastpc = pc;
 
 	unsigned bytes = frames * 4;
 	const unsigned maxSpaceWait = (bufSize - bufSzDiff) / 8;
@@ -389,6 +371,63 @@ int DirectSoundEngine::write(void *buffer, const unsigned frames) {
 	return 0;
 }
 
+int DirectSoundEngine::getPosAndStatusCheck(DWORD &status, DWORD &pc, DWORD &wc) {
+	lpDSB->GetStatus(&status);
+
+	if (status & DSBSTATUS_BUFFERLOST) {
+		if (lpDSB->Restore() != DS_OK)
+			return -1;
+
+		blankBuf = true;
+		status &= ~DSBSTATUS_PLAYING;
+	}
+
+	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK)
+		return -2;
+
+	return 0;
+}
+
+void DirectSoundEngine::fillBufferState(BufferState &s, const DWORD pc, const DWORD wc) const {
+	const int adjustedPc = decCursor(pc, bufSzDiff, bufSize);
+	const int fur = fromUnderrun(adjustedPc, wc, offset, bufSize);
+
+	if (fur < 0) {
+		s.fromUnderrun = 0;
+		s.fromOverflow = fromOverflow(adjustedPc, wc, bufSize) >> 2;
+	} else {
+		s.fromUnderrun = fur >> 2;
+		s.fromOverflow = fromOverflow(adjustedPc, offset, bufSize) >> 2;
+	}
+}
+
+int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
+	DWORD status, pc, wc;
+
+	if (const int ret = getPosAndStatusCheck(status, pc, wc))
+		return ret + 1;
+
+	return doWrite(buffer, frames, status, pc, wc);
+}
+
+int DirectSoundEngine::write(void *const buffer, const unsigned frames, BufferState &preBufState_out, RateEst::Result &rate_out) {
+	DWORD status, pc, wc;
+
+	int ret = getPosAndStatusCheck(status, pc, wc);
+
+	if (ret) {
+		preBufState_out.fromOverflow = preBufState_out.fromUnderrun = BufferState::NOT_SUPPORTED;
+		ret += 1;
+	} else {
+		fillBufferState(preBufState_out, pc, wc);
+		ret = doWrite(buffer, frames, status, pc, wc);
+	}
+
+	rate_out = est.result();
+
+	return ret;
+}
+
 const AudioEngine::BufferState DirectSoundEngine::bufferState() const {
 	BufferState s;
 	DWORD pc, wc;
@@ -396,16 +435,7 @@ const AudioEngine::BufferState DirectSoundEngine::bufferState() const {
 	if (lpDSB->GetCurrentPosition(&pc, &wc) != DS_OK) {
 		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
 	} else {
-		const int adjustedPc = decCursor(pc, bufSzDiff, bufSize);
-		const int fur = fromUnderrun(adjustedPc, wc, offset, bufSize);
-
-		if (fur < 0) {
-			s.fromUnderrun = 0;
-			s.fromOverflow = fromOverflow(adjustedPc, wc, bufSize) >> 2;
-		} else {
-			s.fromUnderrun = fur >> 2;
-			s.fromOverflow = fromOverflow(adjustedPc, offset, bufSize) >> 2;
-		}
+		fillBufferState(s, pc, wc);
 	}
 
 	return s;

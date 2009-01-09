@@ -51,12 +51,16 @@ class DirectSoundEngine : public AudioEngine {
 
 	int doInit(int rate, unsigned latency);
 	int waitForSpace(DWORD &pc, DWORD &wc, unsigned space);
+	int getPosAndStatusCheck(DWORD &status, DWORD &pc, DWORD &wc);
+	int doWrite(void *buffer, unsigned frames, DWORD status, DWORD pc, DWORD wc);
+	void fillBufferState(BufferState &s, DWORD pc, DWORD wc) const;
 
 public:
 	DirectSoundEngine(HWND hwnd);
 	~DirectSoundEngine();
 	void uninit();
 	int write(void *buffer, unsigned frames);
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
 	const RateEst::Result rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause();
