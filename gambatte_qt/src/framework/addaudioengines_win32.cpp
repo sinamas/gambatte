@@ -22,6 +22,8 @@
 #include "audioengines/wasapiengine.h"
 
 void addAudioEngines(std::vector<AudioEngine*> &audioEngines, WId winId) {
+	if (WasapiEngine::isUsable())
+		audioEngines.push_back(new WasapiEngine);
+
 	audioEngines.push_back(new DirectSoundEngine(winId));
-	audioEngines.push_back(new WasapiEngine);
 }

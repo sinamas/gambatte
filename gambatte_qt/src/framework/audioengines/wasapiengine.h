@@ -23,6 +23,7 @@
 #include <BaseTsd.h>
 #include <memory>
 
+class QComboBox;
 class QCheckBox;
 class IAudioClient;
 class IAudioRenderClient;
@@ -30,12 +31,14 @@ class IAudioClock;
 
 class WasapiEngine: public AudioEngine {
 	const std::auto_ptr<QWidget> confWidget;
+	QComboBox *const deviceSelector;
 	QCheckBox *const exclusiveBox;
 	IAudioClient *pAudioClient;
 	IAudioRenderClient *pRenderClient;
 	IAudioClock *pAudioClock;
 	unsigned pos_;
 	unsigned posFrames;
+	unsigned deviceIndex;
 	UINT32 bufferFrameCount;
 	RateEst est;
 	bool started;
@@ -46,6 +49,7 @@ class WasapiEngine: public AudioEngine {
 	int write(void *buffer, unsigned frames, UINT32 numFramesPadding);
 
 public:
+	static bool isUsable();
 	WasapiEngine();
 	~WasapiEngine();
 	void uninit();

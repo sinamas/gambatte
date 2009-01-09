@@ -20,8 +20,14 @@
 #include "wasapiinc.h"
 #include <QWidget>
 #include <QCheckBox>
+#include <QLabel>
+#include <QComboBox>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QSettings>
+#include <QString>
+#include <cstring>
+#include <string>
 #include <iostream>
 
 static const CLSID CLSID_MMDeviceEnumerator = {
@@ -49,6 +55,12 @@ static const IID IID_IAudioClock = {
 		Data4: {0x81, 0x2C, 0xEF, 0x96, 0x35, 0x87, 0x28, 0xE7}
 };
 
+static const PROPERTYKEY PKEY_Device_FriendlyName = {
+		fmtid: { Data1: 0xa45c254e, Data2: 0xdf1c, Data3: 0x4efd,
+		         Data4: {0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0} },
+		pid: 14
+};
+
 template<typename T>
 static void safeRelease(T *&t) {
 	if (t) {
@@ -57,13 +69,84 @@ static void safeRelease(T *&t) {
 	}
 }
 
-WasapiEngine::WasapiEngine() : AudioEngine("WASAPI"), confWidget(new QWidget),
+Q_DECLARE_METATYPE(std::wstring);
+
+static void addDeviceSelectorItem(QComboBox *const deviceSelector, IMMDevice *const pEndpoint) {
+	LPWSTR pwszID = NULL;
+	IPropertyStore *pProps = NULL;
+
+	pEndpoint->GetId(&pwszID);
+	pEndpoint->OpenPropertyStore(STGM_READ, &pProps);
+
+	if (pwszID && pProps) {
+		PROPVARIANT varName;
+		std::memset(&varName, 0, sizeof(PROPVARIANT));
+
+		if (SUCCEEDED(pProps->GetValue(PKEY_Device_FriendlyName, &varName))) {
+			deviceSelector->addItem(QString::fromWCharArray(varName.pwszVal), QVariant::fromValue(std::wstring(pwszID)));
+			CoTaskMemFree(varName.pwszVal);
+			//PropVariantClear(&varName);
+		}
+
+		CoTaskMemFree(pwszID);
+		pProps->Release();
+	}
+}
+
+static void fillDeviceSelector(QComboBox *const deviceSelector) {
+	IMMDeviceEnumerator *pEnumerator = NULL;
+	IMMDeviceCollection *pCollection = NULL;
+	UINT count = 0;
+
+	CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+
+	if (pEnumerator)
+		pEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE | DEVICE_STATE_UNPLUGGED, &pCollection);
+
+	if (pCollection && FAILED(pCollection->GetCount(&count)))
+		count = 0;
+
+	for (ULONG i = 0; i < count; ++i) {
+		IMMDevice *pEndpoint = NULL;
+		pCollection->Item(i, &pEndpoint);
+
+		if (pEndpoint) {
+			addDeviceSelectorItem(deviceSelector, pEndpoint);
+			pEndpoint->Release();
+		}
+	}
+
+	safeRelease(pCollection);
+	safeRelease(pEnumerator);
+}
+
+bool WasapiEngine::isUsable() {
+	IMMDeviceEnumerator *pEnumerator = NULL;
+	const HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+
+	if (pEnumerator)
+		pEnumerator->Release();
+
+	return SUCCEEDED(hr);
+}
+
+WasapiEngine::WasapiEngine() : AudioEngine("WASAPI"), confWidget(new QWidget), deviceSelector(new QComboBox),
 exclusiveBox(new QCheckBox("Exclusive mode")), pAudioClient(NULL),
-pRenderClient(NULL), pAudioClock(NULL), pos_(0), posFrames(0), bufferFrameCount(0), started(false),
+pRenderClient(NULL), pAudioClock(NULL), pos_(0), posFrames(0), deviceIndex(0), bufferFrameCount(0), started(false),
 exclusive(false) {
+	fillDeviceSelector(deviceSelector);
+
 	{
 		QVBoxLayout *const mainLayout = new QVBoxLayout;
 		mainLayout->setMargin(0);
+
+		if (deviceSelector->count() > 1) {
+			QHBoxLayout *const hlayout = new QHBoxLayout;
+			hlayout->addWidget(new QLabel(QString("WASAPI device:")));
+			hlayout->addWidget(deviceSelector);
+			mainLayout->addLayout(hlayout);
+		}
+
 		mainLayout->addWidget(exclusiveBox);
 		confWidget->setLayout(mainLayout);
 	}
@@ -72,18 +155,14 @@ exclusive(false) {
 		QSettings settings;
 		settings.beginGroup("wasapiengine");
 		exclusive = settings.value("exclusive", exclusive).toBool();
+
+		if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
+			deviceIndex = 0;
+
 		settings.endGroup();
 	}
 
 	rejectSettings();
-}
-
-void WasapiEngine::acceptSettings() {
-	exclusive = exclusiveBox->isChecked();
-}
-
-void WasapiEngine::rejectSettings() {
-	exclusiveBox->setChecked(exclusive);
 }
 
 WasapiEngine::~WasapiEngine() {
@@ -92,7 +171,18 @@ WasapiEngine::~WasapiEngine() {
 	QSettings settings;
 	settings.beginGroup("wasapiengine");
 	settings.setValue("exclusive", exclusive);
+	settings.setValue("deviceIndex", deviceIndex);
 	settings.endGroup();
+}
+
+void WasapiEngine::acceptSettings() {
+	exclusive = exclusiveBox->isChecked();
+	deviceIndex = deviceSelector->currentIndex();
+}
+
+void WasapiEngine::rejectSettings() {
+	exclusiveBox->setChecked(exclusive);
+	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
 int WasapiEngine::doInit(const int rate, const unsigned latency) {
@@ -106,7 +196,11 @@ int WasapiEngine::doInit(const int rate, const unsigned latency) {
 			goto fail;
 		}
 
-		hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
+		if (deviceSelector->count() > 0)
+			hr = pEnumerator->GetDevice(deviceSelector->itemData(deviceIndex).value<std::wstring>().c_str(), &pDevice);
+		else
+			hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
+
 		pEnumerator->Release();
 
 		if (FAILED(hr)) {
