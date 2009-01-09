@@ -20,6 +20,8 @@
 #define RATEEST_H
 
 #include "usec.h"
+#include <deque>
+#include <utility>
 
 class RateEst {
 public:
@@ -29,12 +31,31 @@ public:
 	};
 
 private:
+	class SumQueue {
+		typedef std::pair<long, usec_t> pair_t;
+		typedef std::deque<pair_t> q_t;
+
+		q_t q;
+		long samples_;
+		usec_t usecs_;
+
+	public:
+		SumQueue() : samples_(0), usecs_(0) {}
+		void reset();
+		long samples() const { return samples_; }
+		usec_t usecs() const { return usecs_; }
+		void push(long samples, usec_t usecs);
+		void pop();
+	};
+
 	enum { UPSHIFT = 5 };
 	enum { UP = 1 << UPSHIFT };
 
 	Result srate;
+	SumQueue sumq;
 	usec_t last;
 	usec_t usecs;
+	usec_t maxPeriod;
 	long reference;
 	long samples;
 
@@ -42,9 +63,10 @@ public:
 	RateEst(long srate = 0) { init(srate); }
 	RateEst(long srate, long reference) { init(srate, reference); }
 	void init(long srate) { init(srate, srate); }
-	void init(long srate, long reference);
+	void init(long srate, long reference) { init(srate, reference, reference); }
+	void init(long srate, long reference, long maxSamplePeriod);
 	void reset() { last = 0; }
-	void feed(long samples);
+	void feed(long samples, usec_t usecs = getusecs());
 	const Result result() const { const Result res = { (srate.est + UP / 2) >> UPSHIFT, (srate.var + UP / 2) >> UPSHIFT }; return res; }
 };
 
