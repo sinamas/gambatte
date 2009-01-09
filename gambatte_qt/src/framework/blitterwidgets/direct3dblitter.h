@@ -42,7 +42,9 @@ class Direct3DBlitter : public BlitterWidget {
 	IDirect3D9 *d3d;
 	IDirect3DDevice9* device;
 	IDirect3DVertexBuffer9* vertexBuffer;
-	IDirect3DTexture9 *texture;
+	IDirect3DTexture9 *stexture;
+	IDirect3DTexture9 *vtexture;
+	usec_t lastblank;
 	unsigned inWidth;
 	unsigned inHeight;
 	unsigned textRes;
@@ -64,6 +66,7 @@ class Direct3DBlitter : public BlitterWidget {
 	void getPresentParams(D3DPRESENT_PARAMETERS *presentParams) const;
 	void lockTexture();
 	void setVertexBuffer();
+	void setVideoTexture();
 	void setFilter();
 	void setDeviceState();
 	void resetDevice();

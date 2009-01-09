@@ -68,7 +68,9 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	d3d(NULL),
 	device(NULL),
 	vertexBuffer(NULL),
-	texture(NULL),
+	stexture(NULL),
+	vtexture(NULL),
+	lastblank(0),
 	inWidth(1),
 	inHeight(1),
 	textRes(1),
@@ -200,8 +202,8 @@ void Direct3DBlitter::lockTexture() {
 	D3DLOCKED_RECT lockedrect;
 	lockedrect.pBits = NULL;
 
-	if (texture)
-		texture->LockRect(0, &lockedrect, &rect, D3DLOCK_NOSYSLOCK);
+	if (stexture)
+		stexture->LockRect(0, &lockedrect, &rect, D3DLOCK_NOSYSLOCK);
 
 	setPixelBuffer(lockedrect.pBits, MediaSource::RGB32, lockedrect.Pitch >> 2);
 }
@@ -271,15 +273,20 @@ void Direct3DBlitter::resetDevice() {
 	if (device && device->TestCooperativeLevel() != D3DERR_DEVICELOST) {
 		device->SetTexture(0, NULL);
 
+		if (vtexture) {
+			vtexture->Release();
+			vtexture = NULL;
+		}
+
 		D3DPRESENT_PARAMETERS presentParams;
 
 		getPresentParams(&presentParams);
 
 		if (FAILED(device->Reset(&presentParams)) && FAILED(device->Reset(&presentParams))) {
-			if (texture) {
+			if (stexture) {
 				setPixelBuffer(NULL, MediaSource::RGB32, 0);
-				texture->Release();
-				texture = NULL;
+				stexture->Release();
+				stexture = NULL;
 			}
 
 			if (vertexBuffer) {
@@ -297,7 +304,7 @@ void Direct3DBlitter::resetDevice() {
 			windowed = presentParams.Windowed;
 			clear = presentParams.BackBufferCount + 1;
 			setDeviceState();
-			device->SetTexture(0, texture);
+			setVideoTexture();
 			setVertexBuffer();
 		}
 	}
@@ -351,15 +358,32 @@ void Direct3DBlitter::present() {
 		resetDevice();
 
 	if (device) {
-		IDirect3DSwapChain9 *swapChain = NULL;
+		if (swapInterval) {
+			const unsigned long estft = ftEst.est();
+			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 500000 / hz : 0;
 
-		device->GetSwapChain(0, &swapChain);
-
-		if (swapChain) {
-			swapChain->Present(NULL, NULL, 0, NULL, vblankblit && !swapInterval ? 1 : 0);
-			swapChain->Release();
-		} else
 			device->Present(NULL, NULL, 0, NULL);
+
+			usec_t now = getusecs();
+
+			if (now - lastblank < swaplimit) {
+				drawn = false;
+				draw();
+				device->Present(NULL, NULL, 0, NULL);
+				now = getusecs();
+			}
+
+			lastblank = now;
+		} else {
+			IDirect3DSwapChain9 *swapChain = NULL;
+			device->GetSwapChain(0, &swapChain);
+
+			if (swapChain) {
+				swapChain->Present(NULL, NULL, 0, NULL, vblankblit ? 1 : 0);
+				swapChain->Release();
+			} else
+				device->Present(NULL, NULL, 0, NULL);
+		}
 	}
 
 	drawn = false;
@@ -371,9 +395,10 @@ void Direct3DBlitter::init() {
 
 		getPresentParams(&presentParams);
 
+		// Omitting the D3DCREATE_FPU_PRESERVE will cause problems with floating point code elsewhere. For instance WASAPI screws up cursor time stamps.
 		for (unsigned n = 2; n--;) {
 			if (!FAILED(d3d->CreateDevice(adapterIndex, D3DDEVTYPE_HAL,
-					parentWidget()->parentWidget()->winId(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presentParams, &device))) {
+					parentWidget()->parentWidget()->winId(), D3DCREATE_FPU_PRESERVE | D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presentParams, &device))) {
 				break;
 			}
 		}
@@ -401,10 +426,15 @@ void Direct3DBlitter::uninit() {
 		device->SetTexture(0, NULL);
 	}
 
-	if (texture) {
-		texture->UnlockRect(0);
-		texture->Release();
-		texture = NULL;
+	if (stexture) {
+		stexture->UnlockRect(0);
+		stexture->Release();
+		stexture = NULL;
+	}
+
+	if (vtexture) {
+		vtexture->Release();
+		vtexture = NULL;
 	}
 
 	if (vertexBuffer) {
@@ -418,17 +448,31 @@ void Direct3DBlitter::uninit() {
 	}
 }
 
+void Direct3DBlitter::setVideoTexture() {
+	if (device) {
+		device->SetTexture(0, NULL);
+
+		if (vtexture) {
+			vtexture->Release();
+			vtexture = NULL;
+		}
+
+		if (FAILED(device->CreateTexture(textRes, textRes, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &vtexture, NULL)))
+			std::cout << "device->CreateTexture failed" << std::endl;
+
+		device->SetTexture(0, vtexture);
+	}
+}
+
 void Direct3DBlitter::setBufferDimensions(unsigned w, unsigned h) {
 	inWidth = w;
 	inHeight = h;
 
 	if (device) {
-		device->SetTexture(0, NULL);
-
-		if (texture) {
-			texture->UnlockRect(0);
-			texture->Release();
-			texture = NULL;
+		if (stexture) {
+			stexture->UnlockRect(0);
+			stexture->Release();
+			stexture = NULL;
 		}
 
 		textRes = std::max(w, h);
@@ -440,20 +484,20 @@ void Direct3DBlitter::setBufferDimensions(unsigned w, unsigned h) {
 		textRes |= textRes >> 8;
 		++textRes;
 
-		if (FAILED(device->CreateTexture(textRes, textRes, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &texture, NULL)))
+		if (FAILED(device->CreateTexture(textRes, textRes, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &stexture, NULL)))
 			std::cout << "device->CreateTexture failed" << std::endl;
-
-		device->SetTexture(0, texture);
 	}
 
 	lockTexture();
+	setVideoTexture();
 	setVertexBuffer();
 }
 
 void Direct3DBlitter::blit() {
-	if (texture) {
-		texture->UnlockRect(0);
+	if (device && stexture && vtexture) {
+		stexture->UnlockRect(0);
 
+		device->UpdateTexture(stexture, vtexture);
 		draw();
 		drawn = true;
 

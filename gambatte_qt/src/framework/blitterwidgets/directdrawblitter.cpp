@@ -571,15 +571,40 @@ long DirectDrawBlitter::sync(const long ft) {
 	HRESULT ddrval = DD_OK;
 
 	if (exclusive & flipping) {
-		const bool wf = swapInterval || !vblankflip;
+		if (swapInterval) {
+			const unsigned long estft = ftEst.est();
+			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 500000 / hz : 0;
 
-		if (!blitted)
-			finalBlit(wf ? DDBLT_WAIT : DDBLT_DONOTWAIT);
+			if (!blitted)
+				finalBlit(DDBLT_WAIT);
 
-		if (lpDDSPrimary && blitted)
-			ddrval = lpDDSPrimary->Flip(NULL,
-					(wf ? DDFLIP_WAIT : DDFLIP_DONOTWAIT) |
-					((vblankflip | swapInterval) ? (swapInterval == 2 ? DDFLIP_INTERVAL2 : 0) : DDFLIP_NOVSYNC));
+			const DWORD flipflags = DDFLIP_WAIT | (swapInterval == 2 ? DDFLIP_INTERVAL2 : 0);
+
+			if (lpDDSPrimary)
+				ddrval = lpDDSPrimary->Flip(NULL, flipflags);
+
+			usec_t now = getusecs();
+
+			if (now - lastblank < swaplimit) {
+				blitted = false;
+				finalBlit(DDBLT_WAIT);
+
+				if (lpDDSPrimary)
+					ddrval = lpDDSPrimary->Flip(NULL, flipflags);
+
+				now = getusecs();
+			}
+
+			lastblank = now;
+		} else {
+			if (!blitted)
+				finalBlit(vblankflip ? DDBLT_DONOTWAIT : DDBLT_WAIT);
+
+			if (lpDDSPrimary && blitted)
+				ddrval = lpDDSPrimary->Flip(NULL,
+						(vblankflip ? DDFLIP_DONOTWAIT : DDFLIP_WAIT) |
+						(vblankflip ? 0 : DDFLIP_NOVSYNC));
+		}
 	} else {
 		if (swapInterval) {
 			const usec_t refreshPeriod = 1000000 / hz;
@@ -595,7 +620,7 @@ long DirectDrawBlitter::sync(const long ft) {
 	}
 
 	if (swapInterval)
-		ftEst.update(getusecs());
+		ftEst.update(lastblank);
 
 	blitted = false;
 
