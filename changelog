@@ -1,3 +1,103 @@
+-- 0.4.1 -- 2009-01-10
+libgambatte:
+    - Fix HqXx filter pitch.
+    - Fix mbc2 not getting a rambank.
+    - Make sure to reset passed pointers when deleted. Fixes potential crash
+      when loading ROM during OAM busy.
+common:
+    - Substantially improved rate estimation averaging.
+    - RateEst: Add a convenient way of filtering measures that extend beyond
+      a buffer time, and are as such probably invalid.
+    - RateEst: Allow using a custom timestamp in feed().
+    - RateEst: Keep a queue of the last ~100 msec worth of samples and
+      duration, and filter out collective samples that give a pre-estimate
+      that seems way off.
+    - Replace "Game Boy / Game Boy Color emulator" with "Game Boy Color
+      emulator" for now to avoid misleading anyone on the current status.
+gambatte_qt:
+    - Disable BlitterWidget updates (paintEvents) while not paused.
+    - QGLBlitter: Do a cheap front blit rather than a vsynced flip if audio
+      buffers are low.
+    - Allow BlitterWidgets to opt in to get paintEvents while unpaused. Do so
+      for QGLBlitter since it may need to clear buffers afterwards.
+    - QGLBlitter: Try to blit right after sync in the case of single buffering.
+    - Up default audio buffer latency to 100 ms (some common system audio
+      servers require a lot of buffering to work well).
+    - Adaptively skip BlitterWidget syncs if audio buffer is low, in a manner
+      that should minimize wasted skips in sync to vblank situation, and tries
+      to be non-disturbing. This replaces frame time halving, and blitter
+      specific rescueing.
+    - Clear display buffers in DirectDrawBlitter and Direct3DBlitter in
+      exclusive mode, since blits don't necessarily cover the entire buffers.
+    - DirectDrawBlitter: Make sure that a minimum amount of time has passed
+      between calls to WaitForVerticalBlank, since it can return in the same
+      vblank period twice on a fast system.
+    - DirectDrawBlitter: Support vsync for refresh rate ~= 2x frame rate.
+    - DirectDrawBlitter: Refactor somewhat and get rid of a couple minor
+      potential bugs.
+    - DirectDrawBlitter: Some tweaks to get updates closer to sync time in
+      certain situations.
+    - DirectDrawBlitter: Some tweaks to better support DONOTWAIT.
+    - DirectDrawBlitter: Make only updating during vblank while page flipping
+      optional.
+    - Direct3DBlitter: Some tweaks to get updates closer to sync time in
+      certain situations.
+    - Filter out very short frame times in frame time estimation.
+    - Don't adjust frame time during turbo, but rather skip BlitterWidget
+      syncs to speed up, which avoids vsync limits without disabling vsync.
+    - DirectDrawBlitter: Add triple buffering option.
+    - Direct3DBlitter: Use D3DSWAPEFFECT_DISCARD in non-exclusive mode.
+    - Direct3DBlitter: Allow triple buffering and vblank-only updates in
+      non-excusive mode.
+    - Rename "Page flipping" in Direct3D and DirectDraw blitters to
+      "Exclusive full screen".
+    - Pause audio on win32 titlebar clicks/drags to avoid looping audio due to
+      underruns from blocked timerEvents.
+    - Use wildcards for platform detection to avoid being unnecessarily
+      compiler/architecture specific. Fixes bug 2377772.
+    - Rewrite most of DirectSoundEngine, supporting primary buffer option,
+      making it more robust, correct and hopefully cleaner. Only use part of
+      the primary buffer if the desired buffer size is lower than the
+      primary buffer size.
+    - Direct3DBlitter and DirectDrawBlitter: Force blocking updates when sync
+      to vblank is enabled. Some updates only block if there's a prior
+      unfinished update in progress. This screws up frame time estimation in
+      turn screwing up vsync. To fix this we do a double update (and extra blit)
+      if close to a frame time period has passed since the last update when
+      sync to vblank is enabled. I really should have noticed this earlier as
+      it pretty much breaks vsync adaption completely.
+    - Direct3DBlitter: Use the D3DCREATE_FPU_PRESERVE flag when creating
+      device. Omitting this flag can screw up floating point calculations in
+      other parts of the code. For instance WASAPI cursor timestamps get
+      utterly screwed up here.
+    - Direct3DBlitter: It appears that managed textures are updated before
+      they are unlocked, which screws up redraws, making things appear choppy
+      in some situations. Use a default memory texture and a system memory
+      texture and the UpdateTexure method instead.
+    - DirectSoundEngine: Make use of the sample period limit feature of
+      RateEst, rather than duplicating the feature.
+    - Add polling WASAPI engine with exclusive mode support. Latency and rate
+      estimation is generally better than DirectSound, and in exclusive mode
+      there is less blocking as well as exclusive mode being better than
+      shared mode in the other areas too.
+    - WasapiEngine: Add device selection.
+    - WasapiEngine: Add static isUsable() method. Only listed if isUsable().
+      Default engine if isUsable().
+    - WasapiEngine: Use default device if there's only one device available,
+      since we don't show the combobox anyway.
+    - DirectSoundEngine: Provide the integrated read and status get write
+      method optimization.
+    - XvBlitter: Set NosystemBackground attribute rather than OpaquePaintEvent.
+      Reimplement paintEngine to return NULL as suggested by Qt docs.
+    - X11Blitter: Reimplement paintEngine to return NULL.
+    - AlsaEngine: Make use of sample period limit feature of RateEst. Don't
+      increase estimated sample rate on underrun.
+    - OssEngine: Make use of sample period limit feature of RateEst. Don't
+      increase estimated sample rate on underrun.
+    - Esc exits fullscreen on macx.
+    - Drop OpenAL from default macx binary.
+    - Add some useful but commented build flags for macx to .pro files.
+
 -- 0.4.0 -- 2008-10-27
 libgambatte:
     - less fixed-width type dependencies. don't assume unsigned int > 16 bits
