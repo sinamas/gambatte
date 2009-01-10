@@ -117,7 +117,7 @@ int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 	}
 	
 	prevfur = 0;
-	est.init(rate);
+	est.init(rate, rate, bufSize);
 	
 	return rate;
 	
@@ -136,9 +136,10 @@ void AlsaEngine::uninit() {
 int AlsaEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
 	bool underrun = false;
 	
-	if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
+	if (bstate.fromUnderrun == 0) {
+		underrun = true;
+	} else if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
 		est.feed(prevfur - bstate.fromUnderrun);
-		underrun = bstate.fromUnderrun == 0;
 	}
 	
 	prevfur = bstate.fromUnderrun + samples;
@@ -149,7 +150,7 @@ int AlsaEngine::write(void *const buffer, const unsigned samples, const BufferSt
 	}
 	
 	if (underrun)
-		est.init(est.result().est + (est.result().est >> 10), rate());
+		est.reset();
 	
 	return 0;
 }

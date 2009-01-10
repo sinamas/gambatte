@@ -101,7 +101,7 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 	}
 	
 	prevfur = 0;
-	est.init(speed);
+	est.init(speed, speed, bufSize);
 	
 	return speed;
 	
@@ -122,7 +122,7 @@ int OssEngine::write(void *const buffer, const unsigned samples, const BufferSta
 		if (bstate.fromUnderrun)
 			est.feed(prevfur - bstate.fromUnderrun);
 		else
-			est.init(est.result().est + (est.result().est >> 10), rate());
+			est.reset();
 	}
 	
 	prevfur = bstate.fromUnderrun + samples;
