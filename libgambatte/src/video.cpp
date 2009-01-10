@@ -122,7 +122,7 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 {
 	std::memset(bgpData, 0, sizeof(bgpData));
 	std::memset(objpData, 0, sizeof(objpData));
-	
+
 	for (unsigned i = 0; i < sizeof(dmgColorsRgb32) / sizeof(unsigned long); ++i) {
 		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
 	}
@@ -134,7 +134,7 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 	filters.push_back(new MaxSt_Hq2x);
 	filters.push_back(new MaxSt_Hq3x);
 
-	reset(false);
+	reset(oamram, false);
 	setDoubleSpeed(false);
 
 	setVideoFilter(0);
@@ -146,9 +146,9 @@ LCD::~LCD() {
 		delete filters[i];
 }
 
-void LCD::reset(const bool cgb_in) {
+void LCD::reset(const unsigned char *const oamram, const bool cgb_in) {
 	cgb = cgb_in;
-	spriteMapper.setCgb(cgb_in);
+	spriteMapper.reset(oamram, cgb_in);
 	setDBuffer();
 }
 
@@ -348,7 +348,7 @@ static void blitOsdElement(Gambatte::uint_least32_t *d, const Gambatte::uint_lea
 			++d;
 			++s;
 		}
-					
+
 		d += dpitch - width;
 	}
 }
@@ -371,7 +371,7 @@ void LCD::updateScreen(const unsigned long cycleCounter) {
 
 			if (s) {
 				Gambatte::uint_least32_t *d = static_cast<Gambatte::uint_least32_t*>(dbuffer) + osdElement->y() * dpitch + osdElement->x();
-				
+
 				switch (osdElement->opacity()) {
 				case OsdElement::SEVEN_EIGHTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<8>()); break;
 				case OsdElement::THREE_FOURTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<4>()); break;
@@ -443,7 +443,7 @@ void LCD::lyWrite(const unsigned long cycleCounter) {
 	winYPos = 0xFF;
 	win.weMasterChecker.unset();
 	resetVideoState(cycleCounter);
-	
+
 // 	if ((statReg & 0x40) && lycIrq.lycReg() == 0)
 // 		ifReg |= 2;
 }
@@ -1086,7 +1086,7 @@ void LCD::cgb_bg_drawPixels(T * const buffer_line, unsigned xpos, const unsigned
 			const unsigned char *const dataptr = tiledata + (attributes << 10 & 0x2000) +
 					maptmp[0] * 16 - (maptmp[0] & sign) * 32 + ((attributes & 0x40) ? 7 - tileline : tileline) * 2;
 			const unsigned short *const exp_lut = expand_lut + (attributes << 3 & 0x100);
-			
+
 			const unsigned data = exp_lut[dataptr[0]] + exp_lut[dataptr[1]] * 2;
 			const unsigned long *const palette = bgPalette + (attributes & 7) * 4;
 

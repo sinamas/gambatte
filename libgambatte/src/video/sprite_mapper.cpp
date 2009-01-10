@@ -25,14 +25,19 @@
 
 SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned char *oamram)
 : lyCounter(lyCounter), oamram(oamram) {
+	reset(oamram);
+}
+
+void SpriteMapper::OamReader::reset(const unsigned char *const oamram) {
+	this->oamram = oamram;
 	setLargeSpritesSrc(false);
 	lu = 0;
 	lastChange = 0xFF;
 	std::fill_n(szbuf, 40, largeSpritesSrc);
-	
+
 	unsigned pos = 0;
 	unsigned distance = 80;
-	
+
 	while (distance--) {
 		buf[pos] = oamram[((pos * 2) & ~3) | (pos & 1)];
 		++pos;
@@ -41,10 +46,10 @@ SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned ch
 
 static unsigned toPosCycles(const unsigned long cc, const LyCounter &lyCounter) {
 	unsigned lc = lyCounter.lineCycles(cc) + 4 - lyCounter.isDoubleSpeed() * 3u;
-	
+
 	if (lc >= 456)
 		lc -= 456;
-	
+
 	return lc >> 1;
 }
 
@@ -52,37 +57,37 @@ void SpriteMapper::OamReader::update(const unsigned long cc) {
 	if (cc > lu) {
 		if (changed()) {
 			const unsigned lulc = toPosCycles(lu, lyCounter);
-			
+
 			unsigned pos = std::min(lulc, 40u);
 			unsigned distance = 40;
-			
+
 			if ((cc - lu) >> lyCounter.isDoubleSpeed() < 456) {
 				const unsigned cclc = toPosCycles(cc, lyCounter);
-				
+
 				distance = std::min(cclc, 40u) - pos + (cclc < lulc ? 40 : 0);
 			}
-			
+
 			{
 				const unsigned targetDistance = lastChange - pos + (lastChange <= pos ? 40 : 0);
-				
+
 				if (targetDistance <= distance) {
 					distance = targetDistance;
 					lastChange = 0xFF;
 				}
 			}
-			
+
 			while (distance--) {
 				if (pos >= 40)
 					pos = 0;
-				
+
 				szbuf[pos] = largeSpritesSrc;
 				buf[pos * 2] = oamram[pos * 4];
 				buf[pos * 2 + 1] = oamram[pos * 4 + 1];
-				
+
 				++pos;
 			}
 		}
-		
+
 		lu = cc;
 	}
 }
@@ -107,12 +112,12 @@ void SpriteMapper::OamReader::enableDisplay(const unsigned long cc) {
 bool SpriteMapper::OamReader::oamAccessible(const unsigned long cycleCounter, const M3ExtraCycles &m3ExtraCycles) const {
 	unsigned ly = lyCounter.ly();
 	unsigned lc = lyCounter.lineCycles(cycleCounter) + 4 - lyCounter.isDoubleSpeed() * 3u;
-		
+
 	if (lc >= 456) {
 		lc -= 456;
 		++ly;
 	}
-	
+
 	return cycleCounter < lu || ly >= 144 || lc >= 80 + 173 + m3ExtraCycles(ly);
 }
 
@@ -121,9 +126,15 @@ SpriteMapper::SpriteMapper(M3ExtraCycles &m3ExtraCycles,
                            const unsigned char *const oamram) :
 	VideoEvent(2),
 	m3ExtraCycles(m3ExtraCycles),
-	oamReader(lyCounter, oamram)
+	oamReader(lyCounter, oamram),
+	cgb(false)
 {
-	setCgb(false);
+	clearMap();
+}
+
+void SpriteMapper::reset(const unsigned char *const oamram, const bool cgb_in) {
+	oamReader.reset(oamram);
+	cgb = cgb_in;
 	clearMap();
 }
 
@@ -133,34 +144,34 @@ void SpriteMapper::clearMap() {
 
 void SpriteMapper::mapSprites() {
 	clearMap();
-	
+
 	for (unsigned i = 0x00; i < 0x50; i += 2) {
 		const unsigned spriteHeight = 8u << largeSprites(i >> 1);
 		const unsigned bottom_pos = posbuf()[i] - (17u - spriteHeight);
-		
+
 		if (bottom_pos >= 143 + spriteHeight)
 			continue;
-		
+
 		unsigned char *map = spritemap;
 		unsigned char *n = num;
-		
+
 		if (bottom_pos >= spriteHeight) {
 			const unsigned startly = bottom_pos + 1 - spriteHeight;
 			n += startly;
 			map += startly * 10;
 		}
-		
+
 		unsigned char *const end = num + (bottom_pos >= 143 ? 143 : bottom_pos);
-		
+
 		do {
 			if ((*n & ~NEED_SORTING_MASK) < 10)
 				map[(*n)++ & ~NEED_SORTING_MASK] = i;
-			
+
 			map += 10;
 			++n;
 		} while (n <= end);
 	}
-	
+
 	m3ExtraCycles.invalidateCache();
 }
 
