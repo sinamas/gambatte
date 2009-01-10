@@ -12,6 +12,7 @@ TEMPLATE = app
 CONFIG += warn_on \
     release
 TARGET = gambatte_qt
+macx:TARGET = "Gambatte Qt"
 DESTDIR = ../bin
 INCLUDEPATH += ../../libgambatte/include
 LIBS += -L../../libgambatte -lgambatte

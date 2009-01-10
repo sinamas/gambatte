@@ -70,21 +70,27 @@ INCLUDEPATH += $$COMMONPATH
 DEFINES += HAVE_STDINT_H
 QMAKE_CXXFLAGS += -fno-exceptions -fno-rtti
 
-macx { 
+macx {
+#    CONFIG += x86 ppc
+#    QMAKE_CFLAGS += -Xarch_ppc -DWORDS_BIGENDIAN
+#    QMAKE_CXXFLAGS += -fvisibility=hidden -Xarch_ppc -DWORDS_BIGENDIAN
+#    QMAKE_MAC_SDK = /Developer/SDKs/MacOSX10.4u.sdk
+#    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.3
     HEADERS += $$COMMONPATH/ringbuffer.h
     SOURCES += framework/addaudioengines_macx.cpp \
         framework/addblitterwidgets.cpp \
         framework/getfullmodetoggler_macx.cpp
     SOURCES += framework/SDL_Joystick/src/darwin/SDL_sysjoystick.c \
-        framework/audioengines/openalengine.cpp \
+#        framework/audioengines/openalengine.cpp \
 		framework/audioengines/coreaudioengine.cpp \
         framework/fullmodetogglers/quartztoggler.cpp
-    HEADERS += framework/audioengines/openalengine.h \
-	    framework/audioengines/coreaudioengine.h \
+    HEADERS += framework/audioengines/coreaudioengine.h \
+#	    framework/audioengines/openalengine.h \
         framework/fullmodetogglers/quartztoggler.h
+#	LIBS += -dead_strip
     LIBS += -framework IOKit \
-	    -framework AudioUnit \
-        -framework OpenAL
+#	    -framework OpenAL \
+        -framework AudioUnit
 }
 else:unix { 
     DEFINES += PLATFORM_UNIX

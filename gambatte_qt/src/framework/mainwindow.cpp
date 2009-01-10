@@ -321,16 +321,11 @@ void MainWindow::toggleFullScreen() {
 }
 
 void MainWindow::toggleMenuHidden() {
-#ifdef Q_WS_MAC
-//	if (isFullScreen())
-//		toggleFullScreen();
-#else
 	menuBar()->setVisible(!menuBar()->isVisible());
 
 	if (!menuBar()->isVisible()) {
 		hideCursor();
 	}
-#endif
 }
 
 void MainWindow::clearInputVectors() {

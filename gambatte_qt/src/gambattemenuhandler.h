@@ -81,6 +81,9 @@ class GambatteMenuHandler : public QObject {
 	QAction *decFrameRateAction;
 	QAction *incFrameRateAction;
 	QAction *forceDmgAction;
+#ifdef Q_WS_MAC
+	QAction *fsAct;
+#endif
 	QMenu *recentMenu;
 	QMenu *stateSlotMenu;
 	PaletteDialog *globalPaletteDialog;
@@ -112,6 +115,9 @@ private slots:
 	void decFrameRate();
 	void incFrameRate();
 	void resetFrameRate();
+#ifdef Q_WS_MAC
+	void unsetFullScreen();
+#endif
 	
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);

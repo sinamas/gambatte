@@ -154,7 +154,10 @@ mw(mw), source(source), frameTime(4389, 262144) {
 	settingsm->addSeparator();
 
 	{
-		QAction *fsAct = settingsm->addAction(tr("&Full Screen"), mw, SLOT(toggleFullScreen()), tr("Ctrl+F"));
+#ifndef Q_WS_MAC
+		QAction *fsAct;
+#endif
+		fsAct = settingsm->addAction(tr("&Full Screen"), mw, SLOT(toggleFullScreen()), tr("Ctrl+F"));
 		fsAct->setCheckable(true);
 	}
 
@@ -171,10 +174,16 @@ mw(mw), source(source), frameTime(4389, 262144) {
 
 	mw->addActions(mw->menuBar()->actions());
 
-	QAction *hideMenuAct = new QAction(mw);
-	hideMenuAct->setShortcut(tr("Esc"));
-	connect(hideMenuAct, SIGNAL(triggered()), mw, SLOT(toggleMenuHidden()));
-	mw->addAction(hideMenuAct);
+	{
+		QAction *const escAct = new QAction(mw);
+		escAct->setShortcut(tr("Esc"));
+#ifdef Q_WS_MAC
+		connect(escAct, SIGNAL(triggered()), this, SLOT(unsetFullScreen()));
+#else
+		connect(escAct, SIGNAL(triggered()), mw, SLOT(toggleMenuHidden()));
+#endif
+		mw->addAction(escAct);
+	}
 
 	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 	mw->setSamplesPerFrame(35112);
@@ -406,3 +415,10 @@ void GambatteMenuHandler::resetFrameRate() {
 	decFrameRateAction->setEnabled(true);
 	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 }
+
+#ifdef Q_WS_MAC
+void GambatteMenuHandler::unsetFullScreen() {
+	if (fsAct->isChecked())
+		fsAct->trigger();
+}
+#endif
