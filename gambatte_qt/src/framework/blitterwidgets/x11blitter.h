@@ -61,6 +61,8 @@ public:
 	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
+	
+	QPaintEngine* paintEngine() const { return NULL; }
 };
 
 #endif

@@ -52,6 +52,7 @@ class XvBlitter : public BlitterWidget {
 	bool initialized;
 	
 	void initPort();
+	void privSetPaused(const bool /*paused*/) {}
 
 protected:
 	void paintEvent(QPaintEvent *event);
@@ -70,6 +71,8 @@ public:
 	QWidget* settingsWidget() { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings();
+	
+	QPaintEngine* paintEngine() const { return NULL; }
 };
 
 #endif

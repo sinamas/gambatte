@@ -223,7 +223,7 @@ XvBlitter::XvBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
 	setBackgroundRole(QPalette::Window);
 	setAutoFillBackground(true);*/
 	
-	setAttribute(Qt::WA_OpaquePaintEvent, true);
+	setAttribute(Qt::WA_NoSystemBackground, true);
 	setAttribute(Qt::WA_PaintOnScreen, true);
 	
 	{
@@ -339,11 +339,10 @@ long XvBlitter::sync(const long ft) {
 }
 
 void XvBlitter::paintEvent(QPaintEvent *event) {
-	event->accept();
 	const QRect &rect = event->rect();
 	XFillRectangle(QX11Info::display(), winId(), gc, rect.x(), rect.y(), rect.width(), rect.height());
 	
-	if (!failed) {
+	if (isPaused() && !failed) {
 		subBlitter->blit(winId(), xvport, width(), height());
 	}
 }
