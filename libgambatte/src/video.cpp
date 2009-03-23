@@ -423,6 +423,9 @@ void LCD::enableChange(const unsigned long cycleCounter) {
 		win.weMasterChecker.unset();
 		spriteMapper.enableDisplay(cycleCounter);
 		resetVideoState(cycleCounter);
+		
+		if (lycIrq.lycReg() == 0)
+			ifReg |= (statReg >> 5) & 2;
 	}
 
 	if (!enabled && dbuffer) {
@@ -444,8 +447,8 @@ void LCD::lyWrite(const unsigned long cycleCounter) {
 	win.weMasterChecker.unset();
 	resetVideoState(cycleCounter);
 
-// 	if ((statReg & 0x40) && lycIrq.lycReg() == 0)
-// 		ifReg |= 2;
+	if (lycIrq.lycReg() == 0)
+		ifReg |= (statReg >> 5) & 2;
 }
 
 void LCD::preResetCounter(const unsigned long cycleCounter) {
