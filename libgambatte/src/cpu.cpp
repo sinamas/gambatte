@@ -133,7 +133,7 @@ void CPU::saveState(SaveState &state) {
 }
 
 void CPU::loadState(const SaveState &state) {
-	memory.loadState(state, cycleCounter_);
+	memory.loadState(state/*, cycleCounter_*/);
 	
 	cycleCounter_ = state.cpu.cycleCounter;
 	PC_ = state.cpu.PC;

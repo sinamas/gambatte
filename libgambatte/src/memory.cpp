@@ -41,17 +41,11 @@ getInput(NULL),
 div_lastUpdate(0),
 tima_lastUpdate(0),
 next_timatime(COUNTER_DISABLED),
-next_blittime(144*456ul),
-nextIntTime(COUNTER_DISABLED),
 minIntTime(0),
-next_dmatime(COUNTER_DISABLED),
-next_hdmaReschedule(COUNTER_DISABLED),
-next_unhalttime(COUNTER_DISABLED),
-next_endtime(0),
 tmatime(COUNTER_DISABLED),
 next_serialtime(COUNTER_DISABLED),
 lastOamDmaUpdate(COUNTER_DISABLED),
-nextOamEventTime(COUNTER_DISABLED),
+eventTimes(COUNTER_DISABLED),
 display(ioamhram, vram),
 interrupter(interrupter_in),
 romtype(plain),
@@ -79,8 +73,9 @@ active(false)
 	wramdata[1] = wramdata[0] = NULL;
 	std::fill_n(rmem, 0x10, static_cast<unsigned char*>(NULL));
 	std::fill_n(wmem, 0x10, static_cast<unsigned char*>(NULL));
+	eventTimes.setValue<BLIT>(144*456ul);
+	eventTimes.setValue<END>(0);
 	set_irqEvent();
-	set_event();
 }
 
 void Memory::setStatePtrs(SaveState &state) {
@@ -121,7 +116,7 @@ unsigned long Memory::saveState(SaveState &state, unsigned long cycleCounter) {
 	return cycleCounter;
 }
 
-void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
+void Memory::loadState(const SaveState &state/*, const unsigned long oldCc*/) {
 	sound.loadState(state);
 	display.loadState(state, state.mem.oamDmaPos < 0xA0 ? rdisabled_ram : ioamhram);
 	rtc.loadState(state, rtcRom ? state.mem.enable_ram : false);
@@ -142,7 +137,7 @@ void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
 	rambank_mode = state.mem.rambank_mode;
 	hdma_transfer = state.mem.hdma_transfer;
 
-	const bool oldDs = doubleSpeed;
+// 	const bool oldDs = doubleSpeed;
 	doubleSpeed = isCgb() & ioamhram[0x14D] >> 7;
 	oamDmaArea2Upper = oamDmaArea1Width = oamDmaArea1Lower = 0;
 	vrambank = vram + (ioamhram[0x14F] & 0x01 & isCgb()) * 0x2000;
@@ -161,55 +156,49 @@ void Memory::loadState(const SaveState &state, const unsigned long oldCc) {
 			oamEventPos = 0xA0;
 		}
 
-		nextOamEventTime = lastOamDmaUpdate + (oamEventPos - oamDmaPos) * 4;
+		eventTimes.setValue<OAM>(lastOamDmaUpdate + (oamEventPos - oamDmaPos) * 4);
 		setOamDmaSrc();
 	}
 
 	if (!IME && state.cpu.halted)
 		schedule_unhalt();
 
-	next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
+	eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED));
 
 	const unsigned long cycleCounter = state.cpu.cycleCounter;
-
-	if (hdma_transfer) {
-		next_dmatime = display.nextHdmaTime(cycleCounter);
-		next_hdmaReschedule = display.nextHdmaTimeInvalid();
-	} else {
-		next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
-	}
+	
+	eventTimes.setValue<DMA>(            hdma_transfer ? display.nextHdmaTime(cycleCounter) : static_cast<unsigned long>(COUNTER_DISABLED));
+	eventTimes.setValue<HDMA_RESCHEDULE>(hdma_transfer ? display.nextHdmaTimeInvalid()      : static_cast<unsigned long>(COUNTER_DISABLED));
 
 	next_timatime = (ioamhram[0x107] & 4) ? tima_lastUpdate + ((256u - ioamhram[0x105]) << timaClock[ioamhram[0x107] & 3]) + 1 : static_cast<unsigned long>(COUNTER_DISABLED);
 	set_irqEvent();
 	rescheduleIrq(cycleCounter);
 
-	if (oldDs != isDoubleSpeed())
-		next_endtime = cycleCounter - (isDoubleSpeed() ?( oldCc - next_endtime) << 1 :( oldCc - next_endtime) >> 1);
-	else
-		next_endtime = cycleCounter - (oldCc - next_endtime);
-
-// 	set_event();
+// 	eventTimes.setValue<END>((oldDs != isDoubleSpeed()) ?
+// 			cycleCounter - (isDoubleSpeed() ? (oldCc - eventTimes.value(END)) << 1 : (oldCc - eventTimes.value(END)) >> 1) :
+// 			cycleCounter - (oldCc - eventTimes.value(END)));
 }
 
 void Memory::schedule_unhalt() {
-	next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent());
+	unsigned long next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent());
 
 	if (next_unhalttime != COUNTER_DISABLED)
 		next_unhalttime += isCgb() * 4;
-
-	set_event();
+	
+	eventTimes.setValue<UNHALT>(next_unhalttime);
 }
 
 void Memory::rescheduleIrq(const unsigned long cycleCounter) {
 	if (IME) {
 		ioamhram[0x10F] |= display.getIfReg(cycleCounter) & 3;
 
-		nextIntTime = (ioamhram[0x10F] & ioamhram[0x1FF] & 0x1F) ? cycleCounter : std::min(next_irqEventTime, display.nextIrqEvent());
+		unsigned long nextIntTime = (ioamhram[0x10F] & ioamhram[0x1FF] & 0x1F) ? cycleCounter :
+				std::min(next_irqEventTime, display.nextIrqEvent());
 
 		if (nextIntTime < minIntTime)
 			nextIntTime = minIntTime;
-
-		set_event();
+		
+		eventTimes.setValue<INTERRUPTS>(nextIntTime);
 	}
 }
 
@@ -217,13 +206,8 @@ void Memory::rescheduleHdmaReschedule() {
 	if (hdma_transfer && (ioamhram[0x140] & 0x80)) {
 		const unsigned long newTime = display.nextHdmaTimeInvalid();
 
-		if (newTime < next_hdmaReschedule) {
-			next_hdmaReschedule = newTime;
-
-			if (newTime < next_eventtime) {
-				next_eventtime = newTime;
-				next_event = HDMA_RESCHEDULE;
-			}
+		if (newTime < eventTimes.value(HDMA_RESCHEDULE)) {
+			eventTimes.setValue<HDMA_RESCHEDULE>(newTime);
 		}
 	}
 }
@@ -234,15 +218,15 @@ void Memory::ei(const unsigned long cycleCounter) {
 	rescheduleIrq(cycleCounter);
 }
 
-void Memory::incEndtime(const unsigned long inc) {
-	active = true;
-	next_endtime += inc << isDoubleSpeed();
-	set_event();
-}
+// void Memory::incEndtime(const unsigned long inc) {
+// 	active = true;
+// 	next_endtime += inc << isDoubleSpeed();
+// 	set_event();
+// }
 
 void Memory::setEndtime(const unsigned long cycleCounter, const unsigned long inc) {
-	next_endtime = cycleCounter;
-	incEndtime(inc);
+	active = true;
+	eventTimes.setValue<END>(cycleCounter + (inc << isDoubleSpeed()));
 }
 
 void Memory::set_irqEvent() {
@@ -274,44 +258,15 @@ void Memory::update_irqEvents(const unsigned long cc) {
 	}
 }
 
-void Memory::set_event() {
-	next_event = INTERRUPTS;
-	next_eventtime = nextIntTime;
-	if (next_hdmaReschedule < next_eventtime) {
-		next_eventtime = next_hdmaReschedule;
-		next_event = HDMA_RESCHEDULE;
-	}
-	if (next_dmatime < next_eventtime) {
-		next_eventtime = next_dmatime;
-		next_event = DMA;
-	}
-	if (next_unhalttime < next_eventtime) {
-		next_eventtime = next_unhalttime;
-		next_event = UNHALT;
-	}
-	if (nextOamEventTime < next_eventtime) {
-		next_eventtime = nextOamEventTime;
-		next_event = OAM;
-	}
-	if (next_blittime < next_eventtime) {
-		next_event = BLIT;
-		next_eventtime = next_blittime;
-	}
-	if (next_endtime < next_eventtime) {
-		next_eventtime = next_endtime;
-		next_event = END;
-	}
-}
-
 unsigned long Memory::event(unsigned long cycleCounter) {
 	if (lastOamDmaUpdate != COUNTER_DISABLED)
 		updateOamDma(cycleCounter);
 
-	switch (next_event) {
+	switch (static_cast<events>(eventTimes.min())) {
 	case HDMA_RESCHEDULE:
 // 		printf("hdma_reschedule\n");
-		next_dmatime = display.nextHdmaTime(cycleCounter);
-		next_hdmaReschedule = display.nextHdmaTimeInvalid();
+		eventTimes.setValue<DMA>(display.nextHdmaTime(cycleCounter));
+		eventTimes.setValue<HDMA_RESCHEDULE>(display.nextHdmaTimeInvalid());
 		break;
 	case DMA:
 // 		printf("dma\n");
@@ -371,7 +326,8 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			ioamhram[0x155] = ((dmaLength / 0x10 - 0x1) & 0xFF) | (ioamhram[0x155] & 0x80);
 
 			if (ioamhram[0x155] & 0x80) {
-				next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
+				eventTimes.setValue<DMA>(COUNTER_DISABLED);
+				eventTimes.setValue<HDMA_RESCHEDULE>(COUNTER_DISABLED);
 				hdma_transfer = 0;
 			}
 
@@ -379,7 +335,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 				if (lastOamDmaUpdate != COUNTER_DISABLED)
 					updateOamDma(cycleCounter);
 
-				next_dmatime = display.nextHdmaTime(cycleCounter);
+				eventTimes.setValue<DMA>(display.nextHdmaTime(cycleCounter));
 			}
 		}
 
@@ -442,17 +398,13 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			}
 		}
 
-		nextIntTime = IME ? std::min(next_irqEventTime, display.nextIrqEvent()) : static_cast<unsigned long>(COUNTER_DISABLED);
+		eventTimes.setValue<INTERRUPTS>(IME ? std::min(next_irqEventTime, display.nextIrqEvent()) : static_cast<unsigned long>(COUNTER_DISABLED));
 		break;
 	case BLIT:
 // 		printf("blit\n");
-		display.updateScreen(next_blittime);
-
-		if (ioamhram[0x140] & 0x80)
-			next_blittime += 70224 << isDoubleSpeed();
-		else
-			next_blittime = COUNTER_DISABLED;
-
+		display.updateScreen(eventTimes.value(BLIT));
+		eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? eventTimes.value(BLIT) + (70224 << isDoubleSpeed()) :
+				static_cast<unsigned long>(COUNTER_DISABLED));
 		break;
 	case UNHALT:
 // 		printf("unhalt\n");
@@ -460,32 +412,30 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		ioamhram[0x10F] |= display.getIfReg(cycleCounter) & 3;
 
 		if (ioamhram[0x10F] & ioamhram[0x1FF] & 0x1F) {
-			next_unhalttime = COUNTER_DISABLED;
+			eventTimes.setValue<UNHALT>(COUNTER_DISABLED);
 			interrupter.unhalt();
 		} else
-			next_unhalttime = std::min(next_irqEventTime, display.nextIrqEvent()) + isCgb() * 4;
+			eventTimes.setValue<UNHALT>(std::min(next_irqEventTime, display.nextIrqEvent()) + isCgb() * 4);
 
 		break;
 	case OAM:
-		nextOamEventTime = lastOamDmaUpdate == COUNTER_DISABLED ? static_cast<unsigned long>(COUNTER_DISABLED) : nextOamEventTime + 0xA0 * 4;
+		eventTimes.setValue<OAM>(lastOamDmaUpdate == COUNTER_DISABLED ? static_cast<unsigned long>(COUNTER_DISABLED) :
+				eventTimes.value(OAM) + 0xA0 * 4);
 		break;
 	case END:
 		{
-			const unsigned long endtime = next_endtime;
-			next_endtime = COUNTER_DISABLED;
-			set_event();
+// 			const unsigned long endtime = next_endtime;
+			eventTimes.setValue<END>(COUNTER_DISABLED);
 
-			while (cycleCounter >= next_eventtime)
+			while (cycleCounter >= eventTimes.minValue())
 				cycleCounter = event(cycleCounter);
 
-			next_endtime = endtime;
+// 			next_endtime = endtime;
 			active = false;
 		}
 
 		break;
 	}
-
-	set_event();
 
 	return cycleCounter;
 }
@@ -504,21 +454,26 @@ void Memory::speedChange(const unsigned long cycleCounter) {
 		display.postSpeedChange(cycleCounter);
 
 		if (hdma_transfer) {
-			next_dmatime = display.nextHdmaTime(cycleCounter);
-			next_hdmaReschedule = display.nextHdmaTimeInvalid();
+			eventTimes.setValue<DMA>(display.nextHdmaTime(cycleCounter));
+			eventTimes.setValue<HDMA_RESCHEDULE>(display.nextHdmaTimeInvalid());
 		}
 
-		next_blittime = (ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED);
-		next_endtime = cycleCounter + (isDoubleSpeed() ?( next_endtime - cycleCounter) << 1 : ((next_endtime - cycleCounter) >> 1));
+		eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED));
+		eventTimes.setValue<END>(cycleCounter + (isDoubleSpeed() ? (eventTimes.value(END) - cycleCounter) << 1 :
+				(eventTimes.value(END) - cycleCounter) >> 1));
 		set_irqEvent();
 		rescheduleIrq(cycleCounter);
-		set_event();
 	}
 }
 
 static void decCycles(unsigned long &counter, const unsigned long dec) {
 	if (counter != Memory::COUNTER_DISABLED)
 		counter -= dec;
+}
+
+void Memory::decEventCycles(const int eventId, const unsigned long dec) {
+	if (eventTimes.value(eventId) != COUNTER_DISABLED)
+		eventTimes.setValue(eventId, eventTimes.value(eventId) - dec);
 }
 
 unsigned long Memory::resetCounters(unsigned long cycleCounter) {
@@ -552,18 +507,17 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 
 	decCycles(div_lastUpdate, dec);
 	decCycles(lastOamDmaUpdate, dec);
-	decCycles(next_eventtime, dec);
 	decCycles(next_irqEventTime, dec);
 	decCycles(next_timatime, dec);
-	decCycles(next_blittime, dec);
-	decCycles(nextOamEventTime, dec);
-	decCycles(next_endtime, dec);
-	decCycles(next_dmatime, dec);
-	decCycles(next_hdmaReschedule, dec);
-	decCycles(nextIntTime, dec);
 	decCycles(next_serialtime, dec);
 	decCycles(tmatime, dec);
-	decCycles(next_unhalttime, dec);
+	decEventCycles(INTERRUPTS, dec);
+	decEventCycles(HDMA_RESCHEDULE, dec);
+	decEventCycles(DMA, dec);
+	decEventCycles(UNHALT, dec);
+	decEventCycles(OAM, dec);
+	decEventCycles(BLIT, dec);
+	decEventCycles(END, dec);
 
 	cycleCounter -= dec;
 
@@ -713,7 +667,7 @@ void Memory::startOamDma(const unsigned long cycleCounter) {
 	setOamDmaArea();
 	display.oamChange(rdisabled_ram, cycleCounter);
 
-	if (next_unhalttime != COUNTER_DISABLED)
+	if (eventTimes.value(UNHALT) != COUNTER_DISABLED)
 		schedule_unhalt();
 	else
 		rescheduleIrq(cycleCounter);
@@ -727,7 +681,7 @@ void Memory::endOamDma(const unsigned long cycleCounter) {
 	setBanks();
 	display.oamChange(ioamhram, cycleCounter);
 
-	if (next_unhalttime != COUNTER_DISABLED)
+	if (eventTimes.value(UNHALT) != COUNTER_DISABLED)
 		schedule_unhalt();
 	else
 		rescheduleIrq(cycleCounter);
@@ -1133,18 +1087,16 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 				ioamhram[0x141] &= 0xF8;
 
 				if (data & 0x80) {
-					next_blittime = display.nextMode1IrqTime() + (70224 << isDoubleSpeed());
+					eventTimes.setValue<BLIT>(display.nextMode1IrqTime() + (70224 << isDoubleSpeed()));
 				} else {
 					ioamhram[0x141] |= lyc; //Mr. Do! needs conicidence flag preserved.
-					next_blittime = cycleCounter + (456 * 4 << isDoubleSpeed());
+					eventTimes.setValue<BLIT>(cycleCounter + (456 * 4 << isDoubleSpeed()));
 
 					if (hdma_transfer)
-						next_dmatime = cycleCounter;
+						eventTimes.setValue<DMA>(cycleCounter);
 
-					next_hdmaReschedule = COUNTER_DISABLED;
+					eventTimes.setValue<HDMA_RESCHEDULE>(COUNTER_DISABLED);
 				}
-
-				set_event();
 			}
 
 			if ((ioamhram[0x140] ^ data) & 0x4) {
@@ -1209,7 +1161,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			endOamDma(cycleCounter);
 
 		lastOamDmaUpdate = cycleCounter;
-		nextOamEventTime = cycleCounter + 8;
+		eventTimes.setValue<OAM>(cycleCounter + 8);
 		ioamhram[0x146] = data;
 		oamDmaInitSetup();
 		setOamDmaSrc();
@@ -1283,10 +1235,10 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			if (!(data & 0x80)) {
 				ioamhram[0x155] |= 0x80;
 
-				if (next_dmatime > cycleCounter) {
+				if (eventTimes.value(DMA) > cycleCounter) {
 					hdma_transfer = 0;
-					next_hdmaReschedule = next_dmatime = COUNTER_DISABLED;
-					set_event();
+					eventTimes.setValue<DMA>(COUNTER_DISABLED);
+					eventTimes.setValue<HDMA_RESCHEDULE>(COUNTER_DISABLED);
 				}
 			}
 
@@ -1297,16 +1249,15 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			hdma_transfer = 1;
 
 			if (!(ioamhram[0x140] & 0x80) || display.isHdmaPeriod(cycleCounter)) {
-				next_dmatime = cycleCounter;
-				next_hdmaReschedule = COUNTER_DISABLED;
+				eventTimes.setValue<DMA>(cycleCounter);
+				eventTimes.setValue<HDMA_RESCHEDULE>(COUNTER_DISABLED);
 			} else {
-				next_dmatime = display.nextHdmaTime(cycleCounter);
-				next_hdmaReschedule = display.nextHdmaTimeInvalid();
+				eventTimes.setValue<DMA>(display.nextHdmaTime(cycleCounter));
+				eventTimes.setValue<HDMA_RESCHEDULE>(display.nextHdmaTimeInvalid());
 			}
 		} else
-			next_dmatime = cycleCounter;
+			eventTimes.setValue<DMA>(cycleCounter);
 
-		set_event();
 		return;
 	case 0x56:
 		if (isCgb()) {

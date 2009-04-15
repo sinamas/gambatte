@@ -24,7 +24,7 @@ class SaveState;
 #include "int.h"
 #include "video.h"
 #include "sound.h"
-
+#include "minkeeper.h"
 #include "interrupter.h"
 #include "rtc.h"
 #include <string>
@@ -40,7 +40,8 @@ public:
 	
 private:
 	enum cartridgetype { plain, mbc1, mbc2, mbc3, mbc5 };
-	enum events { HDMA_RESCHEDULE, DMA, INTERRUPTS, BLIT, UNHALT, OAM, END };
+	enum events { END, BLIT, OAM, UNHALT, DMA, HDMA_RESCHEDULE, INTERRUPTS };
+	enum { NUM_EVENTS = INTERRUPTS + 1 };
 	enum irqEvents { /*MODE0, MODE1, MODE2, LYC,*/ TIMA, /*M0RESC,*/ SERIAL };
 	
 	unsigned char ioamhram[0x200];
@@ -64,26 +65,18 @@ private:
 	unsigned long div_lastUpdate;
 	unsigned long tima_lastUpdate;
 	unsigned long next_timatime;
-	unsigned long next_blittime;
-	unsigned long nextIntTime;
 	unsigned long minIntTime;
-	unsigned long next_dmatime;
-	unsigned long next_hdmaReschedule;
-	unsigned long next_unhalttime;
-	unsigned long next_endtime;
 	unsigned long next_irqEventTime;
 	unsigned long tmatime;
 	unsigned long next_serialtime;
-	unsigned long next_eventtime;
 	unsigned long lastOamDmaUpdate;
-	unsigned long nextOamEventTime;
 	
+	MinKeeper<NUM_EVENTS> eventTimes;
 	LCD display;
 	PSG sound;
 	Interrupter interrupter;
 	Rtc rtc;
 
-	events next_event;
 	irqEvents next_irqEvent;
 	cartridgetype romtype;
 	
@@ -112,6 +105,7 @@ private:
 	bool active;
 
 	void updateInput();
+	void decEventCycles(int eventId, unsigned long dec);
 
 	void setRombank();
 	void setRambank();
@@ -129,7 +123,6 @@ private:
 	void mbc_write(unsigned P, unsigned data);
 	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
 
-	void set_event();
 	void set_irqEvent();
 	void update_irqEvents(unsigned long cc);
 	void update_tima(unsigned long cycleCounter);
@@ -145,7 +138,7 @@ public:
 
 	void setStatePtrs(SaveState &state);
 	unsigned long saveState(SaveState &state, unsigned long cc);
-	void loadState(const SaveState &state, unsigned long oldCc);
+	void loadState(const SaveState &state/*, unsigned long oldCc*/);
 	void loadSavedata();
 	void saveSavedata();
 	const std::string saveBasePath() const;
@@ -157,7 +150,7 @@ public:
 	void speedChange(unsigned long cycleCounter);
 	bool isCgb() const { return cgb; }
 	bool getIME() const { return IME; }
-	unsigned long getNextEventTime() const { return next_eventtime; }
+	unsigned long getNextEventTime() const { return eventTimes.minValue(); }
 	
 	bool isActive() const { return active; }
 
@@ -165,10 +158,7 @@ public:
 
 	void di() {
 		IME = 0;
-		nextIntTime = COUNTER_DISABLED;
-		
-		if (next_event == INTERRUPTS)
-			set_event();
+		eventTimes.setValue<INTERRUPTS>(COUNTER_DISABLED);
 		
 // 		next_eitime=0;
 // 		if(next_event==EI) set_event();
@@ -207,7 +197,7 @@ public:
 	}
 
 	void schedule_unhalt();
-	void incEndtime(unsigned long inc);
+// 	void incEndtime(unsigned long inc);
 	void setEndtime(unsigned long cc, unsigned long inc);
 	
 	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { sound.setBuffer(buf); }
