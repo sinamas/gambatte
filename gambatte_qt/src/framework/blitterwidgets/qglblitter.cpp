@@ -151,20 +151,13 @@ void QGLBlitter::SubWidget::initializeGL() {
 // 	glXGetVideoSyncSGI_ptr = (glXGetVideoSyncSGI_Func) dlsym(libHandle, "glXGetVideoSyncSGI");
 // 	glXWaitVideoSyncSGI_ptr = (glXWaitVideoSyncSGI_Func) dlsym(libHandle, "glXWaitVideoSyncSGI");
 
+	glEnable(GL_CULL_FACE);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bf ? GL_LINEAR : GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bf ? GL_LINEAR : GL_NEAREST);
 	glShadeModel(GL_FLAT);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_TEXTURE_2D);
 	glDisable(GL_DITHER);
-	glDisable(GL_ALPHA_TEST);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
-	glDisable(GL_FOG);
-	glPixelZoom(1.0, 1.0);
-
-	glClearColor(0.0, 0.0, 0.0, 0.0);
 
 #ifdef PLATFORM_UNIX
 	if (swapInterval) {
@@ -279,7 +272,7 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 	{
 		quint32 *const nulltexture = new quint32[textureRes * textureRes]; // avoids bilinear filter border garbage
 		std::memset(nulltexture, 0, textureRes * textureRes * sizeof(quint32));
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
 		delete []nulltexture;
 	}
 
