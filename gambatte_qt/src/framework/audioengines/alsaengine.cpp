@@ -70,26 +70,6 @@ int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 			goto fail;
 		}
 		
-		/*{
-			unsigned periods = 2;
-			
-			if (snd_pcm_hw_params_set_periods_near(pcm_handle, hwparams, &periods, 0) < 0) {
-				std::fprintf(stderr, "Error setting periods %u.\n", periods);
-				goto fail;
-			}
-		}
-		
-		{
-			snd_pcm_uframes_t bSize = (rate * latency + 500) / 1000;
-			
-			if (snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hwparams, &bSize) < 0) {
-				std::fprintf(stderr, "Error setting buffer size %u.\n", static_cast<unsigned>(bSize));
-				goto fail;
-			}
-			
-			bufSize = bSize;
-		}*/
-		
 		{
 			unsigned ulatency = latency * 1000;
 			
@@ -113,6 +93,19 @@ int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 			}
 			
 			bufSize = bSize;
+		}
+	}
+	
+	{
+		snd_pcm_sw_params_t *swparams;
+		snd_pcm_sw_params_alloca(&swparams);
+		
+		if (snd_pcm_sw_params_current(pcm_handle, swparams) < 0) {
+			std::fprintf(stderr, "Error getting current swparams\n");
+		} else if (snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams, bufSize >> 1) < 0) {
+			std::fprintf(stderr, "Error setting start threshold\n");
+		} else if (snd_pcm_sw_params(pcm_handle, swparams) < 0) {
+			std::fprintf(stderr, "Error setting swparams\n");
 		}
 	}
 	
