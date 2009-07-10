@@ -27,7 +27,7 @@ class OssEngine : public AudioEngine {
 	RateEst est;
 	int audio_fd;
 	unsigned bufSize;
-	unsigned prevfur;
+	unsigned prevbytes;
 	
 	int doInit(int rate, unsigned latency);
 	int write(void *buffer, unsigned samples, const BufferState &bstate);
@@ -40,7 +40,7 @@ public:
 	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
 	const RateEst::Result rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
-	void pause() { prevfur = 0; est.reset(); }
+	void pause() { prevbytes = 0; est.reset(); }
 	QWidget* settingsWidget() { return conf.settingsWidget(); }
 	void acceptSettings() { conf.acceptSettings(); }
 	void rejectSettings() { conf.rejectSettings(); }

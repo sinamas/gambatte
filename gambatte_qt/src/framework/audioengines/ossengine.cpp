@@ -24,6 +24,7 @@
 #include <sys/soundcard.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cmath>
 
 OssEngine::OssEngine() :
@@ -31,7 +32,7 @@ AudioEngine("OSS"),
 conf("Custom DSP device:", "/dev/dsp", "ossengine"),
 audio_fd(-1),
 bufSize(0),
-prevfur(0)
+prevbytes(0)
 {}
 
 OssEngine::~OssEngine() {
@@ -40,7 +41,7 @@ OssEngine::~OssEngine() {
 
 int OssEngine::doInit(int speed, const unsigned latency) {
 	if ((audio_fd = open(conf.device(), O_WRONLY, 0)) == -1) {
-		perror(conf.device());
+		std::perror(conf.device());
 		goto fail;
 	}
 	
@@ -48,12 +49,12 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 		int format = AFMT_S16_NE;
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
-			perror("SNDCTL_DSP_SETFMT");
+			std::perror("SNDCTL_DSP_SETFMT");
 			goto fail;
 		}
 		
 		if (format != AFMT_S16_NE) {
-			printf("oss: unsupported format\n");
+			std::fprintf(stderr, "oss: unsupported format\n");
 			goto fail;
 		}
 	}
@@ -62,29 +63,26 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 		int channels = 2;
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &channels) == -1) {
-			perror("SNDCTL_DSP_CHANNELS");
+			std::perror("SNDCTL_DSP_CHANNELS");
 			goto fail;
 		}
 		
 		if (channels != 2) {
-			printf("oss: unsupported number of channels\n");
+			std::fprintf(stderr, "oss: unsupported number of channels\n");
 			goto fail;
 		}
 	}
 	
 	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) {
-		perror("SNDCTL_DSP_SPEED");
+		std::perror("SNDCTL_DSP_SPEED");
 		goto fail;
 	}
 	
 	{
-		int arg = 0x00040000 | std::min(static_cast<int>(log2(static_cast<double>(speed * latency + 500) / 1000.0) + 0.5), 0xFFFF);
-		
-// 		const int bytes = (((speed * 4389) / 262144) + 1) * 4;
-// 		int arg = 0x00040000 | std::min(static_cast<int>(log2(static_cast<float>(bytes))) + 1, 0xFFFF);
+		int arg = 0x00080000 | std::min(static_cast<int>(std::log((speed * latency) / 2000.0) / std::log(2.0) + 0.5), 0xFFFF);
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &arg) == -1) {
-			perror("SNDCTL_DSP_SETFRAGMENT");
+			std::perror("SNDCTL_DSP_SETFRAGMENT");
 // 			goto fail;
 		}
 	}
@@ -93,14 +91,14 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 		audio_buf_info info;
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info) == -1) {
-			perror("SNDCTL_DSP_GETOSPACE");
+			std::perror("SNDCTL_DSP_GETOSPACE");
 			goto fail;
 		}
 		
 		bufSize = info.bytes >> 2;
 	}
 	
-	prevfur = 0;
+	prevbytes = 0;
 	est.init(speed, speed, bufSize);
 	
 	return speed;
@@ -118,14 +116,20 @@ void OssEngine::uninit() {
 }
 
 int OssEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
-	if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
-		if (bstate.fromUnderrun)
-			est.feed(prevfur - bstate.fromUnderrun);
-		else
-			est.reset();
+	if (bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
+		count_info ci;
+		
+		if (ioctl(audio_fd, SNDCTL_DSP_GETOPTR, &ci) != -1) {
+			if (static_cast<unsigned>(ci.bytes) > prevbytes) {
+				if (bstate.fromUnderrun > bufSize / 8)
+					est.feed((ci.bytes - prevbytes) >> 2);
+				else
+					est.reset();
+			}
+			
+			prevbytes = ci.bytes;
+		}
 	}
-	
-	prevfur = bstate.fromUnderrun + samples;
 	
 	if (::write(audio_fd, buffer, samples * 4) != static_cast<int>(samples * 4))
 		return -1;
