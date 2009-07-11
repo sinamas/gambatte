@@ -32,6 +32,7 @@ AudioEngine("OSS"),
 conf("Custom DSP device:", "/dev/dsp", "ossengine"),
 audio_fd(-1),
 bufSize(0),
+fragSize(0),
 prevbytes(0)
 {}
 
@@ -43,20 +44,6 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 	if ((audio_fd = open(conf.device(), O_WRONLY, 0)) == -1) {
 		std::perror(conf.device());
 		goto fail;
-	}
-	
-	{
-		int format = AFMT_S16_NE;
-		
-		if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
-			std::perror("SNDCTL_DSP_SETFMT");
-			goto fail;
-		}
-		
-		if (format != AFMT_S16_NE) {
-			std::fprintf(stderr, "oss: unsupported format\n");
-			goto fail;
-		}
 	}
 	
 	{
@@ -73,13 +60,27 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 		}
 	}
 	
+	{
+		int format = AFMT_S16_NE;
+		
+		if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
+			std::perror("SNDCTL_DSP_SETFMT");
+			goto fail;
+		}
+		
+		if (format != AFMT_S16_NE) {
+			std::fprintf(stderr, "oss: unsupported format\n");
+			goto fail;
+		}
+	}
+	
 	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) {
 		std::perror("SNDCTL_DSP_SPEED");
 		goto fail;
 	}
 	
 	{
-		int arg = 0x00080000 | std::min(static_cast<int>(std::log((speed * latency) / 2000.0) / std::log(2.0) + 0.5), 0xFFFF);
+		int arg = 0x60000 | std::min(static_cast<int>(std::log(speed * latency * 4 / 6000.0) / std::log(2.0) + 0.5), 0xFFFF);
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &arg) == -1) {
 			std::perror("SNDCTL_DSP_SETFRAGMENT");
@@ -96,6 +97,7 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 		}
 		
 		bufSize = info.bytes >> 2;
+		fragSize = info.fragsize >> 2;
 	}
 	
 	prevbytes = 0;
@@ -121,7 +123,7 @@ int OssEngine::write(void *const buffer, const unsigned samples, const BufferSta
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_GETOPTR, &ci) != -1) {
 			if (static_cast<unsigned>(ci.bytes) > prevbytes) {
-				if (bstate.fromUnderrun > bufSize / 8)
+				if (bstate.fromUnderrun > fragSize)
 					est.feed((ci.bytes - prevbytes) >> 2);
 				else
 					est.reset();

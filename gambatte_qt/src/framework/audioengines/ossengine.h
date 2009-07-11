@@ -27,6 +27,7 @@ class OssEngine : public AudioEngine {
 	RateEst est;
 	int audio_fd;
 	unsigned bufSize;
+	unsigned fragSize;
 	unsigned prevbytes;
 	
 	int doInit(int rate, unsigned latency);
