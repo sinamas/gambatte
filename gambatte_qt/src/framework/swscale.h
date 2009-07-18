@@ -23,47 +23,42 @@
 
 template<typename T>
 void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
-	unsigned long vppos = 0;
+	int vppos = inHeight >> 1;
 	unsigned h = inHeight;
 	
 	do {
-		unsigned long hppos = 0;
-		unsigned w = inWidth;
-		
-		do {
-			do {
-				*dst++ = *src;
-				hppos += inWidth;
-			} while (hppos < outWidth);
+		{
+			int hppos = inWidth >> 1;
+			unsigned w = inWidth;
 			
-			hppos -= outWidth;
-			++src;
-		} while (--w);
-		
-		dst += dstPitch - outWidth;
-		vppos += inHeight;
-		
-		while (vppos < outHeight) {
-			std::memcpy(dst, dst - dstPitch, outWidth * sizeof(T));
-			dst += dstPitch;
-			vppos += inHeight;
+			do {
+				const T pxl = *src++;
+				hppos -= static_cast<int>(outWidth);
+				
+				do {
+					*dst++ = pxl;
+				} while ((hppos += static_cast<int>(inWidth)) < 0);
+			} while (--w);
 		}
 		
-		vppos -= outHeight;
+		dst -= outWidth;
+		dst += dstPitch;
+		vppos -= static_cast<int>(outHeight);
+		
+		while ((vppos += static_cast<int>(inHeight)) < 0) {
+			std::memcpy(dst, dst - dstPitch, outWidth * sizeof(T));
+			dst += dstPitch;
+		}
 	} while (--h);
 }
 
-template<typename T, const T c13mask, const T c2mask, const unsigned c13distance>
+template<typename T, T c13mask, T c2mask, unsigned c13distance>
 void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
-	struct Colorsum {
-		unsigned long c13,c2;
-	};
-	
-	Colorsum *const sums = new Colorsum[inWidth + 1];
+	T *const sums = new T[inWidth + 1];
 	unsigned char *const hcoeffs = new unsigned char[outWidth - 1];
 	
 	{
-		unsigned long hppos = (outWidth + inWidth) >> 1;
+		unsigned hppos = (outWidth + inWidth) >> 1;
 		unsigned w = inWidth;
 		unsigned char *coeff = hcoeffs;
 		
@@ -77,7 +72,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		} while (--w);
 	}
 	
-	unsigned long vppos = (outHeight + inHeight) >> 1;
+	unsigned vppos = (outHeight + inHeight) >> 1;
 	unsigned srcPitch = 0;
 	unsigned h = inHeight;
 	unsigned hn = 2;
@@ -88,47 +83,49 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 				{
 					const unsigned coeff = (vppos << c13distance) / outHeight;
 					const T *s = src;
-					Colorsum *sum = sums + 1;
+					T *sum = sums + 1;
 					unsigned n = inWidth;
 					
 					do {
-						const T p1c13 = *s & c13mask;
-						const T p1c2 = *s & c2mask;
+						const T p1c13 = *s            & c13mask;
+						const T p1c2  = *s            & c2mask ;
 						const T p2c13 = *(s+srcPitch) & c13mask;
-						const T p2c2 = *(s+srcPitch) & c2mask;
-						
-						sum->c13 = (p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask;
-						sum->c2 = (p1c2 << c13distance) + (p2c2 - p1c2) * coeff;
-						
-						++sum;
+						const T p2c2  = *(s+srcPitch) & c2mask ;
 						++s;
+						
+						*sum++ = ((p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask) |
+						         ((p1c2  + ((p2c2  - p1c2)  * coeff >> c13distance)) & c2mask );
 					} while (--n);
 					
 					sums[0] = sums[1];
 				}
 				
 				{
-					const Colorsum *sum = sums;
-					unsigned long hppos = (outWidth + inWidth) >> 1;
+					const T *sum = sums;
+					int hppos = (outWidth + inWidth) >> 1;
 					const unsigned char *coeff = hcoeffs;
 					unsigned w = inWidth;
 					
 					do {
-						while (hppos < outWidth) {
-							*dst++ = ((sum->c13 + (((sum+1)->c13 - sum->c13) * *coeff >> c13distance)) & c13mask) |
-								((((sum->c2 << c13distance) + ((sum+1)->c2 - sum->c2) * *coeff) >> c13distance * 2) & c2mask);
-							hppos += inWidth;
-							++coeff;
-						}
-						
-						hppos -= outWidth;
+						const T p1c13 = *sum     & c13mask;
+						const T p1c2  = *sum     & c2mask;
+						const T p2c13 = *(sum+1) & c13mask;
+						const T p2c2  = *(sum+1) & c2mask;
 						++sum;
+						
+						hppos -= static_cast<int>(outWidth);
+						
+						while (hppos < 0) {
+							*dst++ = ((p1c13 + ((p2c13 - p1c13) * *coeff >> c13distance)) & c13mask) |
+							         ((p1c2  + ((p2c2  - p1c2)  * *coeff >> c13distance)) & c2mask );
+							++coeff;
+							hppos += static_cast<int>(inWidth);
+						}
 					} while (--w);
 					
 					do {
-						*dst++ = sum->c13 | (sum->c2 >> c13distance & c2mask);
-						hppos += inWidth;
-					} while (hppos < (outWidth + inWidth) >> 1);
+						*dst++ = *sum;
+					} while (static_cast<unsigned>(hppos += inWidth) < (outWidth + inWidth) >> 1);
 				}
 				
 				dst += dstPitch - outWidth;
@@ -144,6 +141,100 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		srcPitch = 0;
 		vppos += outHeight - ((outHeight + inHeight) >> 1);
 	} while (--hn);
+	
+	delete []sums;
+	delete []hcoeffs;
+}
+
+template<typename T, T c13mask, T c2mask, unsigned c13distance>
+static void semiLinearScale1d(const T *in, T *out, const unsigned inWidth, const unsigned outWidth, const unsigned char *coeff) {
+	int hppos = inWidth;
+	unsigned w = inWidth;
+	
+	while (--w) {
+		const T px1 = *in;
+		hppos -= static_cast<int>(outWidth);
+		
+		while (hppos < 0) {
+			*out++ = px1;
+			hppos += static_cast<int>(inWidth);
+		}
+		
+		hppos += static_cast<int>(inWidth);
+		
+		const T p1c13 = px1     & c13mask;
+		const T p1c2  = px1     & c2mask;
+		const T p2c13 = *(in+1) & c13mask;
+		const T p2c2  = *(in+1) & c2mask;
+		++in;
+		
+		*out++ = ((p1c13 + ((p2c13 - p1c13) * *coeff >> c13distance)) & c13mask) |
+		         ((p1c2  + ((p2c2  - p1c2 ) * *coeff >> c13distance)) & c2mask ) ;
+		++coeff;
+	}
+	
+	do {
+		*out++ = *in;
+	} while (static_cast<unsigned>(hppos += inWidth) <= outWidth);
+}
+
+template<typename T, T c13mask, T c2mask, unsigned c13distance>
+void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned outPitch) {
+	T *const sums = new T[inWidth];
+	unsigned char *const hcoeffs = new unsigned char[inWidth];
+	
+	{
+		unsigned hppos = inWidth;
+		unsigned w = inWidth;
+		unsigned char *coeff = hcoeffs;
+		
+		while (--w) {
+			while (hppos < outWidth)
+				hppos += inWidth;
+			
+			hppos -= outWidth;
+			*coeff++ = (hppos << c13distance) / inWidth;
+		}
+	}
+	
+	unsigned vppos = inHeight;
+	unsigned h = inHeight;
+	
+	do {
+		if (vppos <= outHeight) {
+			semiLinearScale1d<T,c13mask,c2mask,c13distance>(in, out, inWidth, outWidth, hcoeffs);
+			out += outPitch;
+			
+			while ((vppos += inHeight) <= outHeight) {
+				std::memcpy(out, out - outPitch, outWidth * sizeof(T));
+				out += outPitch;
+			}
+		}
+		
+		if ((vppos -= outHeight) < inHeight) {
+			{
+				const unsigned coeff = (vppos << c13distance) / inHeight;
+				T *sum = sums;
+				unsigned n = inWidth;
+				
+				do {
+					const T p1c13 = *in           & c13mask;
+					const T p1c2  = *in           & c2mask;
+					const T p2c13 = *(in+inWidth) & c13mask;
+					const T p2c2  = *(in+inWidth) & c2mask;
+					++in;
+					
+					*sum++ = ((p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask) |
+					         ((p1c2  + ((p2c2  - p1c2 ) * coeff >> c13distance)) & c2mask ) ;
+				} while (--n);
+			}
+			
+			semiLinearScale1d<T,c13mask,c2mask,c13distance>(sums, out, inWidth, outWidth, hcoeffs);
+			out += outPitch;
+			vppos += inHeight;
+		} else
+			in += inWidth;
+	} while (--h);
 	
 	delete []sums;
 	delete []hcoeffs;
