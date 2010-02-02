@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,11 +21,8 @@
 
 #include <QCoreApplication>
 #include "../fullmodetoggler.h"
-#include <QObject>
-#include <vector>
 #include <X11/Xlib.h>
 #include <X11/extensions/xf86vmode.h>
-#include "../resinfo.h"
 
 class Xf86VidModeToggler : public FullModeToggler {
 	Q_OBJECT

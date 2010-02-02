@@ -24,7 +24,7 @@
 #include <QMutex>
 #include <vector>
 #include <map>
-#include "SDL_Joystick/include/SDL_event.h"
+#include "SDL_event.h"
 
 class InputBoxPair;
 

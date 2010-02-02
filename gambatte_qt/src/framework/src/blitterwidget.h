@@ -23,9 +23,9 @@
 #include <QString>
 #include <memory>
 #include <usec.h>
-#include "pixelbuffer.h"
+#include "../pixelbuffer.h"
 #include "videobufferlocker.h"
-#include "mediasource.h"
+#include "../mediasource.h"
 
 class QHBoxLayout;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,33 +16,44 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef NULLTOGGLER_H
-#define NULLTOGGLER_H
+#ifndef QUARTZTOGGLER_H_
+#define QUARTZTOGGLER_H_
 
 #include "../fullmodetoggler.h"
-#include <QWidget>
+#include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
 
-class NullToggler : public FullModeToggler {
+class QWidget;
+
+class QuartzToggler : public FullModeToggler {
 	Q_OBJECT
-	
-	const std::vector<ResInfo> nullVector;
-	bool fullRes;
+		
+	CFDictionaryRef originalMode;
+	CGDirectDisplayID *activeDspys;
+	std::vector<std::vector<ResInfo> > infoVector;
+	std::vector<unsigned> fullResIndex;
+	std::vector<unsigned> fullRateIndex;
+	unsigned widgetScreen;
+	bool isFull;
 	
 public:
-	NullToggler() : fullRes(false) {}
-	unsigned currentResIndex(unsigned /*screen*/) const { return 0; }
-	unsigned currentRateIndex(unsigned /*screen*/) const { return 0; }
-	bool isFullMode() const { return fullRes; }
-	void setMode(unsigned /*screen*/, unsigned /*resIndex*/, unsigned /*rateIndex*/) {}
-	void setFullMode(bool enable) { fullRes = enable; }
-	void emitRate() { emit rateChange(0); }
-	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return nullVector; }
-	void setScreen(const QWidget */*widget*/) {}
-	unsigned screen() const { return 0; }
-	unsigned screens() const { return 0; }
+	QuartzToggler();
+	~QuartzToggler();
+	unsigned currentResIndex(unsigned screen) const { return fullResIndex[screen]; }
+	unsigned currentRateIndex(unsigned screen) const { return fullRateIndex[screen]; }
+	const QRect fullScreenRect(const QWidget *w) const;
+	bool isFullMode() const { return isFull; }
+	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
+	void setFullMode(bool enable);
+	void emitRate();
+	const std::vector<ResInfo>& modeVector(unsigned screen) const { return infoVector[screen]; }
+	void setScreen(const QWidget *widget);
+	unsigned screen() const { return widgetScreen; }
+	unsigned screens() const { return infoVector.size(); }
 	
 signals:
 	void rateChange(int newHz);
+//	void modeChange();
 };
 
 #endif

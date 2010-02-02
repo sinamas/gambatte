@@ -19,7 +19,7 @@
 #ifndef AUDIOENGINECONF_H
 #define AUDIOENGINECONF_H
 
-#include "audioengine.h"
+#include "src/audioengine.h"
 
 class ConstAudioEngineConf {
 	const AudioEngine *const ae;

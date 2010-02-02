@@ -16,8 +16,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "sounddialog.h"
-#include <resample/resamplerinfo.h>
+#include "../sounddialog.h"
+#include "resample/resamplerinfo.h"
 #include <QComboBox>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -29,8 +29,7 @@
 #include <QInputDialog>
 #include <cassert>
 
-#include "audioengineconf.h"
-#include "mainwindow.h"
+#include "../mainwindow.h"
 
 struct SampleRateInfo {
 	enum { NOT_SUPPORTED = -1 };

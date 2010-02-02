@@ -27,13 +27,13 @@
 #include "audioengineconf.h"
 #include "blitterconf.h"
 #include "uncopyable.h"
-#include "callqueue.h"
-#include "mediaworker.h"
-#include "blittercontainer.h"
-#include "fullmodetoggler.h"
-#include "SDL_Joystick/include/SDL_joystick.h"
+#include "src/callqueue.h"
+#include "src/mediaworker.h"
+#include "src/blittercontainer.h"
+#include "src/fullmodetoggler.h"
+#include "SDL_joystick.h"
 #include "resample/resamplerinfo.h"
-#include "auto_vector.h"
+#include "src/auto_vector.h"
 
 class MediaSource;
 

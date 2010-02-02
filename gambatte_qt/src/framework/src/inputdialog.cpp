@@ -16,7 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "inputdialog.h"
+#include "../inputdialog.h"
 
 #include <QMenu>
 #include <QContextMenuEvent>
@@ -29,7 +29,7 @@
 #include <QSettings>
 #include <QTabWidget>
 #include <cassert>
-#include "SDL_Joystick/include/SDL_joystick.h"
+#include "SDL_joystick.h"
 #include "joysticklock.h"
 
 static const char* keyToString(int key) {

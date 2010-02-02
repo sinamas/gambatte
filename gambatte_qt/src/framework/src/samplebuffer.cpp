@@ -17,9 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "samplebuffer.h"
-#include <resample/resamplerinfo.h>
-#include <resample/resampler.h>
-#include "mediasource.h"
+#include "resample/resamplerinfo.h"
+#include "resample/resampler.h"
+#include "../mediasource.h"
 #include <cstring>
 
 void SampleBuffer::reset() {

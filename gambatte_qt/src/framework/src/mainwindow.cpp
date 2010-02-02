@@ -16,7 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "mainwindow.h"
+#include "../mainwindow.h"
 #include <QEvent>
 #include <QKeyEvent>
 #include <QLayout>
@@ -31,7 +31,7 @@
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
 #include "getfullmodetoggler.h"
-#include "SDL_Joystick/include/SDL_event.h"
+#include "SDL_event.h"
 #include "addaudioengines.h"
 #include "addblitterwidgets.h"
 

@@ -18,8 +18,8 @@
  ***************************************************************************/
 #include "mediaworker.h"
 #include "joysticklock.h"
-#include "SDL_Joystick/include/SDL_joystick.h"
-#include "mediasource.h"
+#include "SDL_joystick.h"
+#include "../mediasource.h"
 
 #ifdef Q_WS_WIN
 #include <Objbase.h> // For CoInitialize

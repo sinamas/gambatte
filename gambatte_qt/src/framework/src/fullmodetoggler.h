@@ -16,47 +16,33 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef XRANDRTOGGLER_H
-#define XRANDRTOGGLER_H
-
-#include "../fullmodetoggler.h"
+#ifndef FULLMODETOGGLER_H
+#define FULLMODETOGGLER_H
 
 #include <QObject>
+#include <QWidget>
+#include <QRect>
 #include <vector>
-
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
 
 #include "../resinfo.h"
 
-class XRandRToggler : public FullModeToggler {
+class FullModeToggler : public QObject {
 	Q_OBJECT
-		
-	std::vector<ResInfo> infoVector;
-	XRRScreenConfiguration *config;
-	unsigned originalResIndex;
-	unsigned fullResIndex;
-	Rotation rotation;
-	unsigned fullRateIndex;
-	short originalRate;
-	bool isFull;
-	
+
 public:
-	static bool isUsable();
-	XRandRToggler();
-	~XRandRToggler();
-	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
-	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
-	const QRect fullScreenRect(const QWidget *w) const;
-	bool isFullMode() const { return isFull; }
-	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
-	void setFullMode(bool enable);
-	void emitRate();
-	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
-	void setScreen(const QWidget */*widget*/) {}
-	unsigned screen() const { return 0; }
-	unsigned screens() const { return 1; }
-	
+	virtual ~FullModeToggler() {};
+	virtual unsigned currentResIndex(unsigned screen) const = 0;
+	virtual unsigned currentRateIndex(unsigned screen) const = 0;
+	virtual const QRect fullScreenRect(const QWidget *w) const { return w->geometry(); }
+	virtual bool isFullMode() const = 0;
+	virtual void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex) = 0;
+	virtual void setFullMode(bool enable) = 0;
+	virtual void emitRate() = 0;
+	virtual const std::vector<ResInfo>& modeVector(unsigned screen) const = 0;
+	virtual void setScreen(const QWidget *widget) = 0;
+	virtual unsigned screen() const = 0;
+	virtual unsigned screens() const = 0;
+
 signals:
 	void rateChange(int newHz);
 //	void modeChange();

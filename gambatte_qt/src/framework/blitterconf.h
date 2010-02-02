@@ -19,7 +19,7 @@
 #ifndef BLITTERCONF_H
 #define BLITTERCONF_H
 
-#include "blitterwidget.h"
+#include "src/blitterwidget.h"
 
 class ConstBlitterConf {
 	const BlitterWidget *const blitter;

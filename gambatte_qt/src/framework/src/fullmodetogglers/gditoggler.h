@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,9 +21,6 @@
 #define GDITOGGLER_H_
 
 #include "../fullmodetoggler.h"
-#include <QObject>
-#include <vector>
-#include "../resinfo.h"
 
 class GdiToggler : public FullModeToggler {
 	Q_OBJECT

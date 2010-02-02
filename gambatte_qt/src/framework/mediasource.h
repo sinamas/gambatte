@@ -20,7 +20,7 @@
 #define MEDIASOURCE_H
 
 #include <QtGlobal>
-#include "SDL_Joystick/include/SDL_event.h"
+#include "SDL_event.h"
 
 class PixelBuffer;
 class QKeyEvent;

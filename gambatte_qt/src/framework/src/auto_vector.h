@@ -20,7 +20,7 @@
 #define AUTO_VECTOR
 
 #include <vector>
-#include "uncopyable.h"
+#include "../uncopyable.h"
 
 template<class T, class Allocator = std::allocator<T*> >
 class auto_vector : private std::vector<T*, Allocator>, Uncopyable {
