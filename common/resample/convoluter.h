@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include "rshift16_round.h"
 
 template<unsigned channels, unsigned phases>
 class PolyPhaseConvoluter {
@@ -57,6 +58,9 @@ std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const shor
 	if (!kernel || !inlen)
 		return 0;
 	
+	// The gist of what happens here is given by the commented pseudo-code below.
+	// Note that the order of the kernel elements has been changed for efficiency in the real implementation.
+	
 	/*for (std::size_t x = 0; x < inlen + M; ++x) {
 		const int end = x < inlen ? M + 1 : inlen + M - x;
 		int j = x < M ? M - x : 0;
@@ -66,6 +70,8 @@ std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const shor
 			buffer[x] += kernel[j] * start[(x - M + j) / phases];
 		}
 	}*/
+	
+	// Slightly more optimized version.
 	
 	/*for (std::size_t x = 0; x < inlen + M; ++x) {
 		const int end = x < inlen ? M + 1 : inlen + M - x;
@@ -85,10 +91,9 @@ std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const shor
 	std::size_t x = x_;
 	
 	for (; x < (M < inlen ? M : inlen); x += div_) {
+		const short *k = kernel + ((x + 1) % phases) * phaseLen; // adjust phase so we don't start on a virtual 0 sample
+		const short *s = prevbuf + x / phases + 1;
 		long acc = 0;
-		const unsigned phase = (phases - (x + 1) % phases) % phases; // adjust phase so we don't start on a virtual 0 sample
-		const short *s = prevbuf + (x + 1 + phase) / phases;
-		const short *k = kernel + phase * phaseLen;
 		unsigned n = prevbuf + phaseLen - s;
 
 		while (n--) {
@@ -103,15 +108,18 @@ std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const shor
 			s += channels;
 		} while (--n);
 		
-		*out = acc / 0x10000;
+		*out = rshift16_round(acc);
 		out += channels;
 	}
 	
+	// We could easily get rid of the division and modulus here by updating the
+	// k and s pointers incrementally. However, we currently only use powers of 2
+	// and we would end up referencing more variables which often compiles to bad
+	// code on x86, which is why I'm also hesistant to get rid of the template arguments.
 	for (; x < inlen; x += div_) {
+		const short *k = kernel + ((x + 1) % phases) * phaseLen; // adjust phase so we don't start on a virtual 0 sample
+		const short *s = in + (x / phases + 1 - phaseLen) * channels;
 		long acc = 0;
-		const unsigned phase = (phases - (x - M) % phases) % phases; // adjust phase so we don't start on a virtual 0 sample
-		const short *s = in + ((x - M + phase) / phases) * channels;
-		const short *k = kernel + phase * phaseLen;
 // 		unsigned n = (M + 1/* - phase + phases - 1*/) / phases;
 		unsigned n = phaseLen;
 		
@@ -120,7 +128,7 @@ std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const shor
 			s += channels;
 		} while (--n);
 		
-		*out = acc / 0x10000;
+		*out = rshift16_round(acc);
 		out += channels;
 	}
 	

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2009 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,25 +16,18 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef KREED2XSAI_H
-#define KREED2XSAI_H
+#ifndef PIXELBUFFER_H
+#define PIXELBUFFER_H
 
-#include "filter.h"
-
-struct FilterInfo;
-
-class Kreed_2xSaI : public Filter {
-	Gambatte::uint_least32_t *buffer;
-
-public:
-	Kreed_2xSaI();
-	~Kreed_2xSaI();
-	void init();
-	void outit();
-	const Gambatte::FilterInfo& info();
-	void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch);
-	Gambatte::uint_least32_t* inBuffer();
-	unsigned inPitch();
+struct PixelBuffer {
+	enum PixelFormat { RGB32, RGB16, UYVY };
+	
+	void *data;
+	int pitch; // number of pixels (not bytes) between line N and line N+1
+	unsigned width, height;
+	PixelFormat pixelFormat;
+	PixelBuffer(unsigned width = 0, unsigned height = 0, PixelFormat pixelFormat = RGB32, void *data = 0, int pitch = 0) :
+			data(data), pitch(pitch), width(width), height(height), pixelFormat(pixelFormat) {}
 };
 
 #endif

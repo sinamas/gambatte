@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,7 +26,8 @@ class QComboBox;
 #include <QList>
 #include <memory>
 #include <dsound.h>
-#include <usec.h>
+#include "usec.h"
+#include "rateest.h"
 
 class DirectSoundEngine : public AudioEngine {
 	RateEst est;
@@ -50,6 +51,7 @@ class DirectSoundEngine : public AudioEngine {
 	static BOOL CALLBACK enumCallback(LPGUID, const char*, const char*, LPVOID);
 
 	int doInit(int rate, unsigned latency);
+	void doAcceptSettings();
 	int waitForSpace(DWORD &pc, DWORD &wc, unsigned space);
 	int getPosAndStatusCheck(DWORD &status, DWORD &pc, DWORD &wc);
 	int doWrite(void *buffer, unsigned frames, DWORD status, DWORD pc, DWORD wc);
@@ -60,13 +62,12 @@ public:
 	~DirectSoundEngine();
 	void uninit();
 	int write(void *buffer, unsigned frames);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
-	const RateEst::Result rateEstimate() const { return est.result(); }
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
+	long rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause();
-	QWidget* settingsWidget() { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings();
+	QWidget* settingsWidget() const { return confWidget.get(); }
+	void rejectSettings() const;
 };
 
 #endif

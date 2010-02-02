@@ -20,102 +20,62 @@
 #define MEDIASOURCE_H
 
 #include <QtGlobal>
-#include <QString>
-#include <vector>
-#include "rational.h"
+#include "SDL_Joystick/include/SDL_event.h"
 
-//TODO: stop dictating audio/video formats.
-//      Choice based on:
-//       - formats supported by the source, listed by priority
-//       - formats supported natively in the engine, list of priorities from the engine
-//       - fastest estimated software conversion fallback
-//       - only consider formats that have at least detail level of min(maxSorceDetailLvl, maxOutDetailLvl)
-//         (note that the source may support formats of higher details than it needs)
+class PixelBuffer;
+class QKeyEvent;
 
 class MediaSource {
 protected:
+	/**
+	  * @param overupdate The soundBuf passed to the update function is set to a size
+	  *                   that depends on the number of audio samples per video frame,
+	  *                   so that it should be possible to fit one video frame's worth
+	  *                   of audio in the buffer. overupdate is added to this size.
+	  *                   This is useful if a MediaSource is unable to update for an
+	  *                   exact amount of audio samples. For instance if, the MediaSource
+	  *                   may internally update for up to N samples more than requested
+	  *                   overupdate should be set to N to ensure that it is possible to
+	  *                   fit N extra samples per video frame. Otherwise there may be
+	  *                   multiple updates per video frame.
+	  */
 	MediaSource(const unsigned overupdate = 0) : overupdate(overupdate) {}
 public:
-	/**
-	  * Formats that you'll have to deal with if a BlitterWidget decides to give you a buffer with such a format.
-	  *
-	  * @enum RGB32 Native endian RGB with 8 bits pr color. rmask: 0xff0000, gmask: 0x00ff00, bmask: 0x0000ff
-	  *             You may want to keep the top 8 bits at 0 (not sure).
-	  *
-	  * @enum RGB16 Native endian RGB with 5. 6. and 5 bits for red, green and blue respectively.
-	  *             rmask: 0xf800, gmask: 0x07e0 , bmask: 0x001f
-	  *
-	  * @enum UYVY Big endian UYVY, 8 bits pr field. Normally two horizontal neighbour pixels share U and V,
-	  *            but this expects video at 2x width to avoid chroma loss. One pixel is made up of
-	  *            U, Y, V and Y (the same value) again for a total of 32 bits pr pixel.
-	  *            umask: 0xff000000, ymask: 0x00ff00ff, vmask: 0x0000ff00 (big endian)
-	  *            umask: 0x000000ff, ymask: 0xff00ff00, vmask: 0x00ff0000 (little endian)
-	  */
-	enum PixelFormat { RGB32, RGB16, UYVY };
-	
-	struct VideoSourceInfo {
-		// label used in the video dialog combobox.
-		QString label;
-		
-		// The size of the buffer given through setPixelBuffer depends on these.
-		// (so does scaling calculations and other things)
-		unsigned width;
-		unsigned height;
-	};
-	
-	struct ButtonInfo {
-		// Label used in input settings dialog. If this is empty the button won't be configurable, but will use the defaultKey.
-		QString label;
-		
-		// Tab label used in input settings dialog.
-		QString category;
-		
-		// Default Qt::Key. Use Qt::Key_unknown for none.
-		int defaultKey;
-		
-		// Default alternate Qt::Key. Use Qt::Key_unknown for none.
-		int defaultAltKey;
-	};
-	
 	const unsigned overupdate;
 	
-	/**
-	  * Reimplement to get buttonPress events for buttons of corresponding index to the
-	  * buttonInfos given to MainWindow.
-	  */
-	virtual void buttonPressEvent(unsigned /*buttonIndex*/) {}
-	virtual void buttonReleaseEvent(unsigned /*buttonIndex*/) {}
+	// Reimplement to get input events. The InputDialog class may be useful.
+	// joystickEvent is called from the worker thread, while keyPress/ReleaseEvent
+	// are called from the GUI thread.
+	virtual void keyPressEvent(const QKeyEvent *) {}
+	virtual void keyReleaseEvent(const QKeyEvent *) {}
+	virtual void joystickEvent(const SDL_Event&) {}
 	
 	/**
-	  * Called by MainWindow to set the pixel buffer according to the video source selcted,
-	  * and the active BlitterWidget. Can be assumed to have enough space to fit the
-	  * dimensions of the current video source in the given format.
+	  * Update until a new frame of video, or samples audio samples have been produced.
+	  * May postpone writing to frameBuf until generateVideoFrame is called.
 	  *
-	  * @param pixels Pointer to start of buffer.
-	  * @param format Format of the buffer given.
-	  * @param pitch Distance from the start of one line in the buffer to the next in pixels (as opposed
-	  *              to bytes which is more common).
+	  * Be aware that there can be a delay between requests for a new video format
+	  * until the frame buffer has changed. IOW frameBuf may be of an
+	  * unexpected size at times. The data field of frameBuf can be 0 when
+	  * the frame buffer is locked by someone else.
+	  *
+	  * Called in a separate (worker) thread from the GUI thread.
+	  *
+	  * @param frameBuf Frame buffer to be filled with video data.
+	  * @param soundBuf Audio buffer to write 16-bit stereo samples to.
+	  * @param samples In: Size of soundBuf in number of stereo samples. Out: Number of stereo samples written to soundBuf.
+	  * @return The number of stereo samples that should be output before the video frame is displayed. Or a negative number if no new video frame should be displayed.
 	  */
-	virtual void setPixelBuffer(void *pixels, PixelFormat format, unsigned pitch) = 0;
+	virtual long update(const PixelBuffer &frameBuf, qint16 *soundBuf, long &samples) = 0;
 	
 	/**
-	  * Sets video source to the one indicated by the corresponding index of the VideoSourceInfos
-	  * given to MainWindow. setPixelBuffer will be called if a buffer change is necessary.
-	  * Different video sources can have different dimensions and can for instance be used
-	  * to select between video filters.
+	  * This is called after update returns, but only when it is clear that the frame won't be skipped.
+	  * This gives an opportunity to delay heavy video work until it is clear that it will be used.
+	  * For instance, if the audio buffer is low, we may want to skip updating video to avoid underruns.
+	  * Or if we're fast forwarding we don't want to waste time updating video unnecessarily.
+	  * Heavy post-processing of video is a good candidate for this function.
 	  */
-	virtual void setVideoSource(unsigned videoSourceIndex) = 0;
-	
-	/** Updates until at least 'samples' stereo sound samples are produced in the supplied buffer.
-	  * May run for uptil overupdate stereo samples too long.
-	  * A stereo sample consists of two native endian 2s complement 16-bit PCM samples,
-	  * with the left sample preceding the right one.
-	  *
-	  * @param soundBuf buffer with space >= samples + overupdate
-	  * @param samples number of stereo samples to produce
-	  * @return actual number of samples produced
-	  */
-	virtual unsigned update(qint16 *soundBuf, unsigned samples) = 0;
+	virtual void generateVideoFrame(const PixelBuffer &/*fb*/) {}
 	
 	virtual ~MediaSource() {}
 };

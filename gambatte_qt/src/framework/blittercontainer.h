@@ -20,30 +20,39 @@
 #define BLITTERCONTAINER_H
 
 #include <QWidget>
+#include <QSize>
 
 class BlitterWidget;
-class FullModeToggler;
-class VideoDialog;
+
+enum ScalingMethod { UNRESTRICTED, KEEP_RATIO, INTEGER };
 
 class BlitterContainer : public QWidget {
-	const VideoDialog *const videoDialog;
 	BlitterWidget *blitter_;
+	QSize aspectRatio_;
+	QSize sourceSize_;
+	ScalingMethod scalingMethod_;
 	bool parentExclusive;
 	
 	void doLayout(int w, int h);
 	void testExclusive();
+	void updateLayout() { doLayout(width(), height()); }
 	
 protected:
 	void moveEvent(QMoveEvent *event);
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	BlitterContainer(const VideoDialog *videoDialog, QWidget *parent = 0);
+	BlitterContainer(QWidget *parent = 0);
 	~BlitterContainer();
+	void setAspectRatio(const QSize &);
 	void setBlitter(BlitterWidget *blitter);
-	void updateLayout() { doLayout(width(), height()); }
+	void setScalingMethod(ScalingMethod);
+	void setSourceSize(const QSize &);
 	void parentExclusiveEvent(bool fs) { parentExclusive = fs; testExclusive(); }
 	BlitterWidget* blitter() { return blitter_; }
+	const QSize& aspectRatio() const { return aspectRatio_; }
+	ScalingMethod scalingMethod() const { return scalingMethod_; }
+	const QSize& sourceSize() const { return sourceSize_; }
 };
 
 #endif

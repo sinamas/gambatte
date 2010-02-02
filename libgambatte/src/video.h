@@ -19,21 +19,11 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-namespace Gambatte {
-class VideoBlitter;
-struct FilterInfo;
-}
-
-class Filter;
 class SaveState;
 
-#include <vector>
 #include <memory>
 #include "event_queue.h"
-#include "videoblitter.h"
-#include "array.h"
 #include "int.h"
-#include "colorconversion.h"
 #include "osd_element.h"
 
 #include "video/video_event_comparer.h"
@@ -53,10 +43,12 @@ class SaveState;
 #include "video/m3_extra_cycles.h"
 
 class LCD {
+	/*enum Event { IRQ_EVENT, BREAK, SC_READ, MODE3_EVENT, LY_COUNT };
+	enum Mode3Event { WE_MASTER_CHECK, WE_OFF_CHECK, WE_ON_CHECK, WX_READ, WY_READ4, WY_READ3, WY_READ2, WY_READ1, SPRITE_MAP, SCX_READ };
+	enum IrqEvent { LYC_IRQ, MODE1_IRQ, MODE2_IRQ, MODE0_IRQ };*/
+	
 	//static const uint8_t xflipt[0x100];
 	unsigned long dmgColorsRgb32[3 * 4];
-	unsigned long dmgColorsRgb16[3 * 4];
-	unsigned long dmgColorsUyvy[3 * 4];
 
 	unsigned long bgPalette[8 * 4];
 	unsigned long spPalette[8 * 4];
@@ -69,13 +61,8 @@ class LCD {
 	const unsigned char *bgTileMap;
 	const unsigned char *wdTileMap;
 
-	Gambatte::VideoBlitter *vBlitter;
-	Filter *filter;
-
-	void *dbuffer;
+	Gambatte::uint_least32_t *dbuffer;
 	void (LCD::*draw)(unsigned xpos, unsigned ypos, unsigned endX);
-	unsigned long (*gbcToFormat)(unsigned bgr15);
-	const unsigned long *dmgColors;
 
 	unsigned long lastUpdate;
 	unsigned long videoCycles;
@@ -102,12 +89,7 @@ class LCD {
 	Mode2Irq mode2Irq;
 	IrqEvent irqEvent;
 
-	Gambatte::PixelBuffer pb;
-	Array<Gambatte::uint_least32_t> tmpbuf;
-	Rgb32ToUyvy rgb32ToUyvy;
 	std::auto_ptr<OsdElement> osdElement;
-
-	std::vector<Filter*> filters;
 
 	unsigned char drawStartCycle;
 	unsigned char scReadOffset;
@@ -123,9 +105,6 @@ class LCD {
 
 	static void setDmgPalette(unsigned long *palette, const unsigned long *dmgColors, unsigned data);
 	void setDmgPaletteColor(unsigned index, unsigned long rgb32);
-	static unsigned long gbcToRgb32(unsigned bgr15);
-	static unsigned long gbcToRgb16(unsigned bgr15);
-	static unsigned long gbcToUyvy(unsigned bgr15);
 
 	void refreshPalettes();
 	void setDBuffer();
@@ -140,6 +119,9 @@ class LCD {
 	bool isMode2IrqPeriod(unsigned long cycleCounter);
 	bool isLycIrqPeriod(unsigned lycReg, unsigned endCycles, unsigned long cycleCounter);
 	bool isMode1IrqPeriod(unsigned long cycleCounter);
+	
+	void doCgbBgColorChange(unsigned index, unsigned data, unsigned long cycleCounter);
+	void doCgbSpColorChange(unsigned index, unsigned data, unsigned long cycleCounter);
 
 	template<typename T> void bg_drawPixels(T *buffer_line, unsigned xpos, unsigned end, unsigned scx, unsigned tilemappos,
 			const unsigned char *tilemap, const unsigned char *tiledata);
@@ -158,18 +140,12 @@ class LCD {
 
 public:
 	LCD(const unsigned char *oamram, const unsigned char *vram_in);
-	~LCD();
 	void reset(const unsigned char *oamram, bool cgb);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state) const;
 	void loadState(const SaveState &state, const unsigned char *oamram);
-	void setVideoBlitter(Gambatte::VideoBlitter *vb);
-	void videoBufferChange();
-	void setVideoFilter(unsigned n);
-	std::vector<const Gambatte::FilterInfo*> filterInfo() const;
-	unsigned videoWidth() const;
-	unsigned videoHeight() const;
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
+	void setVideoBuffer(Gambatte::uint_least32_t *videoBuf, unsigned pitch);
 
 	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
 		this->osdElement = osdElement;
@@ -184,36 +160,30 @@ public:
 	void dmgBgPaletteChange(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		bgpData[0] = data;
-		setDmgPalette(bgPalette, dmgColors, data);
+		setDmgPalette(bgPalette, dmgColorsRgb32, data);
 	}
 
 	void dmgSpPalette1Change(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		objpData[0] = data;
-		setDmgPalette(spPalette, dmgColors + 4, data);
+		setDmgPalette(spPalette, dmgColorsRgb32 + 4, data);
 	}
 
 	void dmgSpPalette2Change(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);
 		objpData[1] = data;
-		setDmgPalette(spPalette + 4, dmgColors + 8, data);
+		setDmgPalette(spPalette + 4, dmgColorsRgb32 + 8, data);
 	}
 
 	void cgbBgColorChange(unsigned index, const unsigned data, const unsigned long cycleCounter) {
-		if (bgpData[index] != data && cgbpAccessible(cycleCounter)) {
-			update(cycleCounter);
-			bgpData[index] = data;
-			index >>= 1;
-			bgPalette[index] = (*gbcToFormat)(bgpData[index << 1] | bgpData[(index << 1) + 1] << 8);
+		if (bgpData[index] != data) {
+			doCgbBgColorChange(index, data, cycleCounter);
 		}
 	}
 
 	void cgbSpColorChange(unsigned index, const unsigned data, const unsigned long cycleCounter) {
-		if (objpData[index] != data && cgbpAccessible(cycleCounter)) {
-			update(cycleCounter);
-			objpData[index] = data;
-			index >>= 1;
-			spPalette[index] = (*gbcToFormat)(objpData[index << 1] | objpData[(index << 1) + 1] << 8);
+		if (objpData[index] != data) {
+			doCgbSpColorChange(index, data, cycleCounter);
 		}
 	}
 
@@ -225,7 +195,7 @@ public:
 		return cgb & cgbpAccessible(cycleCounter) ? objpData[index] : 0xFF;
 	}
 
-	void updateScreen(unsigned long cc);
+	void updateScreen(bool blanklcd, unsigned long cc);
 	void enableChange(unsigned long cycleCounter);
 	void preResetCounter(unsigned long cycleCounter);
 	void postResetCounter(unsigned long oldCC, unsigned long cycleCounter);

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,7 +21,7 @@
 #include "blitterwidgets/directdrawblitter.h"
 #include "blitterwidgets/direct3dblitter.h"
 
-void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, PixelBufferSetter setPixelBuffer) {
-	blitters.push_back(new DirectDrawBlitter(setPixelBuffer));
-	blitters.push_back(new Direct3DBlitter(setPixelBuffer));
+void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl) {
+	blitters.push_back(new DirectDrawBlitter(vbl));
+	blitters.push_back(new Direct3DBlitter(vbl));
 }

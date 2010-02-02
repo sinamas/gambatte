@@ -27,10 +27,12 @@ struct Rational {
 	float toFloat() const { return static_cast<float>(num) / denom; }
 	double toDouble() const { return static_cast<double>(num) / denom; }
 	
+	Rational reciprocal() const { return Rational(denom, num); }
+	
 	// assumes positive num and denom
-	long ceil() const { return (num - 1) / denom + 1; }
-	long floor() const { return num / denom; }
-	long round() const { return (num + (denom >> 1)) / denom; }
+	long ceiled() const { return (num - 1) / denom + 1; }
+	long floored() const { return num / denom; }
+	long rounded() const { return (num + (denom >> 1)) / denom; }
 };
 
 #endif

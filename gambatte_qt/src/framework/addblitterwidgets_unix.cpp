@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,7 +21,7 @@
 #include "blitterwidgets/x11blitter.h"
 #include "blitterwidgets/xvblitter.h"
 
-void addBlitterWidgets(std::vector<BlitterWidget*> &blitters, PixelBufferSetter setPixelBuffer) {
-	blitters.push_back(new X11Blitter(setPixelBuffer));
-	blitters.push_back(new XvBlitter(setPixelBuffer));
+void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl) {
+	blitters.push_back(new X11Blitter(vbl));
+	blitters.push_back(new XvBlitter(vbl));
 }

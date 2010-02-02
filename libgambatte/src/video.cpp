@@ -17,14 +17,6 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "video.h"
-#include "videoblitter.h"
-#include "video/filters/filter.h"
-#include "video/filters/catrom2x.h"
-#include "video/filters/catrom3x.h"
-#include "video/filters/kreed2xsai.h"
-#include "video/filters/maxsthq2x.h"
-#include "video/filters/maxsthq3x.h"
-#include "filterinfo.h"
 #include "savestate.h"
 #include "video/basic_add_event.h"
 #include <cstring>
@@ -44,7 +36,7 @@ void LCD::setDmgPalette(unsigned long *const palette, const unsigned long *const
 	palette[3] = dmgColors[data >> 6 & 3];
 }
 
-unsigned long LCD::gbcToRgb32(const unsigned bgr15) {
+static unsigned long /*LCD::*/gbcToRgb32(const unsigned bgr15) {
 	const unsigned long r = bgr15 & 0x1F;
 	const unsigned long g = bgr15 >> 5 & 0x1F;
 	const unsigned long b = bgr15 >> 10 & 0x1F;
@@ -52,7 +44,7 @@ unsigned long LCD::gbcToRgb32(const unsigned bgr15) {
 	return ((r * 13 + g * 2 + b) >> 1) << 16 | ((g * 3 + b) << 9) | ((r * 3 + g * 2 + b * 11) >> 1);
 }
 
-unsigned long LCD::gbcToRgb16(const unsigned bgr15) {
+/*unsigned long LCD::gbcToRgb16(const unsigned bgr15) {
 	const unsigned r = bgr15 & 0x1F;
 	const unsigned g = bgr15 >> 5 & 0x1F;
 	const unsigned b = bgr15 >> 10 & 0x1F;
@@ -78,19 +70,15 @@ unsigned long LCD::gbcToUyvy(const unsigned bgr15) {
 #else
 	return y << 24 | v << 16 | y << 8 | u;
 #endif
-}
+}*/
 
 LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) :
 	vram(vram_in),
 	bgTileData(vram),
 	bgTileMap(vram + 0x1800),
 	wdTileMap(bgTileMap),
-	vBlitter(NULL),
-	filter(NULL),
 	dbuffer(NULL),
 	draw(NULL),
-	gbcToFormat(gbcToRgb32),
-	dmgColors(dmgColorsRgb32),
 	lastUpdate(0),
 	videoCycles(0),
 	dpitch(0),
@@ -127,29 +115,15 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram_in) 
 		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
 	}
 
-	filters.push_back(NULL);
-	filters.push_back(new Catrom2x);
-	filters.push_back(new Catrom3x);
-	filters.push_back(new Kreed_2xSaI);
-	filters.push_back(new MaxSt_Hq2x);
-	filters.push_back(new MaxSt_Hq3x);
-
 	reset(oamram, false);
+	setVideoBuffer(0, 160);
 	setDoubleSpeed(false);
-
-	setVideoFilter(0);
-}
-
-LCD::~LCD() {
-// 	delete []filter_buffer;
-	for (std::size_t i = 0; i < filters.size(); ++i)
-		delete filters[i];
 }
 
 void LCD::reset(const unsigned char *const oamram, const bool cgb_in) {
 	cgb = cgb_in;
 	spriteMapper.reset(oamram, cgb_in);
-	setDBuffer();
+	refreshPalettes();
 }
 
 void LCD::resetVideoState(const unsigned long cycleCounter) {
@@ -197,7 +171,7 @@ void LCD::setDoubleSpeed(const bool ds) {
 }
 
 void LCD::setStatePtrs(SaveState &state) {
-	state.ppu.drawBuffer.set(static_cast<Gambatte::uint_least32_t*>(dbuffer), dpitch * 144);
+// 	state.ppu.drawBuffer.set(static_cast<Gambatte::uint_least32_t*>(dbuffer), dpitch * 144);
 	state.ppu.bgpData.set(bgpData, sizeof bgpData);
 	state.ppu.objpData.set(objpData, sizeof objpData);
 	spriteMapper.setStatePtrs(state);
@@ -269,73 +243,14 @@ void LCD::loadState(const SaveState &state, const unsigned char *oamram) {
 void LCD::refreshPalettes() {
 	if (cgb) {
 		for (unsigned i = 0; i < 8 * 8; i += 2) {
-			bgPalette[i >> 1] = (*gbcToFormat)(bgpData[i] | bgpData[i + 1] << 8);
-			spPalette[i >> 1] = (*gbcToFormat)(objpData[i] | objpData[i + 1] << 8);
+			bgPalette[i >> 1] = gbcToRgb32(bgpData[i] | bgpData[i + 1] << 8);
+			spPalette[i >> 1] = gbcToRgb32(objpData[i] | objpData[i + 1] << 8);
 		}
 	} else {
-		setDmgPalette(bgPalette, dmgColors, bgpData[0]);
-		setDmgPalette(spPalette, dmgColors + 4, objpData[0]);
-		setDmgPalette(spPalette + 4, dmgColors + 8, objpData[1]);
+		setDmgPalette(bgPalette, dmgColorsRgb32, bgpData[0]);
+		setDmgPalette(spPalette, dmgColorsRgb32 + 4, objpData[0]);
+		setDmgPalette(spPalette + 4, dmgColorsRgb32 + 8, objpData[1]);
 	}
-}
-
-void LCD::setVideoBlitter(Gambatte::VideoBlitter *vb) {
-	vBlitter = vb;
-
-	if (vBlitter) {
-		vBlitter->setBufferDimensions(videoWidth(), videoHeight());
-		pb = vBlitter->inBuffer();
-	}
-
-	setDBuffer();
-}
-
-void LCD::videoBufferChange() {
-	if (vBlitter) {
-		pb = vBlitter->inBuffer();
-		setDBuffer();
-	}
-}
-
-void LCD::setVideoFilter(const unsigned n) {
-	const unsigned oldw = videoWidth();
-	const unsigned oldh = videoHeight();
-
-	if (filter)
-		filter->outit();
-
-	filter = filters.at(n < filters.size() ? n : 0);
-
-	if (filter) {
-		filter->init();
-	}
-
-	if (vBlitter && (oldw != videoWidth() || oldh != videoHeight())) {
-		vBlitter->setBufferDimensions(videoWidth(), videoHeight());
-		pb = vBlitter->inBuffer();
-	}
-
-	setDBuffer();
-}
-
-std::vector<const Gambatte::FilterInfo*> LCD::filterInfo() const {
-	std::vector<const Gambatte::FilterInfo*> v;
-
-	static Gambatte::FilterInfo noInfo = { "None", 160, 144 };
-	v.push_back(&noInfo);
-
-	for (std::size_t i = 1; i < filters.size(); ++i)
-		v.push_back(&filters[i]->info());
-
-	return v;
-}
-
-unsigned int LCD::videoWidth() const {
-	return filter ? filter->info().outWidth : 160;
-}
-
-unsigned int LCD::videoHeight() const {
-	return filter ? filter->info().outHeight : 144;
 }
 
 template<class Blend>
@@ -362,45 +277,6 @@ struct Blend {
 	}
 };
 
-void LCD::updateScreen(const unsigned long cycleCounter) {
-	update(cycleCounter);
-
-	if (pb.pixels) {
-		if (dbuffer && osdElement.get()) {
-			const Gambatte::uint_least32_t *s = osdElement->update();
-
-			if (s) {
-				Gambatte::uint_least32_t *d = static_cast<Gambatte::uint_least32_t*>(dbuffer) + osdElement->y() * dpitch + osdElement->x();
-
-				switch (osdElement->opacity()) {
-				case OsdElement::SEVEN_EIGHTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<8>()); break;
-				case OsdElement::THREE_FOURTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<4>()); break;
-				}
-			} else
-				osdElement.reset();
-		}
-
-		if (filter) {
-			filter->filter(static_cast<Gambatte::uint_least32_t*>(tmpbuf ? tmpbuf : pb.pixels), (tmpbuf ? videoWidth() : pb.pitch));
-		}
-
-		if (tmpbuf) {
-			switch (pb.format) {
-			case Gambatte::PixelBuffer::RGB16:
-				rgb32ToRgb16(tmpbuf, static_cast<Gambatte::uint_least16_t*>(pb.pixels), videoWidth(), videoHeight(), pb.pitch);
-				break;
-			case Gambatte::PixelBuffer::UYVY:
-				rgb32ToUyvy(tmpbuf, static_cast<Gambatte::uint_least32_t*>(pb.pixels), videoWidth(), videoHeight(), pb.pitch);
-				break;
-			default: break;
-			}
-		}
-
-		if (vBlitter)
-			vBlitter->blit();
-	}
-}
-
 template<typename T>
 static void clear(T *buf, const unsigned long color, const unsigned dpitch) {
 	unsigned lines = 144;
@@ -408,6 +284,27 @@ static void clear(T *buf, const unsigned long color, const unsigned dpitch) {
 	while (lines--) {
 		std::fill_n(buf, 160, color);
 		buf += dpitch;
+	}
+}
+
+void LCD::updateScreen(const bool blanklcd, const unsigned long cycleCounter) {
+	update(cycleCounter);
+	
+	if (blanklcd && dbuffer) {
+		const unsigned long color = cgb ? gbcToRgb32(0xFFFF) : dmgColorsRgb32[0];
+		clear(dbuffer, color, dpitch);
+	}
+
+	if (dbuffer && osdElement.get()) {
+		if (const Gambatte::uint_least32_t *const s = osdElement->update()) {
+			Gambatte::uint_least32_t *const d = dbuffer + osdElement->y() * dpitch + osdElement->x();
+
+			switch (osdElement->opacity()) {
+			case OsdElement::SEVEN_EIGHTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<8>()); break;
+			case OsdElement::THREE_FOURTHS: blitOsdElement(d, s, osdElement->w(), osdElement->h(), dpitch, Blend<4>()); break;
+			}
+		} else
+			osdElement.reset();
 	}
 }
 
@@ -426,14 +323,6 @@ void LCD::enableChange(const unsigned long cycleCounter) {
 		
 		if (lycIrq.lycReg() == 0)
 			ifReg |= (statReg >> 5) & 2;
-	}
-
-	if (!enabled && dbuffer) {
-		const unsigned long color = cgb ? (*gbcToFormat)(0xFFFF) : dmgColors[0];
-
-		clear(static_cast<Gambatte::uint_least32_t*>(dbuffer), color, dpitch);
-
-// 		updateScreen(cycleCounter);
 	}
 }
 
@@ -569,6 +458,27 @@ bool LCD::cgbpAccessible(const unsigned long cycleCounter) {
 	}
 
 	return accessible;
+}
+
+static void doCgbColorChange(unsigned char *const pdata,
+		unsigned long *const palette, unsigned index, const unsigned data) {
+	pdata[index] = data;
+	index >>= 1;
+	palette[index] = gbcToRgb32(pdata[index << 1] | pdata[(index << 1) + 1] << 8);
+}
+
+void LCD::doCgbBgColorChange(unsigned index, const unsigned data, const unsigned long cycleCounter) {
+	if (cgbpAccessible(cycleCounter)) {
+		update(cycleCounter);
+		doCgbColorChange(bgpData, bgPalette, index, data);
+	}
+}
+
+void LCD::doCgbSpColorChange(unsigned index, const unsigned data, const unsigned long cycleCounter) {
+	if (cgbpAccessible(cycleCounter)) {
+		update(cycleCounter);
+		doCgbColorChange(objpData, spPalette, index, data);
+	}
 }
 
 bool LCD::oamAccessible(const unsigned long cycleCounter) {
@@ -896,38 +806,21 @@ void LCD::update(const unsigned long cycleCounter) {
 	}
 }
 
-void LCD::setDBuffer() {
-	tmpbuf.reset(pb.format == Gambatte::PixelBuffer::RGB32 ? 0 : videoWidth() * videoHeight());
-
-	if (cgb)
-		draw = &LCD::cgb_draw<Gambatte::uint_least32_t>;
-	else
-		draw = &LCD::dmg_draw<Gambatte::uint_least32_t>;
-
-	gbcToFormat = &gbcToRgb32;
-	dmgColors = dmgColorsRgb32;
-
-	if (filter) {
-		dbuffer = filter->inBuffer();
-		dpitch = filter->inPitch();
-	} else if (pb.format == Gambatte::PixelBuffer::RGB32) {
-		dbuffer = pb.pixels;
-		dpitch = pb.pitch;
-	} else {
-		dbuffer = tmpbuf;
-		dpitch = 160;
-	}
-
-	if (dbuffer == NULL)
+void LCD::setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const unsigned pitch) {
+	dbuffer = videoBuf;
+	dpitch  = pitch;
+	
+	if (dbuffer) {
+		if (cgb)
+			draw = &LCD::cgb_draw<Gambatte::uint_least32_t>;
+		else
+			draw = &LCD::dmg_draw<Gambatte::uint_least32_t>;
+	} else
 		draw = &LCD::null_draw;
-
-	refreshPalettes();
 }
 
 void LCD::setDmgPaletteColor(const unsigned index, const unsigned long rgb32) {
 	dmgColorsRgb32[index] = rgb32;
-	dmgColorsRgb16[index] = rgb32ToRgb16(rgb32);
-	dmgColorsUyvy[index] = ::rgb32ToUyvy(rgb32);
 }
 
 void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, const unsigned long rgb32) {

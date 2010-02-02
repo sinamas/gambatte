@@ -79,6 +79,11 @@ int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 			}
 		}
 		
+		{
+			unsigned val = 16;
+			snd_pcm_hw_params_set_periods_max(pcm_handle, hwparams, &val, 0);
+		}
+		
 		if (snd_pcm_hw_params(pcm_handle, hwparams) < 0) {
 			std::fprintf(stderr, "Error setting HW params.\n");
 			goto fail;
@@ -152,7 +157,7 @@ int AlsaEngine::write(void *const buffer, const unsigned samples) {
 	return write(buffer, samples, bufferState());
 }
 
-int AlsaEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, RateEst::Result &rate) {
+int AlsaEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, long &rate) {
 	const int ret = write(buffer, samples, preBufState = bufferState());
 	rate = est.result();
 	return ret;

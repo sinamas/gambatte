@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,15 +17,24 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "catrom2x.h"
-#include "filterinfo.h"
 #include <cstring>
+#include <int.h>
+
+namespace {
+enum { WIDTH  = VfilterInfo::IN_WIDTH };
+enum { HEIGHT = VfilterInfo::IN_HEIGHT };
+enum { PITCH  = WIDTH + 3 };
+
+static inline Gambatte::uint_least32_t* buffer(const Catrom2x *c2x) {
+	return static_cast<Gambatte::uint_least32_t*>(c2x->inBuf()) - (PITCH + 1);
+}
 
 struct Colorsum {
 	Gambatte::uint_least32_t r, g, b;
 };
 
 static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) {
-	unsigned w = 160;
+	unsigned w = WIDTH;
 	
 	while (w--) {
 		{
@@ -91,13 +100,13 @@ static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) 
 }
 
 static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const Gambatte::uint_least32_t *sline) {
-	Colorsum sums[163];
+	Colorsum sums[PITCH];
 	
-	for (unsigned h = 144; h--;) {
+	for (unsigned h = HEIGHT; h--;) {
 		{
 			const Gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
-			unsigned n = 163;
+			unsigned n = PITCH;
 			
 			while (n--) {
 				unsigned long pixel = *s;
@@ -117,7 +126,7 @@ static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const 
 		{
 			const Gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
-			unsigned n = 163;
+			unsigned n = PITCH;
 			
 			while (n--) {
 				unsigned long pixel = *s;
@@ -125,17 +134,17 @@ static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const 
 				unsigned long gsum = (pixel & 0x00FF00) * 9;
 				unsigned long bsum = (pixel & 0x0000FF) * 9;
 				
-				pixel = s[-1*163];
+				pixel = s[-1*PITCH];
 				rsum -= pixel >> 16;
 				gsum -= pixel & 0x00FF00;
 				bsum -= pixel & 0x0000FF;
 				
-				pixel = s[1*163];
+				pixel = s[1*PITCH];
 				rsum += (pixel >> 16) * 9;
 				gsum += (pixel & 0x00FF00) * 9;
 				bsum += (pixel & 0x0000FF) * 9;
 				
-				pixel = s[2*163];
+				pixel = s[2*PITCH];
 				rsum -= pixel >> 16;
 				gsum -= pixel & 0x00FF00;
 				bsum -= pixel & 0x0000FF;
@@ -151,44 +160,19 @@ static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const 
 		
 		merge_columns(dline, sums);
 		dline += pitch;
-		sline += 163;
+		sline += PITCH;
 	}
 }
+}
 
-Catrom2x::Catrom2x() {
-	buffer = NULL;
+Catrom2x::Catrom2x() : VideoLink((new Gambatte::uint_least32_t[(HEIGHT + 3UL) * PITCH]) + (PITCH + 1), PITCH) {
+	std::memset(buffer(this), 0, (HEIGHT + 3UL) * PITCH * sizeof(Gambatte::uint_least32_t));
 }
 
 Catrom2x::~Catrom2x() {
-	delete []buffer;
+	delete[] buffer(this);
 }
 
-void Catrom2x::init() {
-	delete []buffer;
-
-	buffer = new Gambatte::uint_least32_t[147 * 163];
-	std::memset(buffer, 0, 147ul * 163 * sizeof(Gambatte::uint_least32_t));
-}
-
-void Catrom2x::outit() {
-	delete []buffer;
-	buffer = NULL;
-}
-
-const Gambatte::FilterInfo& Catrom2x::info() {
-	static Gambatte::FilterInfo fInfo = { "Bicubic Catmull-Rom Spline 2x", 160 * 2, 144 * 2 };
-	
-	return fInfo;
-}
-
-Gambatte::uint_least32_t* Catrom2x::inBuffer() {
-	return buffer + 164;
-}
-
-unsigned Catrom2x::inPitch() {
-	return 163;
-}
-
-void Catrom2x::filter(Gambatte::uint_least32_t *const dbuffer, const unsigned pitch) {
-	::filter(dbuffer, pitch, buffer + 163);
+void Catrom2x::draw(void *const dbuffer, const unsigned pitch) {
+	::filter(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + PITCH);
 }

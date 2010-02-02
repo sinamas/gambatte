@@ -29,12 +29,9 @@ int main(int argc, char *argv[]) {
 	QCoreApplication::setOrganizationName("gambatte");
 	QCoreApplication::setApplicationName("gambatte_qt");
 	GambatteSource source;
-	MainWindow *mw = new MainWindow(&source,
-	                                source.generateButtonInfos(),
-	                                source.generateVideoSourceInfos(),
-	                                MainWindow::tr("Video filter:"),
-	                                QSize(160, 144));
-	GambatteMenuHandler mh(mw, &source, argc, argv);
-	mw->show();
+	MainWindow mw(&source);
+	GambatteMenuHandler mh(&mw, &source, argc, argv);
+
+	mw.show();
 	return app.exec();
 }

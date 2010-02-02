@@ -21,12 +21,31 @@
 #include <QtGui>
 #include <QActionGroup>
 #include <QFileInfo>
+#include <QSettings>
 #include "palettedialog.h"
 #include "framework/mainwindow.h"
+#include "framework/sounddialog.h"
+#include "framework/videodialog.h"
 #include "gambattesource.h"
+#include "miscdialog.h"
 
 static const QString strippedName(const QString &fullFileName) {
 	return QFileInfo(fullFileName).fileName();
+}
+
+namespace {
+struct TmpPauser {
+	MainWindow *const mw;
+	const unsigned inc;
+	
+	TmpPauser(MainWindow *const mw, const unsigned inc = 4) : mw(mw), inc(inc) {
+		mw->incPause(inc);
+	}
+	
+	~TmpPauser() {
+		mw->decPause(inc);
+	}
+};
 }
 
 GambatteMenuHandler::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) : index(STEPS) {
@@ -43,8 +62,16 @@ GambatteMenuHandler::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) 
 
 GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw, GambatteSource *const source,
 			const int argc, const char *const argv[]) :
-mw(mw), source(source), frameTime(4389, 262144) {
+mw(mw),
+source(source),
+soundDialog(new SoundDialog(mw, mw)),
+videoDialog(new VideoDialog(mw, source->generateVideoSourceInfos(), QString("Video filter:"), QSize(160, 144), mw)),
+miscDialog(new MiscDialog(mw)),
+frameTime(4389, 262144),
+pauseInc(4)
+{
 	mw->setWindowTitle("Gambatte");
+	source->inputDialog()->setParent(mw, source->inputDialog()->windowFlags());
 
 	{
 		QSettings iniSettings(QSettings::IniFormat, QSettings::UserScope, "gambatte", "gambatte_qt");
@@ -62,7 +89,7 @@ mw(mw), source(source), frameTime(4389, 262144) {
 
 		savepath += "saves";
 		QDir::root().mkpath(savepath);
-		source->setSavedir(savepath.toAscii().data());
+		source->setSavedir(savepath.toLocal8Bit().constData());
 	}
 
 	{
@@ -90,8 +117,8 @@ mw(mw), source(source), frameTime(4389, 262144) {
 		romLoadedActions.append(fileMenu->addAction(tr("Load State &From..."), this, SLOT(loadStateFrom())));
 		fileMenu->addSeparator();
 
-		romLoadedActions.append(fileMenu->addAction(tr("&Save State"), source, SLOT(saveState()), QString("Ctrl+S")));
-		romLoadedActions.append(fileMenu->addAction(tr("&Load State"), source, SLOT(loadState()), QString("Ctrl+L")));
+		romLoadedActions.append(fileMenu->addAction(tr("&Save State"), this, SLOT(saveState()), QString("Ctrl+S")));
+		romLoadedActions.append(fileMenu->addAction(tr("&Load State"), this, SLOT(loadState()), QString("Ctrl+L")));
 
 		{
 			stateSlotMenu = fileMenu->addMenu(tr("S&elect State Slot"));
@@ -126,16 +153,19 @@ mw(mw), source(source), frameTime(4389, 262144) {
 		pauseAction->setCheckable(true);
 		romLoadedActions.append(playm->addAction(tr("Frame &Step"), this, SLOT(frameStep()), QString("Ctrl+.")));
 		playm->addSeparator();
+		/*romLoadedActions.append(*/syncFrameRateAction = playm->addAction(tr("&Sync Frame Rate to Refresh Rate"), this, SLOT(syncFrameRate()))/*)*/;
+		syncFrameRateAction->setCheckable(true);
 		romLoadedActions.append(decFrameRateAction = playm->addAction(tr("&Decrease Frame Rate"), this, SLOT(decFrameRate()), QString("Ctrl+D")));
 		romLoadedActions.append(incFrameRateAction = playm->addAction(tr("&Increase Frame Rate"), this, SLOT(incFrameRate()), QString("Ctrl+I")));
-		romLoadedActions.append(playm->addAction(tr("&Reset Frame Rate"), this, SLOT(resetFrameRate()), QString("Ctrl+U")));
+		romLoadedActions.append(resetFrameRateAction = playm->addAction(tr("&Reset Frame Rate"), this, SLOT(resetFrameRate()), QString("Ctrl+U")));
 	}
 
 	QMenu *settingsm = mw->menuBar()->addMenu(tr("&Settings"));
 
-	settingsm->addAction(tr("&Input..."), mw, SLOT(execInputDialog()));
-	settingsm->addAction(tr("&Sound..."), mw, SLOT(execSoundDialog()));
-	settingsm->addAction(tr("&Video..."), mw, SLOT(execVideoDialog()));
+	settingsm->addAction(tr("&Input..."), this, SLOT(execInputDialog()));
+	settingsm->addAction(tr("&Miscellaneous..."), this, SLOT(execMiscDialog()));
+	settingsm->addAction(tr("&Sound..."), this, SLOT(execSoundDialog()));
+	settingsm->addAction(tr("&Video..."), this, SLOT(execVideoDialog()));
 
 	settingsm->addSeparator();
 
@@ -157,11 +187,11 @@ mw(mw), source(source), frameTime(4389, 262144) {
 #ifndef Q_WS_MAC
 		QAction *fsAct;
 #endif
-		fsAct = settingsm->addAction(tr("&Full Screen"), mw, SLOT(toggleFullScreen()), tr("Ctrl+F"));
+		fsAct = settingsm->addAction(tr("&Full Screen"), this, SLOT(toggleFullScreen()), tr("Ctrl+F"));
 		fsAct->setCheckable(true);
 	}
 
-	foreach(QAction *a, romLoadedActions) {
+	foreach (QAction *a, romLoadedActions) {
 		a->setEnabled(false);
 	}
 
@@ -177,18 +207,13 @@ mw(mw), source(source), frameTime(4389, 262144) {
 	{
 		QAction *const escAct = new QAction(mw);
 		escAct->setShortcut(tr("Esc"));
-#ifdef Q_WS_MAC
-		connect(escAct, SIGNAL(triggered()), this, SLOT(unsetFullScreen()));
-#else
-		connect(escAct, SIGNAL(triggered()), mw, SLOT(toggleMenuHidden()));
-#endif
+		connect(escAct, SIGNAL(triggered()), this, SLOT(escPressed()));
 		mw->addAction(escAct);
 	}
 
 	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 	mw->setSamplesPerFrame(35112);
-	connect(source, SIGNAL(blit()), mw, SLOT(blit()));
-	connect(source, SIGNAL(setTurbo(bool)), mw, SLOT(setTurbo(bool)));
+	connect(source, SIGNAL(setTurbo(bool)), mw, SLOT(setFastForward(bool)));
 	connect(source, SIGNAL(togglePause()), pauseAction, SLOT(trigger()));
 	connect(source, SIGNAL(frameStep()), this, SLOT(frameStep()));
 	connect(source, SIGNAL(decFrameRate()), this, SLOT(decFrameRate()));
@@ -196,6 +221,25 @@ mw(mw), source(source), frameTime(4389, 262144) {
 	connect(source, SIGNAL(resetFrameRate()), this, SLOT(resetFrameRate()));
 	connect(source, SIGNAL(prevStateSlot()), this, SLOT(prevStateSlot()));
 	connect(source, SIGNAL(nextStateSlot()), this, SLOT(nextStateSlot()));
+	connect(source, SIGNAL(saveStateSignal()), this, SLOT(saveState()));
+	connect(source, SIGNAL(loadStateSignal()), this, SLOT(loadState()));
+	connect(videoDialog, SIGNAL(accepted()), this, SLOT(videoDialogChange()));
+	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundDialogChange()));
+	connect(miscDialog, SIGNAL(accepted()), this, SLOT(miscDialogChange()));
+	connect(mw, SIGNAL(videoBlitterFailure()), this, SLOT(videoBlitterFailure()));
+	connect(mw, SIGNAL(audioEngineFailure()), this, SLOT(audioEngineFailure()));
+	connect(mw, SIGNAL(closing()), this, SLOT(saveWindowSize()));
+	
+	videoDialogChange();
+	soundDialogChange();
+	miscDialogChange();
+	
+	{
+		QSettings settings;
+		settings.beginGroup("mainwindow");
+		mw->resize(settings.value("size", QSize(160, 144)).toSize());
+		settings.endGroup();
+	}
 
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-') {
@@ -245,13 +289,13 @@ void GambatteMenuHandler::setCurrentFile(const QString &fileName) {
 }
 
 void GambatteMenuHandler::loadFile(const QString &fileName) {
-	resetFrameRate();
+	TmpPauser tmpPauser(mw, 4);
 	pauseAction->setChecked(false);
 	pauseChange();
+	mw->waitUntilPaused();
 
-	if (source->load((fileName.toAscii()).data(), forceDmgAction->isChecked())) {
+	if (source->load((fileName.toLocal8Bit()).constData(), forceDmgAction->isChecked())) {
 		mw->stop();
-
 		QMessageBox::critical(
 		                       mw,
 		                       tr("Error"),
@@ -270,18 +314,19 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 
 	setCurrentFile(fileName);
 
-	foreach(QAction *a, romLoadedActions) {
+	foreach (QAction *a, romLoadedActions) {
 		a->setEnabled(true);
 	}
 
 	stateSlotMenu->setEnabled(true);
 	stateSlotGroup->actions().at(0)->setChecked(true);
+	resetFrameRate();
 
 	mw->run();
 }
 
 void GambatteMenuHandler::open() {
-	mw->pause();
+	TmpPauser tmpPauser(mw, pauseInc);
 
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Open"), recentFileActs[0]->data().toString(),
 			tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip);;All Files (*)"));
@@ -290,7 +335,6 @@ void GambatteMenuHandler::open() {
 		loadFile(fileName);
 
 	mw->setFocus(); // giving back focus after getOpenFileName seems to fail at times, which can be problematic with current exclusive mode handling.
-	pauseChange();
 }
 
 void GambatteMenuHandler::openRecentFile() {
@@ -301,18 +345,16 @@ void GambatteMenuHandler::openRecentFile() {
 }
 
 void GambatteMenuHandler::about() {
-	mw->pause();
+	TmpPauser tmpPauser(mw, pauseInc);
 
 	QMessageBox::about(
 	                    mw,
 	                    tr("About Gambatte"),
 	                    tr("<h3>Gambatte Qt SVN</h3>\
-	                       <p><b>Author:</b> Sindre Aamås (<a href=\"mailto:aamas@stud.ntnu.no\">aamas@stud.ntnu.no</a>).<br>\
+	                       <p><b>Author:</b> Sindre Aamï¿½s (<a href=\"mailto:aamas@stud.ntnu.no\">aamas@stud.ntnu.no</a>).<br>\
 	                       <b>Homepage:</b> <a href=\"http://sourceforge.net/projects/gambatte\">http://sourceforge.net/projects/gambatte</a>.</p>\
 	                       <p>Gambatte is an accuracy-focused, open-source, cross-platform Game Boy Color emulator written in C++. It is based on hundreds of corner case hardware tests, as well as previous documentation and reverse engineering efforts.</p>")
 	                  );
-
-	pauseChange();
 }
 
 void GambatteMenuHandler::globalPaletteChange() {
@@ -325,18 +367,84 @@ void GambatteMenuHandler::romPaletteChange() {
 	setDmgPaletteColors();
 }
 
+namespace {
+struct SetDmgPaletteColorFun {
+	GambatteSource *source; unsigned palnum; unsigned colornum; unsigned rgb32;
+	void operator()() { source->setDmgPaletteColor(palnum, colornum, rgb32); }
+};
+}
+
 void GambatteMenuHandler::setDmgPaletteColors() {
 	for (unsigned palnum = 0; palnum < 3; ++palnum)
-		for (unsigned colornum = 0; colornum < 4; ++colornum)
-			source->setDmgPaletteColor(palnum, colornum, romPaletteDialog->getColor(palnum, colornum));
+		for (unsigned colornum = 0; colornum < 4; ++colornum) {
+			const SetDmgPaletteColorFun fun = { source, palnum, colornum, romPaletteDialog->getColor(palnum, colornum) };
+			mw->callInWorkerThread(fun);
+		}
+}
+
+namespace {
+struct SetVideoSourceFun {
+	GambatteSource *source; unsigned sourceIndex;
+	void operator()() { source->setVideoSource(sourceIndex); }
+};
+}
+
+void GambatteMenuHandler::videoDialogChange() {
+	{
+		const SetVideoSourceFun fun = { source, videoDialog->sourceIndex() };
+		mw->callInWorkerThread(fun);
+	}
+
+	applySettings(mw, videoDialog);
+
+	if (mw->blitterConf(videoDialog->blitterNo()).maxSwapInterval()) {
+		syncFrameRateAction->setEnabled(true);
+	} else {
+		if (syncFrameRateAction->isChecked())
+			syncFrameRateAction->trigger();
+		
+		syncFrameRateAction->setEnabled(false);
+	}
+}
+
+void GambatteMenuHandler::soundDialogChange() {
+	SoundDialog::applySettings(mw, soundDialog);
+}
+
+void GambatteMenuHandler::miscDialogChange() {
+	mw->setFastForwardSpeed(miscDialog->turboSpeed());
+	mw->setPauseOnFocusOut(miscDialog->pauseOnFocusOut() ? 2 : 0);
+	pauseInc = miscDialog->pauseOnDialogs() ? 4 : 0;
 }
 
 void GambatteMenuHandler::execGlobalPaletteDialog() {
-	mw->execDialog(globalPaletteDialog);
+	TmpPauser tmpPauser(mw, pauseInc);
+	globalPaletteDialog->exec();
 }
 
 void GambatteMenuHandler::execRomPaletteDialog() {
-	mw->execDialog(romPaletteDialog);
+	TmpPauser tmpPauser(mw, pauseInc);
+	romPaletteDialog->exec();
+}
+
+void GambatteMenuHandler::execInputDialog() {
+	TmpPauser tmpPauser(mw, pauseInc);
+	source->inputDialog()->exec();
+}
+
+void GambatteMenuHandler::execSoundDialog() {
+	TmpPauser tmpPauser(mw, pauseInc);
+	soundDialog->exec();
+}
+
+void GambatteMenuHandler::execVideoDialog() {
+	TmpPauser tmpPauser(mw, pauseInc);
+	videoDialog->exec();
+}
+
+void GambatteMenuHandler::execMiscDialog() {
+	TmpPauser tmpPauser(mw, pauseInc);
+	miscDialog->exec();
 }
 
 void GambatteMenuHandler::prevStateSlot() {
@@ -347,34 +455,87 @@ void GambatteMenuHandler::nextStateSlot() {
 	stateSlotGroup->actions().at(source->currentState())->trigger();
 }
 
+namespace {
+struct SelectStateFun {
+	GambatteSource *source; int i;
+	void operator()() { source->selectState(i); }
+};
+}
+
 void GambatteMenuHandler::selectStateSlot() {
-	if (QAction *action = stateSlotGroup->checkedAction())
-		source->selectState(action->data().toInt());
+	if (QAction *action = stateSlotGroup->checkedAction()) {
+		const SelectStateFun fun = { source, action->data().toInt() };
+		mw->callInWorkerThread(fun);
+	}
+}
+
+namespace {
+struct SaveStateFun {
+	GambatteSource *source;
+	MainWindow::FrameBuffer fb;
+	void operator()() {
+		source->saveState(MainWindow::FrameBuffer::Locked(fb).get());
+	}
+};
+}
+
+void GambatteMenuHandler::saveState() {
+	const SaveStateFun fun = { source, MainWindow::FrameBuffer(mw) };
+	mw->callInWorkerThread(fun);
+}
+
+namespace {
+struct LoadStateFun {
+	GambatteSource *source;
+	void operator()() { source->loadState(); }
+};
+}
+
+void GambatteMenuHandler::loadState() {
+	const LoadStateFun fun = { source };
+	mw->callInWorkerThread(fun);
+}
+
+namespace {
+struct SaveStateAsFun {
+	GambatteSource *source;
+	MainWindow::FrameBuffer fb;
+	QString fileName;
+	void operator()() {
+		source->saveState(MainWindow::FrameBuffer::Locked(fb).get(), fileName.toLocal8Bit().constData());
+	}
+};
 }
 
 void GambatteMenuHandler::saveStateAs() {
-	mw->pause();
-
+	TmpPauser tmpPauser(mw, pauseInc);
+	
 	const QString &fileName = QFileDialog::getSaveFileName(mw, tr("Save State"), QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
 
 	if (!fileName.isEmpty()) {
-		source->saveState(fileName.toAscii().data());
+		const SaveStateAsFun fun = { source, MainWindow::FrameBuffer(mw), fileName };
+		mw->callInWorkerThread(fun);
 	}
+}
 
-	pauseChange();
+namespace {
+struct LoadStateFromFun {
+	GambatteSource *source;
+	QString fileName;
+	void operator()() {
+		source->loadState(fileName.toLocal8Bit().constData());
+	}
+};
 }
 
 void GambatteMenuHandler::loadStateFrom() {
-	mw->pause();
-
+	TmpPauser tmpPauser(mw, pauseInc);
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Load State"), QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
 
 	if (!fileName.isEmpty()) {
-		source->loadState(fileName.toAscii().data());
+		const LoadStateFromFun fun = { source, fileName };
+		mw->callInWorkerThread(fun);
 	}
-
-	pauseAction->setChecked(false);
-	pauseChange();
 }
 
 void GambatteMenuHandler::pauseChange() {
@@ -391,34 +552,73 @@ void GambatteMenuHandler::frameStep() {
 		pauseAction->trigger();
 }
 
-void GambatteMenuHandler::decFrameRate() {
-	if (!frameTime.inc())
-		decFrameRateAction->setEnabled(false);
-
-	incFrameRateAction->setEnabled(true);
-
+void GambatteMenuHandler::frameRateChange() {
+	incFrameRateAction->setEnabled(frameTime.decPossible());
+	decFrameRateAction->setEnabled(frameTime.incPossible());
+	resetFrameRateAction->setEnabled(frameTime.resetPossible());
 	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
 }
 
+void GambatteMenuHandler::syncFrameRate() {
+	const bool checked = syncFrameRateAction->isChecked();
+	mw->setSyncToRefreshRate(checked);
+	
+	if (mw->isRunning()) {
+		incFrameRateAction->setEnabled(!checked & frameTime.decPossible());
+		decFrameRateAction->setEnabled(!checked & frameTime.incPossible());
+		resetFrameRateAction->setEnabled(!checked & frameTime.resetPossible());
+	}
+}
+
+void GambatteMenuHandler::decFrameRate() {
+	frameTime.inc();
+	frameRateChange();
+}
+
 void GambatteMenuHandler::incFrameRate() {
-	if (!frameTime.dec())
-		incFrameRateAction->setEnabled(false);
-
-	decFrameRateAction->setEnabled(true);
-
-	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
+	frameTime.dec();
+	frameRateChange();
 }
 
 void GambatteMenuHandler::resetFrameRate() {
 	frameTime.reset();
-	incFrameRateAction->setEnabled(true);
-	decFrameRateAction->setEnabled(true);
-	mw->setFrameTime(frameTime.get().num, frameTime.get().denom);
+	frameRateChange();
 }
 
+void GambatteMenuHandler::escPressed() {
 #ifdef Q_WS_MAC
-void GambatteMenuHandler::unsetFullScreen() {
 	if (fsAct->isChecked())
 		fsAct->trigger();
-}
+#else
+	mw->menuBar()->setVisible(!mw->menuBar()->isVisible());
+	
+	if (!mw->menuBar()->isVisible())
+		mw->hideCursor();
 #endif
+}
+
+void GambatteMenuHandler::videoBlitterFailure() {
+	TmpPauser tmpPauser(mw, pauseInc);
+	QMessageBox::critical(mw, tr("Video engine failure"), tr("Failed to update video output. This may be fixed by changing the video engine settings."));
+	videoDialog->exec();
+}
+
+void GambatteMenuHandler::audioEngineFailure() {
+	TmpPauser tmpPauser(mw, pauseInc);
+	QMessageBox::critical(mw, tr("Sound engine failure"), tr("Failed to output audio. This may be fixed by changing the sound settings."));
+	soundDialog->exec();
+}
+
+void GambatteMenuHandler::toggleFullScreen() {
+	if (!mw->isFullScreen())
+		wsz = mw->size();
+	
+	mw->toggleFullScreen();
+}
+
+void GambatteMenuHandler::saveWindowSize() {
+	QSettings settings;
+	settings.beginGroup("mainwindow");
+	settings.setValue("size", mw->isFullScreen() ? wsz : mw->size());
+	settings.endGroup();
+}

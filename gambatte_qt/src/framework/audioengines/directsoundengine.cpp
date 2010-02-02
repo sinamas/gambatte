@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -107,13 +107,13 @@ DirectSoundEngine::~DirectSoundEngine() {
 	settings.endGroup();
 }
 
-void DirectSoundEngine::acceptSettings() {
+void DirectSoundEngine::doAcceptSettings() {
 	primaryBuf = primaryBufBox->isChecked();
 	useGlobalBuf = globalBufBox->isChecked();
 	deviceIndex = deviceSelector->currentIndex();
 }
 
-void DirectSoundEngine::rejectSettings() {
+void DirectSoundEngine::rejectSettings() const {
 	primaryBufBox->setChecked(primaryBuf);
 	globalBufBox->setChecked(useGlobalBuf);
 	deviceSelector->setCurrentIndex(deviceIndex);
@@ -410,7 +410,7 @@ int DirectSoundEngine::write(void *const buffer, const unsigned frames) {
 	return doWrite(buffer, frames, status, pc, wc);
 }
 
-int DirectSoundEngine::write(void *const buffer, const unsigned frames, BufferState &preBufState_out, RateEst::Result &rate_out) {
+int DirectSoundEngine::write(void *const buffer, const unsigned frames, BufferState &preBufState_out, long &rate_out) {
 	DWORD status, pc, wc;
 
 	int ret = getPosAndStatusCheck(status, pc, wc);

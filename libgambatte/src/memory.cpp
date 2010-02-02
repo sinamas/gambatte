@@ -19,8 +19,7 @@
 #include "memory.h"
 #include "video.h"
 #include "sound.h"
-#include "inputstate.h"
-#include "inputstategetter.h"
+#include "inputgetter.h"
 #include "savestate.h"
 #include "file/file.h"
 #include <cstring>
@@ -45,6 +44,7 @@ minIntTime(0),
 tmatime(COUNTER_DISABLED),
 next_serialtime(COUNTER_DISABLED),
 lastOamDmaUpdate(COUNTER_DISABLED),
+lastBlitTime(COUNTER_DISABLED),
 eventTimes(COUNTER_DISABLED),
 display(ioamhram, vram),
 interrupter(interrupter_in),
@@ -67,7 +67,8 @@ rambank_mode(false),
 battery(false),
 rtcRom(false),
 hdma_transfer(false),
-active(false)
+active(false),
+blanklcd(false)
 {
 	romdata[1] = romdata[0] = NULL;
 	wramdata[1] = wramdata[0] = NULL;
@@ -163,9 +164,9 @@ void Memory::loadState(const SaveState &state/*, const unsigned long oldCc*/) {
 	if (!IME && state.cpu.halted)
 		schedule_unhalt();
 
-	eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED));
-
 	const unsigned long cycleCounter = state.cpu.cycleCounter;
+	eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : cycleCounter);
+	blanklcd = false;
 	
 	eventTimes.setValue<DMA>(            hdma_transfer ? display.nextHdmaTime(cycleCounter) : static_cast<unsigned long>(COUNTER_DISABLED));
 	eventTimes.setValue<HDMA_RESCHEDULE>(hdma_transfer ? display.nextHdmaTimeInvalid()      : static_cast<unsigned long>(COUNTER_DISABLED));
@@ -226,6 +227,7 @@ void Memory::ei(const unsigned long cycleCounter) {
 
 void Memory::setEndtime(const unsigned long cycleCounter, const unsigned long inc) {
 	active = true;
+	lastBlitTime = COUNTER_DISABLED;
 	eventTimes.setValue<END>(cycleCounter + (inc << isDoubleSpeed()));
 }
 
@@ -402,9 +404,19 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		break;
 	case BLIT:
 // 		printf("blit\n");
-		display.updateScreen(eventTimes.value(BLIT));
-		eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? eventTimes.value(BLIT) + (70224 << isDoubleSpeed()) :
-				static_cast<unsigned long>(COUNTER_DISABLED));
+		{
+			const bool lcden = ioamhram[0x140] >> 7 & 1;
+			const unsigned long blitTime = eventTimes.value(BLIT);
+			
+			if (lcden | blanklcd) {
+				lastBlitTime = blitTime;
+				display.updateScreen(blanklcd, cycleCounter);
+				eventTimes.setValue<END>(cycleCounter);
+			}
+			
+			blanklcd = lcden ^ 1;
+			eventTimes.setValue<BLIT>(blitTime + (70224 << isDoubleSpeed()));
+		}
 		break;
 	case UNHALT:
 // 		printf("unhalt\n");
@@ -458,7 +470,7 @@ void Memory::speedChange(const unsigned long cycleCounter) {
 			eventTimes.setValue<HDMA_RESCHEDULE>(display.nextHdmaTimeInvalid());
 		}
 
-		eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : static_cast<unsigned long>(COUNTER_DISABLED));
+		eventTimes.setValue<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : cycleCounter + (70224 << isDoubleSpeed()));
 		eventTimes.setValue<END>(cycleCounter + (isDoubleSpeed() ? (eventTimes.value(END) - cycleCounter) << 1 :
 				(eventTimes.value(END) - cycleCounter) >> 1));
 		set_irqEvent();
@@ -532,17 +544,9 @@ void Memory::updateInput() {
 	unsigned dpad = 0xFF;
 
 	if (getInput) {
-		const Gambatte::InputState &is = (*getInput)();
-
-		button ^= is.startButton << 3;
-		button ^= is.selectButton << 2;
-		button ^= is.bButton << 1;
-		button ^= is.aButton;
-
-		dpad ^= is.dpadDown << 3;
-		dpad ^= is.dpadUp << 2;
-		dpad ^= is.dpadLeft << 1;
-		dpad ^= is.dpadRight;
+		const unsigned is = (*getInput)();
+		button ^= is      & 0x0F;
+		dpad   ^= is >> 4 & 0x0F;
 	}
 
 	ioamhram[0x100] |= 0xF;
@@ -1087,7 +1091,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 				ioamhram[0x141] &= 0xF8;
 
 				if (data & 0x80) {
-					eventTimes.setValue<BLIT>(display.nextMode1IrqTime() + (70224 << isDoubleSpeed()));
+					eventTimes.setValue<BLIT>(display.nextMode1IrqTime() + (blanklcd ? 0 : 70224 << isDoubleSpeed()));
 				} else {
 					ioamhram[0x141] |= lyc; //Mr. Do! needs conicidence flag preserved.
 					eventTimes.setValue<BLIT>(cycleCounter + (456 * 4 << isDoubleSpeed()));
@@ -1509,7 +1513,7 @@ const std::string Memory::saveBasePath() const {
 	return saveDir.empty() ? defaultSaveBasePath : saveDir + stripDir(defaultSaveBasePath);
 }
 
-void Memory::set_savedir(const char *dir) {
+void Memory::setSaveDir(const char *dir) {
 	saveDir = dir ? dir : "";
 
 	if (!saveDir.empty() && saveDir[saveDir.length() - 1] != '/') {
@@ -1800,18 +1804,6 @@ void Memory::saveSavedata() {
 unsigned Memory::fillSoundBuffer(const unsigned long cycleCounter) {
 	sound.generate_samples(cycleCounter, isDoubleSpeed());
 	return sound.fillBuffer();
-}
-
-void Memory::setVideoBlitter(Gambatte::VideoBlitter *const vb) {
-	display.setVideoBlitter(vb);
-}
-
-void Memory::videoBufferChange() {
-	display.videoBufferChange();
-}
-
-void Memory::setVideoFilter(const unsigned int n) {
-	display.setVideoFilter(n);
 }
 
 void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {

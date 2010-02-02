@@ -95,7 +95,7 @@ std::size_t ChainResampler::downinit(const long inRate, const long outRate, cons
 	uninit();
 	this->periodSize = periodSize;
 	
-	
+	// For high outRate: Start roll-off at 36000 Hz continue until outRate Hz, then wrap around back down to 40000 Hz.
 	const float rollOff = std::max((outRate - 36000.0f + outRate - 40000.0f) / outRate, 0.2f);
 	
 	double ratio = static_cast<double>(inRate) / outRate;

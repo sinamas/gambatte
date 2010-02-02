@@ -82,7 +82,7 @@ public:
 
 	void forcedResize() {
 		if (initialized) {
-			makeCurrent();
+// 			makeCurrent();
 			resizeGL(width(), height());
 		}
 	}
@@ -241,7 +241,7 @@ void QGLBlitter::SubWidget::setBilinearFiltering(const bool on) {
 	bf = on;
 
 	if (bf != oldbf && initialized) {
-		makeCurrent();
+// 		makeCurrent();
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bf ? GL_LINEAR : GL_NEAREST);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bf ? GL_LINEAR : GL_NEAREST);
 	}
@@ -264,8 +264,8 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 
 	if (!initialized)
 		glInit();
-	else
-		makeCurrent();
+// 	else
+// 		makeCurrent();
 
 	glLoadIdentity();
 
@@ -289,15 +289,16 @@ void QGLBlitter::SubWidget::updateTexture(quint32 *const buffer) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, textureRes - inHeight, inWidth, inHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
 }
 
-QGLBlitter::QGLBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
-	BlitterWidget(setPixelBuffer, QString("OpenGL"), false, parent),
+QGLBlitter::QGLBlitter(VideoBufferLocker vbl, QWidget *parent) :
+	BlitterWidget(vbl, QString("OpenGL"), 2, parent),
 	confWidget(new QWidget),
-	vsyncBox(new QCheckBox(QString("Sync to vertical blank in 60, 119 and 120 Hz modes"))),
+	vsyncBox(new QCheckBox(QString("Wait for vertical blank"))),
 	bfBox(new QCheckBox(QString("Bilinear filtering"))),
 	buffer(NULL),
-	hz(0),
-	hz1(60),
-	hz2(119)
+	swapInterval_(0),
+	hz(60)
+// 	hz1(60),
+// 	hz2(119)
 {
 // 	setLayout(new QVBoxLayout);
 // 	layout()->setMargin(0);
@@ -352,17 +353,20 @@ void QGLBlitter::setBufferDimensions(const unsigned int width, const unsigned in
 	buffer = new quint32[width * height];
 
 	subWidget->setBufferDimensions(width, height);
-	setPixelBuffer(buffer, MediaSource::RGB32, width);
+	setPixelBuffer(buffer, PixelBuffer::RGB32, width);
 }
 
 void QGLBlitter::blit() {
 	if (buffer) {
-		subWidget->makeCurrent();
+// 		subWidget->makeCurrent(); // makeCurrent blocks which is undesired here
 		subWidget->updateTexture(buffer);
+	}
+}
 
-		if (subWidget->doubleBuffer()) {
-			subWidget->blit();
-		}
+void QGLBlitter::draw() {
+	if (subWidget->doubleBuffer()) {
+// 		subWidget->makeCurrent();
+		subWidget->blit();
 	}
 }
 
@@ -378,7 +382,7 @@ void QGLBlitter::setCorrectedGeometry(int w, int h, int new_w, int new_h) {
 		subWidget->forcedResize();
 }
 
-void QGLBlitter::setFrameTime(const long ft) {
+/*void QGLBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
 
 	hz1 = (1000000 + (ft >> 1)) / ft;
@@ -398,12 +402,11 @@ void QGLBlitter::setFrameTime(const long ft) {
 
 	vsyncBox->setText(text);
 	resetSubWidget();
-}
+}*/
 
-const BlitterWidget::Estimate QGLBlitter::frameTimeEst() const {
-	if (subWidget->getSwapInterval()) {
-		const Estimate est = { ftEst.est(), ftEst.var() };
-		return est;
+long QGLBlitter::frameTimeEst() const {
+	if (subWidget->getSwapInterval() && swapInterval_) {
+		return ftEst.est();
 	}
 
 	return BlitterWidget::frameTimeEst();
@@ -417,20 +420,11 @@ const BlitterWidget::Estimate QGLBlitter::frameTimeEst() const {
 	return BlitterWidget::frameTime();
 }*/
 
-long QGLBlitter::sync(const long ft) {
-	const bool vsyncing = subWidget->getSwapInterval();
-
-	subWidget->makeCurrent();
-
-	if (subWidget->doubleBuffer() && !subWidget->blitted)
-		subWidget->blit();
-
-	if (!vsyncing)
-		BlitterWidget::sync(ft);
-
+long QGLBlitter::sync() {
+// 	subWidget->makeCurrent();
 	subWidget->swapBuffers();
 
-	if (vsyncing)
+	if (subWidget->getSwapInterval())
 		ftEst.update(getusecs());
 
 	if (!subWidget->blitted)
@@ -442,14 +436,15 @@ long QGLBlitter::sync(const long ft) {
 }
 
 void QGLBlitter::resetSubWidget() {
-	unsigned swapInterval = 0;
-
-	if (vsync) {
-		if (hz == hz1)
-			swapInterval = 1;
-		else if (hz == hz2 || hz == hz1 * 2)
-			swapInterval = 2;
-	}
+// 	unsigned swapInterval = 0;
+//
+// 	if (vsync) {
+// 		if (hz == hz1)
+// 			swapInterval = 1;
+// 		else if (hz == hz2 || hz == hz1 * 2)
+// 			swapInterval = 2;
+// 	}
+	const unsigned swapInterval = swapInterval_ ? swapInterval_ : vsync;
 
 	if (swapInterval == subWidget->getSwapInterval())
 		return;
@@ -480,12 +475,17 @@ void QGLBlitter::acceptSettings() {
 	resetSubWidget();
 }
 
-void QGLBlitter::rejectSettings() {
+void QGLBlitter::rejectSettings() const {
 	vsyncBox->setChecked(vsync);
 	bfBox->setChecked(bf);
 }
 
+void QGLBlitter::setSwapInterval(unsigned si) {
+	swapInterval_ = si;
+	resetSubWidget();
+}
+
 void QGLBlitter::rateChange(const int hz) {
 	this->hz = hz;
-	resetSubWidget();
+	ftEst.init(hz ? subWidget->getSwapInterval() * 1000000 / hz : 0);
 }

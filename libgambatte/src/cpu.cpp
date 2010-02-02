@@ -40,17 +40,19 @@ skip(false),
 halted(false)
 {}
 
-void CPU::runFor(const unsigned long cycles) {
+int CPU::runFor(const unsigned long cycles) {
 	process(cycles/* << memory.isDoubleSpeed()*/);
+	
+	const int csb = memory.cyclesSinceBlit(cycleCounter_);
 	
 	if (cycleCounter_ & 0x80000000)
 		cycleCounter_ = memory.resetCounters(cycleCounter_);
+	
+	return csb;
 }
 
 bool CPU::load(const char* romfile, const bool forceDmg) {
-	bool tmp = memory.loadROM(romfile, forceDmg);
-	
-	return tmp;
+	return memory.loadROM(romfile, forceDmg);
 }
 
 /*void CPU::halt() {

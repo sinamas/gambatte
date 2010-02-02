@@ -143,7 +143,7 @@ int OssEngine::write(void *const buffer, const unsigned samples) {
 	return write(buffer, samples, bufferState());
 }
 
-int OssEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, RateEst::Result &rate) {
+int OssEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, long &rate) {
 	const int ret = write(buffer, samples, preBufState = bufferState());
 	rate = est.result();
 	return ret;

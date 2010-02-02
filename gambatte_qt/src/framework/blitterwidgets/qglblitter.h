@@ -33,9 +33,8 @@ class QGLBlitter : public BlitterWidget {
 	QCheckBox *const vsyncBox;
 	QCheckBox *const bfBox;
 	quint32 *buffer;
-	unsigned hz;
-	unsigned hz1;
-	unsigned hz2;
+	unsigned swapInterval_;
+	int hz;
 	bool vsync;
 	bool bf;
 	
@@ -43,27 +42,27 @@ class QGLBlitter : public BlitterWidget {
 	void privSetPaused(const bool /*paused*/) {}
 	
 protected:
+	void setBufferDimensions(unsigned int width, unsigned int height);
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	QGLBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
+	QGLBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~QGLBlitter();
 // 	void init();
 	void uninit();
 	bool isUnusable() const;
-	void setBufferDimensions(unsigned int width, unsigned int height);
 	void setCorrectedGeometry(int w, int h, int new_w, int new_h);
-	void setFrameTime(long ft);
-	const Estimate frameTimeEst() const;
+	long frameTimeEst() const;
 	void blit();
-	long sync(long ft);
-	QWidget* settingsWidget() { return confWidget.get(); }
+	void draw();
+	long sync();
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	
 // // 	public slots:
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 	
-public slots:
+	void setSwapInterval(unsigned);
 	void rateChange(int hz);
 	
 };

@@ -32,7 +32,6 @@ class DirectDrawBlitter : public BlitterWidget {
 	const std::auto_ptr<QWidget> confWidget;
 	QCheckBox *const vblankBox;
 	QCheckBox *const flippingBox;
-	QCheckBox *const vblankflipBox;
 	QCheckBox *const triplebufBox;
 	QCheckBox *const videoSurfaceBox;
 	QComboBox *const deviceSelector;
@@ -44,7 +43,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	LPDIRECTDRAWSURFACE7 lpDDSClear;
 	LPDIRECTDRAWCLIPPER lpClipper;
 	QList<GUID> deviceList;
-	MediaSource::PixelFormat pixelFormat;
+	PixelBuffer::PixelFormat pixelFormat;
 	usec_t lastblank;
 	unsigned clear;
 	unsigned hz;
@@ -56,7 +55,6 @@ class DirectDrawBlitter : public BlitterWidget {
 	bool videoSurface;
 	bool exclusive;
 	bool flipping;
-	bool vblankflip;
 	bool triplebuf;
 	bool blitted;
 
@@ -67,8 +65,6 @@ class DirectDrawBlitter : public BlitterWidget {
 	void restoreSurfaces();
 	void systemSurfaceBlit();
 	void videoSurfaceBlit();
-	void setSwapInterval(unsigned hz1, unsigned hz2);
-	void setSwapInterval();
 	HRESULT backBlit(IDirectDrawSurface7 *lpDDSSrc, RECT *rcRectDest, DWORD flags);
 	void finalBlit(DWORD waitFlag);
 	//void detectExclusive();
@@ -79,28 +75,27 @@ protected:
 	/*void resizeEvent(QResizeEvent *event);
 	void moveEvent(QMoveEvent *event);
 	void hideEvent(QHideEvent *event);*/
+	void setBufferDimensions(unsigned int w, unsigned int h);
 
 public:
-	DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
+	DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~DirectDrawBlitter();
 	void blit();
+	void draw();
 	void init();
-	void setBufferDimensions(unsigned int w, unsigned int h);
-	void setFrameTime(long ft);
-	const Estimate frameTimeEst() const;
-	long sync(long turbo);
+	long frameTimeEst() const;
+	long sync();
 	void uninit();
 	void setExclusive(bool exclusive);
 
-	QWidget* settingsWidget() { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 
 	QPaintEngine* paintEngine () const { return NULL; }
 
-public slots:
-//	void modeChange();
 	void rateChange(int hz);
+	void setSwapInterval(unsigned si);
 };
 
 #endif /*DIRECTDRAWBLITTER_H_*/

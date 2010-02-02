@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,7 +19,7 @@
 #ifndef SAVESTATE_H
 #define SAVESTATE_H
 
-#include "int.h"
+// #include "int.h"
 
 struct SaveState {
 	template<typename T>
@@ -76,7 +76,7 @@ struct SaveState {
 	} mem;
 	
 	struct PPU {
-		Ptr<Gambatte::uint_least32_t> drawBuffer;
+// 		Ptr<Gambatte::uint_least32_t> drawBuffer;
 		Ptr<unsigned char> bgpData;
 		Ptr<unsigned char> objpData;
 		//SpriteMapper::OamReader

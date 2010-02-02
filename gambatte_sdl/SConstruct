@@ -13,15 +13,26 @@ env.ParseConfig('sdl-config --cflags --libs')
 sourceFiles = Split('''
 			src/gambatte_sdl.cpp
 			src/audiodata.cpp
+			src/blitterwrapper.cpp
 			src/parser.cpp
 			src/sdlblitter.cpp
 			src/str_to_sdlkey.cpp
 			src/syncfunc.cpp
 			../common/adaptivesleep.cpp
 			../common/resample/chainresampler.cpp
-			../common/resample/u48div.cpp
+			../common/resample/i0.cpp
+			../common/resample/makesinckernel.cpp
 			../common/resample/resamplerinfo.cpp
+			../common/resample/u48div.cpp
 			../common/rateest.cpp
+			../common/skipsched.cpp
+			../common/videolink/rgb32conv.cpp
+			../common/videolink/vfilterinfo.cpp
+			../common/videolink/vfilters/catrom2x.cpp
+			../common/videolink/vfilters/catrom3x.cpp
+			../common/videolink/vfilters/kreed2xsai.cpp
+			../common/videolink/vfilters/maxsthq2x.cpp
+			../common/videolink/vfilters/maxsthq3x.cpp
 		   ''')
 
 conf = env.Configure()

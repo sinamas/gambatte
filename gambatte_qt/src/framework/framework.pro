@@ -1,5 +1,5 @@
-SOURCES += framework/videodialog.cpp \
-    framework/blittercontainer.cpp \
+SOURCES += framework/blittercontainer.cpp \
+    framework/videodialog.cpp \
     framework/inputdialog.cpp \
     framework/blitterwidgets/qglblitter.cpp \
     framework/blitterwidgets/qpainterblitter.cpp \
@@ -10,12 +10,18 @@ SOURCES += framework/videodialog.cpp \
     framework/sounddialog.cpp \
     framework/audioengines/customdevconf.cpp \
     framework/mainwindow.cpp \
-    framework/blitterwidget.cpp
+    framework/mediaworker.cpp \
+    framework/samplebuffer.cpp \
+    framework/blitterwidget.cpp \
+    framework/joysticklock.cpp
 SOURCES += $$COMMONPATH/resample/chainresampler.cpp \
+	$$COMMONPATH/resample/i0.cpp \
+	$$COMMONPATH/resample/makesinckernel.cpp \
 	$$COMMONPATH/resample/u48div.cpp \
 	$$COMMONPATH/resample/resamplerinfo.cpp \
 	$$COMMONPATH/adaptivesleep.cpp \
-	$$COMMONPATH/rateest.cpp
+	$$COMMONPATH/rateest.cpp \
+	$$COMMONPATH/skipsched.cpp
 HEADERS += framework/blitterwidget.h \
     framework/fullmodetoggler.h \
     framework/videodialog.h \
@@ -23,6 +29,7 @@ HEADERS += framework/blitterwidget.h \
     framework/resinfo.h \
     framework/inputdialog.h \
     framework/audioengine.h \
+    framework/audioengineconf.h \
     framework/addaudioengines.h \
     framework/addblitterwidgets.h \
     framework/getfullmodetoggler.h \
@@ -41,34 +48,40 @@ HEADERS += framework/blitterwidget.h \
     framework/audioengines/nullaudioengine.h \
     framework/audioengines/customdevconf.h \
     framework/mediasource.h \
-    framework/pixelbuffersetter.h \
+    framework/mediaworker.h \
     framework/mainwindow.h \
+    framework/samplebuffer.h \
+    framework/callqueue.h \
+    framework/pixelbuffer.h \
     framework/swscale.h \
-    framework/rational.h
-HEADERS += $$COMMONPATH/resample/blackmansinc.h \
-	$$COMMONPATH/resample/chainresampler.h \
+    framework/rational.h \
+    framework/joysticklock.h
+HEADERS += $$COMMONPATH/resample/chainresampler.h \
 	$$COMMONPATH/resample/cic2.h \
 	$$COMMONPATH/resample/cic3.h \
 	$$COMMONPATH/resample/cic4.h \
 	$$COMMONPATH/resample/convoluter.h \
-	$$COMMONPATH/resample/hammingsinc.h \
+	$$COMMONPATH/resample/i0.h \
+	$$COMMONPATH/resample/kaiser50sinc.h \
+	$$COMMONPATH/resample/kaiser70sinc.h \
 	$$COMMONPATH/resample/linint.h \
 	$$COMMONPATH/resample/makesinckernel.h \
 	$$COMMONPATH/resample/rectsinc.h \
 	$$COMMONPATH/resample/resampler.h \
+	$$COMMONPATH/resample/rshift16_round.h \
 	$$COMMONPATH/resample/subresampler.h \
 	$$COMMONPATH/resample/u48div.h \
 	$$COMMONPATH/resample/upsampler.h \
 	$$COMMONPATH/resample/resamplerinfo.h \
 	$$COMMONPATH/adaptivesleep.h \
 	$$COMMONPATH/usec.h \
-	$$COMMONPATH/rateest.h
-CONFIG += qt
+	$$COMMONPATH/rateest.h \
+	$$COMMONPATH/skipsched.h
+CONFIG += qt thread
 QT += opengl
 INCLUDEPATH += framework/SDL_Joystick/include
 INCLUDEPATH += $$COMMONPATH
 DEFINES += HAVE_STDINT_H
-QMAKE_CXXFLAGS += -fno-exceptions -fno-rtti
 
 macx {
 #    CONFIG += x86 ppc

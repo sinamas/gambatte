@@ -20,66 +20,83 @@
 #define GAMBATTESOURCE_H
 
 #include "framework/mediasource.h"
+#include "framework/inputdialog.h"
+#include "framework/videodialog.h"
+#include "framework/pixelbuffer.h"
 #include <gambatte.h>
 #include <cstring>
+#include <memory>
 #include <QObject>
+#include "videolink/videolink.h"
 
 class GambatteSource : public QObject, public MediaSource {
 	Q_OBJECT
 	
-	struct InputGetter : public Gambatte::InputStateGetter {
-		Gambatte::InputState is;
-		InputGetter() { std::memset(&is, 0, sizeof(is)); }
-		const Gambatte::InputState& operator()() { return is; }
-	};
-	
-	class Blitter : public Gambatte::VideoBlitter {
-		GambatteSource &gs;
-		
-	public:
-		Gambatte::PixelBuffer pb;
-		
-		Blitter(GambatteSource &gs) : gs(gs) {}
-		void setBufferDimensions(unsigned /*width*/, unsigned /*height*/) {}
-		const Gambatte::PixelBuffer inBuffer() { return pb; }
-		void blit() { gs.emitBlit(); }
+	struct GetInput : public Gambatte::InputGetter {
+		unsigned is;
+		GetInput() : is(0) {}
+		unsigned operator()() { return is; }
 	};
 	
 	Gambatte::GB gb;
-	InputGetter inputGetter;
-	Blitter blitter;
+	GetInput inputGetter;
+	InputDialog *inputDialog_;
+	std::auto_ptr<VideoLink> cconvert;
+	std::auto_ptr<VideoLink> vfilter;
+	Gambatte::uint_least32_t *gbpixels;
+	PixelBuffer::PixelFormat pxformat;
+	unsigned gbpitch;
+	unsigned vsrci;
+	bool inputState[8];
+	volatile bool dpadUp, dpadDown;
+	volatile bool dpadLeft, dpadRight;
+	volatile bool dpadUpLast, dpadLeftLast;
+	
+	InputDialog* createInputDialog();
+	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch);
+	void keyPressEvent(const QKeyEvent *);
+	void keyReleaseEvent(const QKeyEvent *);
+	void joystickEvent(const SDL_Event&);
+	
+	void emitSetTurbo(bool on) { emit setTurbo(on); }
+	void emitPause() { emit togglePause(); }
+	void emitFrameStep() { emit frameStep(); }
+	void emitDecFrameRate() { emit decFrameRate(); }
+	void emitIncFrameRate() { emit incFrameRate(); }
+	void emitResetFrameRate() { emit resetFrameRate(); }
+	void emitPrevStateSlot() { emit prevStateSlot(); }
+	void emitNextStateSlot() { emit nextStateSlot(); }
+	void emitSaveState() { emit saveStateSignal(); }
+	void emitLoadState() { emit loadStateSignal(); }
 	
 public:
 	GambatteSource();
 	
-	static const std::vector<ButtonInfo> generateButtonInfos();
-	const std::vector<MediaSource::VideoSourceInfo> generateVideoSourceInfos();
-	
-	void emitBlit() { emit blit(); }
+	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
 	
 	bool load(const char* romfile, const bool forceDmg) { return gb.load(romfile, forceDmg); }
 	void reset() { gb.reset(); }
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
-	void setSavedir(const std::string &sdir) { gb.set_savedir(sdir.c_str()); }
+	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir.c_str()); }
 	bool isCgb() const { return gb.isCgb(); }
 	void selectState(int n) { gb.selectState(n); }
 	int currentState() const { return gb.currentState(); }
-	void saveState(const char *filepath) { gb.saveState(filepath); }
+	void saveState(const PixelBuffer &fb, const char *filepath);
 	void loadState(const char *filepath) { gb.loadState(filepath); }
+	QDialog* inputDialog() const { return inputDialog_; }
 	
 	//overrides
 	void buttonPressEvent(unsigned buttonIndex);
 	void buttonReleaseEvent(unsigned buttonIndex);
-	void setPixelBuffer(void *pixels, PixelFormat format, unsigned pitch);
-	void setVideoSource(unsigned videoSourceIndex) { gb.setVideoFilter(videoSourceIndex); }
-	unsigned update(qint16 *soundBuf, unsigned samples);
+	void setVideoSource(unsigned videoSourceIndex);// { gb.setVideoFilter(videoSourceIndex); }
+	long update(const PixelBuffer &fb, qint16 *soundBuf, long &samples);
+	void generateVideoFrame(const PixelBuffer &fb);
 	
-public slots:
-	void saveState() { gb.saveState(); }
+// public slots:
+	void saveState(const PixelBuffer &fb);
 	void loadState() { gb.loadState(); }
 	
 signals:
-	void blit();
 	void setTurbo(bool on);
 	void togglePause();
 	void frameStep();
@@ -88,6 +105,8 @@ signals:
 	void resetFrameRate();
 	void prevStateSlot();
 	void nextStateSlot();
+	void saveStateSignal();
+	void loadStateSignal();
 };
 
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,26 +16,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef MAXSTHQ2X_H
-#define MAXSTHQ2X_H
+#ifndef RGB32CONV_H
+#define RGB32CONV_H
 
-#include "filter.h"
+class VideoLink;
 
-struct FilterInfo;
-
-class MaxSt_Hq2x : public Filter {
-	Gambatte::uint_least32_t *buffer;
-	
+class Rgb32Conv {
 public:
-	MaxSt_Hq2x();
-	~MaxSt_Hq2x();
-	void init();
-	void outit();
-	const Gambatte::FilterInfo& info();
-	void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch);
-	Gambatte::uint_least32_t* inBuffer();
-	unsigned inPitch();
+	enum PixelFormat { RGB32, RGB16, UYVY };
+	static VideoLink* create(PixelFormat pf, unsigned width, unsigned height);
 };
-
 
 #endif

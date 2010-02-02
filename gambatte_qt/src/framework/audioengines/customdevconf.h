@@ -44,9 +44,9 @@ private slots:
 public:
 	CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup, const char *customdevstr = 0);
 	~CustomDevConf();
-	QWidget* settingsWidget() { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 	const char* device() const;
 };
 

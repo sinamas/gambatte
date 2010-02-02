@@ -21,42 +21,92 @@
 
 #include <QDialog>
 #include <QLineEdit>
+#include <QMutex>
 #include <vector>
+#include <map>
 #include "SDL_Joystick/include/SDL_event.h"
-#include "mediasource.h"
-
-enum { AXIS_CENTERED = 0, AXIS_POSITIVE = 1, AXIS_NEGATIVE = 2 };
-
-// wraps SDL_PollEvent, converting all values to hat-style bitset values (a single bit for buttons, two for axes, four for hats)
-// only hats can have multiple bits set at once. In practice only axis values are converted (to AXIS_CENTERED, AXIS_POSITIVE or AXIS_NEGATIVE).
-int pollJsEvent(SDL_Event *ev);
 
 class InputBoxPair;
 
+/** A dialog that lets the user map keyboard/joystick input
+  * to actions. Pass descriptions for "Buttons" to be configured
+  * to the constructor, and call input event methods to invoke Button::Actions
+  * configured to activate on the respective input event.
+  */
 class InputDialog : public QDialog {
 	Q_OBJECT
+public:
+	struct Button {
+		// Label used in input settings dialog. If this is empty the button won't be configurable, but will use the defaultKey.
+		QString label;
+		
+		// Tab label used in input settings dialog.
+		QString category;
+		
+		// Default Qt::Key. Use Qt::Key_unknown for none.
+		int defaultKey;
+		
+		// Default alternate Qt::Key. Use Qt::Key_unknown for none.
+		int defaultAltKey;
+		
+		// called on button press / release
+		struct Action {
+			virtual void buttonPressed() {}
+			virtual void buttonReleased() {}
+			virtual ~Action() {}
+		} *action;
+	};
 	
-	const std::vector<MediaSource::ButtonInfo> buttonInfos;
+private:
+	class JoyObserver {
+		Button::Action *const action;
+		const int mask;
+	
+		void notifyObserver(bool press) {
+			if (press)
+				action->buttonPressed();
+			else
+				action->buttonReleased();
+		}
+	
+	public:
+		JoyObserver(Button::Action *const action, const int mask) : action(action), mask(mask) {}
+		void valueChanged(const int value) { notifyObserver((value & mask) == mask); }
+	};
+	
+	typedef std::multimap<unsigned,Button::Action*> keymap_t;
+	typedef std::multimap<unsigned,JoyObserver> joymap_t;
+	
+	const std::vector<Button> buttonInfos;
 	std::vector<InputBoxPair*> inputBoxPairs;
 	std::vector<SDL_Event> eventData;
+	keymap_t keyInputs;
+	joymap_t joyInputs;
+	QMutex keymut;
+	QMutex joymut;
+	const bool deleteButtonActions;
 	
+	void resetMapping();
 	void store();
 	void restore();
 	
 public:
-	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
-	
-	InputDialog(const std::vector<MediaSource::ButtonInfo> &buttonInfos,
+	InputDialog(const std::vector<Button> &buttonInfos,
+	            bool deleteButtonActions = true,
 	            QWidget *parent = 0);
 	~InputDialog();
 	
-	const std::vector<SDL_Event>& getData() const { return eventData; }
+	// These invoke Button::Actions matching the key pressed/released
+	void keyPressEvent(const QKeyEvent *);
+	void keyReleaseEvent(const QKeyEvent *);
+	void joystickEvent(const SDL_Event&);
 	
 public slots:
 	void accept();
 	void reject();
 };
 
+// used in implementation of InputDialog
 class InputBox : public QLineEdit {
 	Q_OBJECT
 
@@ -77,16 +127,18 @@ protected:
 	void timerEvent(QTimerEvent */*event*/);
 	
 public:
+	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
 	InputBox(QWidget *nextFocus = 0);
 	void setData(const SDL_Event &data) { setData(data.id, data.value); }
-	void setData(unsigned id, int value = InputDialog::KBD_VALUE);
+	void setData(unsigned id, int value = KBD_VALUE);
 	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
 	const SDL_Event& getData() const { return data; }
 
 public slots:
-	void clearData() { setData(0, InputDialog::NULL_VALUE); }
+	void clearData() { setData(0, NULL_VALUE); }
 };
 
+// used in implementation of InputDialog
 class InputBoxPair : public QObject {
 	Q_OBJECT
 

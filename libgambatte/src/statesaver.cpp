@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -352,7 +352,9 @@ static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *p
 
 static SaverList list;
 
-void StateSaver::saveState(const SaveState &state, const char *filename) {
+void StateSaver::saveState(const SaveState &state,
+		const Gambatte::uint_least32_t *const videoBuf,
+		const unsigned pitch, const char *const filename) {
 	std::ofstream file(filename, std::ios_base::binary);
 	
 	if (file.fail())
@@ -360,7 +362,7 @@ void StateSaver::saveState(const SaveState &state, const char *filename) {
 	
 	{ static const char ver[] = { 0, 0 }; file.write(ver, sizeof(ver)); }
 	
-	writeSnapShot(file, state.ppu.drawBuffer.get(), state.ppu.drawBuffer.getSz() / 144);
+	writeSnapShot(file, videoBuf, pitch);
 	
 	for (SaverList::const_iterator it = list.begin(); it != list.end(); ++it) {
 		file.write(it->label, it->labelsize);

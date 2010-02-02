@@ -19,8 +19,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "kreed2xsai.h"
-#include "filterinfo.h"
 #include <cstring>
+#include <int.h>
+
+namespace {
 
 static inline int getResult1(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
 	int x = 0;
@@ -68,10 +70,13 @@ static inline unsigned long qInterpolate(const unsigned long a, const unsigned l
 	return (a + b + c + d - lowBits) >> 2;
 }
 
+template<unsigned srcPitch, unsigned width, unsigned height>
 static void filter(Gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
-		   const Gambatte::uint_least32_t *srcPtr, const unsigned srcPitch, const unsigned width, unsigned height)
+		   const Gambatte::uint_least32_t *srcPtr)
 {
-	while (height--) {
+	unsigned h = height;
+	
+	while (h--) {
 		const Gambatte::uint_least32_t *bP = srcPtr;
 		Gambatte::uint_least32_t *dP = dstPtr;
 		
@@ -204,40 +209,24 @@ static void filter(Gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
 	}
 }
 
-Kreed_2xSaI::Kreed_2xSaI() {
-	buffer = NULL;
+enum { WIDTH  = VfilterInfo::IN_WIDTH };
+enum { HEIGHT = VfilterInfo::IN_HEIGHT };
+enum { PITCH  = WIDTH + 1 };
+
+static inline Gambatte::uint_least32_t* buffer(const Kreed2xSaI *c2x) {
+	return static_cast<Gambatte::uint_least32_t*>(c2x->inBuf());
 }
 
-Kreed_2xSaI::~Kreed_2xSaI() {
-	delete []buffer;
 }
 
-void Kreed_2xSaI::init() {
-	delete []buffer;
-
-	buffer = new Gambatte::uint_least32_t[145 * 161];
-	std::memset(buffer, 0, 145ul * 161 * sizeof(Gambatte::uint_least32_t));
+Kreed2xSaI::Kreed2xSaI() : VideoLink((new Gambatte::uint_least32_t[(HEIGHT + 1) * PITCH]), PITCH) {
+	std::memset(buffer(this), 0, (HEIGHT + 1) * PITCH * sizeof(Gambatte::uint_least32_t));
 }
 
-void Kreed_2xSaI::outit() {
-	delete []buffer;
-	buffer = NULL;
+Kreed2xSaI::~Kreed2xSaI() {
+	delete[] buffer(this);
 }
 
-const Gambatte::FilterInfo& Kreed_2xSaI::info() {
-	static Gambatte::FilterInfo fInfo = { "Kreed's 2xSaI", 160 * 2, 144 * 2 };
-	
-	return fInfo;
-}
-
-Gambatte::uint_least32_t* Kreed_2xSaI::inBuffer() {
-	return buffer;
-}
-
-unsigned Kreed_2xSaI::inPitch() {
-	return 161;
-}
-
-void Kreed_2xSaI::filter(Gambatte::uint_least32_t *const dbuffer, const unsigned pitch) {
-	::filter(dbuffer, pitch, buffer, 161, 160, 144);
+void Kreed2xSaI::draw(void *const dbuffer, const unsigned pitch) {
+	::filter<PITCH, WIDTH, HEIGHT>(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this));
 }

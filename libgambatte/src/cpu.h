@@ -48,7 +48,7 @@ public:
 
 // 	unsigned interrupt(unsigned address, unsigned cycleCounter);
 	
-	void runFor(unsigned long cycles);
+	int runFor(unsigned long cycles);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state);
 	void loadState(const SaveState &state);
@@ -56,36 +56,16 @@ public:
 	void loadSavedata() { memory.loadSavedata(); }
 	void saveSavedata() { memory.saveSavedata(); }
 	
-	void setVideoBlitter(Gambatte::VideoBlitter *vb) {
-		memory.setVideoBlitter(vb);
+	void setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const unsigned pitch) {
+		memory.setVideoBuffer(videoBuf, pitch);
 	}
 	
-	void videoBufferChange() {
-		memory.videoBufferChange();
+	void setInputGetter(Gambatte::InputGetter *getInput) {
+		memory.setInputGetter(getInput);
 	}
 	
-	unsigned int videoWidth() const {
-		return memory.videoWidth();
-	}
-	
-	unsigned int videoHeight() const {
-		return memory.videoHeight();
-	}
-	
-	void setVideoFilter(const unsigned int n) {
-		memory.setVideoFilter(n);
-	}
-	
-	std::vector<const Gambatte::FilterInfo*> filterInfo() const {
-		return memory.filterInfo();
-	}
-	
-	void setInputStateGetter(Gambatte::InputStateGetter *getInput) {
-		memory.setInputStateGetter(getInput);
-	}
-	
-	void set_savedir(const char *sdir) {
-		memory.set_savedir(sdir);
+	void setSaveDir(const char *sdir) {
+		memory.setSaveDir(sdir);
 	}
 	
 	const std::string saveBasePath() const {

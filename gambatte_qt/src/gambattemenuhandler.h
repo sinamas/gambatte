@@ -21,6 +21,7 @@
 
 #include <QObject>
 #include <QList>
+#include <QSize>
 
 class MainWindow;
 class GambatteSource;
@@ -29,6 +30,9 @@ class PaletteDialog;
 class QString;
 class QActionGroup;
 class QMenu;
+class SoundDialog;
+class VideoDialog;
+class MiscDialog;
 
 class GambatteMenuHandler : public QObject {
 	Q_OBJECT
@@ -52,18 +56,18 @@ class GambatteMenuHandler : public QObject {
 	public:
 		FrameTime(unsigned baseNum, unsigned baseDenom);
 		
-		bool inc() {
+		bool incPossible() const { return index < STEPS * 2; }
+		bool decPossible() const { return index; }
+		bool resetPossible() const { return index != STEPS; }
+		
+		void inc() {
 			if (index < STEPS * 2)
 				++index;
-			
-			return index < STEPS * 2;
 		}
 		
-		bool dec() {
+		void dec() {
 			if (index)
 				--index;
-			
-			return index;
 		}
 		
 		void reset() { index = STEPS; }
@@ -75,11 +79,16 @@ class GambatteMenuHandler : public QObject {
 	
 	MainWindow *const mw;
 	GambatteSource *const source;
+	SoundDialog *const soundDialog;
+	VideoDialog *const videoDialog;
+	MiscDialog *const miscDialog;
 	QAction *recentFileActs[MaxRecentFiles];
 	QAction *romPaletteAct;
 	QAction *pauseAction;
+	QAction *syncFrameRateAction;
 	QAction *decFrameRateAction;
 	QAction *incFrameRateAction;
+	QAction *resetFrameRateAction;
 	QAction *forceDmgAction;
 #ifdef Q_WS_MAC
 	QAction *fsAct;
@@ -91,11 +100,14 @@ class GambatteMenuHandler : public QObject {
 	QActionGroup *stateSlotGroup;
 	QList<QAction*> romLoadedActions;
 	FrameTime frameTime;
+	QSize wsz;
+	unsigned pauseInc;
 	
 	void loadFile(const QString &fileName);
 	void setCurrentFile(const QString &fileName);
 	void setDmgPaletteColors();
 	void updateRecentFileActions();
+	void frameRateChange();
 	
 private slots:
 	void open();
@@ -103,21 +115,33 @@ private slots:
 	void about();
 	void globalPaletteChange();
 	void romPaletteChange();
+	void videoDialogChange();
+	void soundDialogChange();
+	void miscDialogChange();
 	void execGlobalPaletteDialog();
 	void execRomPaletteDialog();
+	void execInputDialog();
+	void execSoundDialog();
+	void execVideoDialog();
+	void execMiscDialog();
 	void prevStateSlot();
 	void nextStateSlot();
 	void selectStateSlot();
+	void saveState();
 	void saveStateAs();
+	void loadState();
 	void loadStateFrom();
 	void pauseChange();
 	void frameStep();
+	void syncFrameRate();
 	void decFrameRate();
 	void incFrameRate();
 	void resetFrameRate();
-#ifdef Q_WS_MAC
-	void unsetFullScreen();
-#endif
+	void escPressed();
+	void videoBlitterFailure();
+	void audioEngineFailure();
+	void toggleFullScreen();
+	void saveWindowSize();
 	
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);

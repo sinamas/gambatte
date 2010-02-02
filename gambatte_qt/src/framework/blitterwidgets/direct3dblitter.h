@@ -32,9 +32,8 @@ class Direct3DBlitter : public BlitterWidget {
 	FtEst ftEst;
 	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *const adapterSelector;
-	QCheckBox *const vblankBox;
-	QCheckBox *const flippingBox;
 	QCheckBox *const vblankblitBox;
+	QCheckBox *const flippingBox;
 	QCheckBox *const triplebufBox;
 	QCheckBox *const bfBox;
 	HMODULE d3d9handle;
@@ -57,7 +56,7 @@ class Direct3DBlitter : public BlitterWidget {
 	bool exclusive;
 	bool windowed;
 	bool drawn;
-	bool vblank;
+	//bool vblank;
 	bool flipping;
 	bool vblankblit;
 	bool triplebuf;
@@ -71,34 +70,30 @@ class Direct3DBlitter : public BlitterWidget {
 	void setDeviceState();
 	void resetDevice();
 	void exclusiveChange();
-	void setSwapInterval(unsigned hz1, unsigned hz2);
-	void setSwapInterval();
-	void draw();
 	void present();
 
 protected:
 	void paintEvent(QPaintEvent *e);
 	void resizeEvent(QResizeEvent *e);
+	void setBufferDimensions(unsigned w, unsigned h);
 
 public:
-	Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
+	Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~Direct3DBlitter();
 	void init();
 	void uninit();
-	void setBufferDimensions(unsigned w, unsigned h);
 	void blit();
-	long sync(long ft);
-	void setFrameTime(long ft);
-	const Estimate frameTimeEst() const;
+	void draw();
+	long sync();
+	long frameTimeEst() const;
 	void setExclusive(bool exclusive);
 	bool isUnusable() const { return !d3d; }
-	QWidget* settingsWidget() { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 
 	QPaintEngine* paintEngine () const { return NULL; }
-
-public slots:
+	void setSwapInterval(unsigned si);
 	void rateChange(int hz);
 };
 

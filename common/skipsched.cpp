@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,24 +16,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef FILTER_H
-#define FILTER_H
+#include "skipsched.h"
 
-#include "int.h"
+bool SkipSched::skipNext(bool skip) {
+	if (skipped) {
+		if (skipped < skippedmax / 2)
+			skip = true;
+		else
+			skipped = skip = 0;
+	} else if (skip) {
+		skippedmax += skippedmax / 2 < 8;
+	} else if (skippedmax / 2)
+		--skippedmax;
 
-namespace Gambatte {
-struct FilterInfo;
+	skipped += skip;
+
+	return skip;
 }
-
-class Filter {
-public:
-	virtual ~Filter() {}
-	virtual void init() {};
-	virtual void outit() {};
-	virtual const Gambatte::FilterInfo& info() = 0;
-	virtual void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch) = 0;
-	virtual Gambatte::uint_least32_t* inBuffer() = 0;
-	virtual unsigned inPitch() = 0;
-};
-
-#endif

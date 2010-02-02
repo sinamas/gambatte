@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Sindre Aamås                                    *
+ *   Copyright (C) 2009 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -175,12 +175,12 @@ WasapiEngine::~WasapiEngine() {
 	settings.endGroup();
 }
 
-void WasapiEngine::acceptSettings() {
+void WasapiEngine::doAcceptSettings() {
 	exclusive = exclusiveBox->isChecked();
 	deviceIndex = deviceSelector->currentIndex();
 }
 
-void WasapiEngine::rejectSettings() {
+void WasapiEngine::rejectSettings() const {
 	exclusiveBox->setChecked(exclusive);
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
@@ -358,7 +358,7 @@ int WasapiEngine::write(void *const buffer, const unsigned samples) {
 	return write(buffer, samples, numFramesPadding);
 }
 
-int WasapiEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out) {
+int WasapiEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState_out, long &rate_out) {
 	UINT32 numFramesPadding = 0;
 
 	if (FAILED(pAudioClient->GetCurrentPadding(&numFramesPadding)))

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,32 +21,35 @@
 
 #include "../blitterwidget.h"
 #include <memory>
+#include <QImage>
 
 class QPainter;
-class QImage;
 class QCheckBox;
 
 class QPainterBlitter : public BlitterWidget {
 	const std::auto_ptr<QWidget> confWidget;
 	std::auto_ptr<QImage> image;
+	std::auto_ptr<QImage> image2;
 	QCheckBox *const bfBox;
-	quint32 *buffer;
+	union { quint32 *buffer; QImage *backImage; };
 	unsigned int inWidth, inHeight;
 	bool bf;
 	
 protected:
+	void privSetPaused(bool) {}
 	void paintEvent(QPaintEvent *event);
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	QPainterBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
+	QPainterBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~QPainterBlitter();
 	void blit();
+	void draw();
 	void setBufferDimensions(unsigned int w, unsigned int h);
 	void uninit();
-	QWidget* settingsWidget() { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 };
 
 #endif

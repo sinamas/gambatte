@@ -33,7 +33,6 @@ void FtEst::init(const long frameTime) {
 	this->frameTime = frameTime;
 	ft = 4500000 << 6;
 	ftAvg = frameTime << UPSHIFT;
-	ftVar = ftAvg >> 12;
 	last = 0;
 	count = (ft + (frameTime >> 1)) / (frameTime ? frameTime : 1);
 }
@@ -45,7 +44,6 @@ void FtEst::update(const usec_t t) {
 
 		long ftAvgNew = static_cast<long>(static_cast<float>(ft) * UP / count + 0.5f);
 		ftAvgNew = limit((ftAvg * 31 + ftAvgNew + 16) >> 5, frameTime << UPSHIFT);
-		ftVar = (ftVar * 15 + std::abs(ftAvgNew - ftAvg) + 8) >> 4;
 		ftAvg = ftAvgNew;
 
 		if (ft > (6000000 << 6)) {
@@ -113,42 +111,15 @@ void usecsleep(const usec_t usecs) {
 
 #endif /*Q_WS_WIN*/
 
-class BlitterWidget::Impl {
-	AdaptiveSleep asleep;
-	usec_t last;
-
-public:
-	Impl() : last(0) {}
-
-	long sync(const long ft) {
-		if (ft) {
-			last += asleep.sleepUntil(last, ft);
-			last += ft;
-		}
-
-		return 0;
-	}
-};
-
-BlitterWidget::BlitterWidget(PixelBufferSetter setPixelBuffer,
+BlitterWidget::BlitterWidget(VideoBufferLocker vbl,
                              const QString &name,
-                             bool integerOnlyScaler,
+                             unsigned maxSwapInterval,
                              QWidget *parent) :
 QWidget(parent),
-impl(new Impl),
-ft(1000000/60),
-setPixelBuffer(setPixelBuffer),
-nameString(name),
-integerOnlyScaler(integerOnlyScaler),
+vbl(vbl),
+nameString_(name),
+maxSwapInterval_(maxSwapInterval),
 paused(true)
 {
 	setMouseTracking(true);
-}
-
-BlitterWidget::~BlitterWidget() {
-	delete impl;
-}
-
-long BlitterWidget::sync(const long ft) {
-	return impl->sync(ft);
 }

@@ -4,13 +4,32 @@ include(framework/framework.pro)
 SOURCES += main.cpp \
     gambattesource.cpp \
     gambattemenuhandler.cpp \
-    palettedialog.cpp
+    palettedialog.cpp \
+    miscdialog.cpp
 HEADERS += gambattesource.h \
     gambattemenuhandler.h \
-    palettedialog.h
+    palettedialog.h \
+    miscdialog.h
+SOURCES += $$COMMONPATH/videolink/rgb32conv.cpp \
+    $$COMMONPATH/videolink/vfilterinfo.cpp \
+    $$COMMONPATH/videolink/vfilters/catrom2x.cpp \
+    $$COMMONPATH/videolink/vfilters/catrom3x.cpp \
+    $$COMMONPATH/videolink/vfilters/kreed2xsai.cpp \
+    $$COMMONPATH/videolink/vfilters/maxsthq2x.cpp \
+    $$COMMONPATH/videolink/vfilters/maxsthq3x.cpp
+HEADERS += $$COMMONPATH/videolink/rgb32conv.h \
+    $$COMMONPATH/videolink/vfilterinfo.h \
+    $$COMMONPATH/videolink/videolink.h \
+    $$COMMONPATH/videolink/vfilters/catrom2x.h \
+    $$COMMONPATH/videolink/vfilters/catrom3x.h \
+    $$COMMONPATH/videolink/vfilters/kreed2xsai.h \
+    $$COMMONPATH/videolink/vfilters/maxsthq2x.h \
+    $$COMMONPATH/videolink/vfilters/maxsthq3x.h
 TEMPLATE = app
 CONFIG += warn_on \
     release
+QMAKE_CFLAGS   += -fomit-frame-pointer
+QMAKE_CXXFLAGS += -fomit-frame-pointer -fno-exceptions -fno-rtti
 TARGET = gambatte_qt
 macx:TARGET = "Gambatte Qt"
 DESTDIR = ../bin

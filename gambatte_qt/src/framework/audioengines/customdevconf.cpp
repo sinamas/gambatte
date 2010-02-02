@@ -68,7 +68,7 @@ void CustomDevConf::acceptSettings() {
 	customDevStr = customDevEdit->text().toAscii();
 }
 
-void CustomDevConf::rejectSettings() {
+void CustomDevConf::rejectSettings() const {
 	customDevBox->setChecked(useCustomDev);
 	customDevEdit->setText(customDevStr);
 }

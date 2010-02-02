@@ -19,11 +19,13 @@
 #ifndef BLITTERWIDGET_H
 #define BLITTERWIDGET_H
 
-#include "pixelbuffersetter.h"
 #include <QWidget>
 #include <QString>
 #include <memory>
 #include <usec.h>
+#include "pixelbuffer.h"
+#include "videobufferlocker.h"
+#include "mediasource.h"
 
 class QHBoxLayout;
 
@@ -34,7 +36,6 @@ class FtEst {
 	long frameTime;
 	long ft;
 	long ftAvg;
-	long ftVar;
 	usec_t last;
 	unsigned count;
 
@@ -43,63 +44,66 @@ public:
 	void init(long frameTime);
 	void update(usec_t t);
 	long est() const { return (ftAvg + UP / 2) >> UPSHIFT; }
-	long var() const { return (ftVar + UP / 2) >> UPSHIFT; }
 };
 
 class BlitterWidget : public QWidget {
-	Q_OBJECT
-
-	class Impl;
-
-	Impl *const impl;
-	long ft;
-
-protected:
-	PixelBufferSetter setPixelBuffer;
-	
-public:
-	struct Estimate {
-		long est;
-		long var;
-	};
-
-	const QString nameString;
-	const bool integerOnlyScaler;
+	PixelBuffer pixbuf;
+	VideoBufferLocker vbl;
+	const QString nameString_;
+	const unsigned maxSwapInterval_;
 	
 private:
 	bool paused;
 	
+protected:
 	virtual void privSetPaused(const bool paused) { setUpdatesEnabled(paused); }
+	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
+	
+	// use these if modifying pixel buffer in the sync method, or in an event method.
+	void lockPixelBuffer() { vbl.lock(); }
+	void unlockPixelBuffer() { vbl.unlock(); }
+	
+	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch) {
+		pixbuf.data = pixels;
+		pixbuf.pitch = pitch;
+		pixbuf.pixelFormat = format;
+	}
 
 public:
-	BlitterWidget(PixelBufferSetter setPixelBuffer,
-	              const QString &name,
-	              bool integerOnlyScaler = false,
+	BlitterWidget(VideoBufferLocker, const QString &name,
+	              unsigned maxSwapInterval = 0,
 	              QWidget *parent = 0);
-	virtual ~BlitterWidget();
+	virtual ~BlitterWidget() {}
+	const QString& nameString() const { return nameString_; }
+	unsigned maxSwapInterval() const { return maxSwapInterval_; }
 	bool isPaused() const { return paused; }
 	void setPaused(const bool paused) { this->paused = paused; privSetPaused(paused); }
+	const PixelBuffer& inBuffer() const { return pixbuf; }
 
 	virtual void init() {}
 	virtual void uninit() {}
 	virtual void blit() = 0;
+	virtual void draw() {}
 	virtual bool isUnusable() const { return false; }
-	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
+	
+	void setVideoFormat(unsigned width, unsigned height/*, PixelBuffer::PixelFormat pf*/) {
+		pixbuf.width = width;
+		pixbuf.height = height;
+		setBufferDimensions(width, height);
+// 		return pf == pixbuf.pixelFormat;
+	}
+	
 	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) { setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h); }
-	virtual void setFrameTime(const long ft) { this->ft = ft; }
-	long frameTime() const { return ft; }
-	virtual const Estimate frameTimeEst() const { static const Estimate e = { 0, 0 }; return e; }
-	virtual long sync(long ft);
-	virtual QWidget* settingsWidget() { return NULL; }
+	virtual long frameTimeEst() const { return 0; }
+	virtual long sync() { return 0; }
 	virtual void setExclusive(bool) {}
-
-// 	public slots:
+	virtual void setSwapInterval(unsigned) {}
+	
+	virtual QWidget* settingsWidget() const { return 0; }
 	virtual void acceptSettings() {}
-	virtual void rejectSettings() {}
+	virtual void rejectSettings() const {}
 
-public slots:
 	virtual void rateChange(int /*newHz*/) {}
-//	virtual void modeChange() {}
 };
 
 #endif

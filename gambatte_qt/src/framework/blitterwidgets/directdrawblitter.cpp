@@ -43,12 +43,11 @@ BOOL WINAPI DirectDrawBlitter::enumCallback(GUID FAR *lpGUID, char *lpDriverDesc
 	return true;
 }
 
-DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
-	BlitterWidget(setPixelBuffer, "DirectDraw", parent),
+DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
+	BlitterWidget(vbl, "DirectDraw", 2, parent),
 	confWidget(new QWidget),
-	vblankBox(new QCheckBox(QString("Sync to vertical blank in 60 Hz modes"))),
+	vblankBox(new QCheckBox(QString("Wait for vertical blank"))),
 	flippingBox(new QCheckBox(QString("Exclusive full screen"))),
-	vblankflipBox(new QCheckBox("Only update during vertical blank")),
 	triplebufBox(new QCheckBox("Triple buffering")),
 	videoSurfaceBox(new QCheckBox(QString("Use video memory surface"))),
 	deviceSelector(new QComboBox),
@@ -59,7 +58,7 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	lpDDSVideo(NULL),
 	lpDDSClear(NULL),
 	lpClipper(NULL),
-	pixelFormat(MediaSource::RGB32),
+	pixelFormat(PixelBuffer::RGB32),
 	lastblank(0),
 	clear(0),
 	hz(0),
@@ -71,7 +70,6 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	videoSurface(true),
 	exclusive(false),
 	flipping(false),
-	vblankflip(true),
 	triplebuf(false),
 	blitted(false)
 {
@@ -86,7 +84,6 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	settings.beginGroup("directdrawblitter");
 	vblank = settings.value("vblank", vblank).toBool();
 	flipping = settings.value("flipping", flipping).toBool();
-	vblankflip = settings.value("vblankflip", vblankflip).toBool();
 	triplebuf = settings.value("triplebuf", triplebuf).toBool();
 	videoSurface = settings.value("videoSurface", videoSurface).toBool();
 
@@ -113,14 +110,6 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	{
 		QHBoxLayout *l = new QHBoxLayout;
 		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
-		l->addWidget(vblankflipBox);
-		mainLayout->addLayout(l);
-	}
-
-
-	{
-		QHBoxLayout *l = new QHBoxLayout;
-		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
 		l->addWidget(triplebufBox);
 		mainLayout->addLayout(l);
 	}
@@ -128,9 +117,7 @@ DirectDrawBlitter::DirectDrawBlitter(PixelBufferSetter setPixelBuffer, QWidget *
 	mainLayout->addWidget(videoSurfaceBox);
 	confWidget->setLayout(mainLayout);
 
-	vblankflipBox->setEnabled(false);
 	triplebufBox->setEnabled(false);
-	connect(flippingBox, SIGNAL(toggled(bool)), vblankflipBox, SLOT(setEnabled(bool)));
 	connect(flippingBox, SIGNAL(toggled(bool)), triplebufBox, SLOT(setEnabled(bool)));
 
 	rejectSettings();
@@ -143,7 +130,6 @@ DirectDrawBlitter::~DirectDrawBlitter() {
 	settings.beginGroup("directdrawblitter");
 	settings.setValue("vblank", vblank);
 	settings.setValue("flipping", flipping);
-	settings.setValue("vblankflip", vblankflip);
 	settings.setValue("triplebuf", triplebuf);
 	settings.setValue("videoSurface", videoSurface);
 	settings.setValue("deviceIndex", deviceIndex);
@@ -198,10 +184,12 @@ void DirectDrawBlitter::blit() {
 			ddsd.lpSurface = NULL;
 		}
 
-		setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == MediaSource::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
+		setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
 	}
+}
 
-	if (exclusive & flipping & ~vblankflip)
+void DirectDrawBlitter::draw() {
+	if (exclusive & flipping/* & ~vblankflip*/)
 		finalBlit(DDBLT_WAIT);
 }
 
@@ -342,7 +330,7 @@ void DirectDrawBlitter::restoreSurfaces() {
 	}
 }
 
-static void setDdPf(DDPIXELFORMAT *const ddpf, MediaSource::PixelFormat *const pixelFormat,
+static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const pixelFormat,
 		LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
 	bool alpha = false;
 
@@ -350,16 +338,16 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, MediaSource::PixelFormat *const p
 
 	if (lpDDSPrimary && lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK && (ddpf->dwFlags & DDPF_RGB) &&
 			ddpf->dwRGBBitCount == 16) {
-		*pixelFormat = MediaSource::RGB16;
+		*pixelFormat = PixelBuffer::RGB16;
 	} else {
-		*pixelFormat = MediaSource::RGB32;
+		*pixelFormat = PixelBuffer::RGB32;
 		alpha = ddpf->dwFlags & DDPF_ALPHAPIXELS;
 	}
 
 	std::memset(ddpf, 0, sizeof(DDPIXELFORMAT));
 	ddpf->dwFlags = DDPF_RGB;
 
-	if (*pixelFormat == MediaSource::RGB16) {
+	if (*pixelFormat == PixelBuffer::RGB16) {
 		ddpf->dwRGBBitCount = 16;
 		ddpf->dwRBitMask = 0xF800;
 		ddpf->dwGBitMask = 0x07E0;
@@ -428,7 +416,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 		goto fail;
 	}
 
-	setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == MediaSource::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
+	setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
 
 	return;
 
@@ -471,7 +459,7 @@ void DirectDrawBlitter::uninit() {
 	}
 }
 
-void DirectDrawBlitter::setFrameTime(const long ft) {
+/*void DirectDrawBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
 
 	const unsigned hz1 = (1000000 + (ft >> 1)) / ft;
@@ -487,13 +475,11 @@ void DirectDrawBlitter::setFrameTime(const long ft) {
 	}
 
 	setSwapInterval(hz1, hz2);
-}
+}*/
 
-const BlitterWidget::Estimate DirectDrawBlitter::frameTimeEst() const {
-	if (swapInterval) {
-		const Estimate est = { ftEst.est(), ftEst.var() };
-		return est;
-	}
+long DirectDrawBlitter::frameTimeEst() const {
+	if (swapInterval)
+		return ftEst.est();
 
 	return BlitterWidget::frameTimeEst();
 }
@@ -506,17 +492,11 @@ const BlitterWidget::Estimate DirectDrawBlitter::frameTimeEst() const {
 	return BlitterWidget::frameTime();
 }*/
 
-void DirectDrawBlitter::setSwapInterval(const unsigned hz1, const unsigned hz2) {
-	const unsigned newSwapInterval = vblank ? hz == hz1 * 2 || hz == hz2 ? 2 : (hz == hz1 ? 1 : 0) : 0;
-
+void DirectDrawBlitter::setSwapInterval(const unsigned newSwapInterval) {
 	if (newSwapInterval != swapInterval) {
 		swapInterval = newSwapInterval;
 		ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
 	}
-}
-
-void DirectDrawBlitter::setSwapInterval() {
-	setSwapInterval((1000000 + (frameTime() >> 1)) / frameTime(), (1000000 * 2 + (frameTime() >> 1)) / frameTime());
 }
 
 HRESULT DirectDrawBlitter::backBlit(IDirectDrawSurface7 *const lpDDSSrc, RECT *const rcRectDest, const DWORD flags) {
@@ -561,12 +541,9 @@ void DirectDrawBlitter::finalBlit(const DWORD waitflag) {
 	blitted |= backBlit(lpDDSVideo, &rcRectDest, waitflag) == DD_OK;
 }
 
-long DirectDrawBlitter::sync(const long ft) {
+long DirectDrawBlitter::sync() {
 	if (!lpDDSVideo || !lpDDSSystem || !lpDDSBack)
 		return -1;
-
-	if (!swapInterval)
-		BlitterWidget::sync(ft);
 
 	HRESULT ddrval = DD_OK;
 
@@ -598,18 +575,18 @@ long DirectDrawBlitter::sync(const long ft) {
 			lastblank = now;
 		} else {
 			if (!blitted)
-				finalBlit(vblankflip ? DDBLT_DONOTWAIT : DDBLT_WAIT);
+				finalBlit(vblank ? DDBLT_DONOTWAIT : DDBLT_WAIT);
 
 			if (lpDDSPrimary && blitted)
 				ddrval = lpDDSPrimary->Flip(NULL,
-						(vblankflip ? DDFLIP_DONOTWAIT : DDFLIP_WAIT) |
-						(vblankflip ? 0 : DDFLIP_NOVSYNC));
+						(vblank ? DDFLIP_DONOTWAIT : DDFLIP_WAIT) |
+						(vblank ? 0 : DDFLIP_NOVSYNC));
 		}
 	} else {
-		if (swapInterval) {
+		if (const unsigned si = swapInterval ? swapInterval : vblank) {
 			const usec_t refreshPeriod = 1000000 / hz;
 
-			while (getusecs() - lastblank < (swapInterval - 1) * refreshPeriod + refreshPeriod / 4)
+			while (getusecs() - lastblank < (si - 1) * refreshPeriod + refreshPeriod / 2)
 				Sleep(1);
 
 			lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
@@ -638,17 +615,12 @@ void DirectDrawBlitter::acceptSettings() {
 		needReinit = true;
 	}
 
-	if (vblank != vblankBox->isChecked()) {
-		vblank = vblankBox->isChecked();
-		setSwapInterval();
-	}
+	vblank = vblankBox->isChecked();
 
 	if (flipping != flippingBox->isChecked()) {
 		flipping = flippingBox->isChecked();
 		needReinit |= exclusive;
 	}
-
-	vblankflip = vblankflipBox->isChecked();
 
 	if (triplebuf != triplebufBox->isChecked()) {
 		triplebuf = triplebufBox->isChecked();
@@ -668,10 +640,9 @@ void DirectDrawBlitter::acceptSettings() {
 		reinit();
 }
 
-void DirectDrawBlitter::rejectSettings() {
+void DirectDrawBlitter::rejectSettings() const {
 	vblankBox->setChecked(vblank);
 	flippingBox->setChecked(flipping);
-	vblankflipBox->setChecked(vblankflip);
 	triplebufBox->setChecked(triplebuf);
 	videoSurfaceBox->setChecked(videoSurface);
 	deviceSelector->setCurrentIndex(deviceIndex);
@@ -679,11 +650,11 @@ void DirectDrawBlitter::rejectSettings() {
 
 void DirectDrawBlitter::rateChange(int hz) {
 	this->hz = hz;
-	setSwapInterval();
+	ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
 }
 
 void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {
-	sync(0);
+	sync();
 }
 
 void DirectDrawBlitter::setExclusive(const bool exclusive) {
@@ -700,9 +671,11 @@ void DirectDrawBlitter::setExclusive(const bool exclusive) {
 
 void DirectDrawBlitter::reinit() {
 	if (isVisible()) {
+		lockPixelBuffer();
 		uninit();
-		setPixelBuffer(NULL, MediaSource::RGB32, 0);
+		setPixelBuffer(NULL, PixelBuffer::RGB32, 0);
 		init();
 		setBufferDimensions(inWidth, inHeight);
+		unlockPixelBuffer();
 	}
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2009 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,25 +16,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef CATROM3X_H
-#define CATROM3X_H
+#ifndef KREED2XSAI_H
+#define KREED2XSAI_H
 
-#include "filter.h"
+#include "../videolink.h"
+#include "../vfilterinfo.h"
 
-struct FilterInfo;
-
-class Catrom3x : public Filter {
-	Gambatte::uint_least32_t *buffer;
-
+class Kreed2xSaI : public VideoLink {
 public:
-	Catrom3x();
-	~Catrom3x();
-	void init();
-	void outit();
-	const Gambatte::FilterInfo& info();
-	void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch);
-	Gambatte::uint_least32_t* inBuffer();
-	unsigned inPitch();
+	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
+	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
+	
+	Kreed2xSaI();
+	~Kreed2xSaI();
+	void draw(void *dst, unsigned dstpitch);
 };
 
 #endif

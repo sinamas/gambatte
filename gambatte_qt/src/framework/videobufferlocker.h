@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,15 +16,18 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef GAMBATTE_INPUTSTATEGETTER_H
-#define GAMBATTE_INPUTSTATEGETTER_H
+#ifndef VIDEOBUFFERLOCKER_H
+#define VIDEOBUFFERLOCKER_H
 
-namespace Gambatte {
-class InputStateGetter {
+#include <QMutex>
+
+class VideoBufferLocker {
+	QMutex &vbmut;
 public:
-	virtual ~InputStateGetter() {};
-	virtual const InputState& operator()() = 0;
+	VideoBufferLocker(QMutex &vbmut) : vbmut(vbmut) {}
+	void lock() { vbmut.lock(); }
+	void unlock() { vbmut.unlock(); }
 };
-}
 
 #endif
+

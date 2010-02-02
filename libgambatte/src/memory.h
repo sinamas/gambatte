@@ -30,7 +30,7 @@ class SaveState;
 #include <string>
 
 namespace Gambatte {
-class InputStateGetter;
+class InputGetter;
 class FilterInfo;
 }
 
@@ -60,7 +60,7 @@ private:
 	unsigned char *rsrambankptr;
 	unsigned char *wsrambankptr;
 	
-	Gambatte::InputStateGetter *getInput;
+	Gambatte::InputGetter *getInput;
 
 	unsigned long div_lastUpdate;
 	unsigned long tima_lastUpdate;
@@ -70,6 +70,7 @@ private:
 	unsigned long tmatime;
 	unsigned long next_serialtime;
 	unsigned long lastOamDmaUpdate;
+	unsigned long lastBlitTime;
 	
 	MinKeeper<NUM_EVENTS> eventTimes;
 	LCD display;
@@ -103,6 +104,7 @@ private:
 	bool battery, rtcRom;
 	bool hdma_transfer;
 	bool active;
+	bool blanklcd;
 
 	void updateInput();
 	void decEventCycles(int eventId, unsigned long dec);
@@ -153,6 +155,10 @@ public:
 	unsigned long getNextEventTime() const { return eventTimes.minValue(); }
 	
 	bool isActive() const { return active; }
+	
+	int cyclesSinceBlit(const unsigned long cc) const {
+		return lastBlitTime == COUNTER_DISABLED ? -1 : static_cast<int>((cc - lastBlitTime) >> isDoubleSpeed());
+	}
 
 	void ei(unsigned long cycleCounter);
 
@@ -190,9 +196,9 @@ public:
 	unsigned long resetCounters(unsigned long cycleCounter);
 
 	bool loadROM(const char* romfile, bool forceDmg);
-	void set_savedir(const char *dir);
+	void setSaveDir(const char *dir);
 
-	void setInputStateGetter(Gambatte::InputStateGetter *getInput) {
+	void setInputGetter(Gambatte::InputGetter *getInput) {
 		this->getInput = getInput;
 	}
 
@@ -202,21 +208,9 @@ public:
 	
 	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { sound.setBuffer(buf); }
 	unsigned fillSoundBuffer(unsigned long cc);
-	void setVideoBlitter(Gambatte::VideoBlitter * vb);
-	void setVideoFilter(unsigned int n);
 	
-	void videoBufferChange();
-	
-	unsigned videoWidth() const {
-		return display.videoWidth();
-	}
-	
-	unsigned videoHeight() const {
-		return display.videoHeight();
-	}
-	
-	std::vector<const Gambatte::FilterInfo*> filterInfo() const {
-		return display.filterInfo();
+	void setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const unsigned pitch) {
+		display.setVideoBuffer(videoBuf, pitch);
 	}
 	
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);

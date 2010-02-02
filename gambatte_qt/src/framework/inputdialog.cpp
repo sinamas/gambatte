@@ -28,10 +28,9 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QTabWidget>
-#include <map>
 #include <cassert>
-
 #include "SDL_Joystick/include/SDL_joystick.h"
+#include "joysticklock.h"
 
 static const char* keyToString(int key) {
 	switch (key) {
@@ -355,39 +354,9 @@ static const char* keyToString(int key) {
 	}
 }
 
-int pollJsEvent(SDL_Event *ev) {
-	typedef std::map<unsigned, int> map_t;
-	
-	static map_t axisState;
-	
-	int returnVal;
-	
-	do {
-		returnVal = SDL_PollEvent(ev);
-		
-		if (returnVal && ev->type == SDL_JOYAXISMOTION) {
-			if (ev->value > 8192)
-				ev->value = AXIS_POSITIVE;
-			else if (ev->value < -8192)
-				ev->value = AXIS_NEGATIVE;
-			else
-				ev->value = 0;
-			
-			const std::pair<map_t::iterator, bool> &axisInsert = axisState.insert(map_t::value_type(ev->id, ev->value));
-			
-			if (!axisInsert.second && axisInsert.first->second == ev->value)
-				continue;
-			
-			axisInsert.first->second = ev->value;
-		}
-	} while (false);
-	
-	return returnVal;
-}
-
 InputBox::InputBox(QWidget *nextFocus) : nextFocus(nextFocus), timerId(0) {
 // 	setReadOnly(true);
-	setData(0, InputDialog::NULL_VALUE);
+	setData(0, NULL_VALUE);
 	connect(this, SIGNAL(textEdited(const QString&)), this, SLOT(textEditedSlot(const QString&)));
 }
 
@@ -398,23 +367,25 @@ void InputBox::contextMenuEvent(QContextMenuEvent *event) {
 	menu->addSeparator();
 	menu->addAction(tr("&Select All"), this, SLOT(selectAll()))->setEnabled(!displayText().isEmpty());
 	menu->addSeparator();
-	menu->addAction(tr("C&lear"), this, SLOT(clearData()))->setEnabled(getData().value != InputDialog::NULL_VALUE);
+	menu->addAction(tr("C&lear"), this, SLOT(clearData()))->setEnabled(getData().value != NULL_VALUE);
 	menu->exec(event->globalPos());
 	
 	delete menu;
 }
 
 void InputBox::focusInEvent(QFocusEvent *event) {
+	JoystickLock::lock();
 	SDL_JoystickUpdate();
 	SDL_ClearEvents();
 	
 	if (!timerId)
-		timerId = startTimer(20);
+		timerId = startTimer(100);
 	
 	QLineEdit::focusInEvent(event);
 }
 
 void InputBox::focusOutEvent(QFocusEvent *event) {
+	JoystickLock::unlock();
 	killTimer(timerId);
 	timerId = 0;
 	
@@ -433,6 +404,9 @@ void InputBox::keyPressEvent(QKeyEvent *e) {
 }
 
 void InputBox::timerEvent(QTimerEvent */*event*/) {
+	if (!hasFocus())
+		return;
+
 	SDL_JoystickUpdate();
 	
 	SDL_Event ev;
@@ -469,9 +443,9 @@ void InputBox::setData(const unsigned id, const int value) {
 	data.id = id;
 	data.value = value;
 	
-	if (value == InputDialog::KBD_VALUE) {
+	if (value == KBD_VALUE) {
 		setText(keyToString(id));
-	} else if (value == InputDialog::NULL_VALUE) {
+	} else if (value == NULL_VALUE) {
 		setText("");
 	} else {
 		QString str(SDL_JoystickName(data.dev_num));
@@ -510,18 +484,20 @@ void InputBox::setData(const unsigned id, const int value) {
 }
 
 void InputBoxPair::clear() {
-	if (altBox->getData().value != InputDialog::NULL_VALUE)
+	if (altBox->getData().value != InputBox::NULL_VALUE)
 		altBox->clearData();
 	else
 		mainBox->clearData();
 }
 
-InputDialog::InputDialog(const std::vector<MediaSource::ButtonInfo> &buttonInfos,
+InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
+                         const bool deleteButtonActions,
                          QWidget *parent) :
 QDialog(parent),
 buttonInfos(buttonInfos),
 inputBoxPairs(buttonInfos.size(), 0),
-eventData(buttonInfos.size() * 2)
+eventData(buttonInfos.size() * 2),
+deleteButtonActions(deleteButtonActions)
 {
 	setWindowTitle(tr("Input Settings"));
 	
@@ -610,23 +586,24 @@ eventData(buttonInfos.size() * 2)
 		if (!buttonInfos[i].label.isEmpty()) {
 			eventData[i * 2].id = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Key1", buttonInfos[i].defaultKey).toUInt();
 			eventData[i * 2].value = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Value1",
-			                                        buttonInfos[i].defaultKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE).toInt();
+			                                        buttonInfos[i].defaultKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE).toInt();
 			
 			eventData[i * 2 + 1].id = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Key2", buttonInfos[i].defaultAltKey).toUInt();
 			eventData[i * 2 + 1].value = settings.value(buttonInfos[i].category + buttonInfos[i].label + "Value2",
-			                                            buttonInfos[i].defaultAltKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE).toInt();
+			                                            buttonInfos[i].defaultAltKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE).toInt();
 		} else {
 			eventData[i * 2].id = buttonInfos[i].defaultKey;
-			eventData[i * 2].value = buttonInfos[i].defaultKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE;
+			eventData[i * 2].value = buttonInfos[i].defaultKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE;
 			
 			eventData[i * 2 + 1].id = buttonInfos[i].defaultAltKey;
-			eventData[i * 2 + 1].value = buttonInfos[i].defaultAltKey == Qt::Key_unknown ? NULL_VALUE : KBD_VALUE;
+			eventData[i * 2 + 1].value = buttonInfos[i].defaultAltKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE;
 		}
 	}
 	
 	settings.endGroup();
 	
 	restore();
+	resetMapping();
 }
 
 InputDialog::~InputDialog() {
@@ -646,6 +623,33 @@ InputDialog::~InputDialog() {
 	
 	for (std::size_t i = 0; i < inputBoxPairs.size(); ++i)
 		delete inputBoxPairs[i];
+	
+	if (deleteButtonActions)
+		for (std::size_t i = 0; i < buttonInfos.size(); ++i)
+			delete buttonInfos[i].action;
+}
+
+void InputDialog::resetMapping() {
+	keymut.lock();
+	joymut.lock();
+	keyInputs.clear();
+	joyInputs.clear();
+	
+	for (std::size_t i = 0; i < eventData.size(); ++i) {
+		const SDL_Event &data = eventData[i];
+		Button::Action *const action = buttonInfos[i >> 1].action;
+	
+		if (data.value != InputBox::NULL_VALUE) {
+			if (data.value == InputBox::KBD_VALUE) {
+				keyInputs.insert(std::pair<unsigned,Button::Action*>(data.id, action));
+			} else {
+				joyInputs.insert(std::pair<unsigned,JoyObserver>(data.id, JoyObserver(action, data.value)));
+			}
+		}
+	}
+	
+	joymut.unlock();
+	keymut.unlock();
 }
 
 void InputDialog::store() {
@@ -655,6 +659,8 @@ void InputDialog::store() {
 			eventData[i * 2 + 1] = inputBoxPairs[i]->altBox->getData();
 		}
 	}
+	
+	resetMapping();
 }
 
 void InputDialog::restore() {
@@ -663,6 +669,45 @@ void InputDialog::restore() {
 			inputBoxPairs[i]->mainBox->setData(eventData[i * 2]);
 			inputBoxPairs[i]->altBox->setData(eventData[i * 2 + 1]);
 		}
+	}
+}
+
+void InputDialog::keyPressEvent(const QKeyEvent *const e) {
+	if (keymut.tryLock()) {
+		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
+	
+		while (range.first != range.second) {
+			(range.first->second)->buttonPressed();
+			++range.first;
+		}
+		
+		keymut.unlock();
+	}
+}
+
+void InputDialog::keyReleaseEvent(const QKeyEvent *const e) {
+	if (keymut.tryLock()) {
+		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
+	
+		while (range.first != range.second) {
+			(range.first->second)->buttonReleased();
+			++range.first;
+		}
+		
+		keymut.unlock();
+	}
+}
+
+void InputDialog::joystickEvent(const SDL_Event &ev) {
+	if (joymut.tryLock()) {
+		std::pair<joymap_t::iterator,joymap_t::iterator> range = joyInputs.equal_range(ev.id);
+	
+		while (range.first != range.second) {
+			(range.first->second).valueChanged(ev.value);
+			++range.first;
+		}
+		
+		joymut.unlock();
 	}
 }
 

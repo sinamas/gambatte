@@ -25,9 +25,9 @@
 
 struct AudioData {
 	struct Status {
-		std::size_t fromUnderrun;
-		std::size_t fromOverflow;
-		RateEst::Result rate;
+		long fromUnderrun;
+		long fromOverflow;
+		long rate;
 	};
 	
 	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);

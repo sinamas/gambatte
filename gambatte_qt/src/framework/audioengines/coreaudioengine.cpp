@@ -76,7 +76,7 @@ public:
 	}
 };
 
-CoreAudioEngine::CoreAudioEngine() : AudioEngine("CoreAudio"), outUnit(0), outUnitState(UNIT_CLOSED), mutex(NULL), availCond(NULL), rateEst(0), rateVar(0), running(false) {
+CoreAudioEngine::CoreAudioEngine() : AudioEngine("CoreAudio"), outUnit(0), outUnitState(UNIT_CLOSED), mutex(NULL), availCond(NULL), rateEst(0), running(false) {
 }
 
 CoreAudioEngine::~CoreAudioEngine() {
@@ -89,7 +89,7 @@ unsigned CoreAudioEngine::read(void *const stream, unsigned frames, const Float6
 	if (!mutlock.err) {
 		{
 			const Float64 rateEst = rate() / rateScalar;
-			rateVar = (rateVar * 15 + std::fabs(rateEst - this->rateEst)) * (1.0 / 16.0);
+			// rateVar = (rateVar * 15 + std::fabs(rateEst - this->rateEst)) * (1.0 / 16.0);
 			this->rateEst = rateEst;
 		}
 		
@@ -190,7 +190,7 @@ int CoreAudioEngine::doInit(const int rate, const unsigned latency) {
 	rbuf.reset(((rate * latency + 500) / 1000) * 2);
 	rbuf.fill(0);
 	rateEst = rate;
-	rateVar = rate >> 12;
+	// rateVar = rate >> 12;
     
     return rate;
 	
@@ -249,7 +249,7 @@ int CoreAudioEngine::doWrite(void *const buffer, unsigned samples) {
 	return 0;
 }
 
-int CoreAudioEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out) {
+int CoreAudioEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState_out, long &rate_out) {
 	MutexLocker mutlock(mutex);
 	
 	if (mutlock.err)
@@ -257,8 +257,7 @@ int CoreAudioEngine::write(void *const buffer, const unsigned samples, BufferSta
 	
 	preBufState_out.fromUnderrun = rbuf.used() / 2;
 	preBufState_out.fromOverflow = rbuf.avail() / 2;
-	rate_out.est = rateEst + 0.5;
-	rate_out.var = rateVar + 0.5;
+	rate_out = rateEst + 0.5;
 
 	return doWrite(buffer, samples);
 }
@@ -278,8 +277,7 @@ const AudioEngine::BufferState CoreAudioEngine::bufferState() const {
 	return bstate;
 }
 
-const RateEst::Result CoreAudioEngine::rateEstimate() const {
+long CoreAudioEngine::rateEstimate() const {
 	MutexLocker mutlock(mutex);
-	const RateEst::Result r = { est: rateEst + 0.5, var: rateVar + 0.5 };
-	return r;
+	return rateEst + 0.5;
 }

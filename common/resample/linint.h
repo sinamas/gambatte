@@ -22,6 +22,7 @@
 #include <cstddef>
 #include "resampler.h"
 #include "u48div.h"
+#include "rshift16_round.h"
 
 template<unsigned channels>
 class LinintCore {
@@ -59,7 +60,7 @@ std::size_t LinintCore<channels>::resample(short *const out, const short *const 
 			prevSample = in[(pos-1) * channels];
 	
 		for (;;) {
-			out[opos] = prevSample + (in[pos * channels] - prevSample) * static_cast<long>(fracPos) / 0x10000;
+			out[opos] = prevSample + rshift16_round((in[pos * channels] - prevSample) * static_cast<long>(fracPos));
 			opos += channels;
 			
 			{

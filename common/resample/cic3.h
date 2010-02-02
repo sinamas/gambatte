@@ -20,6 +20,7 @@
 #define CIC3_H
 
 #include "subresampler.h"
+#include "rshift16_round.h"
 
 template<unsigned channels> 
 class Cic3Core {
@@ -89,7 +90,7 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 			const unsigned long out2 = out3 - prev2;
 			prev2 = out3;
 			
-			*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 		}
@@ -117,7 +118,7 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 			const unsigned long out2 = out3 - prev2;
 			prev2 = out3;
 			
-			*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 		}
@@ -152,7 +153,7 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 			const unsigned long out2 = out3 - prev2;
 			prev2 = out3;
 				
-			*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 			
@@ -244,7 +245,7 @@ void Cic3EvenOddCore<channels>::filterEven(short *out, const short *s, std::size
 		prev3 = sm3;
 		const unsigned long out2 = out3 - prev2;
 		prev2 = out3;
-		*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+		*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 		prev1 = out2;
 		out += channels;
 	}
@@ -286,7 +287,7 @@ void Cic3EvenOddCore<channels>::filterOdd(short *out, const short *s, std::size_
 		prev3 = sm3;
 		const unsigned long out2 = out3 - prev2;
 		prev2 = out3;
-		*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+		*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 		prev1 = out2;
 		out += channels;
 	}
@@ -318,7 +319,7 @@ std::size_t Cic3EvenOddCore<channels>::filter(short *out, const short *const in,
 			prev3 = sum3;
 			const unsigned long out2 = out3 - prev2;
 			prev2 = out3;
-			*out = static_cast<long>(out2 - prev1) * getMul(div_) / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * getMul(div_));
 			prev1 = out2;
 			out += channels;
 		}

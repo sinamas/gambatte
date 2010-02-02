@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -54,13 +54,12 @@ struct Vertex {
 	float x, y, z, rhw, u, v;
 };
 
-Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent) :
-	BlitterWidget(setPixelBuffer, "Direct3D", parent),
+Direct3DBlitter::Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent) :
+	BlitterWidget(vbl, "Direct3D", 2, parent),
 	confWidget(new QWidget),
 	adapterSelector(new QComboBox),
-	vblankBox(new QCheckBox("Sync to vertical blank in 60 and 120 Hz modes")),
+	vblankblitBox(new QCheckBox("Wait for vertical blank")),
 	flippingBox(new QCheckBox("Exclusive full screen")),
-	vblankblitBox(new QCheckBox("Only update during vertical blank")),
 	triplebufBox(new QCheckBox("Triple buffering")),
 	bfBox(new QCheckBox("Bilinear filtering")),
 	d3d9handle(NULL),
@@ -83,7 +82,7 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	exclusive(false),
 	windowed(false),
 	drawn(false),
-	vblank(false),
+	//vblank(false),
 	flipping(false),
 	vblankblit(false),
 	triplebuf(false),
@@ -117,7 +116,7 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 	if ((adapterIndex = settings.value("adapterIndex", adapterIndex).toUInt()) >= static_cast<unsigned>(adapterSelector->count()))
 		adapterIndex = 0;
 
-	vblank = settings.value("vblank", vblank).toBool();
+	//vblank = settings.value("vblank", vblank).toBool();
 	flipping = settings.value("flipping", flipping).toBool();
 	vblankblit = settings.value("vblankblit", vblankblit).toBool();
 	triplebuf = settings.value("triplebuf", triplebuf).toBool();
@@ -135,9 +134,8 @@ Direct3DBlitter::Direct3DBlitter(PixelBufferSetter setPixelBuffer, QWidget *pare
 			mainLayout->addLayout(hlayout);
 		}
 
-		mainLayout->addWidget(vblankBox);
-		mainLayout->addWidget(flippingBox);
 		mainLayout->addWidget(vblankblitBox);
+		mainLayout->addWidget(flippingBox);
 		mainLayout->addWidget(triplebufBox);
 		mainLayout->addWidget(bfBox);
 		confWidget->setLayout(mainLayout);
@@ -158,7 +156,7 @@ Direct3DBlitter::~Direct3DBlitter() {
 	QSettings settings;
 	settings.beginGroup("direct3dblitter");
 	settings.setValue("adapterIndex", adapterIndex);
-	settings.setValue("vblank", vblank);
+	//settings.setValue("vblank", vblank);
 	settings.setValue("flipping", flipping);
 	settings.setValue("vblankblit", vblankblit);
 	settings.setValue("triplebuf", triplebuf);
@@ -205,7 +203,7 @@ void Direct3DBlitter::lockTexture() {
 	if (stexture)
 		stexture->LockRect(0, &lockedrect, &rect, D3DLOCK_NOSYSLOCK);
 
-	setPixelBuffer(lockedrect.pBits, MediaSource::RGB32, lockedrect.Pitch >> 2);
+	setPixelBuffer(lockedrect.pBits, PixelBuffer::RGB32, lockedrect.Pitch >> 2);
 }
 
 void Direct3DBlitter::setVertexBuffer() {
@@ -218,29 +216,29 @@ void Direct3DBlitter::setVertexBuffer() {
 		const unsigned xoffset = backBufferWidth > static_cast<unsigned>(width()) ? backBufferWidth - width() >> 1 : 0;
 		const unsigned yoffset = backBufferHeight > static_cast<unsigned>(height()) ? backBufferHeight - height() >> 1 : 0;
 
-		vertices[0].x = xoffset;
-		vertices[0].y = yoffset + height();
+		vertices[0].x = xoffset - 0.5f;
+		vertices[0].y = yoffset + height() - 0.5f;
 		vertices[0].z = 0.0f;
 		vertices[0].rhw = 1.0f;
 		vertices[0].u = 0.0f;
 		vertices[0].v = static_cast<float>(inHeight) / textRes;
 
-		vertices[1].x = xoffset;
-		vertices[1].y = yoffset;
+		vertices[1].x = xoffset - 0.5f;
+		vertices[1].y = yoffset - 0.5f;
 		vertices[1].z = 0.0f;
 		vertices[1].rhw = 1.0f;
 		vertices[1].u = 0.0f;
 		vertices[1].v = 0.0f;
 
-		vertices[2].x = xoffset + width();
-		vertices[2].y = yoffset + height();
+		vertices[2].x = xoffset + width() - 0.5f;
+		vertices[2].y = yoffset + height() - 0.5f;
 		vertices[2].z = 0.0f;
 		vertices[2].rhw = 1.0f;
 		vertices[2].u = static_cast<float>(inWidth) / textRes;
 		vertices[2].v = static_cast<float>(inHeight) / textRes;
 
-		vertices[3].x = xoffset + width();
-		vertices[3].y = yoffset;
+		vertices[3].x = xoffset + width() - 0.5f;
+		vertices[3].y = yoffset - 0.5f;
 		vertices[3].z = 0.0f;
 		vertices[3].rhw = 1.0f;
 		vertices[3].u = static_cast<float>(inWidth) / textRes;
@@ -284,7 +282,9 @@ void Direct3DBlitter::resetDevice() {
 
 		if (FAILED(device->Reset(&presentParams)) && FAILED(device->Reset(&presentParams))) {
 			if (stexture) {
-				setPixelBuffer(NULL, MediaSource::RGB32, 0);
+				lockPixelBuffer();
+				setPixelBuffer(NULL, PixelBuffer::RGB32, 0);
+				unlockPixelBuffer();
 				stexture->Release();
 				stexture = NULL;
 			}
@@ -325,18 +325,12 @@ void Direct3DBlitter::exclusiveChange() {
 	}
 }
 
-void Direct3DBlitter::setSwapInterval(const unsigned hz1, const unsigned hz2) {
-	const unsigned newSwapInterval = vblank ? hz == hz1 * 2 || hz == hz2 ? 2 : (hz == hz1 ? 1 : 0) : 0;
-
+void Direct3DBlitter::setSwapInterval(const unsigned newSwapInterval) {
 	if (newSwapInterval != swapInterval) {
 		swapInterval = newSwapInterval;
 		resetDevice();
 		ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
 	}
-}
-
-void Direct3DBlitter::setSwapInterval() {
-	setSwapInterval((1000000 + (frameTime() >> 1)) / frameTime(), (1000000 * 2 + (frameTime() >> 1)) / frameTime());
 }
 
 void Direct3DBlitter::draw() {
@@ -351,6 +345,8 @@ void Direct3DBlitter::draw() {
 			device->EndScene();
 		}
 	}
+
+	drawn = true;
 }
 
 void Direct3DBlitter::present() {
@@ -496,21 +492,14 @@ void Direct3DBlitter::setBufferDimensions(unsigned w, unsigned h) {
 void Direct3DBlitter::blit() {
 	if (device && stexture && vtexture) {
 		stexture->UnlockRect(0);
-
 		device->UpdateTexture(stexture, vtexture);
-		draw();
-		drawn = true;
-
 		lockTexture();
 	}
 }
 
-long Direct3DBlitter::sync(const long ft) {
+long Direct3DBlitter::sync() {
 	if (!drawn)
 		draw();
-
-	if (!swapInterval)
-		BlitterWidget::sync(ft);
 
 	present();
 
@@ -523,7 +512,7 @@ long Direct3DBlitter::sync(const long ft) {
 	return 0;
 }
 
-void Direct3DBlitter::setFrameTime(const long ft) {
+/*void Direct3DBlitter::setFrameTime(const long ft) {
 	BlitterWidget::setFrameTime(ft);
 
 	const unsigned hz1 = (1000000 + (ft >> 1)) / ft;
@@ -539,13 +528,11 @@ void Direct3DBlitter::setFrameTime(const long ft) {
 	}
 
 	setSwapInterval(hz1, hz2);
-}
+}*/
 
-const BlitterWidget::Estimate Direct3DBlitter::frameTimeEst() const {
-	if (swapInterval) {
-		const Estimate est = { ftEst.est(), ftEst.var() };
-		return est;
-	}
+long Direct3DBlitter::frameTimeEst() const {
+	if (swapInterval)
+		return ftEst.est();
 
 	return BlitterWidget::frameTimeEst();
 }
@@ -569,17 +556,19 @@ void Direct3DBlitter::acceptSettings() {
 		adapterIndex = adapterSelector->currentIndex();
 
 		if (isVisible()) {
+			lockPixelBuffer();
 			uninit();
-			setPixelBuffer(NULL, MediaSource::RGB32, 0);
+			setPixelBuffer(NULL, PixelBuffer::RGB32, 0);
 			init();
 			setBufferDimensions(inWidth, inHeight);
+			unlockPixelBuffer();
 		}
 	}
 
-	if (vblank != vblankBox->isChecked()) {
+	/*if (vblank != vblankBox->isChecked()) {
 		vblank = vblankBox->isChecked();
 		setSwapInterval();
-	}
+	}*/
 
 	if (flipping != flippingBox->isChecked()) {
 		flipping = flippingBox->isChecked();
@@ -592,9 +581,9 @@ void Direct3DBlitter::acceptSettings() {
 	resetDevice();
 }
 
-void Direct3DBlitter::rejectSettings() {
+void Direct3DBlitter::rejectSettings() const {
 	adapterSelector->setCurrentIndex(adapterIndex);
-	vblankBox->setChecked(vblank);
+	//vblankBox->setChecked(vblank);
 	flippingBox->setChecked(flipping);
 	vblankblitBox->setChecked(vblankblit);
 	triplebufBox->setChecked(triplebuf);
@@ -603,7 +592,7 @@ void Direct3DBlitter::rejectSettings() {
 
 void Direct3DBlitter::rateChange(int hz) {
 	this->hz = hz;
-	setSwapInterval();
+	ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
 }
 
 void Direct3DBlitter::resizeEvent(QResizeEvent */*e*/) {

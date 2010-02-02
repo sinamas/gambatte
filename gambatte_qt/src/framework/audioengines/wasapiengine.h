@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Sindre Aamås                                    *
+ *   Copyright (C) 2009 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,6 +22,7 @@
 #include "../audioengine.h"
 #include <BaseTsd.h>
 #include <memory>
+#include "rateest.h"
 
 class QComboBox;
 class QCheckBox;
@@ -45,6 +46,7 @@ class WasapiEngine: public AudioEngine {
 	bool exclusive;
 
 	int doInit(int rate, unsigned latency);
+	void doAcceptSettings();
 	int waitForSpace(UINT32 &numFramesPadding, unsigned space);
 	int write(void *buffer, unsigned frames, UINT32 numFramesPadding);
 
@@ -54,13 +56,12 @@ public:
 	~WasapiEngine();
 	void uninit();
 	int write(void *buffer, unsigned frames);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
-	const RateEst::Result rateEstimate() const { return est.result(); }
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
+	long rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause();
-	QWidget* settingsWidget() { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings();
+	QWidget* settingsWidget() const { return confWidget.get(); }
+	void rejectSettings() const;
 };
 
 #endif /* WASAPIENGINE_H */

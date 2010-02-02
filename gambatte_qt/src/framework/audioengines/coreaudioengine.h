@@ -33,7 +33,6 @@ class CoreAudioEngine : public AudioEngine {
 	pthread_mutex_t *mutex;
 	pthread_cond_t *availCond;
 	Float64 rateEst;
-	Float64 rateVar;
 	bool running;
 	
 	static ComponentResult renderProc(void *inRefCon, AudioUnitRenderActionFlags *inActionFlags, const AudioTimeStamp *inTimeStamp,
@@ -47,9 +46,9 @@ public:
 	~CoreAudioEngine();
 	void uninit();
 	int write(void *buffer, unsigned frames);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
 	const BufferState bufferState() const;
-	const RateEst::Result rateEstimate() const;
+	long rateEstimate() const;
 	void pause();
 };
 

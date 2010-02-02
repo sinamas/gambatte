@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,8 +18,6 @@
  ***************************************************************************/
 #include "videodialog.h"
 
-#include "blitterwidget.h"
-
 #include <QPushButton>
 #include <QComboBox>
 #include <QRadioButton>
@@ -32,10 +30,6 @@
 #include <QApplication>
 #include <QDesktopWidget>
 
-// #include <iostream>
-
-#include "fullmodetoggler.h"
-
 static int filterValue(const int value, const int upper, const int lower = 0, const int fallback = 0) {
 	if (value >= upper || value < lower)
 		return fallback;
@@ -43,15 +37,13 @@ static int filterValue(const int value, const int upper, const int lower = 0, co
 	return value;
 }
 
-VideoDialog::VideoDialog(const std::vector<BlitterWidget*> &blitters,
-                         const std::vector<MediaSource::VideoSourceInfo> &sourceInfos,
+VideoDialog::VideoDialog(const MainWindow *const mw,
+                         const std::vector<VideoSourceInfo> &sourceInfos,
                          const QString &sourcesLabel,
-                         const FullModeToggler *resHandler,
                          const QSize &aspectRatio,
                          QWidget *parent) :
 QDialog(parent),
-engines(blitters),
-resHandler(resHandler),
+mw(mw),
 topLayout(new QVBoxLayout),
 engineWidget(NULL),
 engineSelector(new QComboBox),
@@ -60,6 +52,7 @@ unrestrictedScalingButton(new QRadioButton(QString("None"))),
 keepRatioButton(new QRadioButton(QString("Keep aspect ratio"))),
 integerScalingButton(new QRadioButton(QString("Only scale by integer factors"))),
 sourceSelector(new QComboBox),
+sourceSelectorLabel(new QLabel(sourcesLabel)),
 scaling(KEEP_RATIO),
 aspRatio(aspectRatio),
 defaultRes(QApplication::desktop()->screen()->size()),
@@ -67,7 +60,7 @@ engineIndex(0),
 winIndex(0),
 sourceIndexStore(0)
 {
-	fullIndex.resize(resHandler->screens());
+	fullIndex.resize(mw->screens());
 	hzIndex.resize(fullIndex.size());
 	fullResSelector.resize(fullIndex.size());
 	hzSelector.resize(fullIndex.size());
@@ -105,7 +98,7 @@ sourceIndexStore(0)
 	}
 
 	hLayout = new QHBoxLayout;
-	hLayout->addWidget(new QLabel(sourcesLabel));
+	hLayout->addWidget(sourceSelectorLabel);
 	hLayout->addWidget(sourceSelector);
 	topLayout->addLayout(hLayout);
 
@@ -132,14 +125,14 @@ sourceIndexStore(0)
 	connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 	
-	for (std::size_t i = 0; i < sourceInfos.size(); ++i) {
-		sourceSelector->addItem(sourceInfos[i].label, QSize(sourceInfos[i].width, sourceInfos[i].height));
+	fillSourceSelector(sourceInfos);
+	
+	for (std::size_t i = 0; i < mw->numBlitters(); ++i) {
+		engineSelector->addItem(mw->blitterConf(i).nameString());
 	}
 	
-	for (std::size_t i = 0; i < engines.size(); ++i) {
-		engineSelector->addItem(engines[i]->nameString);
-	}
-	
+	fillWinResSelector();
+	fillFullResSelector();
 	keepRatioButton->click();
 	
 	QSettings settings;
@@ -160,7 +153,7 @@ sourceIndexStore(0)
 		fullIndex[i] = filterValue(fullResSelector[i]->findText(settings.value("fullRes" + QString::number(i)).toString()),
 		                           fullResSelector[i]->count(),
 		                           0,
-		                           resHandler->currentResIndex(i));
+		                           mw->currentResIndex(i));
 	}
 		
 	winIndex = filterValue(settings.value("winIndex", winResSelector->count() - 1).toInt(), winResSelector->count(), 0, winResSelector->count() - 1);
@@ -171,7 +164,7 @@ sourceIndexStore(0)
 		hzIndex[i] = filterValue(hzSelector[i]->findText(settings.value("hz" + QString::number(i)).toString()),
 		                         hzSelector[i]->count(),
 		                         0,
-		                         resHandler->currentRateIndex(i));
+		                         mw->currentRateIndex(i));
 	}
 	
 	restore();
@@ -250,7 +243,7 @@ void VideoDialog::fillFullResSelector() {
 		unsigned maxArea = 0;
 		unsigned maxAreaI = 0;
 		
-		const std::vector<ResInfo> &resVector = resHandler->modeVector(j);
+		const std::vector<ResInfo> &resVector = mw->modeVector(j);
 		
 		for (unsigned i = 0; i < resVector.size(); ++i) {
 			const int hres = resVector[i].w;
@@ -282,8 +275,8 @@ void VideoDialog::fillFullResSelector() {
 }
 
 void VideoDialog::store() {
-	for (std::size_t i = 0; i < engines.size(); ++i)
-		engines[i]->acceptSettings();
+// 	for (std::size_t i = 0; i < mw->numBlitters(); ++i)
+// 		mw->blitterConf(i).acceptSettings();
 	
 	engineIndex = engineSelector->currentIndex();
 	
@@ -304,8 +297,8 @@ void VideoDialog::store() {
 }
 
 void VideoDialog::restore() {
-	for (std::size_t i = 0; i < engines.size(); ++i)
-		engines[i]->rejectSettings();
+	for (std::size_t i = 0; i < mw->numBlitters(); ++i)
+		mw->blitterConf(i).rejectSettings();
 	
 	engineSelector->setCurrentIndex(engineIndex);
 	
@@ -330,17 +323,17 @@ void VideoDialog::engineChange(int index) {
 		engineWidget->setParent(NULL);
 	}
 	
-	engineWidget = engines[index]->settingsWidget();
+	engineWidget = mw->blitterConf(index).settingsWidget();
 	
 	if (engineWidget)
 		topLayout->insertWidget(1, engineWidget);
 	
-	if (engines[index]->integerOnlyScaler) {
+	/*if (mw->blitterConf(index)->integerOnlyScaler) {
 		integerScalingButton->click();
 		keepRatioButton->setEnabled(false);
 		integerScalingButton->setEnabled(false);
 		unrestrictedScalingButton->setEnabled(false);
-	} else {
+	} else */{
 		keepRatioButton->setEnabled(true);
 		integerScalingButton->setEnabled(true);
 		unrestrictedScalingButton->setEnabled(true);
@@ -353,7 +346,7 @@ void VideoDialog::fullresChange(int index) {
 			hzSelector[i]->clear();
 		
 			if (index >= 0) {
-				const std::vector<short> &v = resHandler->modeVector(i)[index].rates;
+				const std::vector<short> &v = mw->modeVector(i)[index].rates;
 				
 				for (unsigned int j = 0; j < v.size(); ++j)
 					hzSelector[i]->addItem(QString::number(v[j]) + QString(" Hz"), j);
@@ -371,21 +364,21 @@ void VideoDialog::integerScalingChange(bool /*checked*/) {
 	sourceChange(sourceSelector->currentIndex());
 }
 
-int VideoDialog::engine() const {
+int VideoDialog::blitterNo() const {
 	return engineIndex;
 }
 
-const QSize VideoDialog::winRes() const {
+const QSize VideoDialog::windowSize() const {
 	return winResSelector->itemData(winIndex).toSize();
 }
 
-unsigned VideoDialog::fullMode(unsigned screen) const {
+unsigned VideoDialog::fullResIndex(unsigned screen) const {
 	//return fullResSelector->currentIndex();
 // 	return fullResSelectorBackup->findText(fullResSelector->itemText(fullResSelector->currentIndex()));
 	return fullResSelector[screen]->itemData(fullIndex[screen]).toUInt();
 }
 
-unsigned VideoDialog::fullRate(unsigned screen) const {
+unsigned VideoDialog::fullRateIndex(unsigned screen) const {
 	return hzSelector[screen]->itemData(hzIndex[screen]).toUInt();
 }
 
@@ -401,13 +394,25 @@ void VideoDialog::setAspectRatio(const QSize &aspectRatio) {
 	emit accepted();
 }
 
-void VideoDialog::setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos) {
+void VideoDialog::fillSourceSelector(const std::vector<VideoSourceInfo> &sourceInfos) {
+	for (std::size_t i = 0; i < sourceInfos.size(); ++i)
+		sourceSelector->addItem(sourceInfos[i].label, QSize(sourceInfos[i].width, sourceInfos[i].height));
+	
+	if (sourceSelector->count() < 2) {
+		sourceSelector->hide();
+		sourceSelectorLabel->hide();
+	} else {
+		sourceSelector->show();
+		sourceSelectorLabel->show();
+	}
+}
+
+void VideoDialog::setVideoSources(const std::vector<VideoSourceInfo> &sourceInfos) {
 	restore();
 	disconnect(sourceSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
 	sourceSelector->clear();
 	
-	for (std::size_t i = 0; i < sourceInfos.size(); ++i)
-		sourceSelector->addItem(sourceInfos[i].label, QSize(sourceInfos[i].width, sourceInfos[i].height));
+	fillSourceSelector(sourceInfos);
 	
 	connect(sourceSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
 	sourceChange(sourceSelector->currentIndex());
@@ -423,4 +428,25 @@ void VideoDialog::accept() {
 void VideoDialog::reject() {
 	restore();
 	QDialog::reject();
+}
+
+void applySettings(MainWindow *const mw, const VideoDialog *const vd) {
+	{
+		const BlitterConf curBlitter = mw->currentBlitterConf();
+		
+		for (std::size_t i = 0; i < mw->numBlitters(); ++i)
+			if (mw->blitterConf(i) != curBlitter)
+				mw->blitterConf(i).acceptSettings();
+		
+		const QSize &srcSz = vd->sourceSize();
+		mw->setVideoFormatAndBlitter(srcSz.width(), srcSz.height(), vd->blitterNo());
+		curBlitter.acceptSettings();
+	}
+	
+	mw->setAspectRatio(vd->aspectRatio());
+	mw->setScalingMethod(vd->scalingMethod());
+	mw->setWindowSize(vd->windowSize());
+	
+	for (unsigned i = 0; i < mw->screens(); ++i)
+		mw->setFullScreenMode(i, vd->fullResIndex(i), vd->fullRateIndex(i));
 }

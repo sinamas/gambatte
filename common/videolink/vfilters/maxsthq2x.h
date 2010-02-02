@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,25 +16,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef MAXSTHQ3X_H
-#define MAXSTHQ3X_H
+#ifndef MAXSTHQ2X_H
+#define MAXSTHQ2X_H
 
-#include "filter.h"
+#include "../videolink.h"
+#include "../vfilterinfo.h"
 
-struct FilterInfo;
-
-class MaxSt_Hq3x : public Filter {
-	Gambatte::uint_least32_t *buffer;
-	
+class MaxStHq2x : public VideoLink {
 public:
-	MaxSt_Hq3x();
-	~MaxSt_Hq3x();
-	void init();
-	void outit();
-	const Gambatte::FilterInfo& info();
-	void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch);
-	Gambatte::uint_least32_t* inBuffer();
-	unsigned inPitch();
+	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
+	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
+	
+	MaxStHq2x();
+	~MaxStHq2x();
+	void draw(void *dst, unsigned dstpitch);
 };
 
 #endif

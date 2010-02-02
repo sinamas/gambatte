@@ -19,10 +19,17 @@
 #ifndef SDLBLITTER_H
 #define SDLBLITTER_H
 
-#include <videoblitter.h>
 #include <SDL.h>
 
-class SdlBlitter : public Gambatte::VideoBlitter {
+class SdlBlitter {
+public:
+	enum PixelFormat { RGB32, RGB16, UYVY };
+	struct PixelBuffer {
+		void *pixels;
+		unsigned pitch;
+		PixelFormat format;
+	};
+private:
 	SDL_Surface *screen;
 	SDL_Surface *surface;
 	SDL_Overlay *overlay;
@@ -36,8 +43,9 @@ public:
 	SdlBlitter(bool startFull = false, Uint8 scale = 1, bool yuv = false);
 	~SdlBlitter();
 	void setBufferDimensions(unsigned int width, unsigned int height);
-	const Gambatte::PixelBuffer inBuffer();
-	void blit();
+	const PixelBuffer inBuffer() const;
+	void draw();
+	void present();
 	void toggleFullScreen();
 	void setScale(const Uint8 scale) { if (!screen) this->scale = scale; }
 	void setStartFull() { startFlags |= SDL_FULLSCREEN; }

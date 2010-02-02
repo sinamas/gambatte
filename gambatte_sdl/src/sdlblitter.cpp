@@ -20,8 +20,6 @@
 
 #include "scalebuffer.h"
 
-using namespace Gambatte;
-
 SdlBlitter::SdlBlitter(const bool startFull, const Uint8 scale, const bool yuv) :
 screen(NULL),
 surface(NULL),
@@ -53,16 +51,16 @@ void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned in
 	}
 }
 
-const PixelBuffer SdlBlitter::inBuffer() {
+const SdlBlitter::PixelBuffer SdlBlitter::inBuffer() const {
 	PixelBuffer pb;
 	
 	if (overlay) {
 		pb.pixels = overlay->pixels[0];
-		pb.format = PixelBuffer::UYVY;
+		pb.format = UYVY;
 		pb.pitch = overlay->pitches[0] >> 2;
 	} else if (surface) {
 		pb.pixels = (Uint8*)(surface->pixels) + surface->offset;
-		pb.format = surface->format->BitsPerPixel == 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32;
+		pb.format = surface->format->BitsPerPixel == 16 ? RGB16 : RGB32;
 		pb.pitch = surface->pitch / surface->format->BytesPerPixel;
 	}
 	
@@ -74,7 +72,19 @@ inline void SdlBlitter::swScale() {
 	scaleBuffer<T>((T*)((Uint8*)(surface->pixels) + surface->offset), (T*)((Uint8*)(screen->pixels) + screen->offset), surface->w, surface->h, screen->pitch / screen->format->BytesPerPixel, scale);
 }
 
-void SdlBlitter::blit() {
+void SdlBlitter::draw() {
+	if (!screen || !surface)
+		return;
+		
+	if (!overlay && surface != screen) {
+		if (surface->format->BitsPerPixel == 16)
+			swScale<Uint16>();
+		else
+			swScale<Uint32>();
+	}
+}
+
+void SdlBlitter::present() {
 	if (!screen || !surface)
 		return;
 		
@@ -84,13 +94,6 @@ void SdlBlitter::blit() {
 		SDL_DisplayYUVOverlay(overlay, &dstr);
 		SDL_LockYUVOverlay(overlay);
 	} else {
-		if (surface != screen) {
-			if (surface->format->BitsPerPixel == 16)
-				swScale<Uint16>();
-			else
-				swScale<Uint32>();
-		}
-		
 		SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
 	}
 }

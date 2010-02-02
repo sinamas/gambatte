@@ -17,22 +17,26 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include <gambatte.h>
-#include <array.h>
-#include <resample/resamplerinfo.h>
-#include <rateest.h>
+#include "array.h"
+#include "resample/resamplerinfo.h"
+#include "rateest.h"
 #include <SDL.h>
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #include <string>
 #include <sstream>
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 #include "audiodata.h"
 #include "syncfunc.h"
 #include "parser.h"
 #include "str_to_sdlkey.h"
-#include "sdlblitter.h"
+#include "skipsched.h"
+#include "blitterwrapper.h"
+#include "videolink/vfilterinfo.h"
 
 using namespace Gambatte;
 
@@ -145,18 +149,20 @@ class VfOption : public DescOption {
 	std::string s;
 	unsigned filterNr;
 public:
-	VfOption(const std::vector<const FilterInfo*> &finfo);
-	void exec(const char *const *argv, int index) { filterNr = std::atoi(argv[index + 1]); }
+	VfOption();
+	void exec(const char *const *argv, int index) {
+		filterNr = std::min<unsigned>(std::max(std::atoi(argv[index + 1]), 0), VfilterInfo::numVfilters() - 1);
+	}
 	const char* getDesc() const { return s.c_str(); }
 	unsigned filterNumber() const { return filterNr; }
 };
 
-VfOption::VfOption(const std::vector<const FilterInfo*> &finfo) : DescOption("video-filter", 'v', 1), filterNr(0) {
+VfOption::VfOption() : DescOption("video-filter", 'v', 1), filterNr(0) {
 	std::stringstream ss;
 	ss << " N\t\tUse video filter number N\n";
 	
-	for (std::size_t i = 0; i < finfo.size(); ++i) {
-		ss << "\t\t\t\t    " << i << " = " << finfo[i]->handle << "\n";
+	for (std::size_t i = 0; i < VfilterInfo::numVfilters(); ++i) {
+		ss << "\t\t\t\t    " << i << " = " << VfilterInfo::get(i).handle << "\n";
 	}
 	
 	s = ss.str();
@@ -340,15 +346,12 @@ void InputOption::exec(const char *const *argv, int index) {
 	}
 }
 
-class InputGetter : public InputStateGetter {
+class GetInput : public InputGetter {
 public:
-	InputState is;
+	unsigned is;
 	
-	InputGetter() { memset(&is, 0, sizeof(is)); }
-	
-	const InputState& operator()() {
-		return is;
-	}
+	GetInput() : is(0) {}
+	unsigned operator()() { return is; }
 };
 
 class SdlIniter {
@@ -371,16 +374,17 @@ SdlIniter::~SdlIniter() {
 }
 
 class GambatteSdl {
-	typedef std::multimap<SDLKey,bool*> keymap_t;
-	typedef std::multimap<JoyData,bool*> jmap_t;
+	typedef std::multimap<SDLKey,unsigned> keymap_t;
+	typedef std::multimap<JoyData,unsigned> jmap_t;
 	
 	Array<Sint16> inBuf;
 	Array<Sint16> tmpBuf;
 	std::auto_ptr<Resampler> resampler;
 	GB gambatte;
 	SdlIniter sdlIniter;
-	SdlBlitter blitter;
-	InputGetter inputGetter;
+	BlitterWrapper blitter;
+	GetInput inputGetter;
+	SkipSched skipSched;
 	keymap_t keyMap;
 	jmap_t jbMap;
 	jmap_t jaMap;
@@ -453,7 +457,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&resamplerOption);
 		ScaleOption scaleOption;
 		v.push_back(&scaleOption);
-		VfOption vfOption(gambatte.filterInfo());
+		VfOption vfOption;
 		v.push_back(&vfOption);
 		YuvOption yuvOption;
 		v.push_back(&yuvOption);
@@ -511,23 +515,23 @@ bool GambatteSdl::init(int argc, char **argv) {
 		periods = periodsOption.getPeriods();
 		blitter.setScale(scaleOption.getScale());
 		blitter.setYuv(yuvOption.useYuv());
-		gambatte.setVideoFilter(vfOption.filterNumber());
-		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, 35112));
+		blitter.setVideoFilter(vfOption.filterNumber());
+		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, inBuf.size() / 2));
 		
-		bool* gbbuts[8] = {
-			&inputGetter.is.startButton, &inputGetter.is.selectButton,
-			&inputGetter.is.aButton, &inputGetter.is.bButton,
-			&inputGetter.is.dpadUp, &inputGetter.is.dpadDown,
-			&inputGetter.is.dpadLeft, &inputGetter.is.dpadRight
+		unsigned gbbuts[8] = {
+			InputGetter::START, InputGetter::SELECT,
+			InputGetter::A, InputGetter::B,
+			InputGetter::UP, InputGetter::DOWN,
+			InputGetter::LEFT, InputGetter::RIGHT
 		};
 		
 		for (unsigned i = 0; i < 8; ++i) {
 			const InputOption::InputId &id = inputOption.getKeys()[i];
 			
 			if (id.type == InputOption::InputId::KEY)
-				keyMap.insert(std::pair<SDLKey,bool*>(id.key, gbbuts[i]));
+				keyMap.insert(std::pair<SDLKey,unsigned>(id.key, gbbuts[i]));
 			else {
-				std::pair<JoyData,bool*> pair(id.jdata, gbbuts[i]);
+				std::pair<JoyData,unsigned> pair(id.jdata, gbbuts[i]);
 				jdevnums.push_back(id.jdata.dev_num);
 				
 				switch (id.type) {
@@ -540,7 +544,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 		}
 	}
 	
-	gambatte.setInputStateGetter(&inputGetter);
+	gambatte.setInputGetter(&inputGetter);
 	
 	if (!jdevnums.empty()) {
 		if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
@@ -548,9 +552,6 @@ bool GambatteSdl::init(int argc, char **argv) {
 			return 1;
 		}
 	}
-	
-	SDL_ShowCursor(SDL_DISABLE);
-	SDL_WM_SetCaption("Gambatte SDL", NULL);
 	
 	for (std::size_t i = 0; i < jdevnums.size(); ++i) {
 		SDL_Joystick *const j = SDL_JoystickOpen(i);
@@ -561,6 +562,10 @@ bool GambatteSdl::init(int argc, char **argv) {
 	
 	SDL_JoystickEventState(SDL_ENABLE);
 	
+	blitter.init();
+	SDL_ShowCursor(SDL_DISABLE);
+	SDL_WM_SetCaption("Gambatte SDL", NULL);
+	
 	return 0;
 }
 
@@ -569,12 +574,11 @@ int GambatteSdl::exec() {
 		return 1;
 	
 	AudioData adata(sampleRate, latency, periods);
-	tmpBuf.reset(resampler->maxOut(35112) * 2);
-	
-	gambatte.setVideoBlitter(&blitter);
+	tmpBuf.reset(resampler->maxOut(inBuf.size() / 2) * 2);
 	
 	Uint8 *keys = SDL_GetKeyState(NULL);
 	unsigned samples = 0;
+	bool audioBufLow = false;
 	
 	SDL_PauseAudio(0);
 	
@@ -591,8 +595,11 @@ int GambatteSdl::exec() {
 					jd.dir = e.jaxis.value < -8192 ? JoyData::DOWN : (e.jaxis.value > 8192 ? JoyData::UP : JoyData::CENTERED);
 					
 					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
-					     range.first != range.second; ++range.first) {
-						*range.first->second = jd.dir == range.first->first.dir;
+							range.first != range.second; ++range.first) {
+						if (jd.dir == range.first->first.dir)
+							inputGetter.is |= range.first->second;
+						else
+							inputGetter.is &= ~range.first->second;
 					}
 					
 					break;
@@ -602,8 +609,11 @@ int GambatteSdl::exec() {
 					jd.num = e.jbutton.button;
 					
 					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jbMap.equal_range(jd));
-					     range.first != range.second; ++range.first) {
-						*range.first->second = e.jbutton.state;
+								range.first != range.second; ++range.first) {
+						if (e.jbutton.state)
+							inputGetter.is |= range.first->second;
+						else
+							inputGetter.is &= ~range.first->second;
 					}
 					
 					break;
@@ -612,8 +622,11 @@ int GambatteSdl::exec() {
 					jd.num = e.jhat.hat;
 					
 					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
-					     range.first != range.second; ++range.first) {
-						*range.first->second = e.jhat.value & range.first->first.dir;
+								range.first != range.second; ++range.first) {
+						if (e.jhat.value & range.first->first.dir)
+							inputGetter.is |= range.first->second;
+						else
+							inputGetter.is &= ~range.first->second;
 					}
 					
 					break;
@@ -622,7 +635,6 @@ int GambatteSdl::exec() {
 						switch (e.key.keysym.sym) {
 						case SDLK_f:
 							blitter.toggleFullScreen();
-							gambatte.videoBufferChange();
 							break;
 						case SDLK_r:
 							gambatte.reset();
@@ -632,7 +644,7 @@ int GambatteSdl::exec() {
 					} else {
 						switch (e.key.keysym.sym) {
 						case SDLK_ESCAPE: return 0;
-						case SDLK_F5: gambatte.saveState(); break;
+						case SDLK_F5: gambatte.saveState(blitter.inBuf().pixels, blitter.inBuf().pitch); break;
 						case SDLK_F6: gambatte.selectState(gambatte.currentState() - 1); break;
 						case SDLK_F7: gambatte.selectState(gambatte.currentState() + 1); break;
 						case SDLK_F8: gambatte.loadState(); break;
@@ -649,10 +661,14 @@ int GambatteSdl::exec() {
 						default: break;
 						}
 					}
+					// fallthrough
 				case SDL_KEYUP:
 					for (std::pair<keymap_t::iterator,keymap_t::iterator> range(keyMap.equal_range(e.key.keysym.sym));
-					     range.first != range.second; ++range.first) {
-						*range.first->second = e.key.state;
+								range.first != range.second; ++range.first) {
+						if (e.key.state)
+							inputGetter.is |= range.first->second;
+						else
+							inputGetter.is &= ~range.first->second;
 					}
 					
 					break;
@@ -662,21 +678,34 @@ int GambatteSdl::exec() {
 			}
 		}
 		
-		samples += gambatte.runFor(reinterpret_cast<Gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, 35112 - samples);
-		samples -= 35112;
+		const BlitterWrapper::Buf &vbuf = blitter.inBuf();
+		unsigned emusamples = 35112 - samples;
+		const int ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
+				reinterpret_cast<Gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, emusamples);
+		const unsigned insamples = ret < 0 ? samples + emusamples : samples + ret;
+		samples += emusamples;
+		samples -= insamples;
 		
 		if (!keys[SDLK_TAB]) {
-			const AudioData::Status &status = adata.write(tmpBuf, resampler->resample(tmpBuf, inBuf, 35112));
+			const bool blit = ret >= 0 && !skipSched.skipNext(audioBufLow);
 			
-			long ft = (16743ul - (16743 / 1024)) * sampleRate / status.rate.est;
+			if (blit)
+				blitter.draw();
 			
-			if (status.fromUnderrun < status.fromOverflow)
-				ft >>= 1;
+			const long outsamples = resampler->resample(tmpBuf, inBuf, insamples);
+			const AudioData::Status &status = adata.write(tmpBuf, outsamples);
+			audioBufLow = status.fromUnderrun + outsamples < (status.fromOverflow - outsamples) * 2;
 			
-			syncfunc(ft);
+			if (blit) {
+				syncfunc((16743ul - (16743 / 1024)) * sampleRate / status.rate);
+				blitter.present();
+			}
+		} else if (ret >= 0) {
+			blitter.draw();
+			blitter.present();
 		}
 		
-		std::memmove(inBuf, inBuf + 35112 * 2, samples * sizeof(Sint16) * 2);
+		std::memmove(inBuf, inBuf + insamples * 2, samples * sizeof(Sint16) * 2);
 	}
 	
 	return 0;

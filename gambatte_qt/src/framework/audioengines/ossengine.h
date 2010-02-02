@@ -21,6 +21,7 @@
 
 #include "../audioengine.h"
 #include "customdevconf.h"
+#include "rateest.h"
 
 class OssEngine : public AudioEngine {
 	CustomDevConf conf;
@@ -31,6 +32,7 @@ class OssEngine : public AudioEngine {
 	unsigned prevbytes;
 	
 	int doInit(int rate, unsigned latency);
+	void doAcceptSettings() { conf.acceptSettings(); }
 	int write(void *buffer, unsigned samples, const BufferState &bstate);
 	
 public:
@@ -38,13 +40,12 @@ public:
 	~OssEngine();
 	void uninit();
 	int write(void *buffer, unsigned samples);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, RateEst::Result &rate_out);
-	const RateEst::Result rateEstimate() const { return est.result(); }
+	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
+	long rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause() { prevbytes = 0; est.reset(); }
-	QWidget* settingsWidget() { return conf.settingsWidget(); }
-	void acceptSettings() { conf.acceptSettings(); }
-	void rejectSettings() { conf.rejectSettings(); }
+	QWidget* settingsWidget() const { return conf.settingsWidget(); }
+	void rejectSettings() const { conf.rejectSettings(); }
 };
 
 #endif

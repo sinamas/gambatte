@@ -48,11 +48,14 @@ GB::~GB() {
 	delete z80;
 }
 
-unsigned GB::runFor(Gambatte::uint_least32_t *const soundBuf, const unsigned samples) {
+int GB::runFor(Gambatte::uint_least32_t *const videoBuf, const unsigned pitch,
+		Gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
+	z80->setVideoBuffer(videoBuf, pitch);
 	z80->setSoundBuffer(soundBuf);
-	z80->runFor(samples * 2);
+	const int cyclesSinceBlit = z80->runFor(samples * 2);
+	samples = z80->fillSoundBuffer();
 	
-	return z80->fillSoundBuffer();
+	return cyclesSinceBlit < 0 ? cyclesSinceBlit : samples - (cyclesSinceBlit >> 1);
 }
 
 void GB::reset() {
@@ -67,36 +70,12 @@ void GB::reset() {
 // 	z80->reset();
 }
 
-void GB::setVideoBlitter(VideoBlitter *vb) {
-	z80->setVideoBlitter(vb);
+void GB::setInputGetter(InputGetter *getInput) {
+	z80->setInputGetter(getInput);
 }
 
-void GB::videoBufferChange() {
-	z80->videoBufferChange();
-}
-
-unsigned GB::videoWidth() const {
-	return z80->videoWidth();
-}
-
-unsigned GB::videoHeight() const {
-	return z80->videoHeight();
-}
-
-void GB::setVideoFilter(const unsigned n) {
-	z80->setVideoFilter(n);
-}
-
-std::vector<const FilterInfo*> GB::filterInfo() const {
-	return z80->filterInfo();
-}
-
-void GB::setInputStateGetter(InputStateGetter *getInput) {
-	z80->setInputStateGetter(getInput);
-}
-
-void GB::set_savedir(const char *sdir) {
-	z80->set_savedir(sdir);
+void GB::setSaveDir(const char *sdir) {
+	z80->setSaveDir(sdir);
 }
 
 bool GB::load(const char* romfile, const bool forceDmg) {
@@ -140,8 +119,8 @@ void GB::loadState(const char *const filepath, const bool osdMessage) {
 	}
 }
 
-void GB::saveState() {
-	saveState(statePath(z80->saveBasePath(), stateNo).c_str());
+void GB::saveState(const Gambatte::uint_least32_t *const videoBuf, const unsigned pitch) {
+	saveState(videoBuf, pitch, statePath(z80->saveBasePath(), stateNo).c_str());
 	z80->setOsdElement(newStateSavedOsdElement(stateNo));
 }
 
@@ -149,11 +128,12 @@ void GB::loadState() {
 	loadState(statePath(z80->saveBasePath(), stateNo).c_str(), true);
 }
 
-void GB::saveState(const char *filepath) {
+void GB::saveState(const Gambatte::uint_least32_t *const videoBuf,
+			const unsigned pitch, const char *filepath) {
 	SaveState state;
 	z80->setStatePtrs(state);
 	z80->saveState(state);
-	StateSaver::saveState(state, filepath);
+	StateSaver::saveState(state, videoBuf, pitch, filepath);
 }
 
 void GB::loadState(const char *const filepath) {

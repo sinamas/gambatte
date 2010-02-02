@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,17 +16,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef GAMBATTE_FILTERINFO_H
-#define GAMBATTE_FILTERINFO_H
+#ifndef CATROM2X_H
+#define CATROM2X_H
 
-#include <string>
+#include "../videolink.h"
+#include "../vfilterinfo.h"
 
-namespace Gambatte {
-struct FilterInfo {
-	std::string handle;
-	unsigned int outWidth;
-	unsigned int outHeight;
+class Catrom2x : public VideoLink {
+public:
+	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
+	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
+	
+	Catrom2x();
+	~Catrom2x();
+	void draw(void *dst, unsigned dstpitch);
 };
-}
 
 #endif

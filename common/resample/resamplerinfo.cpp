@@ -18,8 +18,10 @@
  ***************************************************************************/
 #include "resamplerinfo.h"
 #include "chainresampler.h"
-#include "hammingsinc.h"
-#include "blackmansinc.h"
+#include "kaiser50sinc.h"
+#include "kaiser70sinc.h"
+// #include "hammingsinc.h"
+// #include "blackmansinc.h"
 #include "rectsinc.h"
 #include "linint.h"
 
@@ -27,35 +29,22 @@ struct LinintInfo {
 	static Resampler* create(long inRate, long outRate, std::size_t) { return new Linint<2>(inRate, outRate); }
 };
 
-struct RectsincInfo {
+template<template<unsigned,unsigned> class T>
+struct ChainSincInfo {
 	static Resampler* create(long inRate, long outRate, std::size_t periodSz) {
 		ChainResampler *r = new ChainResampler;
-		r->init<RectSinc>(inRate, outRate, periodSz);
-		return r;
-	}
-};
-
-struct HammingsincInfo {
-	static Resampler* create(long inRate, long outRate, std::size_t periodSz) {
-		ChainResampler *r = new ChainResampler;
-		r->init<HammingSinc>(inRate, outRate, periodSz);
-		return r;
-	}
-};
-
-struct BlackmansincInfo {
-	static Resampler* create(long inRate, long outRate, std::size_t periodSz) {
-		ChainResampler *r = new ChainResampler;
-		r->init<BlackmanSinc>(inRate, outRate, periodSz);
+		r->init<T>(inRate, outRate, periodSz);
 		return r;
 	}
 };
 
 const ResamplerInfo ResamplerInfo::resamplers[] = {
 	{ "2-tap linear interpolation", LinintInfo::create },
-	{ "Rectangular windowed sinc (~20 dB SNR)", RectsincInfo::create },
-	{ "Hamming windowed sinc (~50 dB SNR)", HammingsincInfo::create },
-	{ "Blackman windowed sinc (~70 dB SNR)", BlackmansincInfo::create }
+	{ "Rectangular windowed sinc (~20 dB SNR)", ChainSincInfo<RectSinc>::create },
+// 	{ "Hamming windowed sinc (~50 dB SNR)", ChainSincInfo<HammingSinc>::create },
+// 	{ "Blackman windowed sinc (~70 dB SNR)", ChainSincInfo<BlackmanSinc>::create },
+	{ "Kaiser windowed sinc (~50 dB SNR)", ChainSincInfo<Kaiser50Sinc>::create },
+	{ "Kaiser windowed sinc (~70 dB SNR)", ChainSincInfo<Kaiser70Sinc>::create }
 };
 
 const unsigned ResamplerInfo::num_ = sizeof(ResamplerInfo::resamplers) / sizeof(ResamplerInfo);

@@ -20,6 +20,7 @@
 #define CIC2_H
 
 #include "subresampler.h"
+#include "rshift16_round.h"
 
 template<unsigned channels> 
 class Cic2Core {
@@ -87,7 +88,7 @@ std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::s
 			prev2 = buf[bufpos];
 			bufpos += div_;
 			
-			*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 		}
@@ -111,7 +112,7 @@ std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::s
 			prev2 = buf[bufpos];
 			bufpos += div_;
 			
-			*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 		}
@@ -139,7 +140,7 @@ std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::s
 			const unsigned long out2 = sm2 - prev2;
 			prev2 = sm2;
 			
-			*out = static_cast<long>(out2 - prev1) * mul / 0x10000;
+			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 			

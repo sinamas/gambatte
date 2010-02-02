@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2009 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,25 +16,19 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef CATROM2X_H
-#define CATROM2X_H
+#ifndef VIDEOLINK_H
+#define VIDEOLINK_H
 
-#include "filter.h"
-
-struct FilterInfo;
-
-class Catrom2x : public Filter {
-	Gambatte::uint_least32_t *buffer;
-
+class VideoLink {
+	void *const inbuf;
+	const unsigned inpitch;
+protected:
+	VideoLink(void *inbuf, unsigned inpitch) : inbuf(inbuf), inpitch(inpitch) {}
 public:
-	Catrom2x();
-	~Catrom2x();
-	void init();
-	void outit();
-	const Gambatte::FilterInfo& info();
-	void filter(Gambatte::uint_least32_t *dbuffer, unsigned pitch);
-	Gambatte::uint_least32_t* inBuffer();
-	unsigned inPitch();
+	void* inBuf() const { return inbuf; }
+	unsigned inPitch() const { return inpitch; }
+	virtual ~VideoLink() {}
+	virtual void draw(void *dst, unsigned dstpitch) = 0;
 };
 
 #endif

@@ -59,18 +59,18 @@ protected:
 // 	void resizeEvent(QResizeEvent *event);
 
 public:
-	XvBlitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
+	XvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~XvBlitter();
 	void init();
 	void uninit();
 	bool isUnusable() const;
-	long sync(long turbo);
+	long sync();
 	void setBufferDimensions(const unsigned int width, const unsigned int height);
 	void blit();
 	
-	QWidget* settingsWidget() { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 	
 	QPaintEngine* paintEngine() const { return NULL; }
 };

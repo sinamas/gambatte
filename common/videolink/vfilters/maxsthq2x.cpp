@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 2003 MaxSt                                              *
@@ -18,9 +18,9 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+ ***************************************************************************/
 #include "maxsthq2x.h"
-#include "filterinfo.h"
+#include <int.h>
 #include <cstring>
 
 static /*inline*/ unsigned long Interp1(const unsigned long c1, const unsigned long c2) {
@@ -118,8 +118,9 @@ static /*inline*/ bool Diff(const unsigned long w1, const unsigned long w2) {
 		gdiff * 2 - rdiff - bdiff + 0x30U > 0x30U * 2;
 }
 
+template<unsigned Xres, unsigned Yres>
 static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
-		const Gambatte::uint_least32_t *pIn, const unsigned Xres, const unsigned Yres)
+		const Gambatte::uint_least32_t *pIn)
 {
 	unsigned long w[10];
 
@@ -2839,37 +2840,16 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 	}
 }
 
-MaxSt_Hq2x::MaxSt_Hq2x() {
-	buffer = NULL;
+static inline Gambatte::uint_least32_t* buffer(const MaxStHq2x *hq2x) {
+	return static_cast<Gambatte::uint_least32_t*>(hq2x->inBuf());
 }
 
-MaxSt_Hq2x::~MaxSt_Hq2x() {
-	outit();
+MaxStHq2x::MaxStHq2x() : VideoLink(new Gambatte::uint_least32_t[VfilterInfo::IN_HEIGHT * VfilterInfo::IN_WIDTH], VfilterInfo::IN_WIDTH) {}
+
+MaxStHq2x::~MaxStHq2x() {
+	delete[] buffer(this);
 }
 
-void MaxSt_Hq2x::init() {
-	delete []buffer;
-	buffer = new Gambatte::uint_least32_t[144 * 160];
-}
-
-void MaxSt_Hq2x::outit() {
-	delete []buffer;
-	buffer = NULL;
-}
-
-const Gambatte::FilterInfo& MaxSt_Hq2x::info() {
-	static const Gambatte::FilterInfo fInfo = { "MaxSt's Hq2x", 160 * 2, 144 * 2 };
-	return fInfo;
-}
-
-Gambatte::uint_least32_t* MaxSt_Hq2x::inBuffer() {
-	return buffer;
-}
-
-unsigned MaxSt_Hq2x::inPitch() {
-	return 160;
-}
-
-void MaxSt_Hq2x::filter(Gambatte::uint_least32_t *const dbuffer, const unsigned pitch) {
-	::filter(dbuffer, pitch, buffer, 160, 144);
+void MaxStHq2x::draw(void *const dbuffer, const unsigned pitch) {
+	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this));
 }

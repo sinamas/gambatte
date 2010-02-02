@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,9 +21,9 @@
 
 class AudioEngine;
 
-#include <vector>
+#include "auto_vector.h"
 #include <QtGui>
 
-void addAudioEngines(std::vector<AudioEngine*> &audioEngines, WId winId);
+void addAudioEngines(auto_vector<AudioEngine> &audioEngines, WId winId);
 
 #endif

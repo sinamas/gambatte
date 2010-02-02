@@ -8,7 +8,6 @@ env = Environment(CPPPATH = ['src', 'include', '../common'],
 
 sourceFiles = Split('''
 			src/bitmap_font.cpp
-			src/colorconversion.cpp
 			src/cpu.cpp
 			src/gambatte.cpp
 			src/initstate.cpp
@@ -43,11 +42,6 @@ sourceFiles = Split('''
 			src/video/we.cpp
 			src/video/wx_reader.cpp
 			src/video/wy.cpp
-			src/video/filters/catrom2x.cpp
-			src/video/filters/catrom3x.cpp
-			src/video/filters/kreed2xsai.cpp
-			src/video/filters/maxsthq2x.cpp
-			src/video/filters/maxsthq3x.cpp
 		   ''')
 
 conf = env.Configure()

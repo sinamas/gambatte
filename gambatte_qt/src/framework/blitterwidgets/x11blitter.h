@@ -46,21 +46,21 @@ class X11Blitter : public BlitterWidget {
 	bool bf;
 	
 protected:
+	void setBufferDimensions(const unsigned width, const unsigned height);
 	void paintEvent(QPaintEvent *event);
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	X11Blitter(PixelBufferSetter setPixelBuffer, QWidget *parent = 0);
+	X11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~X11Blitter();
 	void init();
 	void uninit();
 	bool isUnusable() const;
-	long sync(long ft);
-	void setBufferDimensions(const unsigned width, const unsigned height);
+	long sync();
 	void blit();
-	QWidget* settingsWidget() { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
-	void rejectSettings();
+	void rejectSettings() const;
 	
 	QPaintEngine* paintEngine() const { return NULL; }
 };

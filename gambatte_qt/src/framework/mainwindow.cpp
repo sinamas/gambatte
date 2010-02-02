@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007-2009 by Sindre Aamås                               *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,61 +17,27 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "mainwindow.h"
-
-#include <cstring>
-#include <cassert>
-#include <cstdlib>
-#include <cmath>
-#include <QtGui>
+#include <QEvent>
+#include <QKeyEvent>
+#include <QLayout>
+#include <QCoreApplication>
 #include <QApplication>
+#include <QDesktopWidget>
 #include <QTimer>
-
-#include <resample/resamplerinfo.h>
-
+#include "adaptivesleep.h"
+#include "mediaworker.h"
+#include "blittercontainer.h"
+#include "audioengines/nullaudioengine.h"
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
-#include "videodialog.h"
-#include "inputdialog.h"
-#include "sounddialog.h"
-#include "blittercontainer.h"
-
+#include "getfullmodetoggler.h"
+#include "SDL_Joystick/include/SDL_event.h"
 #include "addaudioengines.h"
 #include "addblitterwidgets.h"
-#include "getfullmodetoggler.h"
-#include "audioengine.h"
-#include "audioengines/nullaudioengine.h"
-#include "fullmodetoggler.h"
 
-#ifdef PLATFORM_WIN32
-#include <windows.h>
+#ifdef Q_WS_WIN
+#include <windows.h> // for timeBeginPeriod, timeEndPeriod
 #endif
-
-#ifdef Q_WS_X11
-#include <QX11Info>
-#include <X11/Xlib.h>
-#endif
-
-#include "SDL_Joystick/include/SDL_joystick.h"
-
-MainWindow::ButtonHandler::ButtonHandler(MediaSource *source, unsigned buttonIndex) : source(source), buttonIndex(buttonIndex) {}
-void MainWindow::ButtonHandler::pressEvent() { source->buttonPressEvent(buttonIndex); }
-void MainWindow::ButtonHandler::releaseEvent() { source->buttonReleaseEvent(buttonIndex); }
-
-class JoyObserver {
-	MainWindow::InputObserver *const observer;
-	const int mask;
-
-	void notifyObserver(bool press) {
-		if (press)
-			observer->pressEvent();
-		else
-			observer->releaseEvent();
-	}
-
-public:
-	JoyObserver(MainWindow::InputObserver *observer, const int mask) : observer(observer), mask(mask) {}
-	void valueChanged(const int value) { notifyObserver((value & mask) == mask); }
-};
 
 MainWindow::JoystickIniter::JoystickIniter() {
 	SDL_JoystickInit();
@@ -98,103 +64,201 @@ MainWindow::JoystickIniter::~JoystickIniter() {
 	SDL_JoystickQuit();
 }
 
-bool MainWindow::SkipSched::skipNext(bool skip) {
-	if (skipped) {
-		if (skipped < skippedmax / 2)
-			skip = true;
-		else
-			skipped = skip = 0;
-	} else if (skip) {
-		skippedmax += skippedmax / 2 < 8;
-	} else if (skippedmax / 2)
-		--skippedmax;
+struct CustomEvent : QEvent {
+	CustomEvent() : QEvent(QEvent::MaxUser) {}
+	virtual ~CustomEvent() {}
+	virtual void exec(MainWindow*) = 0;
+};
 
-	skipped += skip;
+struct MainWindow::Pauser::DoPause {
+	void operator()(MainWindow *const mw) {
+		if (mw->running) {
+			mw->worker->pause();
 
-	return skip;
-}
+// 			if (mw->timerId) {
+// 				mw->killTimer(mw->timerId);
+// 				mw->timerId = 0;
+// 			}
 
-void MainWindow::SampleBuffer::reset(const Rational &spf, const unsigned overupdate) {
-	sndInBuffer.reset((spf.ceil() + overupdate) * 2);
-	this->spf = spf;
-	num = 0;
-	samplesBuffered = 0;
-}
+			mw->jsTimer->start();
+		}
 
-std::size_t MainWindow::SampleBuffer::update(qint16 *const out, MediaSource *const source, Resampler *const resampler) {
-	num += spf.num;
-	const long insamples = num / spf.denom;
-	num -= insamples * spf.denom;
+		mw->blitterContainer->blitter()->setPaused(true);
+	}
+};
 
-	samplesBuffered += source->update(sndInBuffer + samplesBuffered * 2, insamples - samplesBuffered);
-	samplesBuffered -= insamples;
+struct MainWindow::Pauser::DoUnpause {
+	void operator()(MainWindow *const mw) {
+		if (mw->running) {
+			mw->jsTimer->stop();
+			mw->worker->unpause();
 
-	std::size_t outsamples = 0;
+// 			if (!mw->threaded && !mw->timerId)
+// 				mw->timerId = mw->startTimer(0);
+		}
 
-	if (out) {
-		if (resampler->inRate() == resampler->outRate()) {
-			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
-			outsamples = insamples;
-		} else
-			outsamples = resampler->resample(out, sndInBuffer, insamples);
+		mw->blitterContainer->blitter()->setPaused(false);
+	}
+};
+
+void MainWindow::Pauser::modifyPaused(const unsigned newPaused, MainWindow *const mw) {
+	if (paused) {
+		if (!newPaused)
+			mw->callWhenPaused(DoUnpause());
+	} else {
+		if (newPaused)
+			mw->callWhenPaused(DoPause());
 	}
 
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered * sizeof(qint16) * 2);
-
-	return outsamples;
+	paused = newPaused;
 }
 
-MainWindow::MainWindow(MediaSource *source,
-                       const std::vector<MediaSource::ButtonInfo> &buttonInfos,
-                       const std::vector<MediaSource::VideoSourceInfo> &videoSourceInfos,
-                       const QString &videoSourceLabel,
-                       const QSize &aspectRatio) :
-	source(source),
-	buttonHandlers(buttonInfos.size(), ButtonHandler(0, 0)),
-	fullModeToggler(getFullModeToggler(winId())),
-	sampleBuffer(Rational(735, 1), source->overupdate),
-	sndOutBuffer(0),
-	ae(NULL),
-	cursorTimer(NULL),
-	jsTimer(NULL),
-	ftNum(1),
-	ftDenom(60),
-	paused(0),
-	turbo(0),
-	timerId(0),
-	running(false),
-	pauseOnDialogExec(true),
-	cursorHidden(false)
+enum { BLIT_REQUESTED = 1, BLIT_POSTED = 2 };
+
+static bool blitRequested(AtomicVar<unsigned> &blitState) {
+	AtomicVar<unsigned>::Locked bs(blitState);
+
+	if (bs.get() & BLIT_REQUESTED) {
+		bs.set(BLIT_POSTED);
+		return true;
+	}
+
+	return false;
+}
+
+class MainWindow::WorkerCallback : public MediaWorker::Callback {
+	MainWindow *const mw;
+	AdaptiveSleep asleep;
+	usec_t synctimebase, synctimeinc;
+	AtomicVar<unsigned> blitState;
+
+public:
+	WorkerCallback(MainWindow *const mw) : mw(mw), blitState(0) {}
+	void blit(usec_t synctimebase, usec_t synctimeinc);
+	bool cancelBlit();
+	void paused();
+	void audioEngineFailure();
+	bool tryLockVideoBuffer() { return mw->vbmut.tryLock(); }
+	void unlockVideoBuffer() { mw->vbmut.unlock(); }
+	const PixelBuffer& videoBuffer() {
+		return /*mw->videoChain.empty() ? */mw->blitterContainer->blitter()->inBuffer()/* : mw->videoChain.front()->inBuffer()*/;
+	}
+};
+
+void MainWindow::WorkerCallback::blit(const usec_t synctimebase, const usec_t synctimeinc) {
+	struct BlitEvent : CustomEvent {
+		WorkerCallback &cb;
+		BlitEvent(WorkerCallback &cb) : cb(cb) {}
+
+		void exec(MainWindow *const mw) {
+			if (blitRequested(cb.blitState) && mw->running) {
+				usec_t base, inc;
+				BlitterWidget *const blitter = mw->blitterContainer->blitter();
+
+				mw->worker->source()->generateVideoFrame(blitter->inBuffer());
+				blitter->blit();
+
+				base = cb.synctimebase;
+				inc  = cb.synctimeinc;
+
+				SyncVar::Locked(mw->worker->waitingForSync()).set(true);
+
+				blitter->draw();
+
+				if (!blitter->frameTimeEst())
+					cb.asleep.sleepUntil(base, inc);
+
+				if (blitter->sync() < 0)
+					mw->emitVideoBlitterFailure();
+
+				mw->worker->setFrameTimeEstimate(blitter->frameTimeEst());
+			}
+
+			AtomicVar<unsigned>::Locked bs(cb.blitState);
+
+			if (bs.get() & BLIT_REQUESTED)
+				QCoreApplication::postEvent(mw, new BlitEvent(cb));
+			else
+				bs.set(0);
+		}
+	};
+
+	this->synctimebase = synctimebase;
+	this->synctimeinc  = synctimeinc;
+
+	AtomicVar<unsigned>::Locked bs(blitState);
+
+	if (!(bs.get() & BLIT_POSTED))
+		QCoreApplication::postEvent(mw, new BlitEvent(*this));
+
+	bs.set(BLIT_REQUESTED | BLIT_POSTED);
+}
+
+bool MainWindow::WorkerCallback::cancelBlit() {
+	AtomicVar<unsigned>::Locked bs(blitState);
+
+	const unsigned val = bs.get();
+	bs.set(val & ~BLIT_REQUESTED);
+
+	return val & BLIT_REQUESTED;
+}
+
+void MainWindow::WorkerCallback::paused() {
+	struct PausedEvent : CustomEvent {
+		void exec(MainWindow *const mw) { mw->execPausedQueue(); }
+	};
+
+	QCoreApplication::postEvent(mw, new PausedEvent);
+}
+
+void MainWindow::WorkerCallback::audioEngineFailure() {
+	struct AudioFailureEvent : CustomEvent {
+		void exec(MainWindow *const mw) { mw->emitAudioEngineFailure(); }
+	};
+
+	QCoreApplication::postEvent(mw, new AudioFailureEvent);
+}
+
+MainWindow::FrameBuffer::Locked::Locked(FrameBuffer fb) : mw(fb.mw), pb(mw->blitterContainer->blitter()->inBuffer()) {
+	if (!mw->vbmut.tryLock()) {
+		pb.data = 0;
+		mw = 0;
+	}
+}
+
+MainWindow::FrameBuffer::Locked::~Locked() {
+	if (mw)
+		mw->vbmut.unlock();
+}
+
+MainWindow::MainWindow(MediaSource *const source)
+: worker(new MediaWorker(source, std::auto_ptr<MediaWorker::Callback>(new WorkerCallback(this)), this)),
+  blitterContainer(new BlitterContainer(this)),
+  fullModeToggler(getFullModeToggler(winId())),
+  cursorTimer(new QTimer(this)),
+  jsTimer(new QTimer(this)),
+  imageFormat(320, 240),
+  windowSize(-1, -1),
+  frameTime_(1, 60),
+  focusPauseBit(0),
+//   timerId(0),
+  hz(60),
+  running(false),
+//   threaded(true),
+  refreshRateSync(false),
+  cursorHidden(false)
 {
-	assert(!videoSourceInfos.empty());
-
-	for (unsigned i = 0; i < buttonHandlers.size(); ++i)
-		buttonHandlers[i] = ButtonHandler(source, i);
-
-	setAttribute(Qt::WA_DeleteOnClose);
-
+// 	setAttribute(Qt::WA_DeleteOnClose);
 	setFocusPolicy(Qt::StrongFocus);
-
-	{
-		QSettings settings;
-		settings.beginGroup("mainwindow");
-		resize(settings.value("size", QSize(160, 144)).toSize());
-		settings.endGroup();
-	}
-
+	setCentralWidget(blitterContainer);
 	addAudioEngines(audioEngines, winId());
 	audioEngines.push_back(new NullAudioEngine);
-	soundDialog = new SoundDialog(audioEngines, this);
-	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundSettingsChange()));
 
-	inputDialog = new InputDialog(buttonInfos, this);
-	connect(inputDialog, SIGNAL(accepted()), this, SLOT(inputSettingsChange()));
+	addBlitterWidgets(blitters, VideoBufferLocker(vbmut));
+	blitters.push_back(new QGLBlitter(VideoBufferLocker(vbmut)));
+	blitters.push_back(new QPainterBlitter(VideoBufferLocker(vbmut)));
 
-	addBlitterWidgets(blitters, PixelBufferSetter(source));
-	blitters.push_back(new QGLBlitter(PixelBufferSetter(source)));
-	blitters.push_back(new QPainterBlitter(PixelBufferSetter(source)));
-
-	for (std::vector<BlitterWidget*>::iterator it = blitters.begin(); it != blitters.end();) {
+	for (auto_vector<BlitterWidget>::iterator it = blitters.begin(); it != blitters.end();) {
 		if ((*it)->isUnusable()) {
 			delete *it;
 			it = blitters.erase(it);
@@ -202,71 +266,313 @@ MainWindow::MainWindow(MediaSource *source,
 			++it;
 	}
 
-	videoDialog = new VideoDialog(blitters, videoSourceInfos, videoSourceLabel, fullModeToggler.get(), aspectRatio, this);
-	connect(videoDialog, SIGNAL(accepted()), this, SLOT(videoSettingsChange()));
-
-	blitterContainer = new BlitterContainer(videoDialog, this);
-	blitterContainer->setMinimumSize(160, 144);
-	setCentralWidget(blitterContainer);
-
-	for (std::vector<BlitterWidget*>::iterator it = blitters.begin(); it != blitters.end(); ++it) {
+	for (auto_vector<BlitterWidget>::iterator it = blitters.begin(); it != blitters.end(); ++it) {
 		(*it)->setVisible(false);
 		(*it)->setParent(blitterContainer);
 	}
 
-	source->setPixelBuffer(NULL, MediaSource::RGB32, 0);
+	worker->setAudioOut(audioEngines.back(), 48000, 100);
+	worker->setSamplesPerFrame(Rational(48000 / 60));
+	blitterContainer->setBlitter(blitters.back());
+	blitterContainer->blitter()->setPaused(false);
+	blitterContainer->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
+	blitterContainer->setSourceSize(QSize(imageFormat.width, imageFormat.height));
+	blitterContainer->setAspectRatio(QSize(imageFormat.width, imageFormat.height));
+	connect(fullModeToggler.get(), SIGNAL(rateChange(int)), this, SLOT(hzChange(int)));
+	fullModeToggler->emitRate();
 
-	videoSettingsChange();
-	inputSettingsChange();
-	soundSettingsChange();
-
-	setFrameTime(ftNum, ftDenom);
-
-	cursorTimer = new QTimer(this);
 	cursorTimer->setSingleShot(true);
-	cursorTimer->setInterval(2500);
+	cursorTimer->setInterval(2000);
 	connect(cursorTimer, SIGNAL(timeout()), this, SLOT(hideCursor()));
 
-	jsTimer = new QTimer(this);
-	jsTimer->setInterval(133);
+	jsTimer->setInterval(200);
 	connect(jsTimer, SIGNAL(timeout()), this, SLOT(updateJoysticks()));
 
 	setMouseTracking(true);
 	setFocus();
 }
 
-MainWindow::~MainWindow() {
-	clearInputVectors();
-
-	for (uint i = 0; i < blitters.size(); ++i)
-		delete blitters[i];
-
-	for (uint i = 0; i < audioEngines.size(); ++i)
-		delete audioEngines[i];
-}
-
-void MainWindow::resetWindowSize(const QSize &s) {
-	if (isFullScreen() || !isVisible())
+void MainWindow::run() {
+	if (running)
 		return;
 
-	if (s == QSize(-1, -1)) {
-		centralWidget()->setMinimumSize(videoDialog->sourceSize());
-		layout()->setSizeConstraint(QLayout::SetMinimumSize);
-		setMinimumSize(1, 1); // needed on macx
-		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
-		resize(size()); // needed on macx
-	} else {
-		centralWidget()->setMinimumSize(s.width(), s.height());
-		layout()->setSizeConstraint(QLayout::SetFixedSize);
-// 		setFixedSize(s.width(), s.height() + (menuBar()->isVisible() ? menuBar()->height() : 0));
+	running = true;
+
+#ifdef Q_WS_WIN
+	timeBeginPeriod(1);
+#endif
+
+	blitterContainer->blitter()->setVisible(true);
+	blitterContainer->blitter()->init();
+	rebuildVideoChain();
+
+	if (pauser.isPaused()) {
+		jsTimer->start();
+		worker->pause();
+	}/* else if (!threaded)
+		timerId = startTimer(0);*/
+
+// 	if (!threaded)
+// 		worker->deactivate();
+
+	SDL_JoystickUpdate();
+	SDL_ClearEvents();
+	worker->start();
+}
+
+void MainWindow::stop() {
+	if (!running)
+		return;
+
+	worker->stop();
+	jsTimer->stop();
+// 	videoChain.clear();
+	running = false;
+
+// 	if (timerId) {
+// 		killTimer(timerId);
+// 		timerId = 0;
+// 	}
+
+	blitterContainer->blitter()->uninit();
+	blitterContainer->blitter()->setVisible(false);
+
+#ifdef Q_WS_WIN
+	timeEndPeriod(1);
+#endif
+}
+
+void MainWindow::rebuildVideoChain() {
+	ImageFormat ifmt(imageFormat);
+	/*videoChain.clear(); // and delete. can we do better than complete reinitialization?
+
+	if (vfilter) {
+		VideoLink *const filterLink = vfilter->create(ifmt.width, ifmt.height, ifmt.pixelFormat);
+
+		if (filterLink->inBuffer().pixelFormat != ifmt.pixelFormat) {
+			videoChain.push_back(VideoFormatConverter::create(ifmt.width,
+					ifmt.height, ifmt.pixelFormat, vfilter->inBuffer().pixelFormat));
+		}
+
+		videoChain.push_back(filterLink);
+		ifmt.width = filterLink->outWidth();
+		ifmt.height = filterLink->outHeight();
+		ifmt.pixelFormat = filterLink->outPixelFormat();
+	}*/
+
+	/*if (!*/blitterContainer->blitter()->setVideoFormat(ifmt.width, ifmt.height/*, ifmt.pixelFormat*/)/*) {*/;
+// 		videoChain.push_back(VideoFormatConverter::create(ifmt.width, ifmt.height,
+// 				ifmt.pixelFormat, blitterContainer->blitter()->inBuffer().pixelFormat));
+// 	}
+
+// 	worker->setVideoBuffer(/*videoChain.empty() ? */blitterContainer->blitter()->inBuffer()/* : videoChain.front()->inBuffer()*/);
+}
+
+static const QSize getFilteredSize(const QSize &sz/*, const VideoFiler *const filter*/) {
+	return /*filter ? filter->outSize(sz) : */sz;
+}
+
+void MainWindow::updateMinimumSize() {
+	if (layout()->sizeConstraint() != QLayout::SetFixedSize)
+		centralWidget()->setMinimumSize(getFilteredSize(QSize(imageFormat.width, imageFormat.height)/*, vfilter*/));
+}
+
+void MainWindow::doSetWindowSize(const QSize &sz) {
+	if (!isFullScreen() && isVisible()) {
+		if (sz == QSize(-1, -1)) {
+			centralWidget()->setMinimumSize(getFilteredSize(QSize(imageFormat.width, imageFormat.height)/*, vfilter*/));
+			layout()->setSizeConstraint(QLayout::SetMinimumSize);
+			setMinimumSize(1, 1); // needed on macx
+			setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
+			resize(size()); // needed on macx
+		} else {
+			centralWidget()->setMinimumSize(sz);
+			layout()->setSizeConstraint(QLayout::SetFixedSize);
+		}
 	}
 }
 
-static void saveWindowSize(const QSize &s) {
-	QSettings settings;
-	settings.beginGroup("mainwindow");
-	settings.setValue("size", s);
-	settings.endGroup();
+void MainWindow::setWindowSize(const QSize &sz) {
+	windowSize = sz;
+	doSetWindowSize(sz);
+}
+
+void MainWindow::setBlitter(BlitterWidget *const blitter) {
+	if (blitterContainer->blitter() != blitter) {
+		bool visible = false;
+		bool paused = false;
+
+		if (blitterContainer->blitter()) {
+			visible = blitterContainer->blitter()->isVisible();
+			paused = blitterContainer->blitter()->isPaused();
+
+			if (running)
+				blitterContainer->blitter()->uninit();
+
+			blitterContainer->blitter()->setVisible(false);
+		}
+
+		blitterContainer->setBlitter(blitter);
+		blitterContainer->blitter()->setVisible(visible);
+		blitterContainer->blitter()->setPaused(paused);
+		blitterContainer->blitter()->rateChange(hz);
+		updateSwapInterval();
+
+		if (running)
+			blitterContainer->blitter()->init();
+	}
+}
+
+void MainWindow::setVideo(const unsigned w, const unsigned h,
+		/*const PixelBuffer::PixelFormat pf,*/ /*const VideoFilter *const vf, */BlitterWidget *const blitter)
+{
+	if (imageFormat.width != w || imageFormat.height != h /*|| imageFormat.pixelFormat != pf*/ ||
+					/*vfilter != vf || */blitter != blitterContainer->blitter())
+	{
+		vbmut.lock();
+		imageFormat = ImageFormat(w, h/*, pf*/);
+		setBlitter(blitter);
+// 		vfilter = vf;
+
+		if (running)
+			rebuildVideoChain();
+
+		vbmut.unlock();
+		updateMinimumSize();
+		blitterContainer->setSourceSize(QSize(w, h));
+	}
+}
+
+void MainWindow::execPausedQueue() {
+	if (worker->paused() && !pausedq.empty()) {
+		pausedq.pop_all(this);
+		worker->qUnpause();
+	}
+}
+
+void MainWindow::customEvent(QEvent *const ev) {
+	reinterpret_cast<CustomEvent*>(ev)->exec(this);
+}
+
+void MainWindow::closeEvent(QCloseEvent */*e*/) {
+	stop();
+
+// 	if (!isFullScreen())
+// 		saveWindowSize(size());
+	emit closing();
+
+	fullModeToggler->setFullMode(false); // avoid misleading auto-minimize on close focusOut event.
+}
+
+void MainWindow::moveEvent(QMoveEvent */*event*/) {
+	fullModeToggler->setScreen(this);
+}
+
+void MainWindow::resizeEvent(QResizeEvent */*event*/) {
+	fullModeToggler->setScreen(this);
+}
+
+void MainWindow::showEvent(QShowEvent *) {
+	doSetWindowSize(windowSize); // some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent */*e*/) {
+	showCursor();
+	cursorTimer->start();
+}
+
+void MainWindow::focusOutEvent(QFocusEvent */*event*/) {
+	pauser.set(focusPauseBit, this);
+	blitterContainer->parentExclusiveEvent(false);
+
+// #ifndef Q_WS_MAC // Minimize is ugly on mac (especially full screen windows) and there doesn't seem to be a "qApp->hide()" which would be more appropriate.
+// 	if (isFullScreen() && fullModeToggler->isFullMode() && !qApp->activeWindow()/* && QApplication::desktop()->numScreens() == 1*/) {
+// 		fullModeToggler->setFullMode(false);
+// 		showMinimized();
+// 	}
+// #endif
+
+	showCursor();
+	cursorTimer->stop();
+}
+
+void MainWindow::focusInEvent(QFocusEvent */*event*/) {
+	if (isFullScreen() && !fullModeToggler->isFullMode()) {
+		fullModeToggler->setFullMode(true);
+		correctFullScreenGeometry();
+	}
+
+	blitterContainer->parentExclusiveEvent(isFullScreen());
+
+// 	SDL_JoystickUpdate();
+// 	SDL_ClearEvents();
+
+	cursorTimer->start();
+	pauser.unset(focusPauseBit, this);
+}
+
+void MainWindow::setPauseOnFocusOut(const unsigned bitmask) {
+	if (bitmask != focusPauseBit) {
+		if (hasFocus()) {
+			pauser.unset(focusPauseBit, this);
+		} else {
+			pauser.set(bitmask, this);
+			pauser.unset(focusPauseBit & ~bitmask, this);
+		}
+
+		focusPauseBit = bitmask;
+	}
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *e) {
+// 	e->ignore();
+
+	if (running && !e->isAutoRepeat()) {
+		worker->source()->keyPressEvent(e);
+		hideCursor();
+	}
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *e) {
+// 	e->ignore();
+
+	if (running && !e->isAutoRepeat())
+		worker->source()->keyReleaseEvent(e);
+}
+
+void MainWindow::setAudioOut(unsigned engineNo, unsigned srateHz, unsigned msecLatency) {
+	worker->setAudioOut(audioEngines[engineNo], srateHz, msecLatency);
+}
+
+void MainWindow::setResampler(unsigned resamplerNo) {
+	worker->setResampler(resamplerNo);
+}
+
+void MainWindow::setFrameTime(unsigned num, unsigned denom) {
+	if (!num) {
+		num = 1;
+		denom = 0xFFFF;
+	} else if (!denom) {
+		num = 0xFFFF;
+		denom = 1;
+	}
+
+	frameTime_ = Rational(num, denom);
+	updateSwapInterval();
+}
+
+void MainWindow::waitUntilPaused() {
+	while (!pausedq.empty())
+		QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
+}
+
+void MainWindow::setSamplesPerFrame(long num, long denom) {
+	worker->setSamplesPerFrame(Rational(num, denom));
+}
+
+void MainWindow::setSyncToRefreshRate(bool on) {
+	refreshRateSync = on;
+	updateSwapInterval();
 }
 
 void MainWindow::correctFullScreenGeometry() {
@@ -277,19 +583,38 @@ void MainWindow::correctFullScreenGeometry() {
 	}
 }
 
+void MainWindow::setFullScreenMode(const unsigned screenNo, const unsigned resIndex, const unsigned rateIndex) {
+	if (screenNo < fullModeToggler->screens() &&
+			(fullModeToggler->currentResIndex(screenNo)  != resIndex ||
+			 fullModeToggler->currentRateIndex(screenNo) != rateIndex)) {
+		blitterContainer->parentExclusiveEvent(false);
+		fullModeToggler->setMode(screenNo, resIndex, rateIndex);
+
+		if (fullModeToggler->isFullMode() && screenNo == fullModeToggler->screen()) {
+#ifdef Q_WS_WIN
+			showNormal(); // is this really neccessary anymore?
+			showFullScreen();
+#endif
+			correctFullScreenGeometry();
+		}
+
+		blitterContainer->parentExclusiveEvent(isFullScreen() & hasFocus());
+	}
+}
+
 void MainWindow::toggleFullScreen() {
 	if (isFullScreen()) {
 		blitterContainer->parentExclusiveEvent(false);
 		fullModeToggler->setFullMode(false);
 		showNormal();
-		resetWindowSize(videoDialog->winRes());
+		doSetWindowSize(windowSize);
 		activateWindow();
 	} else {
 		const int screen = QApplication::desktop()->screenNumber(this);
 
 		fullModeToggler->setFullMode(true);
-		saveWindowSize(size());
-		resetWindowSize(QSize(-1, -1));
+// 		saveWindowSize(size());
+		doSetWindowSize(QSize(-1, -1));
 
 		// If the window is outside the screen it will be moved to the primary screen by Qt.
 		{
@@ -320,381 +645,67 @@ void MainWindow::toggleFullScreen() {
 	}
 }
 
-void MainWindow::toggleMenuHidden() {
-	menuBar()->setVisible(!menuBar()->isVisible());
+void MainWindow::updateSwapInterval() {
+	unsigned si = 0;
 
-	if (!menuBar()->isVisible()) {
-		hideCursor();
-	}
-}
+	if (refreshRateSync) {
+		si = (frameTime_.num * hz + (frameTime_.denom >> 1)) / frameTime_.denom;
 
-void MainWindow::clearInputVectors() {
-	keyInputs.clear();
+		if (si < 1)
+			si = 1;
 
-	for (joymap_t::iterator it = joyInputs.begin(); it != joyInputs.end(); ++it)
-		delete it->second;
-
-	joyInputs.clear();
-}
-
-void MainWindow::pushInputObserver(const SDL_Event &data, InputObserver *observer) {
-	if (data.value != InputDialog::NULL_VALUE) {
-		if (data.value == InputDialog::KBD_VALUE) {
-			keyInputs.insert(std::pair<unsigned,InputObserver*>(data.id, observer));
-		} else {
-			joyInputs.insert(std::pair<unsigned,JoyObserver*>(data.id, new JoyObserver(observer, data.value)));
-		}
-	}
-}
-
-void MainWindow::inputSettingsChange() {
-	clearInputVectors();
-
-	for (std::size_t i = 0; i < inputDialog->getData().size(); ++i)
-		pushInputObserver(inputDialog->getData()[i], &buttonHandlers[i >> 1]);
-}
-
-void MainWindow::soundSettingsChange() {
-	if (running)
-		initAudio();
-}
-
-void MainWindow::uninitBlitter() {
-	blitterContainer->blitter()->uninit();
-	source->setPixelBuffer(NULL, MediaSource::RGB32, 0);
-}
-
-void MainWindow::videoSettingsChange() {
-	{
-		const int engineIndex = videoDialog->engine();
-
-		if (blitterContainer->blitter() != blitters[engineIndex]) {
-			bool visible = false;
-			bool paused = false;
-
-			if (blitterContainer->blitter()) {
-				visible = blitterContainer->blitter()->isVisible();
-				paused = blitterContainer->blitter()->isPaused();
-				disconnect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitterContainer->blitter(), SLOT(rateChange(int)));
-
-				if (running)
-					uninitBlitter();
-
-				blitterContainer->blitter()->setVisible(false);
-			}
-
-			blitterContainer->setBlitter(blitters[engineIndex]);
-			//connect(fullResToggler, SIGNAL(modeChange()), blitterContainer->blitter(), SLOT(modeChange()));
-			connect(fullModeToggler.get(), SIGNAL(rateChange(int)), blitterContainer->blitter(), SLOT(rateChange(int)));
-			fullModeToggler->emitRate();
-			blitterContainer->blitter()->setVisible(visible);
-			blitterContainer->blitter()->setPaused(paused);
-
-			if (running)
-				blitterContainer->blitter()->init();
-		}
+		if (si > blitterContainer->blitter()->maxSwapInterval())
+			si = blitterContainer->blitter()->maxSwapInterval();
 	}
 
-	source->setVideoSource(videoDialog->sourceIndex());
+	blitterContainer->blitter()->setSwapInterval(si);
 
-	if (running)
-		blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
-
-	resetWindowSize(videoDialog->winRes());
-
-	const unsigned screens = fullModeToggler->screens();
-
-	for (unsigned i = 0; i < screens; ++i) {
-		if (fullModeToggler->currentResIndex(i) != videoDialog->fullMode(i) ||
-				fullModeToggler->currentRateIndex(i) != videoDialog->fullRate(i)) {
-			blitterContainer->parentExclusiveEvent(false);
-			fullModeToggler->setMode(i, videoDialog->fullMode(i), videoDialog->fullRate(i));
-
-			if (fullModeToggler->isFullMode() && i == fullModeToggler->screen()) {
-#ifdef Q_WS_WIN
-				showNormal();
-				showFullScreen();
-#endif
-				correctFullScreenGeometry();
-			}
-
-			blitterContainer->parentExclusiveEvent(isFullScreen() & hasFocus());
-		}
-	}
-
-// 	setSampleRate();
-
-	blitterContainer->updateLayout();
-}
-
-void MainWindow::execDialog(QDialog *const dialog) {
-	const bool pausing = pauseOnDialogExec;
-
-	paused += pausing << 1;
-
-	if (paused)
-		doPause();
-
-	dialog->exec();
-
-	paused -= pausing << 1;
-
-	if (!paused)
-		doUnpause();
-}
-
-void MainWindow::execVideoDialog() {
-	execDialog(videoDialog);
-}
-
-void MainWindow::execInputDialog() {
-	execDialog(inputDialog);
-}
-
-void MainWindow::execSoundDialog() {
-	execDialog(soundDialog);
-}
-
-const QSize& MainWindow::aspectRatio() const {
-	return videoDialog->aspectRatio();
-}
-
-void MainWindow::setAspectRatio(const QSize &aspectRatio) {
-	videoDialog->setAspectRatio(aspectRatio);
-}
-
-void MainWindow::setVideoSources(const std::vector<MediaSource::VideoSourceInfo> &sourceInfos) {
-	videoDialog->setVideoSources(sourceInfos);
-}
-
-void MainWindow::doSetFrameTime(unsigned num, unsigned denom) {
-	for (unsigned i = 0; i < blitters.size(); ++i)
-		blitters[i]->setFrameTime(num * 1000000.0f / denom + 0.5f);
-}
-
-void MainWindow::setFrameTime(unsigned num, unsigned denom) {
-	if (!num) {
-		num = 1;
-		denom = 0xFFFF;
-	} else if (!denom) {
-		num = 0xFFFF;
-		denom = 1;
-	}
-
-	ftNum = num;
-	ftDenom = denom;
-
-	if (!turbo)
-		doSetFrameTime(num, denom);
-
-	setSampleRate();
-}
-
-static void adjustResamplerRate(Array<qint16> &sndOutBuf, Resampler *const resampler, const long maxspf, const long outRate) {
-	resampler->adjustRate(resampler->inRate(), outRate);
-
-	const std::size_t sz = resampler->maxOut(maxspf) * 2;
-
-	if (sz > sndOutBuf.size())
-		sndOutBuf.reset(sz);
-}
-
-void MainWindow::setSampleRate() {
-	if (ae) {
-		const Rational fr(ftDenom, ftNum);
-		const long insrate = fr.toDouble() * sampleBuffer.samplesPerFrame().toDouble() + 0.5;
-		const long maxspf = sampleBuffer.samplesPerFrame().ceil();
-
-		resampler.reset();
-		resampler.reset(ResamplerInfo::get(soundDialog->getResamplerNum()).create(insrate, ae->rate(), maxspf));
-		sndOutBuffer.reset(resampler->maxOut(maxspf) * 2);
-	}
-}
-
-void MainWindow::setSamplesPerFrame(const long num, const long denom) {
-	sampleBuffer.reset(Rational(num, denom), source->overupdate);
-	setSampleRate();
-}
-
-void MainWindow::initAudio() {
-	if (ae)
-		ae->uninit();
-
-	ae = audioEngines[soundDialog->getEngineIndex()];
-
-	if (ae->init(soundDialog->getRate(), soundDialog->getLatency()) < 0)
-		ae = NULL;
-
-	setSampleRate();
-}
-
-void MainWindow::soundEngineFailure() {
-	QMessageBox::critical(this, tr("Error"), tr("Sound engine failure."));
-	soundDialog->exec();
-}
-
-void MainWindow::timerEvent(QTimerEvent */*event*/) {
-	if (!ae) { // avoid stupid recursive call detection by checking here rather than on init.
-		soundEngineFailure();
-		return;
-	}
-
-	updateJoysticks();
-
-	const std::size_t outsamples = sampleBuffer.update(turbo ? NULL : static_cast<qint16*>(sndOutBuffer), source, resampler.get());
-
-	long syncft = blitterContainer->blitter()->frameTime();
-	bool suggestSkip = false;
-
-	if (!turbo) {
-		RateEst::Result rsrate;
-		AudioEngine::BufferState bstate;
-
-		if (ae->write(sndOutBuffer, outsamples, bstate, rsrate) < 0) {
-			ae->pause();
-			soundEngineFailure();
-			return;
-		}
-
-		const long usecft = syncft;
-		syncft = static_cast<float>(usecft - (usecft >> 10)) * ae->rate() / rsrate.est;
-
-		if (bstate.fromUnderrun != AudioEngine::BufferState::NOT_SUPPORTED &&
-				  bstate.fromUnderrun + outsamples * 2 < bstate.fromOverflow)
-			suggestSkip = true;
-
-		const BlitterWidget::Estimate &estft = blitterContainer->blitter()->frameTimeEst();
-
-		if (estft.est) {
-			float est = static_cast<float>(rsrate.est) * estft.est;
-			const float var = static_cast<float>(rsrate.est + (rsrate.var ? rsrate.var : 1)) * (estft.est + (estft.var ? estft.var : 1)) - est;
-			est += var;
-
-			if (std::fabs(est - resampler->outRate() * static_cast<float>(usecft - (usecft >> 11))) > var * 2)
-				adjustResamplerRate(sndOutBuffer, resampler.get(), sampleBuffer.samplesPerFrame().ceil(), est / (usecft - (usecft >> 11)));
-		} else if (resampler->outRate() != ae->rate())
-			adjustResamplerRate(sndOutBuffer, resampler.get(), sampleBuffer.samplesPerFrame().ceil(), ae->rate());
-	}
-
-	if (!(turbo ? (turbo += 0x10) & 0xF0 : skipSched.skipNext(suggestSkip)) && blitterContainer->blitter()->sync(syncft) < 0) {
-		QMessageBox::critical(this, tr("Error"), tr("Video engine failure."));
-		uninitBlitter();
-		blitterContainer->blitter()->init();
-		blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
-
-		ae->pause();
-
-		videoDialog->exec();
-		return;
-	}
-}
-
-void MainWindow::run() {
-	if (running)
-		return;
-
-	running = true;
-
-#ifdef PLATFORM_WIN32
-	timeBeginPeriod(1);
-#endif
-
-	initAudio();
-
-	blitterContainer->blitter()->setVisible(true);
-	blitterContainer->blitter()->init();
-	blitterContainer->blitter()->setBufferDimensions(videoDialog->sourceSize().width(), videoDialog->sourceSize().height());
-	skipSched.reset();
-
-	if (!paused)
-		timerId = startTimer(0);
+	if (si)
+		worker->setFrameTime(Rational(si, hz));
 	else
-		jsTimer->start();
+		worker->setFrameTime(frameTime_);
+
+	worker->setFrameTimeEstimate(blitterContainer->blitter()->frameTimeEst());
 }
 
-void MainWindow::stop() {
-	if (!running)
-		return;
+void MainWindow::hzChange(int hz) {
+	if (hz < 1)
+		hz = 60;
 
-	running = false;
-	jsTimer->stop();
+	this->hz = hz;
+	blitterContainer->blitter()->rateChange(hz);
+	updateSwapInterval();
+}
 
-	if (timerId) {
-		killTimer(timerId);
-		timerId = 0;
+void MainWindow::updateJoysticks() {
+	worker->updateJoysticks();
+}
+
+const BlitterConf MainWindow::currentBlitterConf() {
+	return BlitterConf(blitterContainer->blitter());
+}
+
+const ConstBlitterConf MainWindow::currentBlitterConf() const {
+	return ConstBlitterConf(blitterContainer->blitter());
+}
+
+struct MainWindow::FrameStepFun {
+	void operator()(MainWindow *const mw) {
+		if (mw->running && mw->worker->frameStep()) {
+			BlitterWidget *const blitter = mw->blitterContainer->blitter();
+
+			mw->worker->source()->generateVideoFrame(blitter->inBuffer());
+			blitter->blit();
+			blitter->draw();
+
+			if (blitter->sync() < 0)
+				mw->emitVideoBlitterFailure();
+		}
 	}
-
-	uninitBlitter();
-	blitterContainer->blitter()->setVisible(false);
-
-	if (ae)
-		ae->uninit();
-
-#ifdef PLATFORM_WIN32
-	timeEndPeriod(1);
-#endif
-}
-
-void MainWindow::doPause() {
-	if (!running || !timerId)
-		return;
-
-	if (ae)
-		ae->pause();
-
-	killTimer(timerId);
-	timerId = 0;
-	jsTimer->start();
-	blitterContainer->blitter()->setPaused(true);
-}
-
-void MainWindow::doUnpause() {
-	if (!running || timerId)
-		return;
-
-	jsTimer->stop();
-	timerId = startTimer(0);
-	blitterContainer->blitter()->setPaused(false);
-	skipSched.reset();
-}
-
-void MainWindow::pause() {
-	paused |= 1;
-	doPause();
-}
-
-void MainWindow::unpause() {
-	paused &= ~1;
-
-	if (!paused)
-		doUnpause();
-}
+};
 
 void MainWindow::frameStep() {
-	if (isRunning() && paused == 1) {
-		timerEvent(NULL);
-
-		if (ae)
-			ae->pause();
-	}
-}
-
-void MainWindow::setTurbo(bool enable) {
-	if (enable != static_cast<bool>(turbo)) {
-		turbo = enable;
-
-		if (enable) {
-			if (ae)
-				ae->pause();
-
-			//doSetFrameTime(1, 0xFFFF);
-		}// else
-			//doSetFrameTime(ftNum, ftDenom);
-	}
-}
-
-void MainWindow::toggleTurbo() {
-	setTurbo(!turbo);
+	callWhenPaused(FrameStepFun());
 }
 
 void MainWindow::hideCursor() {
@@ -709,128 +720,4 @@ void MainWindow::showCursor() {
 		centralWidget()->unsetCursor();
 
 	cursorHidden = false;
-}
-
-void MainWindow::keyPressEvent(QKeyEvent *e) {
-	e->ignore();
-
-	if (isRunning() && !e->isAutoRepeat()) {
-		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
-
-		while (range.first != range.second) {
-			(range.first->second)->pressEvent();
-			++range.first;
-		}
-
-		hideCursor();
-	}
-}
-
-void MainWindow::keyReleaseEvent(QKeyEvent *e) {
-	e->ignore();
-
-	if (isRunning() && !e->isAutoRepeat()) {
-		std::pair<keymap_t::iterator,keymap_t::iterator> range = keyInputs.equal_range(e->key());
-
-		while (range.first != range.second) {
-			(range.first->second)->releaseEvent();
-			++range.first;
-		}
-	}
-}
-
-void MainWindow::updateJoysticks() {
-	if (hasFocus()/* || QApplication::desktop()->numScreens() != 1*/) {
-		bool hit = false;
-
-		SDL_JoystickUpdate();
-
-		SDL_Event ev;
-
-		while (pollJsEvent(&ev)) {
-			std::pair<joymap_t::iterator,joymap_t::iterator> range = joyInputs.equal_range(ev.id);
-
-			while (range.first != range.second) {
-				(range.first->second)->valueChanged(ev.value);
-				++range.first;
-			}
-
-			hit = true;
-		}
-
-		if (hit) {
-#ifdef Q_WS_X11
-			XResetScreenSaver(QX11Info::display());
-#endif
-			hideCursor();
-		}
-	}
-}
-
-#ifdef Q_WS_WIN // Avoids looping audio on title bar clicks/drags.
-bool MainWindow::event(QEvent *event) {
-	if (event->type() == QEvent::NonClientAreaMouseButtonPress && ae)
-		ae->pause();
-
-	return QMainWindow::event(event);
-}
-#endif
-
-void MainWindow::mouseMoveEvent(QMouseEvent */*e*/) {
-	showCursor();
-	cursorTimer->start();
-}
-
-void MainWindow::closeEvent(QCloseEvent */*e*/) {
-	stop();
-
-	if (!isFullScreen()) {
-		saveWindowSize(size());
-	}
-
-	fullModeToggler->setFullMode(false); // avoid misleading auto-minimize on close focusOut event.
-}
-
-void MainWindow::showEvent(QShowEvent */*event*/) {
-	resetWindowSize(videoDialog->winRes()); // some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
-}
-
-void MainWindow::moveEvent(QMoveEvent */*event*/) {
-	fullModeToggler->setScreen(this);
-}
-
-void MainWindow::resizeEvent(QResizeEvent */*event*/) {
-	fullModeToggler->setScreen(this);
-}
-
-void MainWindow::focusOutEvent(QFocusEvent */*event*/) {
-	blitterContainer->parentExclusiveEvent(false);
-
-#ifndef Q_WS_MAC // Minimize is ugly on mac (especially full screen windows) and there doesn't seem to be a "qApp->hide()" which would be more appropriate.
-	if (isFullScreen() && fullModeToggler->isFullMode() && !qApp->activeWindow()/* && QApplication::desktop()->numScreens() == 1*/) {
-		fullModeToggler->setFullMode(false);
-		showMinimized();
-	}
-#endif
-
-	showCursor();
-	cursorTimer->stop();
-}
-
-void MainWindow::focusInEvent(QFocusEvent */*event*/) {
-	if (isFullScreen() && !fullModeToggler->isFullMode()) {
-		fullModeToggler->setFullMode(true);
-		correctFullScreenGeometry();
-	}
-
-	blitterContainer->parentExclusiveEvent(isFullScreen());
-
-	SDL_JoystickUpdate();
-	SDL_ClearEvents();
-
-	cursorTimer->start();
-}
-
-void MainWindow::blit() {
-	blitterContainer->blitter()->blit();
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,14 +16,22 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef GAMBATTE_INPUTSTATE_H
-#define GAMBATTE_INPUTSTATE_H
+#ifndef VFILTERINFO_H
+#define VFILTERINFO_H
 
-namespace Gambatte {
-struct InputState {
-	bool startButton, selectButton, bButton, aButton;
-	bool dpadDown, dpadUp, dpadLeft, dpadRight;
+class VideoLink;
+
+struct VfilterInfo {
+	enum { IN_WIDTH = 160 };
+	enum { IN_HEIGHT = 144 };
+	
+	const char *handle;
+	unsigned outWidth;
+	unsigned outHeight;
+	VideoLink* (*create)();
+	
+	static const VfilterInfo& get(unsigned n);
+	static unsigned numVfilters();
 };
-}
 
 #endif
