@@ -14,11 +14,11 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/samplebuffer.cpp \
     framework/src/blitterwidget.cpp \
     framework/src/joysticklock.cpp
-SOURCES += $$COMMONPATH/resample/chainresampler.cpp \
-	$$COMMONPATH/resample/i0.cpp \
-	$$COMMONPATH/resample/makesinckernel.cpp \
-	$$COMMONPATH/resample/u48div.cpp \
-	$$COMMONPATH/resample/resamplerinfo.cpp \
+SOURCES += $$COMMONPATH/resample/src/chainresampler.cpp \
+	$$COMMONPATH/resample/src/i0.cpp \
+	$$COMMONPATH/resample/src/makesinckernel.cpp \
+	$$COMMONPATH/resample/src/u48div.cpp \
+	$$COMMONPATH/resample/src/resamplerinfo.cpp \
 	$$COMMONPATH/adaptivesleep.cpp \
 	$$COMMONPATH/rateest.cpp \
 	$$COMMONPATH/skipsched.cpp
@@ -56,22 +56,22 @@ HEADERS += framework/src/blitterwidget.h \
     framework/src/swscale.h \
     framework/src/rational.h \
     framework/src/joysticklock.h
-HEADERS += $$COMMONPATH/resample/chainresampler.h \
-	$$COMMONPATH/resample/cic2.h \
-	$$COMMONPATH/resample/cic3.h \
-	$$COMMONPATH/resample/cic4.h \
-	$$COMMONPATH/resample/convoluter.h \
-	$$COMMONPATH/resample/i0.h \
-	$$COMMONPATH/resample/kaiser50sinc.h \
-	$$COMMONPATH/resample/kaiser70sinc.h \
-	$$COMMONPATH/resample/linint.h \
-	$$COMMONPATH/resample/makesinckernel.h \
-	$$COMMONPATH/resample/rectsinc.h \
+HEADERS += $$COMMONPATH/resample/src/chainresampler.h \
+	$$COMMONPATH/resample/src/cic2.h \
+	$$COMMONPATH/resample/src/cic3.h \
+	$$COMMONPATH/resample/src/cic4.h \
+	$$COMMONPATH/resample/src/convoluter.h \
+	$$COMMONPATH/resample/src/i0.h \
+	$$COMMONPATH/resample/src/kaiser50sinc.h \
+	$$COMMONPATH/resample/src/kaiser70sinc.h \
+	$$COMMONPATH/resample/src/linint.h \
+	$$COMMONPATH/resample/src/makesinckernel.h \
+	$$COMMONPATH/resample/src/rectsinc.h \
 	$$COMMONPATH/resample/resampler.h \
-	$$COMMONPATH/resample/rshift16_round.h \
-	$$COMMONPATH/resample/subresampler.h \
-	$$COMMONPATH/resample/u48div.h \
-	$$COMMONPATH/resample/upsampler.h \
+	$$COMMONPATH/resample/src/rshift16_round.h \
+	$$COMMONPATH/resample/src/subresampler.h \
+	$$COMMONPATH/resample/src/u48div.h \
+	$$COMMONPATH/resample/src/upsampler.h \
 	$$COMMONPATH/resample/resamplerinfo.h \
 	$$COMMONPATH/adaptivesleep.h \
 	$$COMMONPATH/usec.h \

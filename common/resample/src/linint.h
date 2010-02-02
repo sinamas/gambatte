@@ -20,7 +20,7 @@
 #define LININT_H
 
 #include <cstddef>
-#include "resampler.h"
+#include "../resampler.h"
 #include "u48div.h"
 #include "rshift16_round.h"
 

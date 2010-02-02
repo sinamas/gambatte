@@ -25,7 +25,7 @@
 #include <cstddef>
 #include <list>
 #include "subresampler.h"
-#include "resampler.h"
+#include "../resampler.h"
 #include "upsampler.h"
 
 class ChainResampler : public Resampler {

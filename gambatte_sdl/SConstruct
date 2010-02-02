@@ -19,11 +19,11 @@ sourceFiles = Split('''
 			src/str_to_sdlkey.cpp
 			src/syncfunc.cpp
 			../common/adaptivesleep.cpp
-			../common/resample/chainresampler.cpp
-			../common/resample/i0.cpp
-			../common/resample/makesinckernel.cpp
-			../common/resample/resamplerinfo.cpp
-			../common/resample/u48div.cpp
+			../common/resample/src/chainresampler.cpp
+			../common/resample/src/i0.cpp
+			../common/resample/src/makesinckernel.cpp
+			../common/resample/src/resamplerinfo.cpp
+			../common/resample/src/u48div.cpp
 			../common/rateest.cpp
 			../common/skipsched.cpp
 			../common/videolink/rgb32conv.cpp
