@@ -33,6 +33,9 @@ class QLabel;
 // #include "resinfo.h"
 #include "mainwindow.h"
 
+/** A utility class that can optionally be used to provide a GUI for
+  * configuring video settings.
+  */
 class VideoDialog : public QDialog {
 	Q_OBJECT
 

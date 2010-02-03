@@ -27,6 +27,9 @@ class QSpinBox;
 
 #include <QDialog>
 
+/** A utility class that can optionally be used to provide a GUI for
+  * configuring sound/audio settings.
+  */
 class SoundDialog : public QDialog {
 	Q_OBJECT
 	

@@ -28,8 +28,10 @@
 
 class InputBoxPair;
 
-/** A dialog that lets the user map keyboard/joystick input
-  * to actions. Pass descriptions for "Buttons" to be configured
+/** A utility class that can optionally be used to provide a GUI for
+  * mapping keyboard/joystick input to actions.
+  *
+  * Pass descriptions for "Buttons" to be configured
   * to the constructor, and call input event methods to invoke Button::Actions
   * configured to activate on the respective input event.
   */

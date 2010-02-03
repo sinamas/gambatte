@@ -25,6 +25,12 @@
 class PixelBuffer;
 class QKeyEvent;
 
+/**
+  * A MediaSource is a source of audio/video content.
+  * It produces audio/video upon requests to update from MainWindow.
+  * Inherit from it and implement its virtual methods. The implementation decides what
+  * kind of audio/video content to produce, and how to react to input events.
+  */
 class MediaSource {
 protected:
 	/**
@@ -51,7 +57,7 @@ public:
 	virtual void joystickEvent(const SDL_Event&) {}
 	
 	/**
-	  * Update until a new frame of video, or samples audio samples have been produced.
+	  * Update until a new frame of video, or 'samples' audio samples have been produced.
 	  * May postpone writing to frameBuf until generateVideoFrame is called.
 	  *
 	  * Be aware that there can be a delay between requests for a new video format
