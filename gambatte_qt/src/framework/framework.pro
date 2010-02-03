@@ -27,6 +27,7 @@ HEADERS += framework/src/blitterwidget.h \
     framework/videodialog.h \
     framework/src/blittercontainer.h \
     framework/resinfo.h \
+    framework/scalingmethod.h \
     framework/inputdialog.h \
     framework/src/audioengine.h \
     framework/audioengineconf.h \
@@ -76,6 +77,7 @@ HEADERS += $$COMMONPATH/resample/src/chainresampler.h \
 	$$COMMONPATH/adaptivesleep.h \
 	$$COMMONPATH/usec.h \
 	$$COMMONPATH/rateest.h \
+	$$COMMONPATH/uncopyable.h \
 	$$COMMONPATH/skipsched.h
 CONFIG += qt thread
 QT += opengl

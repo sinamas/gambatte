@@ -20,13 +20,12 @@
 #define ARRAY_H
 
 #include <cstddef>
+#include "uncopyable.h"
 
 template<typename T>
-class Array {
+class Array : Uncopyable {
 	T *a;
 	std::size_t sz;
-	
-	Array(const Array &ar);
 	
 public:
 	Array(const std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}

@@ -27,7 +27,7 @@
 #include "callqueue.h"
 #include "../pixelbuffer.h"
 #include "audioengine.h"
-#include "../uncopyable.h"
+#include "uncopyable.h"
 #include "usec.h"
 #include "skipsched.h"
 

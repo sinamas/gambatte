@@ -153,7 +153,7 @@ public:
 
 	MainWindow(MediaSource *source);
 	
-	/** Sets the length in seconds of each video frame.
+	/** Sets the duration in seconds of each video frame.
 	  * Eg. use setFrameTime(1, 60) for 60 fps video.
 	  * Can be used to speed things up or slow things down. Audio pitch will change accordingly.
 	  */
