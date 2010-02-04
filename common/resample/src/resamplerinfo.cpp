@@ -26,7 +26,7 @@
 #include "linint.h"
 
 struct LinintInfo {
-	static Resampler* create(long inRate, long outRate, std::size_t) { return new Linint<2>(inRate, outRate); }
+	static Resampler* create(long inRate, long outRate, std::size_t) { return new Linint<ChainResampler::channels>(inRate, outRate); }
 };
 
 template<template<unsigned,unsigned> class T>

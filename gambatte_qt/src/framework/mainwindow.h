@@ -286,20 +286,20 @@ public:
 	void setResampler(unsigned resamplerNo);
 	
 	/** Pause doesn't take effect immediately. Call this to wait until the worker thread is paused.
-	  * Meant as a tool to simplify thread-safety.
+	  * Meant as a tool to simplify thread safety.
 	  */
 	void waitUntilPaused();
 	
 	/** Temporarily pauses the worker thread and calls fun once it has paused. Then unpauses.
 	  * Returns before fun is actually called. Fun is called in an event at a later time.
 	  * fun should implement operator() and have a copy-constructor.
-	  * Meant as a tool to simplify thread-safety.
+	  * Meant as a tool to simplify thread safety.
 	  */
 	template<class T> void callWhenPaused(const T& fun);
 	
 	/** Puts fun into a queue of functors that are called in the worker thread at a later time.
 	  * fun should implement operator() and have a copy-constructor.
-	  * Meant as a tool to simplify thread-safety.
+	  * Meant as a tool to simplify thread safety.
 	  * Generally you should prefer this to callWhenPaused, because callWhenPaused
 	  * is more likely to cause audio underruns.
 	  */

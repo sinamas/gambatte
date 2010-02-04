@@ -29,8 +29,6 @@
 #include "upsampler.h"
 
 class ChainResampler : public Resampler {
-	enum { channels = 2 };
-	
 	typedef std::list<SubResampler*> list_t;
 	
 	list_t list;
@@ -64,6 +62,7 @@ class ChainResampler : public Resampler {
 	std::size_t upinit(long inRate, long outRate, std::size_t periodSize);
 	
 public:
+	enum { channels = 2 };
 	ChainResampler() : bigSinc(NULL), buffer(NULL), buffer2(NULL), bufferSize(0), periodSize(0) {}
 	~ChainResampler() { uninit(); }
 	

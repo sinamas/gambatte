@@ -32,10 +32,20 @@ class GB {
 	int stateNo;
 
 	void loadState(const char *filepath, bool osdMessage);
+	GB(const GB&);
+	GB& operator=(const GB&);
 
 public:
 	GB();
 	~GB();
+	
+	/** Load Game Boy Color ROM image.
+	  * You should always load a ROM image before calling runFor, reset, saveState or loadState functions.
+	  *
+	  * @param romfile  Path to rom image file. Typically a .gbc, .gb, or .zip-file (if zip-support is compiled in).
+	  * @param forceDmg Treat the ROM as not having CGB support regardless of what its header advertises.
+	  * @return true if failed to load ROM image.
+	  */
 	bool load(const char* romfile, bool forceDmg = false);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
@@ -53,6 +63,8 @@ public:
 	  * The return value indicates whether a new video frame has been drawn, and the
 	  * exact time (in number of samples) at which it was drawn.
 	  *
+	  * Should not be called unless a ROM images is loaded.
+	  *
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
 	  * @param soundBuf buffer with space >= samples + 2064
@@ -62,6 +74,10 @@ public:
 	int runFor(Gambatte::uint_least32_t *videoBuf, unsigned pitch,
 			Gambatte::uint_least32_t *soundBuf, unsigned &samples);
 	
+	/** Reset to initial state.
+	  * Equivalent to reloading a ROM image, or turning a Game Boy Color off and on again.
+	  * Should not be called unless a ROM images is loaded.
+	  */
 	void reset();
 	
 	/** @param palNum 0 <= palNum < 3. One of BG_PALETTE, SP1_PALETTE and SP2_PALETTE.
@@ -69,15 +85,48 @@ public:
 	  */
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32);
 	
+	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);
 	
+	/** Sets the directory used for storing save data. The default is the same directory as the ROM Image file. */
 	void setSaveDir(const char *sdir);
+	
+	/** Returns true if the currently loaded ROM image is treated as having CGB support. */
 	bool isCgb() const;
+	
+	/** Saves emulator state to the state slot selected with selectState().
+	  * The data will be stored in the directory given by setSaveDir().
+	  * Should not be called unless a ROM images is loaded.
+	  *
+	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
+	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
+	  */
 	void saveState(const Gambatte::uint_least32_t *videoBuf, unsigned pitch);
+	
+	/** Loads emulator state from the state slot selected with selectState().
+	  * Should not be called unless a ROM images is loaded.
+	  */
 	void loadState();
+	
+	/** Saves emulator state to the file given by 'filepath'.
+	  * Should not be called unless a ROM images is loaded.
+	  *
+	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
+	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
+	  */
 	void saveState(const Gambatte::uint_least32_t *videoBuf, unsigned pitch, const char *filepath);
+	
+	/** Loads emulator state from the file given by 'filepath'.
+	  * Should not be called unless a ROM images is loaded.
+	  */
 	void loadState(const char *filepath);
+	
+	/** Selects which state slot to save state to or load state from.
+	  * There are 10 such slots, numbered from 0 to 9 (periodically extended for all n).
+	  */
 	void selectState(int n);
+	
+	/** Current state slot selected with selectState(). Returns a value between 0 and 9 inclusive. */
 	int currentState() const { return stateNo; }
 };
 }
