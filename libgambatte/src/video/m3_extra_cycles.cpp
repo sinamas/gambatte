@@ -35,8 +35,8 @@ M3ExtraCycles::M3ExtraCycles(const SpriteMapper &spriteMapper,
 static const unsigned char* addLineCycles(const unsigned char *const start, const unsigned char *const end,
 		const unsigned maxSpx, const unsigned scwxAnd7, const unsigned char *const posbuf_plus1, unsigned char *cycles_out) {
 	unsigned sum = 0;
-	
-	const unsigned char *a = start; 
+	const unsigned char *a = start;
+	unsigned prevTile = 0xFFFF; // initialize to invalid so that prevTile != (pos&~7)
 	
 	for (; a < end; ++a) {
 		const unsigned spx = posbuf_plus1[*a];
@@ -44,25 +44,15 @@ static const unsigned char* addLineCycles(const unsigned char *const start, cons
 		if (spx > maxSpx)
 			break;
 		
+		// cycles=6 if this sprite covers the same tile pair as the previous sprite
+		// otherwise cycles=max(11 - (pos&7), 6)
 		unsigned cycles = 6;
-		const unsigned posAnd7 = (scwxAnd7 + spx) & 7;
+		const unsigned pos = scwxAnd7 + spx;
 		
-		if (posAnd7 < 5) {
-			cycles = 11 - posAnd7;
-			
-			for (const unsigned char *b = a; b > start;) {
-				const unsigned bSpx = posbuf_plus1[*--b];
-				
-				if (spx - bSpx > 4U)
-					break;
-				
-				if (((scwxAnd7 + bSpx) & 7) < 4 || spx == bSpx) {
-					cycles = 6;
-					break;
-				}
-			}
-		}
+		if ((pos & 7) < 5 && prevTile != (pos & ~7))
+			cycles = 11 - (pos & 7);
 		
+		prevTile = pos & ~7;
 		sum += cycles;
 	}
 	
