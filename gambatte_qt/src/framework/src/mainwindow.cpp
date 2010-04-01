@@ -525,7 +525,7 @@ void MainWindow::setPauseOnFocusOut(const unsigned bitmask) {
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *e) {
-// 	e->ignore();
+	e->ignore();
 
 	if (running && !e->isAutoRepeat()) {
 		worker->source()->keyPressEvent(e);
@@ -534,7 +534,7 @@ void MainWindow::keyPressEvent(QKeyEvent *e) {
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *e) {
-// 	e->ignore();
+	e->ignore();
 
 	if (running && !e->isAutoRepeat())
 		worker->source()->keyReleaseEvent(e);
