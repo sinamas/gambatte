@@ -260,7 +260,6 @@ MainWindow::MainWindow(MediaSource *const source)
 
 	for (auto_vector<BlitterWidget>::iterator it = blitters.begin(); it != blitters.end();) {
 		if ((*it)->isUnusable()) {
-			delete *it;
 			it = blitters.erase(it);
 		} else
 			++it;
