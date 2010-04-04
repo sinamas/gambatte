@@ -322,6 +322,20 @@ SaverList::SaverList() {
 	}
 }
 
+struct PxlSum { unsigned long rb, g; };
+
+static void addPxlPairs(PxlSum *const sum, const Gambatte::uint_least32_t *const p) {
+	sum[0].rb += (p[0] & 0xFF00FF) + (p[3] & 0xFF00FF);
+	sum[0].g  += (p[0] & 0x00FF00) + (p[3] & 0x00FF00);
+	sum[1].rb += (p[1] & 0xFF00FF) + (p[2] & 0xFF00FF);
+	sum[1].g  += (p[1] & 0x00FF00) + (p[2] & 0x00FF00);
+}
+
+static void blendPxlPairs(PxlSum *const dst, const PxlSum *const sums) {
+	dst->rb = sums[1].rb * 8 + (sums[0].rb - sums[1].rb) * 3;
+	dst->g  = sums[1].g  * 8 + (sums[0].g  - sums[1].g ) * 3;
+}
+
 static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *pixels, const unsigned pitch) {
 	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(Gambatte::uint_least32_t) : 0);
 	
@@ -330,18 +344,20 @@ static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *p
 		
 		for (unsigned h = StateSaver::SS_HEIGHT; h--;) {
 			for (unsigned x = 0; x < StateSaver::SS_WIDTH; ++x) {
-				unsigned long rb = 0;
-				unsigned long g = 0;
+				const Gambatte::uint_least32_t *const p = pixels + x * StateSaver::SS_DIV;
+				PxlSum pxlsum[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
 				
-				static const unsigned w[StateSaver::SS_DIV] = { 3, 5, 5, 3 };
+				addPxlPairs(pxlsum    , p            );
+				addPxlPairs(pxlsum + 2, p + pitch    );
+				addPxlPairs(pxlsum + 2, p + pitch * 2);
+				addPxlPairs(pxlsum    , p + pitch * 3);
 				
-				for (unsigned y = 0; y < StateSaver::SS_DIV; ++y)
-					for (unsigned xx = 0; xx < StateSaver::SS_DIV; ++xx) {
-						rb += (pixels[x * StateSaver::SS_DIV + y * pitch + xx] & 0xFF00FF) * w[y] * w[xx];
-						g += (pixels[x * StateSaver::SS_DIV + y * pitch + xx] & 0x00FF00) * w[y] * w[xx];
-					}
+				blendPxlPairs(pxlsum    , pxlsum    );
+				blendPxlPairs(pxlsum + 1, pxlsum + 2);
 				
-				buf[x] = (rb >> 8 & 0xFF00FF) | (g >> 8 & 0x00FF00);
+				blendPxlPairs(pxlsum    , pxlsum    );
+				
+				buf[x] = ((pxlsum[0].rb & 0xFF00FF00U) | (pxlsum[0].g & 0x00FF0000U)) >> 8;
 			}
 			
 			file.write(reinterpret_cast<const char*>(buf), sizeof(buf));
