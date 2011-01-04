@@ -211,16 +211,18 @@ static void filter(Gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
 
 enum { WIDTH  = VfilterInfo::IN_WIDTH };
 enum { HEIGHT = VfilterInfo::IN_HEIGHT };
-enum { PITCH  = WIDTH + 1 };
+enum { PITCH  = WIDTH + 3 };
+enum { BUF_SIZE = (HEIGHT + 3) * PITCH };
+enum { BUF_OFFSET = PITCH + 1 };
 
 static inline Gambatte::uint_least32_t* buffer(const Kreed2xSaI *c2x) {
-	return static_cast<Gambatte::uint_least32_t*>(c2x->inBuf());
+	return static_cast<Gambatte::uint_least32_t*>(c2x->inBuf()) - BUF_OFFSET;
 }
 
 }
 
-Kreed2xSaI::Kreed2xSaI() : VideoLink((new Gambatte::uint_least32_t[(HEIGHT + 1) * PITCH]), PITCH) {
-	std::memset(buffer(this), 0, (HEIGHT + 1) * PITCH * sizeof(Gambatte::uint_least32_t));
+Kreed2xSaI::Kreed2xSaI() : VideoLink(new Gambatte::uint_least32_t[BUF_SIZE] + BUF_OFFSET, PITCH) {
+	std::memset(buffer(this), 0, BUF_SIZE * sizeof(Gambatte::uint_least32_t));
 }
 
 Kreed2xSaI::~Kreed2xSaI() {
@@ -228,5 +230,5 @@ Kreed2xSaI::~Kreed2xSaI() {
 }
 
 void Kreed2xSaI::draw(void *const dbuffer, const unsigned pitch) {
-	::filter<PITCH, WIDTH, HEIGHT>(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this));
+	::filter<PITCH, WIDTH, HEIGHT>(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + BUF_OFFSET);
 }
