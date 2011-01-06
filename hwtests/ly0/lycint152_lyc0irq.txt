@@ -10,5 +10,6 @@ does a bunch of nops
 reads IF
 outputs value of IF in hex
 
+DMG-08 / CGB:
 lycint152_lyc0irq_1.gb should output E0
 lycint152_lyc0irq_2.gb should output E2

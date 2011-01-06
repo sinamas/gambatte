@@ -10,5 +10,6 @@ nops til next mode2
 reads IF
 outputs value of IF&3
 
-m2irq_before_lycint_1.gb should output 0
-m2irq_before_lycint_2.gb should output 2
+DMG-08 / CGB:
+m2irq_before_lycint_1.gb should output 1
+m2irq_before_lycint_2.gb should output 3

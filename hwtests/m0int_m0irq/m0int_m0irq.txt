@@ -7,5 +7,6 @@ lots of nops
 reads IF
 outputs value of IF&3
 
+DMG-08 / CGB:
 m0int_m0irq_1.gb should output 0
 m0int_m0irq_2.gb should output 2

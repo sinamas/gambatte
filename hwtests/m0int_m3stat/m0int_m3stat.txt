@@ -7,5 +7,6 @@ lots of nops
 reads stat
 outputs value of stat&3
 
+DMG-01 / CGB-001:
 m0int_m3stat_1.gb should output 3
 m0int_m3stat_2.gb should output 0

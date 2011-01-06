@@ -9,4 +9,5 @@ jumps to 0x1000
 reads STAT
 outputs value of STAT&3
 
+DMG-08 / CGB:
 lyc0m2int_stat.gb should output 1

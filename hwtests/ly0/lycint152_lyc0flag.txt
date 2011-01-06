@@ -10,11 +10,13 @@ does a bunch of nops
 reads STAT
 outputs value of STAT in hex
 
+DMG-08 / CGB:
 lycint152_lyc0flag_1.gb should output C1
 lycint152_lyc0flag_2.gb should output C5
 lycint152_lyc0flag_3.gb should output C4
 lycint152_lyc0flag_4.gb should output C0
 
+CGB:
 lycint152_lyc0flag_ds_1.gb should output C1
 lycint152_lyc0flag_ds_2.gb should output C5
 lycint152_lyc0flag_ds_3.gb should output C4

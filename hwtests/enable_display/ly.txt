@@ -4,4 +4,5 @@ enables display
 reads ly
 outputs value of ly in hex
 
-should output 0
+DMG-08 / CGB:
+should output 00

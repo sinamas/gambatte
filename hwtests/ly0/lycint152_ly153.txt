@@ -9,6 +9,7 @@ does a bunch of nops
 reads ly
 outputs value of ly in hex
 
+DMG-08 / CGB:
 lycint152_ly153_1.gb should output 98
 lycint152_ly153_2.gb should output 99
 lycint152_ly153_3.gb should output 00

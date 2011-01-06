@@ -10,11 +10,13 @@ lots of nops
 reads STAT
 outputs value of STAT&7
 
+DMG-08 / CGB:
 lycint_lycflag_1.gb should output 0
 lycint_lycflag_2.gb should output 6
 lycint_lycflag_3.gb should output 4
 lycint_lycflag_4.gb should output 0
 
+CGB:
 lycint_lycflag_ds_1.gb should output 0
 lycint_lycflag_ds_2.gb should output 6
 lycint_lycflag_ds_3.gb should output 4

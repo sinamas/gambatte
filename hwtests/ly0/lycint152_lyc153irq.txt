@@ -1,0 +1,3 @@
+DMG-08 / CGB:
+lycint152_lyc153irq_1.gb: E0
+lycint152_lyc153irq_2.gb: E2
