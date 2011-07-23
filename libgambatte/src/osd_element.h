@@ -33,10 +33,9 @@ private:
 	unsigned h_;
 	
 protected:
-	OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0, Opacity opacity = SEVEN_EIGHTHS) {
-		setPos(x, y);
-		setSize(w, h);
-		setOpacity(opacity);
+	explicit OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0, Opacity opacity = SEVEN_EIGHTHS)
+	: opacity_(opacity), x_(x), y_(y), w_(w), h_(h)
+	{
 	}
 	
 	void setPos(unsigned x, unsigned y) {

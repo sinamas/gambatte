@@ -1,2 +1,2 @@
 #!/bin/sh
-./testrunner ../hwtests/*.gb* ../hwtests/*/*.gb* ../hwtests/*/*/*.gb*
+./testrunner hwtests/*.gb* hwtests/*/*.gb* hwtests/*/*/*.gb* hwtests/*/*/*/*.gb*

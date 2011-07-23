@@ -21,7 +21,7 @@
 #include "savestate.h"
 
 CPU::CPU() :
-memory(Interrupter(SP, PC_, halted)),
+memory(Interrupter(SP, PC_)),
 cycleCounter_(0),
 PC_(0x100),
 SP(0xFFFE),
@@ -36,14 +36,13 @@ D(0x00),
 E(0xD8),
 H(0x01),
 L(0x4D),
-skip(false),
-halted(false)
+skip(false)
 {}
 
-int CPU::runFor(const unsigned long cycles) {
+long CPU::runFor(const unsigned long cycles) {
 	process(cycles/* << memory.isDoubleSpeed()*/);
 	
-	const int csb = memory.cyclesSinceBlit(cycleCounter_);
+	const long csb = memory.cyclesSinceBlit(cycleCounter_);
 	
 	if (cycleCounter_ & 0x80000000)
 		cycleCounter_ = memory.resetCounters(cycleCounter_);
@@ -54,30 +53,6 @@ int CPU::runFor(const unsigned long cycles) {
 bool CPU::load(const char* romfile, const bool forceDmg) {
 	return memory.loadROM(romfile, forceDmg);
 }
-
-/*void CPU::halt() {
-	while (halted) {
-		const uint_fast32_t cycles = memory.next_eventtime - memory.CycleCounter;
-		memory.CycleCounter += cycles + ((4 - (cycles & 3)) & 3);
-		memory.event();
-	}
-}*/
-
-//Push address of next instruction onto stack and then jump to interrupt address (0x40-0x60):
-/*unsigned CPU::interrupt(const unsigned address, unsigned cycleCounter) {
-	if (halted && memory.isCgb())
-		cycleCounter += 4;
-	
-	halted = false;
-	cycleCounter += 8;
-	memory.write(--SP, PC_ >> 8, cycleCounter);
-	cycleCounter += 4;
-	memory.write(--SP, PC_ & 0xFF, cycleCounter);
-	PC_ = address;
-	cycleCounter += 8;
-	
-	return cycleCounter;
-}*/
 
 // (HF2 & 0x200) == true means HF is set.
 // (HF2 & 0x400) marks the subtract flag.
@@ -131,7 +106,6 @@ void CPU::saveState(SaveState &state) {
 	state.cpu.H = H;
 	state.cpu.L = L;
 	state.cpu.skip = skip;
-	state.cpu.halted = halted;
 }
 
 void CPU::loadState(const SaveState &state) {
@@ -149,7 +123,6 @@ void CPU::loadState(const SaveState &state) {
 	H = state.cpu.H;
 	L = state.cpu.L;
 	skip = state.cpu.skip;
-	halted = state.cpu.halted;
 }
 
 #define BC() ( B << 8 | C )
@@ -540,12 +513,12 @@ void CPU::process(const unsigned long cycles) {
 	while (memory.isActive()) {
 		unsigned short PC = PC_;
 		
-		if (halted) {
-			if (cycleCounter < memory.getNextEventTime()) {
-				const unsigned long cycles = memory.getNextEventTime() - cycleCounter;
-				cycleCounter += cycles + ((4 - (cycles & 3)) & 3);
+		if (memory.halted()) {
+			if (cycleCounter < memory.nextEventTime()) {
+				const unsigned long cycles = memory.nextEventTime() - cycleCounter;
+				cycleCounter += cycles + (-cycles & 3);
 			}
-		} else while (cycleCounter < memory.getNextEventTime()) {
+		} else while (cycleCounter < memory.nextEventTime()) {
 			unsigned char opcode;
 			
 			PC_READ(opcode);
@@ -635,8 +608,15 @@ void CPU::process(const unsigned long cycles) {
 				//stop (4 cycles):
 				//Halt CPU and LCD display until button pressed:
 			case 0x10:
-				memory.speedChange(cycleCounter);
 				PC = (PC + 1) & 0xFFFF;
+				
+				cycleCounter = memory.stop(cycleCounter);
+
+				if (cycleCounter < memory.nextEventTime()) {
+					const unsigned long cycles = memory.nextEventTime() - cycleCounter;
+					cycleCounter += cycles + (-cycles & 3);
+				}
+				
 				break;
 			case 0x11:
 				ld_rr_nn(D, E);
@@ -1152,30 +1132,20 @@ void CPU::process(const unsigned long cycles) {
 
 				//halt (4 cycles):
 			case 0x76:
-// 				printf("halt\n");
-				if (memory.getIME()/* || memory.next_eitime*/) {
-					halted = 1;
-
-					if (cycleCounter < memory.getNextEventTime()) {
-						const unsigned long cycles = memory.getNextEventTime() - cycleCounter;
-						cycleCounter += cycles + ((4 - (cycles & 3)) & 3);
-					}
+				if (!memory.ime() && (memory.ff_read(0xFF0F, cycleCounter) & memory.ff_read(0xFFFF, cycleCounter) & 0x1F)) {
+					if (memory.isCgb())
+						cycleCounter += 4;
+					else
+						skip = true;
 				} else {
-					if ((memory.ff_read(0xFF0F, cycleCounter) & memory.ff_read(0xFFFF, cycleCounter)) & 0x1F) {
-						if (memory.isCgb())
-							cycleCounter += 8; //two nops.
-						else
-							skip = true;
-					} else {
-						memory.schedule_unhalt();
-						halted = 1;
-						
-						if (cycleCounter < memory.getNextEventTime()) {
-							const unsigned long cycles = memory.getNextEventTime() - cycleCounter;
-							cycleCounter += cycles + ((4 - (cycles & 3)) & 3);
-						}
+					memory.halt();
+
+					if (cycleCounter < memory.nextEventTime()) {
+						const unsigned long cycles = memory.nextEventTime() - cycleCounter;
+						cycleCounter += cycles + (-cycles & 3);
 					}
 				}
+
 				break;
 			case 0x77:
 				WRITE(HL(), A);

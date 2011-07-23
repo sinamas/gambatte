@@ -697,7 +697,7 @@ int GambatteSdl::exec() {
 			audioBufLow = status.fromUnderrun + outsamples < (status.fromOverflow - outsamples) * 2;
 			
 			if (blit) {
-				syncfunc((16743ul - (16743 / 1024)) * sampleRate / status.rate);
+				syncfunc((16743ul - 16743 / 1024) * sampleRate / status.rate);
 				blitter.present();
 			}
 		} else if (ret >= 0) {

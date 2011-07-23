@@ -13,6 +13,7 @@ sourceFiles = Split('''
 
 conf = env.Configure()
 conf.CheckLib('z')
+conf.CheckLib('png')
 conf.Finish()
 
 env.Program('testrunner', sourceFiles)

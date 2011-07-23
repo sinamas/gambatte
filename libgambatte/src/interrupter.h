@@ -24,15 +24,10 @@ class Memory;
 class Interrupter {
 	unsigned short &SP;
 	unsigned short &PC;
-	bool &halted;
 	
 public:
-	Interrupter(unsigned short &SP, unsigned short &PC, bool &halted);
+	Interrupter(unsigned short &SP, unsigned short &PC);
 	unsigned long interrupt(const unsigned address, unsigned long cycleCounter, Memory &memory);
-	
-	void unhalt() {
-		halted = false;
-	}
 };
 
 #endif

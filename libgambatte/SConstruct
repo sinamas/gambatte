@@ -1,6 +1,6 @@
 global_cflags = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer')
 global_cxxflags = ARGUMENTS.get('CXXFLAGS', global_cflags + ' -fno-exceptions -fno-rtti')
-global_defines = ' -DHAVE_STDINT_H -DCHAR_WIDTH_8'
+global_defines = ' -DHAVE_STDINT_H'
 
 env = Environment(CPPPATH = ['src', 'include', '../common'],
                   CFLAGS = global_cflags + global_defines,
@@ -12,12 +12,16 @@ sourceFiles = Split('''
 			src/gambatte.cpp
 			src/initstate.cpp
 			src/interrupter.cpp
+			src/interruptrequester.cpp
 			src/memory.cpp
-			src/rtc.cpp
 			src/sound.cpp
 			src/state_osd_elements.cpp
 			src/statesaver.cpp
+			src/tima.cpp
 			src/video.cpp
+			src/mem/cartridge.cpp
+			src/mem/memptrs.cpp
+			src/mem/rtc.cpp
 			src/sound/channel1.cpp
 			src/sound/channel2.cpp
 			src/sound/channel3.cpp
@@ -25,23 +29,11 @@ sourceFiles = Split('''
 			src/sound/duty_unit.cpp
 			src/sound/envelope_unit.cpp
 			src/sound/length_counter.cpp
-			src/video/basic_add_event.cpp
-			src/video/break_event.cpp
-			src/video/irq_event.cpp
 			src/video/ly_counter.cpp
 			src/video/lyc_irq.cpp
-			src/video/m3_extra_cycles.cpp
-			src/video/mode3_event.cpp
-			src/video/mode0_irq.cpp
-			src/video/mode1_irq.cpp
-			src/video/mode2_irq.cpp
-			src/video/sc_reader.cpp
-			src/video/scx_reader.cpp
+			src/video/next_m0_time.cpp
+			src/video/ppu.cpp
 			src/video/sprite_mapper.cpp
-			src/video/we_master_checker.cpp
-			src/video/we.cpp
-			src/video/wx_reader.cpp
-			src/video/wy.cpp
 		   ''')
 
 conf = env.Configure()

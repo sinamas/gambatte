@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,6 +23,8 @@
 #include <cstring>
 #include <algorithm>
 #include <fstream>
+
+namespace {
 
 enum AsciiChar {
 	NUL, SOH, STX, ETX, EOT, ENQ, ACK, BEL,  BS, TAB,  LF,  VT,  FF,  CR,  SO,  SI,
@@ -168,6 +170,8 @@ static void read(std::ifstream &file, bool *data, unsigned long sz) {
 	file.ignore(size - sz);
 }
 
+} // anon namespace
+
 class SaverList {
 public:
 	typedef std::vector<Saver> list_t;
@@ -204,6 +208,16 @@ SaverList::SaverList() {
 	Saver saver = { label, Func::save, Func::load, sizeof label }; \
 	list.push_back(saver); \
 } while (0)
+
+#define ADDARRAY(arg) do { \
+	struct Func { \
+		static void save(std::ofstream &file, const SaveState &state) { write(file, state.arg, sizeof(state.arg)); } \
+		static void load(std::ifstream &file, SaveState &state) { read(file, state.arg, sizeof(state.arg)); } \
+	}; \
+	\
+	Saver saver = { label, Func::save, Func::load, sizeof label }; \
+	list.push_back(saver); \
+} while (0)
 	
 	{ static const char label[] = { c,c,           NUL }; ADD(cpu.cycleCounter); }
 	{ static const char label[] = { p,c,           NUL }; ADD(cpu.PC); }
@@ -217,45 +231,57 @@ SaverList::SaverList() {
 	{ static const char label[] = { h,             NUL }; ADD(cpu.H); }
 	{ static const char label[] = { l,             NUL }; ADD(cpu.L); }
 	{ static const char label[] = { s,k,i,p,       NUL }; ADD(cpu.skip); }
-	{ static const char label[] = { h,a,l,t,       NUL }; ADD(cpu.halted); }
+	{ static const char label[] = { h,a,l,t,       NUL }; ADD(mem.halted); }
 	{ static const char label[] = { v,r,a,m,       NUL }; ADDPTR(mem.vram); }
 	{ static const char label[] = { s,r,a,m,       NUL }; ADDPTR(mem.sram); }
 	{ static const char label[] = { w,r,a,m,       NUL }; ADDPTR(mem.wram); }
 	{ static const char label[] = { h,r,a,m,       NUL }; ADDPTR(mem.ioamhram); }
-	{ static const char label[] = { l,d,i,v,u,p,   NUL }; ADD(mem.div_lastUpdate); }
-	{ static const char label[] = { l,t,i,m,a,u,p, NUL }; ADD(mem.tima_lastUpdate); }
+	{ static const char label[] = { l,d,i,v,u,p,   NUL }; ADD(mem.divLastUpdate); }
+	{ static const char label[] = { l,t,i,m,a,u,p, NUL }; ADD(mem.timaLastUpdate); }
 	{ static const char label[] = { t,m,a,t,i,m,e, NUL }; ADD(mem.tmatime); }
-	{ static const char label[] = { s,e,r,i,a,l,t, NUL }; ADD(mem.next_serialtime); }
+	{ static const char label[] = { s,e,r,i,a,l,t, NUL }; ADD(mem.nextSerialtime); }
 	{ static const char label[] = { l,o,d,m,a,u,p, NUL }; ADD(mem.lastOamDmaUpdate); }
 	{ static const char label[] = { m,i,n,i,n,t,t, NUL }; ADD(mem.minIntTime); }
+	{ static const char label[] = { u,n,h,a,l,t,t, NUL }; ADD(mem.unhaltTime); }
 	{ static const char label[] = { r,o,m,b,a,n,k, NUL }; ADD(mem.rombank); }
 	{ static const char label[] = { d,m,a,s,r,c,   NUL }; ADD(mem.dmaSource); }
 	{ static const char label[] = { d,m,a,d,s,t,   NUL }; ADD(mem.dmaDestination); }
 	{ static const char label[] = { r,a,m,b,a,n,k, NUL }; ADD(mem.rambank); }
 	{ static const char label[] = { o,d,m,a,p,o,s, NUL }; ADD(mem.oamDmaPos); }
 	{ static const char label[] = { i,m,e,         NUL }; ADD(mem.IME); }
-	{ static const char label[] = { s,r,a,m,o,n,   NUL }; ADD(mem.enable_ram); }
-	{ static const char label[] = { r,a,m,b,m,o,d, NUL }; ADD(mem.rambank_mode); }
-	{ static const char label[] = { h,d,m,a,       NUL }; ADD(mem.hdma_transfer); }
+	{ static const char label[] = { s,r,a,m,o,n,   NUL }; ADD(mem.enableRam); }
+	{ static const char label[] = { r,a,m,b,m,o,d, NUL }; ADD(mem.rambankMode); }
+	{ static const char label[] = { h,d,m,a,       NUL }; ADD(mem.hdmaTransfer); }
 	{ static const char label[] = { b,g,p,         NUL }; ADDPTR(ppu.bgpData); }
 	{ static const char label[] = { o,b,j,p,       NUL }; ADDPTR(ppu.objpData); }
 	{ static const char label[] = { s,p,o,s,b,u,f, NUL }; ADDPTR(ppu.oamReaderBuf); }
 	{ static const char label[] = { s,p,s,z,b,u,f, NUL }; ADDPTR(ppu.oamReaderSzbuf); }
+	{ static const char label[] = { s,p,a,t,t,r,   NUL }; ADDARRAY(ppu.spAttribList); }
+	{ static const char label[] = { s,p,b,y,t,e,NO0, NUL }; ADDARRAY(ppu.spByte0List); }
+	{ static const char label[] = { s,p,b,y,t,e,NO1, NUL }; ADDARRAY(ppu.spByte1List); }
 	{ static const char label[] = { v,c,y,c,l,e,s, NUL }; ADD(ppu.videoCycles); }
 	{ static const char label[] = { e,d,M,NO0,t,i,m, NUL }; ADD(ppu.enableDisplayM0Time); }
+	{ static const char label[] = { m,NO0,t,i,m,e, NUL }; ADD(ppu.lastM0Time); }
+	{ static const char label[] = { n,m,NO0,i,r,q, NUL }; ADD(ppu.nextM0Irq); }
+	{ static const char label[] = { b,g,t,w,       NUL }; ADD(ppu.tileword); }
+	{ static const char label[] = { b,g,n,t,w,     NUL }; ADD(ppu.ntileword); }
 	{ static const char label[] = { w,i,n,y,p,o,s, NUL }; ADD(ppu.winYPos); }
-	{ static const char label[] = { d,r,a,w,c,y,c, NUL }; ADD(ppu.drawStartCycle); }
-	{ static const char label[] = { s,c,r,d,c,y,c, NUL }; ADD(ppu.scReadOffset); }
-	{ static const char label[] = { l,c,d,c,       NUL }; ADD(ppu.lcdc); }
-	{ static const char label[] = { s,c,x,NO0,     NUL }; ADD(ppu.scx[0]); }
-	{ static const char label[] = { s,c,x,NO1,     NUL }; ADD(ppu.scx[1]); }
-	{ static const char label[] = { s,c,y,NO0,     NUL }; ADD(ppu.scy[0]); }
-	{ static const char label[] = { s,c,y,NO1,     NUL }; ADD(ppu.scy[1]); }
-	{ static const char label[] = { s,c,x,AMP,NO7, NUL }; ADD(ppu.scxAnd7); }
+	{ static const char label[] = { x,p,o,s,       NUL }; ADD(ppu.xpos); }
+	{ static const char label[] = { e,n,d,x,       NUL }; ADD(ppu.endx); }
+	{ static const char label[] = { p,p,u,r,NO0,   NUL }; ADD(ppu.reg0); }
+	{ static const char label[] = { p,p,u,r,NO1,   NUL }; ADD(ppu.reg1); }
+	{ static const char label[] = { b,g,a,t,r,b,   NUL }; ADD(ppu.attrib); }
+	{ static const char label[] = { b,g,n,a,t,r,b, NUL }; ADD(ppu.nattrib); }
+	{ static const char label[] = { p,p,u,s,t,a,t, NUL }; ADD(ppu.state); }
+	{ static const char label[] = { n,s,p,r,i,t,e, NUL }; ADD(ppu.nextSprite); }
+	{ static const char label[] = { c,s,p,r,i,t,e, NUL }; ADD(ppu.currentSprite); }
+	{ static const char label[] = { l,y,c,         NUL }; ADD(ppu.lyc); }
+	{ static const char label[] = { m,NO0,l,y,c,   NUL }; ADD(ppu.m0lyc); }
+	{ static const char label[] = { o,l,d,w,y,     NUL }; ADD(ppu.oldWy); }
+	{ static const char label[] = { w,i,n,d,r,a,w, NUL }; ADD(ppu.winDrawState); }
+	{ static const char label[] = { w,s,c,x,       NUL }; ADD(ppu.wscx); }
 	{ static const char label[] = { w,e,m,a,s,t,r, NUL }; ADD(ppu.weMaster); }
-	{ static const char label[] = { w,x,           NUL }; ADD(ppu.wx); }
-	{ static const char label[] = { w,y,           NUL }; ADD(ppu.wy); }
-	{ static const char label[] = { l,y,c,s,k,i,p, NUL }; ADD(ppu.lycIrqSkip); }
+	{ static const char label[] = { l,c,d,s,i,r,q, NUL }; ADD(ppu.pendingLcdstatIrq); }
 	{ static const char label[] = { s,p,u,c,n,t,r, NUL }; ADD(spu.cycleCounter); }
 	{ static const char label[] = { s,w,p,c,n,t,r, NUL }; ADD(spu.ch1.sweep.counter); }
 	{ static const char label[] = { s,w,p,s,h,d,w, NUL }; ADD(spu.ch1.sweep.shadow); }
@@ -309,7 +335,7 @@ SaverList::SaverList() {
 	
 #undef ADD
 #undef ADDPTR
-#undef ADDTIME
+#undef ADDARRAY
 
 	list.resize(list.size());
 	std::sort(list.begin(), list.end());
@@ -321,6 +347,8 @@ SaverList::SaverList() {
 			maxLabelsize_ = list[i].labelsize;
 	}
 }
+
+namespace {
 
 struct PxlSum { unsigned long rb, g; };
 
@@ -336,7 +364,7 @@ static void blendPxlPairs(PxlSum *const dst, const PxlSum *const sums) {
 	dst->g  = sums[1].g  * 8 + (sums[0].g  - sums[1].g ) * 3;
 }
 
-static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *pixels, const unsigned pitch) {
+static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *pixels, const int pitch) {
 	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(Gambatte::uint_least32_t) : 0);
 	
 	if (pixels) {
@@ -368,15 +396,17 @@ static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *p
 
 static SaverList list;
 
+} // anon namespace
+
 void StateSaver::saveState(const SaveState &state,
 		const Gambatte::uint_least32_t *const videoBuf,
-		const unsigned pitch, const char *const filename) {
+		const int pitch, const char *const filename) {
 	std::ofstream file(filename, std::ios_base::binary);
 	
 	if (file.fail())
 		return;
 	
-	{ static const char ver[] = { 0, 0 }; file.write(ver, sizeof(ver)); }
+	{ static const char ver[] = { 0, 1 }; file.write(ver, sizeof(ver)); }
 	
 	writeSnapShot(file, videoBuf, pitch);
 	

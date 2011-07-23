@@ -32,8 +32,8 @@ public:
 	enum { SS_WIDTH = 160 >> SS_SHIFT };
 	enum { SS_HEIGHT = 144 >> SS_SHIFT };
 	
-	static void saveState(const SaveState &state, const Gambatte::uint_least32_t *videoBuf,
-			unsigned pitch, const char *filename);
+	static void saveState(const SaveState &state,
+			const Gambatte::uint_least32_t *videoBuf, int pitch, const char *filename);
 	static bool loadState(SaveState &state, const char *filename);
 };
 

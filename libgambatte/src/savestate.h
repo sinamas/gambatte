@@ -50,7 +50,6 @@ struct SaveState {
 		unsigned char H;
 		unsigned char L;
 		bool skip;
-		bool halted;
 	} cpu;
 	
 	struct Mem {
@@ -58,25 +57,26 @@ struct SaveState {
 		Ptr<unsigned char> sram;
 		Ptr<unsigned char> wram;
 		Ptr<unsigned char> ioamhram;
-		unsigned long div_lastUpdate;
-		unsigned long tima_lastUpdate;
+		unsigned long divLastUpdate;
+		unsigned long timaLastUpdate;
 		unsigned long tmatime;
-		unsigned long next_serialtime;
+		unsigned long nextSerialtime;
 		unsigned long lastOamDmaUpdate;
 		unsigned long minIntTime;
+		unsigned long unhaltTime;
 		unsigned short rombank;
 		unsigned short dmaSource;
 		unsigned short dmaDestination;
 		unsigned char rambank;
 		unsigned char oamDmaPos;
 		bool IME;
-		bool enable_ram;
-		bool rambank_mode;
-		bool hdma_transfer;
+		bool halted;
+		bool enableRam;
+		bool rambankMode;
+		bool hdmaTransfer;
 	} mem;
 	
 	struct PPU {
-// 		Ptr<Gambatte::uint_least32_t> drawBuffer;
 		Ptr<unsigned char> bgpData;
 		Ptr<unsigned char> objpData;
 		//SpriteMapper::OamReader
@@ -85,22 +85,30 @@ struct SaveState {
 		
 		unsigned long videoCycles;
 		unsigned long enableDisplayM0Time;
+		unsigned short lastM0Time;
+		unsigned short nextM0Irq;
+		unsigned short tileword;
+		unsigned short ntileword;
+		unsigned char spAttribList[10];
+		unsigned char spByte0List[10];
+		unsigned char spByte1List[10];
 		unsigned char winYPos;
-		unsigned char drawStartCycle;
-		unsigned char scReadOffset;
-		unsigned char lcdc;
-		//ScReader
-		unsigned char scx[2];
-		unsigned char scy[2];
-		//ScxReader
-		unsigned char scxAnd7;
-		//WeMasterChecker
+		unsigned char xpos;
+		unsigned char endx;
+		unsigned char reg0;
+		unsigned char reg1;
+		unsigned char attrib;
+		unsigned char nattrib;
+		unsigned char state;
+		unsigned char nextSprite;
+		unsigned char currentSprite;
+		unsigned char lyc;
+		unsigned char m0lyc;
+		unsigned char oldWy;
+		unsigned char winDrawState;
+		unsigned char wscx;
 		bool weMaster;
-		//WxReader
-		unsigned char wx;
-		//Wy
-		unsigned char wy;
-		bool lycIrqSkip;
+		bool pendingLcdstatIrq;
 	} ppu;
 	
 	struct SPU {

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -283,16 +283,18 @@ unsigned getWidth(const char *chars) {
 	return w;
 }
 
+namespace {
 class Rgb32Fill {
 	const unsigned long color;
 	
 public:
-	Rgb32Fill(unsigned long color) : color(color) {}
+	explicit Rgb32Fill(unsigned long color) : color(color) {}
 	
-	void operator()(Gambatte::uint_least32_t *dest, unsigned /*pitch*/) {
+	void operator()(Gambatte::uint_least32_t *dest, unsigned /*pitch*/) const {
 		*dest = color;
 	}
 };
+}
 
 void print(Gambatte::uint_least32_t *dest, const unsigned pitch, const unsigned long color, const char *chars) {
 	print(dest, pitch, Rgb32Fill(color), chars);

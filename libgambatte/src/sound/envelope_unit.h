@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -36,7 +36,7 @@ private:
 	unsigned char volume;
 	
 public:
-	EnvelopeUnit(VolOnOffEvent &volOnOffEvent = nullEvent);
+	explicit EnvelopeUnit(VolOnOffEvent &volOnOffEvent = nullEvent);
 	void event();
 	bool dacIsOn() const { return nr2 & 0xF8; }
 	unsigned getVolume() const { return volume; }

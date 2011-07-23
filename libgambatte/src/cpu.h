@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -37,7 +37,6 @@ class CPU {
 	unsigned char A_, B, C, D, E, /*F,*/ H, L;
 
 	bool skip;
-	bool halted;
 	
 	void process(unsigned long cycles);
 	
@@ -48,7 +47,7 @@ public:
 
 // 	unsigned interrupt(unsigned address, unsigned cycleCounter);
 	
-	int runFor(unsigned long cycles);
+	long runFor(unsigned long cycles);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state);
 	void loadState(const SaveState &state);
@@ -56,7 +55,7 @@ public:
 	void loadSavedata() { memory.loadSavedata(); }
 	void saveSavedata() { memory.saveSavedata(); }
 	
-	void setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const unsigned pitch) {
+	void setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const int pitch) {
 		memory.setVideoBuffer(videoBuf, pitch);
 	}
 	
@@ -77,6 +76,7 @@ public:
 	}
 	
 	bool load(const char* romfile, bool forceDmg);
+	bool loaded() const { return memory.loaded(); }
 	
 	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
 	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }

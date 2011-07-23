@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -32,21 +32,20 @@ class GB {
 	int stateNo;
 
 	void loadState(const char *filepath, bool osdMessage);
-	GB(const GB&);
-	GB& operator=(const GB&);
+	GB(const GB &);
+	GB & operator=(const GB &);
 
 public:
 	GB();
 	~GB();
 	
 	/** Load Game Boy Color ROM image.
-	  * You should always load a ROM image before calling runFor, reset, saveState or loadState functions.
 	  *
 	  * @param romfile  Path to rom image file. Typically a .gbc, .gb, or .zip-file (if zip-support is compiled in).
 	  * @param forceDmg Treat the ROM as not having CGB support regardless of what its header advertises.
 	  * @return true if failed to load ROM image.
 	  */
-	bool load(const char* romfile, bool forceDmg = false);
+	bool load(const char *romfile, bool forceDmg = false);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
 	  * or until a video frame has been drawn.
@@ -63,20 +62,17 @@ public:
 	  * The return value indicates whether a new video frame has been drawn, and the
 	  * exact time (in number of samples) at which it was drawn.
 	  *
-	  * Should not be called unless a ROM images is loaded.
-	  *
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
 	  * @param soundBuf buffer with space >= samples + 2064
 	  * @param samples in: number of stereo samples to produce, out: actual number of samples produced
 	  * @return sample number at which the video frame was produced. -1 means no frame was produced.
 	  */
-	int runFor(Gambatte::uint_least32_t *videoBuf, unsigned pitch,
+	long runFor(Gambatte::uint_least32_t *videoBuf, int pitch,
 			Gambatte::uint_least32_t *soundBuf, unsigned &samples);
 	
 	/** Reset to initial state.
 	  * Equivalent to reloading a ROM image, or turning a Game Boy Color off and on again.
-	  * Should not be called unless a ROM images is loaded.
 	  */
 	void reset();
 	
@@ -94,30 +90,29 @@ public:
 	/** Returns true if the currently loaded ROM image is treated as having CGB support. */
 	bool isCgb() const;
 	
+	/** Returns true if a ROM image is loaded. */
+	bool isLoaded() const;
+	
 	/** Saves emulator state to the state slot selected with selectState().
 	  * The data will be stored in the directory given by setSaveDir().
-	  * Should not be called unless a ROM images is loaded.
 	  *
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
 	  */
-	void saveState(const Gambatte::uint_least32_t *videoBuf, unsigned pitch);
+	void saveState(const Gambatte::uint_least32_t *videoBuf, int pitch);
 	
 	/** Loads emulator state from the state slot selected with selectState().
-	  * Should not be called unless a ROM images is loaded.
 	  */
 	void loadState();
 	
 	/** Saves emulator state to the file given by 'filepath'.
-	  * Should not be called unless a ROM images is loaded.
 	  *
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
 	  */
-	void saveState(const Gambatte::uint_least32_t *videoBuf, unsigned pitch, const char *filepath);
+	void saveState(const Gambatte::uint_least32_t *videoBuf, int pitch, const char *filepath);
 	
 	/** Loads emulator state from the file given by 'filepath'.
-	  * Should not be called unless a ROM images is loaded.
 	  */
 	void loadState(const char *filepath);
 	

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,19 +25,13 @@
 #include <string>
 #include <sstream>
 
-static const std::string itos(int i) {
+static const std::string itos(const int i) {
 	std::stringstream ss;
-	
 	ss << i;
-	
-	std::string out;
-	
-	ss >> out;
-	
-	return out;
+	return ss.str();
 }
 
-static const std::string statePath(const std::string &basePath, int stateNo) {
+static const std::string statePath(const std::string &basePath, const int stateNo) {
 	return basePath + "_" + itos(stateNo) + ".gqs";
 }
 
@@ -45,29 +39,37 @@ namespace Gambatte {
 GB::GB() : z80(new CPU), stateNo(1) {}
 
 GB::~GB() {
+	if (z80->loaded())
+		z80->saveSavedata();
+	
 	delete z80;
 }
 
-int GB::runFor(Gambatte::uint_least32_t *const videoBuf, const unsigned pitch,
-		Gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
+long GB::runFor(Gambatte::uint_least32_t *const videoBuf, const int pitch,
+			Gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
+	if (!z80->loaded()) {
+		samples = 0;
+		return -1;
+	}
+	
 	z80->setVideoBuffer(videoBuf, pitch);
 	z80->setSoundBuffer(soundBuf);
-	const int cyclesSinceBlit = z80->runFor(samples * 2);
+	const long cyclesSinceBlit = z80->runFor(samples * 2);
 	samples = z80->fillSoundBuffer();
 	
 	return cyclesSinceBlit < 0 ? cyclesSinceBlit : samples - (cyclesSinceBlit >> 1);
 }
 
 void GB::reset() {
-	z80->saveSavedata();
-	
-	SaveState state;
-	z80->setStatePtrs(state);
-	setInitState(state, z80->isCgb());
-	z80->loadState(state);
-	z80->loadSavedata();
-	
-// 	z80->reset();
+	if (z80->loaded()) {
+		z80->saveSavedata();
+		
+		SaveState state;
+		z80->setStatePtrs(state);
+		setInitState(state, z80->isCgb());
+		z80->loadState(state);
+		z80->loadSavedata();
+	}
 }
 
 void GB::setInputGetter(InputGetter *getInput) {
@@ -79,7 +81,8 @@ void GB::setSaveDir(const char *sdir) {
 }
 
 bool GB::load(const char* romfile, const bool forceDmg) {
-	z80->saveSavedata();
+	if (z80->loaded())
+		z80->saveSavedata();
 	
 	const bool failed = z80->load(romfile, forceDmg);
 	
@@ -101,39 +104,48 @@ bool GB::isCgb() const {
 	return z80->isCgb();
 }
 
+bool GB::isLoaded() const {
+	return z80->loaded();
+}
+
 void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
 	z80->setDmgPaletteColor(palNum, colorNum, rgb32);
 }
 
 void GB::loadState(const char *const filepath, const bool osdMessage) {
-	z80->saveSavedata();
-	
-	SaveState state;
-	z80->setStatePtrs(state);
-	
-	if (StateSaver::loadState(state, filepath)) {
-		z80->loadState(state);
+	if (z80->loaded()) {
+		z80->saveSavedata();
 		
-		if (osdMessage)
-			z80->setOsdElement(newStateLoadedOsdElement(stateNo));
+		SaveState state;
+		z80->setStatePtrs(state);
+		
+		if (StateSaver::loadState(state, filepath)) {
+			z80->loadState(state);
+			
+			if (osdMessage)
+				z80->setOsdElement(newStateLoadedOsdElement(stateNo));
+		}
 	}
 }
 
-void GB::saveState(const Gambatte::uint_least32_t *const videoBuf, const unsigned pitch) {
-	saveState(videoBuf, pitch, statePath(z80->saveBasePath(), stateNo).c_str());
-	z80->setOsdElement(newStateSavedOsdElement(stateNo));
+void GB::saveState(const Gambatte::uint_least32_t *const videoBuf, const int pitch) {
+	if (z80->loaded()) {
+		saveState(videoBuf, pitch, statePath(z80->saveBasePath(), stateNo).c_str());
+		z80->setOsdElement(newStateSavedOsdElement(stateNo));
+	}
 }
 
 void GB::loadState() {
 	loadState(statePath(z80->saveBasePath(), stateNo).c_str(), true);
 }
 
-void GB::saveState(const Gambatte::uint_least32_t *const videoBuf,
-			const unsigned pitch, const char *filepath) {
-	SaveState state;
-	z80->setStatePtrs(state);
-	z80->saveState(state);
-	StateSaver::saveState(state, videoBuf, pitch, filepath);
+void GB::saveState(const Gambatte::uint_least32_t *const videoBuf, const int pitch, const char *filepath) {
+	if (z80->loaded()) {
+		SaveState state;
+		z80->setStatePtrs(state);
+		z80->saveState(state);
+		StateSaver::saveState(state, videoBuf, pitch, filepath);
+	}
 }
 
 void GB::loadState(const char *const filepath) {
@@ -143,6 +155,8 @@ void GB::loadState(const char *const filepath) {
 void GB::selectState(int n) {
 	n -= (n / 10) * 10;
 	stateNo = n < 0 ? n + 10 : n;
-	z80->setOsdElement(newSaveStateOsdElement(statePath(z80->saveBasePath(), stateNo).c_str(), stateNo));
+	
+	if (z80->loaded())
+		z80->setOsdElement(newSaveStateOsdElement(statePath(z80->saveBasePath(), stateNo).c_str(), stateNo));
 }
 }
