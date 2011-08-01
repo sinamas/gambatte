@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -27,32 +27,18 @@
 QPainterBlitter::QPainterBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	BlitterWidget(vbl, "QPainter", false, parent),
 	confWidget(new QWidget),
-	bfBox(new QCheckBox(QString("Semi-bilinear filtering"))),
-	buffer(NULL),
-	inWidth(160),
-	inHeight(144),
-	bf(false)
+	bf_(new QCheckBox(QString("Semi-bilinear filtering"), confWidget.get()), "qpainterblitter/bf", false),
+	buffer(0)
 {
-	QSettings settings;
-	settings.beginGroup("qpainterblitter");
-	bf = settings.value("bf", false).toBool();
-	settings.endGroup();
-
 	confWidget->setLayout(new QVBoxLayout);
 	confWidget->layout()->setMargin(0);
-	confWidget->layout()->addWidget(bfBox);
-	bfBox->setChecked(bf);
+	confWidget->layout()->addWidget(bf_.checkBox());
 
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
 QPainterBlitter::~QPainterBlitter() {
 	uninit();
-
-	QSettings settings;
-	settings.beginGroup("qpainterblitter");
-	settings.setValue("bf", bf);
-	settings.endGroup();
 }
 
 void QPainterBlitter::blit() {
@@ -60,10 +46,13 @@ void QPainterBlitter::blit() {
 		backImage = backImage == image2.get() ? image.get() : image2.get();
 		setPixelBuffer(backImage->bits(), PixelBuffer::RGB32, backImage->bytesPerLine() >> 2);
 	} else {
-		if (bf)
-			semiLinearScale<quint32, 0xFF00FF, 0x00FF00, 8>(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, image->width(), image->height(), image->bytesPerLine() >> 2);
-		else
-			nearestNeighborScale(buffer, reinterpret_cast<quint32*>(image->bits()), inWidth, inHeight, image->width(), image->height(), image->bytesPerLine() >> 2);
+		if (bf_.value()) {
+			semiLinearScale<quint32, 0xFF00FF, 0x00FF00, 8>(buffer, reinterpret_cast<quint32*>(image->bits()),
+					inBuffer().width, inBuffer().height, image->width(), image->height(), image->bytesPerLine() >> 2);
+		} else {
+			nearestNeighborScale(buffer, reinterpret_cast<quint32*>(image->bits()),
+					inBuffer().width, inBuffer().height, image->width(), image->height(), image->bytesPerLine() >> 2);
+		}
 	}
 }
 
@@ -84,15 +73,12 @@ void QPainterBlitter::paintEvent(QPaintEvent *const event) {
 void QPainterBlitter::resizeEvent(QResizeEvent */*event*/) {
 	if (image.get()) {
 		lockPixelBuffer();
-		setBufferDimensions(inWidth, inHeight);
+		setBufferDimensions(inBuffer().width, inBuffer().height);
 		unlockPixelBuffer();
 	}
 }
 
 void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned int h) {
-	inWidth = w;
-	inHeight = h;
-
 	uninit();
 	image.reset(new QImage(width(), height(), QImage::Format_RGB32));
 
@@ -119,9 +105,9 @@ void QPainterBlitter::uninit() {
 }
 
 void QPainterBlitter::acceptSettings() {
-	bf = bfBox->isChecked();
+	bf_.accept();
 }
 
 void QPainterBlitter::rejectSettings() const {
-	bfBox->setChecked(bf);
+	bf_.reject();
 }

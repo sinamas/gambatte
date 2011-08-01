@@ -71,7 +71,7 @@ class MainWindow : public QMainWindow {
 		            PixelBuffer::PixelFormat pixelFormat = PixelBuffer::RGB32*/) : width(width), height(height)/*, pixelFormat(pixelFormat)*/ {}
 	};
 	
-	class JoystickIniter {
+	class JoystickIniter : Uncopyable {
 		std::vector<SDL_Joystick*> joysticks;
 	public:
 		JoystickIniter();
@@ -97,10 +97,8 @@ class MainWindow : public QMainWindow {
 	QSize windowSize;
 	Rational frameTime_;
 	unsigned focusPauseBit;
-// 	int timerId;
-	int hz;
+	int refreshRate;
 	bool running;
-// 	bool threaded;
 	bool refreshRateSync;
 	bool cursorHidden;
 	
@@ -118,7 +116,7 @@ class MainWindow : public QMainWindow {
 	void execPausedQueue();
 	void updateMinimumSize();
 	void setBlitter(BlitterWidget *blitter);
-	void setVideo(unsigned w, unsigned h, /*PixelBuffer::PixelFormat pf,*/ /*const VideoFilter *vf, */BlitterWidget *blitter);
+	void setVideo(unsigned w, unsigned h, BlitterWidget *blitter);
 	void correctFullScreenGeometry();
 	void doSetWindowSize(const QSize &sz);
 	void updateSwapInterval();
@@ -127,14 +125,14 @@ class MainWindow : public QMainWindow {
 	void emitAudioEngineFailure() { emit audioEngineFailure(); worker->recover(); }
 	
 private slots:
-	void hzChange(int hz);
+	void refreshRateChange(int refreshRate);
 	void updateJoysticks();
 	
 public:
 	/** Can be used to gain frame buffer access outside the MediaSource
 	  * methods that take the frame buffer as argument.
 	  * The frame buffer is the buffer that a MediaSource should write
-	  * its video content to. It's generally not an actual video memory frame buffer.
+	  * its video content to.
 	  */
 	class FrameBuffer {
 		MainWindow *const mw;
@@ -151,7 +149,7 @@ public:
 		};
 	};
 
-	MainWindow(MediaSource *source);
+	explicit MainWindow(MediaSource *source);
 	
 	/** Sets the duration in seconds of each video frame.
 	  * Eg. use setFrameTime(1, 60) for 60 fps video.
@@ -230,12 +228,6 @@ public:
 		setVideo(w, h,/* pf,*/ blitters[blitterNo]);
 	}
 	
-	/** Will synchronize frame rate to vertical retrace if the blitter supports a swapInterval of at least 1.
-	  * Picks a swapInterval closest to the current frame rate.
-	  * Literally speeds things up or slows things down to match the swapInterval. Audio pitch will change accordingly.
-	  */
-	void setSyncToRefreshRate(bool on);
-	
 	/** speed = N, gives N times faster than normal when fastForward is enabled. */
 	void setFastForwardSpeed(unsigned speed) { worker->setFastForwardSpeed(speed); }
 	
@@ -250,6 +242,8 @@ public:
 	
 	/** Returns the modes supported by each screen. */
 	const std::vector<ResInfo>& modeVector(unsigned screen) const { return fullModeToggler->modeVector(screen); }
+	
+	const QString screenName(unsigned screen) const { return fullModeToggler->screenName(screen); }
 	
 	/** Returns the number of screens. */
 	unsigned screens() const { return fullModeToggler->screens(); }
@@ -308,6 +302,12 @@ public:
 public slots:
 	void hideCursor();
 	void setFastForward(bool enable) { worker->setFastForward(enable); }
+	
+	/** Will synchronize frame rate to vertical retrace if the blitter supports a swapInterval of at least 1.
+	  * Picks a swapInterval closest to the current frame rate.
+	  * Literally speeds things up or slows things down to match the swapInterval. Audio pitch will change accordingly.
+	  */
+	void setSyncToRefreshRate(bool on);
 	
 signals:
 	void audioEngineFailure();

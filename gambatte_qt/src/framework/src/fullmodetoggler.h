@@ -22,6 +22,7 @@
 #include <QObject>
 #include <QWidget>
 #include <QRect>
+#include <QString>
 #include <vector>
 
 #include "../resinfo.h"
@@ -42,6 +43,7 @@ public:
 	virtual void setScreen(const QWidget *widget) = 0;
 	virtual unsigned screen() const = 0;
 	virtual unsigned screens() const = 0;
+	virtual const QString screenName(unsigned screen) const { return QString::number(screen); }
 
 signals:
 	void rateChange(int newHz);

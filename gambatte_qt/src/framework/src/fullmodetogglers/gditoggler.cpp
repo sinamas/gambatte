@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -38,7 +38,7 @@ static void addMode(const DEVMODE &devmode, std::vector<ResInfo> &infoVector, un
 	
 	info.w = devmode.dmPelsWidth;
 	info.h = devmode.dmPelsHeight;
-	rate = devmode.dmDisplayFrequency;
+	rate = devmode.dmDisplayFrequency * 10;
 	
 	std::vector<ResInfo>::iterator it = std::lower_bound(infoVector.begin(), infoVector.end(), info, std::greater<ResInfo>());
 	
@@ -170,7 +170,7 @@ void GdiToggler::setFullMode(const bool enable) {
 		const ResInfo &info = infoVector[widgetScreen][fullResIndex[widgetScreen]];
 		devmode.dmPelsWidth = info.w;
 		devmode.dmPelsHeight = info.h;
-		devmode.dmDisplayFrequency = info.rates[fullRateIndex[widgetScreen]];
+		devmode.dmDisplayFrequency = info.rates[fullRateIndex[widgetScreen]] / 10;
 	} else if (isFull) {
 		mon->enumDisplaySettings(widgetScreen, ENUM_REGISTRY_SETTINGS, &devmode);
 	}
@@ -180,7 +180,7 @@ void GdiToggler::setFullMode(const bool enable) {
 		mon->changeDisplaySettings(widgetScreen, &devmode, enable ? CDS_FULLSCREEN : 0);
 		
 		if (devmode.dmDisplayFrequency != currentRate)
-			emit rateChange(devmode.dmDisplayFrequency);
+			emit rateChange(devmode.dmDisplayFrequency * 10);
 	}
 	
 	isFull = enable;
@@ -191,5 +191,5 @@ void GdiToggler::emitRate() {
 	devmode.dmSize = sizeof(DEVMODE);
 	devmode.dmDriverExtra = 0;
 	mon->enumDisplaySettings(widgetScreen, ENUM_CURRENT_SETTINGS, &devmode);
-	emit rateChange(devmode.dmDisplayFrequency);
+	emit rateChange(devmode.dmDisplayFrequency * 10);
 }

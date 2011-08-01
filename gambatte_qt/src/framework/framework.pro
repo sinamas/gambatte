@@ -13,7 +13,8 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/mediaworker.cpp \
     framework/src/samplebuffer.cpp \
     framework/src/blitterwidget.cpp \
-    framework/src/joysticklock.cpp
+    framework/src/joysticklock.cpp \
+    framework/src/persistcheckbox.cpp
 SOURCES += $$COMMONPATH/resample/src/chainresampler.cpp \
 	$$COMMONPATH/resample/src/i0.cpp \
 	$$COMMONPATH/resample/src/makesinckernel.cpp \
@@ -31,6 +32,7 @@ HEADERS += framework/src/blitterwidget.h \
     framework/inputdialog.h \
     framework/src/audioengine.h \
     framework/audioengineconf.h \
+    framework/persistcheckbox.h \
     framework/src/addaudioengines.h \
     framework/src/addblitterwidgets.h \
     framework/src/getfullmodetoggler.h \

@@ -29,7 +29,6 @@
 #include "audioengine.h"
 #include "uncopyable.h"
 #include "usec.h"
-#include "skipsched.h"
 
 // enum { PREPARE = 1, SYNC = 2 };
 
@@ -43,7 +42,7 @@ public:
 		SyncVar &sv;
 
 	public:
-		explicit Locked(SyncVar &sv) : sv(sv) { sv.mut.lock(); }
+		Locked(SyncVar &sv) : sv(sv) { sv.mut.lock(); }
 		~Locked() { sv.mut.unlock(); }
 		unsigned get() const { return sv.var; }
 		void set(const unsigned var) { sv.var = var; sv.cond.wakeAll(); }
@@ -95,7 +94,7 @@ public:
 	class Locked : Uncopyable {
 		Mutual &lc;
 	public:
-		explicit Locked(Mutual &lc) : lc(lc) { lc.mut.lock(); }
+		Locked(Mutual &lc) : lc(lc) { lc.mut.lock(); }
 		~Locked() { lc.mut.unlock(); }
 		T* operator->() { return &lc.t; }
 		const T* operator->() const { return &lc.t; }
@@ -106,7 +105,7 @@ public:
 	class ConstLocked : Uncopyable {
 		const Mutual &lc;
 	public:
-		explicit ConstLocked(const Mutual &lc) : lc(lc) { lc.mut.lock(); }
+		ConstLocked(const Mutual &lc) : lc(lc) { lc.mut.lock(); }
 		~ConstLocked() { lc.mut.unlock(); }
 		const T* operator->() const { return &lc.t; }
 		const T& get() const { return lc.t; }
@@ -124,7 +123,7 @@ public:
 	class Locked : Uncopyable {
 		AtomicVar &av;
 	public:
-		explicit Locked(AtomicVar &av) : av(av) { av.mut.lock(); }
+		Locked(AtomicVar &av) : av(av) { av.mut.lock(); }
 		~Locked() { av.mut.unlock(); }
 		T get() const { return av.var; }
 		void set(const T v) { av.var = v; }
@@ -133,7 +132,7 @@ public:
 	class ConstLocked : Uncopyable {
 		const AtomicVar &av;
 	public:
-		explicit ConstLocked(const AtomicVar &av) : av(av) { av.mut.lock(); }
+		ConstLocked(const AtomicVar &av) : av(av) { av.mut.lock(); }
 		~ConstLocked() { av.mut.unlock(); }
 		T get() const { return av.var; }
 	};
@@ -155,16 +154,6 @@ public:
 	};
 
 private:
-	/*class FrameWaiter {
-		AdaptiveSleep asleep;
-		usec_t base;
-
-	public:
-		FrameWaiter() : base(0) {}
-		void frameWait(long syncft, SyncVar &waitingForSync);
-		void syncedFrameWait(long syncft);
-	};*/
-
 	class PauseVar {
 		CallQueue<> callq;
 		mutable QMutex mut;
@@ -231,28 +220,20 @@ private:
 	struct SetSamplesPerFrame;
 	struct SetFastForward;
 
-	std::auto_ptr<Callback> callback;
-// 	SyncVar syncVar_;
+	const std::auto_ptr<Callback> callback;
 	SyncVar waitingForSync_;
-// 	FrameWaiter frameWaiter;
 	MeanQueue meanQueue;
 	PauseVar pauseVar;
 	AtomicVar<long> frameTimeEst;
 	AtomicVar<bool> doneVar;
-	SkipSched skipSched;
 	TurboSkip turboSkip;
 	SampleBuffer sampleBuffer;
 	Array<qint16> sndOutBuffer;
 	AudioEngine *ae;
 	long usecft;
 	long estsrate;
-	usec_t base;
-// 	unsigned turbo;
 	unsigned aelatency;
 	int aerate;
-// 	QMutex pbmut;
-// 	PixelBuffer pxbuf;
-	bool audioBufLow;
 
 	long adaptToRateEstimation(long estft);
 	void adjustResamplerRate(long outRate);
@@ -263,11 +244,9 @@ protected:
 	void run();
 
 public:
-	MediaWorker(MediaSource *source, std::auto_ptr<Callback> callback, QObject *parent = NULL);
+	MediaWorker(MediaSource *source, std::auto_ptr<Callback> callback, QObject *parent = 0);
 	MediaSource* source() /*const */{ return sampleBuffer.source(); }
-// 	SyncVar& syncVar() /*const */{ return syncVar_; }
 	SyncVar& waitingForSync() /*const */{ return waitingForSync_; }
-// 	void syncedUpdate(BlitterWidget *blitter);
 	void start();
 	void stop();
 	void pause();
@@ -293,11 +272,6 @@ public:
 	bool fastForward() const { return turboSkip.isEnabled(); }
 
 	void updateJoysticks();
-
-// 	void lockVideoBuffer() { pbmut.lock(); }
-// 	void unlockVideoBuffer() { pbmut.unlock(); }
-// 	void setVideoBuffer(const PixelBuffer &pb) { pxbuf = pb; }
-// 	const PixelBuffer& videoBuffer() const { return pxbuf; }
 
 	template<class T> void pushCall(const T &t) { pauseVar.pushCall(t, AtomicVar<bool>::ConstLocked(doneVar).get()); }
 };

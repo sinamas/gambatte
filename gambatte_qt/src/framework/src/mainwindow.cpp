@@ -47,9 +47,7 @@ MainWindow::JoystickIniter::JoystickIniter() {
 	const int numJs = SDL_NumJoysticks();
 
 	for (int i = 0; i < numJs; ++i) {
-		SDL_Joystick *joy = SDL_JoystickOpen(i);
-
-		if (joy)
+		if (SDL_Joystick *joy = SDL_JoystickOpen(i))
 			joysticks.push_back(joy);
 	}
 
@@ -74,12 +72,6 @@ struct MainWindow::Pauser::DoPause {
 	void operator()(MainWindow *const mw) {
 		if (mw->running) {
 			mw->worker->pause();
-
-// 			if (mw->timerId) {
-// 				mw->killTimer(mw->timerId);
-// 				mw->timerId = 0;
-// 			}
-
 			mw->jsTimer->start();
 		}
 
@@ -92,9 +84,6 @@ struct MainWindow::Pauser::DoUnpause {
 		if (mw->running) {
 			mw->jsTimer->stop();
 			mw->worker->unpause();
-
-// 			if (!mw->threaded && !mw->timerId)
-// 				mw->timerId = mw->startTimer(0);
 		}
 
 		mw->blitterContainer->blitter()->setPaused(false);
@@ -141,14 +130,14 @@ public:
 	bool tryLockVideoBuffer() { return mw->vbmut.tryLock(); }
 	void unlockVideoBuffer() { mw->vbmut.unlock(); }
 	const PixelBuffer& videoBuffer() {
-		return /*mw->videoChain.empty() ? */mw->blitterContainer->blitter()->inBuffer()/* : mw->videoChain.front()->inBuffer()*/;
+		return mw->blitterContainer->blitter()->inBuffer();
 	}
 };
 
 void MainWindow::WorkerCallback::blit(const usec_t synctimebase, const usec_t synctimeinc) {
 	struct BlitEvent : CustomEvent {
 		WorkerCallback &cb;
-		BlitEvent(WorkerCallback &cb) : cb(cb) {}
+		explicit BlitEvent(WorkerCallback &cb) : cb(cb) {}
 
 		void exec(MainWindow *const mw) {
 			if (blitRequested(cb.blitState) && mw->running) {
@@ -241,10 +230,8 @@ MainWindow::MainWindow(MediaSource *const source)
   windowSize(-1, -1),
   frameTime_(1, 60),
   focusPauseBit(0),
-//   timerId(0),
-  hz(60),
+  refreshRate(600),
   running(false),
-//   threaded(true),
   refreshRateSync(false),
   cursorHidden(false)
 {
@@ -277,7 +264,7 @@ MainWindow::MainWindow(MediaSource *const source)
 	blitterContainer->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
 	blitterContainer->setSourceSize(QSize(imageFormat.width, imageFormat.height));
 	blitterContainer->setAspectRatio(QSize(imageFormat.width, imageFormat.height));
-	connect(fullModeToggler.get(), SIGNAL(rateChange(int)), this, SLOT(hzChange(int)));
+	connect(fullModeToggler.get(), SIGNAL(rateChange(int)), this, SLOT(refreshRateChange(int)));
 	fullModeToggler->emitRate();
 
 	cursorTimer->setSingleShot(true);
@@ -308,11 +295,7 @@ void MainWindow::run() {
 	if (pauser.isPaused()) {
 		jsTimer->start();
 		worker->pause();
-	}/* else if (!threaded)
-		timerId = startTimer(0);*/
-
-// 	if (!threaded)
-// 		worker->deactivate();
+	}
 
 	SDL_JoystickUpdate();
 	SDL_ClearEvents();
@@ -325,13 +308,7 @@ void MainWindow::stop() {
 
 	worker->stop();
 	jsTimer->stop();
-// 	videoChain.clear();
 	running = false;
-
-// 	if (timerId) {
-// 		killTimer(timerId);
-// 		timerId = 0;
-// 	}
 
 	blitterContainer->blitter()->uninit();
 	blitterContainer->blitter()->setVisible(false);
@@ -342,44 +319,18 @@ void MainWindow::stop() {
 }
 
 void MainWindow::rebuildVideoChain() {
-	ImageFormat ifmt(imageFormat);
-	/*videoChain.clear(); // and delete. can we do better than complete reinitialization?
-
-	if (vfilter) {
-		VideoLink *const filterLink = vfilter->create(ifmt.width, ifmt.height, ifmt.pixelFormat);
-
-		if (filterLink->inBuffer().pixelFormat != ifmt.pixelFormat) {
-			videoChain.push_back(VideoFormatConverter::create(ifmt.width,
-					ifmt.height, ifmt.pixelFormat, vfilter->inBuffer().pixelFormat));
-		}
-
-		videoChain.push_back(filterLink);
-		ifmt.width = filterLink->outWidth();
-		ifmt.height = filterLink->outHeight();
-		ifmt.pixelFormat = filterLink->outPixelFormat();
-	}*/
-
-	/*if (!*/blitterContainer->blitter()->setVideoFormat(ifmt.width, ifmt.height/*, ifmt.pixelFormat*/)/*) {*/;
-// 		videoChain.push_back(VideoFormatConverter::create(ifmt.width, ifmt.height,
-// 				ifmt.pixelFormat, blitterContainer->blitter()->inBuffer().pixelFormat));
-// 	}
-
-// 	worker->setVideoBuffer(/*videoChain.empty() ? */blitterContainer->blitter()->inBuffer()/* : videoChain.front()->inBuffer()*/);
-}
-
-static const QSize getFilteredSize(const QSize &sz/*, const VideoFiler *const filter*/) {
-	return /*filter ? filter->outSize(sz) : */sz;
+	blitterContainer->blitter()->setVideoFormat(imageFormat.width, imageFormat.height);
 }
 
 void MainWindow::updateMinimumSize() {
 	if (layout()->sizeConstraint() != QLayout::SetFixedSize)
-		centralWidget()->setMinimumSize(getFilteredSize(QSize(imageFormat.width, imageFormat.height)/*, vfilter*/));
+		centralWidget()->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
 }
 
 void MainWindow::doSetWindowSize(const QSize &sz) {
 	if (!isFullScreen() && isVisible()) {
 		if (sz == QSize(-1, -1)) {
-			centralWidget()->setMinimumSize(getFilteredSize(QSize(imageFormat.width, imageFormat.height)/*, vfilter*/));
+			centralWidget()->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
 			layout()->setSizeConstraint(QLayout::SetMinimumSize);
 			setMinimumSize(1, 1); // needed on macx
 			setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
@@ -414,7 +365,7 @@ void MainWindow::setBlitter(BlitterWidget *const blitter) {
 		blitterContainer->setBlitter(blitter);
 		blitterContainer->blitter()->setVisible(visible);
 		blitterContainer->blitter()->setPaused(paused);
-		blitterContainer->blitter()->rateChange(hz);
+		blitterContainer->blitter()->rateChange(refreshRate);
 		updateSwapInterval();
 
 		if (running)
@@ -422,16 +373,12 @@ void MainWindow::setBlitter(BlitterWidget *const blitter) {
 	}
 }
 
-void MainWindow::setVideo(const unsigned w, const unsigned h,
-		/*const PixelBuffer::PixelFormat pf,*/ /*const VideoFilter *const vf, */BlitterWidget *const blitter)
+void MainWindow::setVideo(const unsigned w, const unsigned h, BlitterWidget *const blitter)
 {
-	if (imageFormat.width != w || imageFormat.height != h /*|| imageFormat.pixelFormat != pf*/ ||
-					/*vfilter != vf || */blitter != blitterContainer->blitter())
-	{
+	if (imageFormat.width != w || imageFormat.height != h || blitter != blitterContainer->blitter()) {
 		vbmut.lock();
-		imageFormat = ImageFormat(w, h/*, pf*/);
+		imageFormat = ImageFormat(w, h);
 		setBlitter(blitter);
-// 		vfilter = vf;
 
 		if (running)
 			rebuildVideoChain();
@@ -556,8 +503,10 @@ void MainWindow::setFrameTime(unsigned num, unsigned denom) {
 		denom = 1;
 	}
 
-	frameTime_ = Rational(num, denom);
-	updateSwapInterval();
+	if (static_cast<long>(num) != frameTime_.num || static_cast<long>(denom) != frameTime_.denom) {
+		frameTime_ = Rational(num, denom);
+		updateSwapInterval();
+	}
 }
 
 void MainWindow::waitUntilPaused() {
@@ -577,9 +526,9 @@ void MainWindow::setSyncToRefreshRate(bool on) {
 void MainWindow::correctFullScreenGeometry() {
 	const QRect &screenRect = fullModeToggler->fullScreenRect(this);
 
-	if (geometry() != screenRect) {
+	if (geometry() != screenRect)
 		setGeometry(screenRect);
-	}
+
 }
 
 void MainWindow::setFullScreenMode(const unsigned screenNo, const unsigned resIndex, const unsigned rateIndex) {
@@ -591,7 +540,7 @@ void MainWindow::setFullScreenMode(const unsigned screenNo, const unsigned resIn
 
 		if (fullModeToggler->isFullMode() && screenNo == fullModeToggler->screen()) {
 #ifdef Q_WS_WIN
-			showNormal(); // is this really neccessary anymore?
+			showNormal();
 			showFullScreen();
 #endif
 			correctFullScreenGeometry();
@@ -648,7 +597,7 @@ void MainWindow::updateSwapInterval() {
 	unsigned si = 0;
 
 	if (refreshRateSync) {
-		si = (frameTime_.num * hz + (frameTime_.denom >> 1)) / frameTime_.denom;
+		si = (frameTime_.num * refreshRate + (frameTime_.denom * 10 >> 1)) / (frameTime_.denom * 10);
 
 		if (si < 1)
 			si = 1;
@@ -659,20 +608,20 @@ void MainWindow::updateSwapInterval() {
 
 	blitterContainer->blitter()->setSwapInterval(si);
 
-	if (si)
-		worker->setFrameTime(Rational(si, hz));
-	else
+	if (si) {
+		worker->setFrameTime(Rational(si * 10, refreshRate));
+	} else
 		worker->setFrameTime(frameTime_);
 
 	worker->setFrameTimeEstimate(blitterContainer->blitter()->frameTimeEst());
 }
 
-void MainWindow::hzChange(int hz) {
-	if (hz < 1)
-		hz = 60;
+void MainWindow::refreshRateChange(int refreshRate) {
+	if (refreshRate < 1)
+		refreshRate = 600;
 
-	this->hz = hz;
-	blitterContainer->blitter()->rateChange(hz);
+	this->refreshRate = refreshRate;
+	blitterContainer->blitter()->rateChange(refreshRate);
 	updateSwapInterval();
 }
 

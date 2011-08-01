@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -57,7 +57,7 @@ static inline bool operator>(const ResInfo &l, const ResInfo &r) {
 
 static unsigned getRate(const unsigned dotclock, const unsigned htotal, const unsigned vtotal) {
 	if (unsigned long pixels = htotal * vtotal)
-		return (dotclock * 1000ul + (pixels >> 1)) / pixels;
+		return (dotclock * 10000ull + (pixels >> 1)) / pixels;
 	
 	return 0;
 }

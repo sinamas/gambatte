@@ -20,26 +20,24 @@
 #define MISCDIALOG_H
 
 class QSpinBox;
-class QCheckBox;
 
+#include "framework/persistcheckbox.h"
 #include <QDialog>
 
 class MiscDialog : public QDialog {
 	QSpinBox *const turboSpeedBox;
-	QCheckBox *const pauseOnDialogsBox;
-	QCheckBox *const pauseOnFocusOutBox;
+	PersistCheckBox pauseOnDialogs_;
+	PersistCheckBox pauseOnFocusOut_;
 	int turboSpeed_;
-	bool pauseOnDialogs_;
-	bool pauseOnFocusOut_;
 	
 	void store();
 	void restore();
 public:
-	MiscDialog(QWidget *parent = 0);
+	explicit MiscDialog(QWidget *parent = 0);
 	~MiscDialog();
 	int turboSpeed() const { return turboSpeed_; }
-	bool pauseOnDialogs() const { return pauseOnDialogs_ | pauseOnFocusOut_; }
-	bool pauseOnFocusOut() const { return pauseOnFocusOut_; }
+	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
+	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
 
 public slots:
 	void accept();

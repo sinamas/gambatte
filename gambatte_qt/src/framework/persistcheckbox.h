@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2011 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,37 +16,26 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef AUDIOENGINECONF_H
-#define AUDIOENGINECONF_H
+#ifndef PERSIST_CHECKBOX_H
+#define PERSIST_CHECKBOX_H
 
-#include "src/audioengine.h"
+#include <QString>
 
-class ConstAudioEngineConf {
-	const AudioEngine *const ae;
-	
+class QCheckBox;
+class QWidget;
+
+class PersistCheckBox {
+	QCheckBox *const checkBox_;
+	const QString key_;
+	bool value_;
+
 public:
-	explicit ConstAudioEngineConf(const AudioEngine *const ae) : ae(ae) {}
-	const QString& nameString() const { return ae->nameString(); }
-	QWidget* settingsWidget() const { return ae->settingsWidget(); }
-	void rejectSettings() const { ae->rejectSettings(); }
-	
-	bool operator==(ConstAudioEngineConf r) const { return ae == r.ae; }
-	bool operator!=(ConstAudioEngineConf r) const { return ae != r.ae; }
-};
-
-class AudioEngineConf {
-	AudioEngine *const ae;
-	
-public:
-	explicit AudioEngineConf(AudioEngine *const ae) : ae(ae) {}
-	const QString& nameString() const { return ae->nameString(); }
-	QWidget* settingsWidget() const { return ae->settingsWidget(); }
-	void acceptSettings() const { ae->acceptSettings(); }
-	void rejectSettings() const { ae->rejectSettings(); }
-	
-	bool operator==(AudioEngineConf r) const { return ae == r.ae; }
-	bool operator!=(AudioEngineConf r) const { return ae != r.ae; }
-	operator const ConstAudioEngineConf() const { return ConstAudioEngineConf(ae); }
+	PersistCheckBox(QCheckBox *checkBox, const QString &key, bool defaultValue);
+	~PersistCheckBox();
+	void accept();
+	void reject() const;
+	bool value() const { return value_; }
+	QCheckBox * checkBox() const { return checkBox_; }
 };
 
 #endif

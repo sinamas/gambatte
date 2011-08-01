@@ -46,7 +46,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	PixelBuffer::PixelFormat pixelFormat;
 	usec_t lastblank;
 	unsigned clear;
-	unsigned hz;
+	unsigned dhz;
 	unsigned swapInterval;
 	unsigned deviceIndex;
 	unsigned inWidth;
@@ -94,7 +94,7 @@ public:
 
 	QPaintEngine* paintEngine () const { return NULL; }
 
-	void rateChange(int hz);
+	void rateChange(int dhz);
 	void setSwapInterval(unsigned si);
 };
 

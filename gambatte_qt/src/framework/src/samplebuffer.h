@@ -42,7 +42,7 @@ class SampleBuffer {
 	void reset();
 	
 public:
-	SampleBuffer(MediaSource *source) : source_(source), spf_(0), ft_(1, 0), outsrate(0), resamplerNo_(1) { reset(); }
+	explicit SampleBuffer(MediaSource *source) : source_(source), spf_(0), ft_(1, 0), outsrate(0), resamplerNo_(1) { reset(); }
 	long update(const PixelBuffer &pb);
 	long read(long insamples, qint16 *out);
 	long samplesBuffered() const { return samplesBuffered_; }

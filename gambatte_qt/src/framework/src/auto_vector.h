@@ -29,6 +29,7 @@ public:
 	typedef typename std::vector<T*, Allocator>::size_type size_type;
 	explicit auto_vector(const Allocator& a = Allocator()) : std::vector<T*, Allocator>(a) {}
 	explicit auto_vector(size_type n, const Allocator& a = Allocator()) : std::vector<T*, Allocator>(n, 0, a) {}
+	explicit auto_vector(const std::vector<T*, Allocator> &v) : std::vector<T*, Allocator>(v) {}
 	
 	template<class InputIterator>
 	auto_vector(InputIterator first, InputIterator last, const Allocator& a = Allocator()) : std::vector<T*, Allocator>(first, last, a) {}

@@ -93,7 +93,7 @@ private:
 	void restore();
 	
 public:
-	InputDialog(const std::vector<Button> &buttonInfos,
+	explicit InputDialog(const std::vector<Button> &buttonInfos,
 	            bool deleteButtonActions = true,
 	            QWidget *parent = 0);
 	~InputDialog();
@@ -108,7 +108,7 @@ public slots:
 	void reject();
 };
 
-// used in implementation of InputDialog
+// used in the implementation of InputDialog, included here because it's a Q_OBJECT
 class InputBox : public QLineEdit {
 	Q_OBJECT
 
@@ -130,7 +130,7 @@ protected:
 	
 public:
 	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
-	InputBox(QWidget *nextFocus = 0);
+	explicit InputBox(QWidget *nextFocus = 0);
 	void setData(const SDL_Event &data) { setData(data.id, data.value); }
 	void setData(unsigned id, int value = KBD_VALUE);
 	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
@@ -140,7 +140,7 @@ public slots:
 	void clearData() { setData(0, NULL_VALUE); }
 };
 
-// used in implementation of InputDialog
+// used in the implementation of InputDialog, included here because it's a Q_OBJECT
 class InputBoxPair : public QObject {
 	Q_OBJECT
 

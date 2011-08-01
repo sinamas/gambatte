@@ -61,7 +61,7 @@ DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	pixelFormat(PixelBuffer::RGB32),
 	lastblank(0),
 	clear(0),
-	hz(0),
+	dhz(600),
 	swapInterval(0),
 	deviceIndex(0),
 	inWidth(1),
@@ -495,7 +495,7 @@ long DirectDrawBlitter::frameTimeEst() const {
 void DirectDrawBlitter::setSwapInterval(const unsigned newSwapInterval) {
 	if (newSwapInterval != swapInterval) {
 		swapInterval = newSwapInterval;
-		ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
+		ftEst.init(swapInterval * 10000000 / dhz);
 	}
 }
 
@@ -550,7 +550,7 @@ long DirectDrawBlitter::sync() {
 	if (exclusive & flipping) {
 		if (swapInterval) {
 			const unsigned long estft = ftEst.est();
-			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 500000 / hz : 0;
+			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 5000000 / dhz : 0;
 
 			if (!blitted)
 				finalBlit(DDBLT_WAIT);
@@ -584,7 +584,7 @@ long DirectDrawBlitter::sync() {
 		}
 	} else {
 		if (const unsigned si = swapInterval ? swapInterval : vblank) {
-			const usec_t refreshPeriod = 1000000 / hz;
+			const usec_t refreshPeriod = 10000000 / dhz;
 
 			while (getusecs() - lastblank < (si - 1) * refreshPeriod + refreshPeriod / 2)
 				Sleep(1);
@@ -648,9 +648,9 @@ void DirectDrawBlitter::rejectSettings() const {
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
-void DirectDrawBlitter::rateChange(int hz) {
-	this->hz = hz;
-	ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
+void DirectDrawBlitter::rateChange(const int dhz) {
+	this->dhz = dhz ? dhz : 600;
+	ftEst.init(swapInterval * 10000000 / this->dhz);
 }
 
 void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {

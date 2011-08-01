@@ -20,6 +20,7 @@
 #include "joysticklock.h"
 #include "SDL_joystick.h"
 #include "../mediasource.h"
+#include "skipsched.h"
 
 #ifdef Q_WS_WIN
 #include <Objbase.h> // For CoInitialize
@@ -43,33 +44,6 @@ void MediaWorker::MeanQueue::push(const long i) {
 	q.pop_front();
 	q.push_back(newelem);
 }
-
-// void MediaWorker::FrameWaiter::frameWait(const long syncft, SyncVar &waitingForSync) {
-// 	const usec_t now = getusecs();
-//
-// 	if (now - base < syncft) {
-// 		{
-// 			SyncVar::Locked wfs(waitingForSync);
-//
-// 			/*while*/if (!wfs.get() && /*wfs.wait(now, syncft - (now - base)*/ wfs.wait((syncft - (now - base)) / 1000))
-// 				;
-//
-// 			if (wfs.get())
-// 				wfs.set(false);
-// 		}
-//
-// 		asleep.sleepUntil(base, syncft);
-// 		base += syncft;
-// 	} else
-// 		base = now;
-// }
-//
-// void MediaWorker::FrameWaiter::syncedFrameWait(const long ft) {
-// 	if (ft) {
-// 		base += asleep.sleepUntil(base, ft);
-// 		base += ft;
-// 	}
-// }
 
 void MediaWorker::PauseVar::unpause(const unsigned bits) {
 	mut.lock();
@@ -108,14 +82,11 @@ meanQueue(0, 0),
 frameTimeEst(0),
 doneVar(true),
 sampleBuffer(source),
-ae(NULL),
+ae(0),
 usecft(0),
 estsrate(0),
-base(0),
-/*turbo(0), */
 aelatency(0),
-aerate(0),
-audioBufLow(false) {
+aerate(0) {
 }
 
 void MediaWorker::start() {
@@ -131,10 +102,8 @@ void MediaWorker::start() {
 
 void MediaWorker::stop() {
 	AtomicVar<bool>::Locked(doneVar).set(true);
-// 	SyncVar::Locked(syncVar_).set(PREPARE);
 	pauseVar.unpause(~0U);
 	wait();
-// 	SyncVar::Locked(syncVar_).set(0);
 	pauseVar.rewait();
 	sampleBuffer.setOutSampleRate(0);
 	sndOutBuffer.reset(0);
@@ -275,26 +244,6 @@ long MediaWorker::adaptToRateEstimation(const long estft) {
 	return calculateSyncft(sampleBuffer.resamplerOutRate(), estsrate, usecft);
 }
 
-// we try to force the sync to begin in the GUI thread before we continue, which is why this code looks a bit funky.
-// static void signalSync(SyncVar &syncVar, MediaWorker::Callback *cb) {
-// // 	unsigned sync;
-//
-// 	{
-// 		SyncVar::Locked sv(syncVar);
-// 		sv.set(/*sync = */(sv.get() & PREPARE) ? 0 : SYNC);
-// 	}
-//
-// // 	if (sync)
-// // 		cb->sync();
-//
-// 	{
-// 		SyncVar::Locked sv(syncVar);
-//
-// 		while (sv.get() & SYNC)
-// 			sv.wait();
-// 	}
-// }
-
 long MediaWorker::sourceUpdate() {
 	class VidBuf {
 		Callback *cb;
@@ -311,7 +260,6 @@ long MediaWorker::sourceUpdate() {
 		const PixelBuffer& get() const { return pb; }
 	} vidbuf(callback.get());
 
-// 	turbo += turbo << 4;
 	updateJoysticks();
 	return sampleBuffer.update(vidbuf.get());
 }
@@ -342,15 +290,6 @@ static usec_t frameWait(const usec_t base, const usec_t syncft, SyncVar &waiting
 }
 
 static void blitWait(MediaWorker::Callback *const cb, SyncVar &waitingForSync) {
-// 	unsigned notAcked;
-//
-// 	{
-// 		SyncVar::Locked sv(syncVar);
-//
-// 		if ((notAcked = sv.get() & PREPARE))
-// 			sv.set(0);
-// 	}
-
 	if (!cb->cancelBlit()) {
 		SyncVar::Locked wfs(waitingForSync);
 
@@ -370,10 +309,30 @@ static bool audioBufIsLow(const AudioEngine::BufferState &bstate, const int outs
 
 void MediaWorker::run() {
 #ifdef Q_WS_WIN
-	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	const class CoInit : Uncopyable {
+	public:
+		CoInit() { CoInitializeEx(NULL, COINIT_MULTITHREADED); }
+		~CoInit() { CoUninitialize(); }
+	} coinit;
 #endif
-	if (ae)
-		initAudioEngine();
+
+	const class AeInit : Uncopyable {
+		MediaWorker &w_;
+	public:
+		explicit AeInit(MediaWorker &w) : w_(w) {
+			if (w.ae)
+				w.initAudioEngine();
+		}
+		
+		~AeInit() {
+			if (w_.ae)
+				w_.ae->uninit();
+		}
+	} aeinit(*this);
+	
+	SkipSched skipSched;
+	bool audioBufLow = false;
+	usec_t base = 0;
 
 	for (;;) {
 		pauseVar.waitWhilePaused(callback.get(), ae);
@@ -387,15 +346,18 @@ void MediaWorker::run() {
 			sampleBuffer.read(blitSamples >= 0 ? blitSamples : sampleBuffer.samplesBuffered(), 0);
 		} else {
 			const long syncft = blitSamples >= 0 ? adaptToRateEstimation(AtomicVar<long>::ConstLocked(frameTimeEst).get()) : 0;
-			const bool blit = blitSamples >= 0 && !skipSched.skipNext(audioBufLow);
+			const bool blit   = blitSamples >= 0 && !skipSched.skipNext(audioBufLow);
 
 			if (blit)
 				callback->blit(base, syncft);
 
 			{
-				const long outsamples = sampleBuffer.read(blit ? blitSamples : sampleBuffer.samplesBuffered(),
-												static_cast<qint16*>(sndOutBuffer));
-				AudioEngine::BufferState bstate = { AudioEngine::BufferState::NOT_SUPPORTED, AudioEngine::BufferState::NOT_SUPPORTED };
+				const long outsamples = sampleBuffer.read(
+						blit ? blitSamples : sampleBuffer.samplesBuffered(),
+						static_cast<qint16*>(sndOutBuffer));
+
+				AudioEngine::BufferState bstate = { AudioEngine::BufferState::NOT_SUPPORTED,
+				                                    AudioEngine::BufferState::NOT_SUPPORTED };
 
 				if (ae->rate() > 0 && ae->write(sndOutBuffer, outsamples, bstate, estsrate) < 0) {
 					ae->pause();
@@ -412,120 +374,22 @@ void MediaWorker::run() {
 			}
 		}
 	}
-
-	ae->uninit();
-
-#ifdef Q_WS_WIN
-	CoUninitialize();
-#endif
 }
 
 bool MediaWorker::frameStep() {
 	const long blitSamples = sourceUpdate();
+	const long outsamples = sampleBuffer.read(
+			blitSamples >= 0 ? blitSamples : sampleBuffer.samplesBuffered(),
+			static_cast<qint16*>(sndOutBuffer));
 
-	{
-		const long outsamples = sampleBuffer.read(blitSamples >= 0 ? blitSamples : sampleBuffer.samplesBuffered(),
-								static_cast<qint16*>(sndOutBuffer));
-
-		if (ae->rate() > 0) {
-			if (ae->write(sndOutBuffer, outsamples) < 0) {
-				ae->pause();
-				pauseVar.pause(8);
-				callback->audioEngineFailure();
-			} else
-				ae->pause();
-		}
+	if (ae->rate() > 0) {
+		if (ae->write(sndOutBuffer, outsamples) < 0) {
+			ae->pause();
+			pauseVar.pause(8);
+			callback->audioEngineFailure();
+		} else
+			ae->pause();
 	}
 
 	return blitSamples >= 0;
 }
-
-
-#if 0
-
-// returns syncft
-long MediaWorker::adaptToRateEstimation(const long estft) {
-	if (estft) {
-		meanQueue.push(static_cast<long>(static_cast<float>(estsrate) * estft / (usecft - (usecft >> 11)) + 0.5f));
-
-		const long mean = meanQueue.mean();
-		const long var = std::max(meanQueue.var(), 1);
-
-		if (sampleBuffer.resamplerOutRate() < mean || sampleBuffer.resamplerOutRate() > mean + var * 2)
-			adjustResamplerRate(mean + var);
-
-		return 0;
-	}
-
-	if (sampleBuffer.resamplerOutRate() != ae->rate())
-		adjustResamplerRate(ae->rate());
-
-	return calculateSyncft(ae->rate(), estsrate, usecft);
-}
-
-void MediaWorker::syncedUpdate(BlitterWidget *const blitter) {
-	CallQ::Locked(callq)->pop_all();
-
-	if (!ae || ae->rate() < 0) { // avoid stupid recursive call detection by checking here rather than on init.
-		emit soundEngineFailure();
-		return;
-	}
-
-	long outsamples = 0;
-	pauseVar.unwait();
-	const bool blit = sourceUpdate(&outsamples);
-	pauseVar.rewait();
-	const long syncft = blit ? adaptToRateEstimation(blitter->frameTimeEst()) : 0;
-
-	if (blit)
-		blitter->prepare();
-
-	if (!(turbo & 0x30) && ae->write(sndOutBuffer, outsamples, bstate, estsrate) < 0) {
-		ae->pause();
-		emit soundEngineFailure();
-		return;
-	}
-
-	if (blit) {
-		frameWaiter.syncedFrameWait(syncft);
-
-		if (blitter->sync() < 0) {
-			emit videoEngineFailure();
-			return;
-		}
-	}
-}
-
-void MainWindow::timerEvent(QTimerEvent*) {
-	worker->syncedUpdate(blitter);
-	workerPaused(this);
-}
-
-// NOTE: callInGuiThread
-void MainWindow::setThreaded(const bool threaded) {
-	if (threaded ^ this->threaded) {
-		this->threaded = threaded;
-
-		if (running) {
-			if (threaded) {
-				if (timerId)
-					killTimer(timerId);
-
-				timerId = 0;
-				worker->reactivate();
-			} else {
-				struct StartTimer {
-					void operator()(MainWindow *const mw) {
-						if (mw->running && mw->threaded)
-							mw->timerId = mw->startTimer(0);
-					}
-				};
-
-				worker->deactivate();
-				callWhenPaused(StartTimer());
-			}
-		}
-	}
-}
-
-#endif

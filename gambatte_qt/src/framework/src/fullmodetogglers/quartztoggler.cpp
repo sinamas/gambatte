@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -44,7 +44,7 @@ static void addMode(CFDictionaryRef mode, std::vector<ResInfo> &infoVector, unsi
 		
 		info.w = w;
 		info.h = h;
-		rate = static_cast<short>(r + 0.5);
+		rate = static_cast<short>(r * 10.0 + 0.5);
 	}
 	
 	std::vector<ResInfo>::iterator it = std::lower_bound(infoVector.begin(), infoVector.end(), info, std::greater<ResInfo>());
@@ -156,7 +156,7 @@ void QuartzToggler::setFullMode(const bool enable) {
 			bpp,
 			infoVector[widgetScreen][fullResIndex[widgetScreen]].w,
 			infoVector[widgetScreen][fullResIndex[widgetScreen]].h,
-			infoVector[widgetScreen][fullResIndex[widgetScreen]].rates[fullRateIndex[widgetScreen]],
+			infoVector[widgetScreen][fullResIndex[widgetScreen]].rates[fullRateIndex[widgetScreen]] / 10.0,
 			NULL
 		);
 		
@@ -174,8 +174,8 @@ void QuartzToggler::setFullMode(const bool enable) {
 		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(currentMode, kCGDisplayRefreshRate)), kCFNumberDoubleType, &oldRate);
 		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(mode, kCGDisplayRefreshRate)), kCFNumberDoubleType, &newRate);
 		
-		if (static_cast<int>(oldRate + 0.5) != static_cast<int>(newRate + 0.5))
-			emit rateChange(static_cast<int>(newRate + 0.5));
+		if (static_cast<int>(oldRate * 10.0 + 0.5) != static_cast<int>(newRate * 10.0 + 0.5))
+			emit rateChange(static_cast<int>(newRate * 10.0 + 0.5));
 	}
 	
 	isFull = enable;
@@ -186,5 +186,5 @@ void QuartzToggler::emitRate() {
 	
 	CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(CGDisplayCurrentMode(activeDspys[widgetScreen]), kCGDisplayRefreshRate)), kCFNumberDoubleType, &rate);
 	
-	emit rateChange(static_cast<int>(rate + 0.5));
+	emit rateChange(static_cast<int>(rate * 10.0 + 0.5));
 }

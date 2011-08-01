@@ -171,7 +171,7 @@ static void* getpbdata(const PixelBuffer &pb, const unsigned vsrci) {
 	return pb.width == VfilterInfo::get(vsrci).outWidth && pb.height == VfilterInfo::get(vsrci).outHeight ? pb.data : 0;
 }
 
-long GambatteSource::update(const PixelBuffer &pb, qint16 *soundBuf, long &samples) {
+long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long &samples) {
 	setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
 	samples -= overupdate;
 	
@@ -184,9 +184,9 @@ long GambatteSource::update(const PixelBuffer &pb, qint16 *soundBuf, long &sampl
 	setGbDir(inputState[LEFT_BUT], inputState[RIGHT_BUT], dpadLeft, dpadRight, dpadLeftLast);
 	inputGetter.is = packedInputState(inputState);
 	
-	unsigned isamples = samples;
-	const int retval = gb.runFor(gbpixels, gbpitch, reinterpret_cast<uint_least32_t*>(soundBuf), isamples);
-	samples = isamples;
+	unsigned usamples = samples;
+	const long retval = gb.runFor(gbpixels, gbpitch, reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
+	samples = usamples;
 	
 	return retval;
 }

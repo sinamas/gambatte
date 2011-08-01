@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre Aamï¿½s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -76,7 +76,7 @@ Direct3DBlitter::Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	backBufferWidth(1),
 	backBufferHeight(1),
 	clear(0),
-	hz(0),
+	dhz(600),
 	swapInterval(0),
 	adapterIndex(0),
 	exclusive(false),
@@ -329,7 +329,7 @@ void Direct3DBlitter::setSwapInterval(const unsigned newSwapInterval) {
 	if (newSwapInterval != swapInterval) {
 		swapInterval = newSwapInterval;
 		resetDevice();
-		ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
+		ftEst.init(swapInterval * 10000000 / dhz);
 	}
 }
 
@@ -356,7 +356,7 @@ void Direct3DBlitter::present() {
 	if (device) {
 		if (swapInterval) {
 			const unsigned long estft = ftEst.est();
-			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 500000 / hz : 0;
+			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 5000000 / dhz : 0;
 
 			device->Present(NULL, NULL, 0, NULL);
 
@@ -590,9 +590,9 @@ void Direct3DBlitter::rejectSettings() const {
 	bfBox->setChecked(bf);
 }
 
-void Direct3DBlitter::rateChange(int hz) {
-	this->hz = hz;
-	ftEst.init(hz ? swapInterval * 1000000 / hz : 0);
+void Direct3DBlitter::rateChange(const int dhz) {
+	this->dhz = dhz ? dhz : 600;
+	ftEst.init(swapInterval * 10000000 / this->dhz);
 }
 
 void Direct3DBlitter::resizeEvent(QResizeEvent */*e*/) {

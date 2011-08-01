@@ -34,17 +34,15 @@ class SoundDialog;
 class VideoDialog;
 class MiscDialog;
 
-class GambatteMenuHandler : public QObject {
+class FrameRateAdjuster : public QObject {
 	Q_OBJECT
-		
-	enum { MaxRecentFiles = 9 };
 	
 	class FrameTime {
 	public:
 		struct Rational {
 			unsigned num;
 			unsigned denom;
-			Rational(unsigned num = 0, unsigned denom = 0) : num(num), denom(denom) {}
+			Rational(unsigned num = 0, unsigned denom = 1) : num(num), denom(denom) {}
 		};
 		
 	private:
@@ -71,11 +69,33 @@ class GambatteMenuHandler : public QObject {
 		}
 		
 		void reset() { index = STEPS; }
+		const Rational& get() const { return frameTimes[index]; }
+		const Rational& base() const { return frameTimes[STEPS]; }
+	} frameTime_;
+	
+	QAction *const decFrameRateAction_;
+	QAction *const incFrameRateAction_;
+	QAction *const resetFrameRateAction_;
+	MainWindow *const mw_;
+	bool enabled_;
+	
+	void changed();
+	
+public:
+	FrameRateAdjuster(unsigned baseNum, unsigned baseDenom, MainWindow *mw, QObject *parent = 0);
+	const QList<QAction*> actions();
+	
+public slots:
+	void setDisabled(bool disabled);
+	void decFrameRate();
+	void incFrameRate();
+	void resetFrameRate();
+};
+
+class GambatteMenuHandler : public QObject {
+	Q_OBJECT
 		
-		const Rational& get() const {
-			return frameTimes[index];
-		}
-	};
+	enum { MaxRecentFiles = 9 };
 	
 	MainWindow *const mw;
 	GambatteSource *const source;
@@ -83,23 +103,17 @@ class GambatteMenuHandler : public QObject {
 	VideoDialog *const videoDialog;
 	MiscDialog *const miscDialog;
 	QAction *recentFileActs[MaxRecentFiles];
-	QAction *romPaletteAct;
 	QAction *pauseAction;
 	QAction *syncFrameRateAction;
-	QAction *decFrameRateAction;
-	QAction *incFrameRateAction;
-	QAction *resetFrameRateAction;
 	QAction *forceDmgAction;
 #ifdef Q_WS_MAC
 	QAction *fsAct;
 #endif
 	QMenu *recentMenu;
-	QMenu *stateSlotMenu;
 	PaletteDialog *globalPaletteDialog;
 	PaletteDialog *romPaletteDialog;
-	QActionGroup *stateSlotGroup;
-	QList<QAction*> romLoadedActions;
-	FrameTime frameTime;
+	QActionGroup *const stateSlotGroup;
+	FrameRateAdjuster frameRateAdjuster;
 	QSize wsz;
 	unsigned pauseInc;
 	
@@ -107,7 +121,10 @@ class GambatteMenuHandler : public QObject {
 	void setCurrentFile(const QString &fileName);
 	void setDmgPaletteColors();
 	void updateRecentFileActions();
-	void frameRateChange();
+	
+signals:
+	void romLoaded(bool);
+	void dmgRomLoaded(bool);
 	
 private slots:
 	void open();
@@ -133,10 +150,6 @@ private slots:
 	void loadStateFrom();
 	void pauseChange();
 	void frameStep();
-	void syncFrameRate();
-	void decFrameRate();
-	void incFrameRate();
-	void resetFrameRate();
 	void escPressed();
 	void videoBlitterFailure();
 	void audioEngineFailure();

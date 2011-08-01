@@ -20,10 +20,9 @@
 #define X11BLITTER_H
 
 #include "../blitterwidget.h"
-
+#include "../../persistcheckbox.h"
+#include "array.h"
 #include <memory>
-
-class QCheckBox;
 
 class X11Blitter : public BlitterWidget {
 	class SubBlitter;
@@ -37,13 +36,9 @@ class X11Blitter : public BlitterWidget {
 	
 	const std::auto_ptr<QWidget> confWidget;
 	std::auto_ptr<SubBlitter> subBlitter;
-	QCheckBox *const bfBox;
-	char *buffer;
-	unsigned int inWidth, inHeight;
+	PersistCheckBox bf_;
+	Array<char> buffer;
 	VisInfo visInfo;
-// 	unsigned int scale;
-	bool shm;
-	bool bf;
 	
 protected:
 	void setBufferDimensions(const unsigned width, const unsigned height);
@@ -51,7 +46,7 @@ protected:
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	X11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	explicit X11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~X11Blitter();
 	void init();
 	void uninit();
@@ -62,7 +57,7 @@ public:
 	void acceptSettings();
 	void rejectSettings() const;
 	
-	QPaintEngine* paintEngine() const { return NULL; }
+	QPaintEngine* paintEngine() const { return 0; }
 };
 
 #endif

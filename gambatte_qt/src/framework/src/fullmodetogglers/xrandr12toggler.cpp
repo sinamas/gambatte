@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "xrandr12toggler.h"
+#include "uncopyable.h"
 #include <functional>
 #include <algorithm>
 #include <QWidget>
@@ -30,9 +31,9 @@ static inline bool operator>(const ResInfo &l, const ResInfo &r) {
 	return l.w > r.w || (l.w == r.w && l.h > r.h);
 }
 
-static unsigned getRate(const unsigned dotclock, const unsigned htotal, const unsigned vtotal) {
+static unsigned getRate(const unsigned long dotclock, const unsigned htotal, const unsigned vtotal) {
 	if (unsigned long pixels = htotal * vtotal)
-		return (dotclock + (pixels >> 1)) / pixels;
+		return (dotclock * 10ull + (pixels >> 1)) / pixels;
 	
 	return 0;
 }
@@ -76,19 +77,19 @@ static XRRModeInfo* getModeInfo(const XRRScreenResources *const resources, const
 }
 
 static bool isGood(const RRMode mode, const std::vector<XRROutputInfo*> &outputInfos) {
-	bool good = true;
-				
-	for (std::size_t o = 0; o < outputInfos.size() && good; ++o) {
-		int mm = 0;
-					
-		while ((good = mm < outputInfos[o]->nmode) && outputInfos[o]->modes[mm] != mode)
-			++mm;
+	for (std::size_t o = 0; o < outputInfos.size(); ++o) {
+		RRMode *const modesEnd = outputInfos[o]->modes + outputInfos[o]->nmode;
+		
+		if (std::find(outputInfos[o]->modes, modesEnd, mode) == modesEnd)
+			return false;
 	}
-			
-	return good;
+
+	return true;
 }
 
-class OutputInfos {
+namespace {
+
+class OutputInfos : Uncopyable {
 	std::vector<XRROutputInfo*> v;
 public:
 	OutputInfos(XRRScreenResources *resources, const XRRCrtcInfo *crtcInfo);
@@ -96,8 +97,10 @@ public:
 	const std::vector<XRROutputInfo*>& get() { return v; }
 };
 
-OutputInfos::OutputInfos(XRRScreenResources *const resources, const XRRCrtcInfo *const crtcInfo) : v(crtcInfo->noutput) {
-	for (int i = 0; i < crtcInfo->noutput;) {
+OutputInfos::OutputInfos(XRRScreenResources *const resources, const XRRCrtcInfo *const crtcInfo)
+: v(crtcInfo ? crtcInfo->noutput : 0)
+{
+	for (std::size_t i = 0; i < v.size();) {
 		v[i] = XRRGetOutputInfo(QX11Info::display(), resources, crtcInfo->outputs[i]);
 		
 		if (v[i])
@@ -112,11 +115,12 @@ OutputInfos::~OutputInfos() {
 		XRRFreeOutputInfo(v[i]);
 }
 
-class CrtcInfoPtr {
+class CrtcInfoPtr : Uncopyable {
 	XRRCrtcInfo *const crtcInfo;
 	
 public:
-	CrtcInfoPtr(XRRScreenResources *const resources, const RRCrtc crtc) : crtcInfo(XRRGetCrtcInfo(QX11Info::display(), resources, crtc)) {}
+	CrtcInfoPtr(XRRScreenResources *const resources, const RRCrtc crtc)
+	: crtcInfo(XRRGetCrtcInfo(QX11Info::display(), resources, crtc)) {}
 	~CrtcInfoPtr() { if (crtcInfo) XRRFreeCrtcInfo(crtcInfo); }
 	operator XRRCrtcInfo*() { return crtcInfo; }
 	operator const XRRCrtcInfo*() const { return crtcInfo; }
@@ -146,6 +150,8 @@ static RRMode getMode(XRRScreenResources *const resources, const XRRCrtcInfo *co
 	}
 	
 	return crtcInfo->mode;
+}
+
 }
 
 bool XRandR12Toggler::isUsable() {
@@ -300,8 +306,7 @@ void XRandR12Toggler::setFullMode(const bool enable) {
 }
 
 void XRandR12Toggler::emitRate() {
-	CrtcInfoPtr crtcInfo(resources, resources->crtcs[widgetScreen]);
-	
+	const CrtcInfoPtr crtcInfo(resources, resources->crtcs[widgetScreen]);
 	short rate = 0;
 	
 	if (crtcInfo) {
@@ -310,4 +315,13 @@ void XRandR12Toggler::emitRate() {
 	}
 	
 	emit rateChange(rate);
+}
+
+const QString XRandR12Toggler::screenName(const unsigned screen) const {
+	OutputInfos outputInfos(resources, CrtcInfoPtr(resources, resources->crtcs[screen]));
+	
+	if (!outputInfos.get().empty())
+		return QString(outputInfos.get()[0]->name);
+	
+	return FullModeToggler::screenName(screen);
 }

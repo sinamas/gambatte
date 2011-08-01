@@ -40,7 +40,7 @@ class FtEst {
 	unsigned count;
 
 public:
-	FtEst(long frameTime = 0) { init(frameTime); }
+	explicit FtEst(long frameTime = 0) { init(frameTime); }
 	void init(long frameTime);
 	void update(usec_t t);
 	long est() const { return (ftAvg + UP / 2) >> UPSHIFT; }
@@ -51,8 +51,6 @@ class BlitterWidget : public QWidget {
 	VideoBufferLocker vbl;
 	const QString nameString_;
 	const unsigned maxSwapInterval_;
-	
-private:
 	bool paused;
 	
 protected:
@@ -93,7 +91,10 @@ public:
 // 		return pf == pixbuf.pixelFormat;
 	}
 	
-	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) { setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h); }
+	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) {
+		setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h);
+	}
+	
 	virtual long frameTimeEst() const { return 0; }
 	virtual long sync() { return 0; }
 	virtual void setExclusive(bool) {}

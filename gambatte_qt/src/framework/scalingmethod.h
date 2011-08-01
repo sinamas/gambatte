@@ -19,6 +19,6 @@
 #ifndef SCALINGMETHOD_H
 #define SCALINGMETHOD_H
 
-enum ScalingMethod { UNRESTRICTED, KEEP_RATIO, INTEGER };
+enum ScalingMethod { UNRESTRICTED, KEEP_RATIO, INTEGER }; enum { NUM_SCALING_METHODS = INTEGER + 1 };
 
 #endif

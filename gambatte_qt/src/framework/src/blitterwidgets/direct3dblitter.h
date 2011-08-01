@@ -50,7 +50,7 @@ class Direct3DBlitter : public BlitterWidget {
 	unsigned backBufferWidth;
 	unsigned backBufferHeight;
 	unsigned clear;
-	unsigned hz;
+	unsigned dhz;
 	unsigned swapInterval;
 	unsigned adapterIndex;
 	bool exclusive;
@@ -94,7 +94,7 @@ public:
 
 	QPaintEngine* paintEngine () const { return NULL; }
 	void setSwapInterval(unsigned si);
-	void rateChange(int hz);
+	void rateChange(int dhz);
 };
 
 #endif /*DIRECT3DBLITTER_H_*/

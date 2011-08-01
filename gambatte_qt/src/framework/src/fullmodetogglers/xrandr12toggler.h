@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,10 +20,11 @@
 #define XRANDR12TOGGLER_H_
 
 #include "../fullmodetoggler.h"
+#include "uncopyable.h"
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-class XRandR12Toggler : public FullModeToggler {
+class XRandR12Toggler : public FullModeToggler, Uncopyable {
 	Q_OBJECT
 		
 	RRMode originalMode;
@@ -49,6 +50,7 @@ public:
 	void setScreen(const QWidget *widget);
 	unsigned screen() const { return widgetScreen; }
 	unsigned screens() const { return infoVector.size(); }
+	const QString screenName(unsigned screen) const;
 	
 signals:
 	void rateChange(int newHz);

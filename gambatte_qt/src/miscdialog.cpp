@@ -25,45 +25,45 @@
 #include <QPushButton>
 #include <QSettings>
 
+template<class Parent, class ChildLayout>
+static ChildLayout * addLayout(Parent *const parent, ChildLayout *const child) {
+	parent->addLayout(child);
+	return child;
+}
+
+template<class Parent, class ChildLayout>
+static ChildLayout * addLayout(Parent *const parent, ChildLayout *const child, const Qt::Alignment alignment) {
+	parent->addLayout(child);
+	parent->setAlignment(child, alignment);
+	return child;
+}
+
 MiscDialog::MiscDialog(QWidget *const parent) :
 QDialog(parent),
 turboSpeedBox(new QSpinBox(this)),
-pauseOnDialogsBox(new QCheckBox(tr("Pause when displaying dialogs"), this)),
-pauseOnFocusOutBox(new QCheckBox(tr("Pause on focus out"), this)),
-turboSpeed_(4),
-pauseOnDialogs_(true),
-pauseOnFocusOut_(false) {
+pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true),
+pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
+turboSpeed_(4) {
 	setWindowTitle(tr("Miscellaneous Settings"));
-	QVBoxLayout *const mainLayout = new QVBoxLayout;
-	QVBoxLayout *const topLayout = new QVBoxLayout;
+	turboSpeedBox->setRange(2, 16);
+	turboSpeedBox->setSuffix("x");
+	
+	QVBoxLayout *const mainLayout = new QVBoxLayout(this);
+	QVBoxLayout *const topLayout = addLayout(mainLayout, new QVBoxLayout);
 	
 	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Fast-forward speed:")));
-		turboSpeedBox->setRange(2, 16);
-		turboSpeedBox->setSuffix("x");
 		hLayout->addWidget(turboSpeedBox);
-		topLayout->addLayout(hLayout);
 	}
 	
-	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(pauseOnDialogsBox);
-		topLayout->addLayout(hLayout);
-	}
-	
-	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(pauseOnFocusOutBox);
-		topLayout->addLayout(hLayout);
-	}
-	
-	mainLayout->addLayout(topLayout);
+	addLayout(topLayout, new QHBoxLayout)->addWidget(pauseOnDialogs_.checkBox());
+	addLayout(topLayout, new QHBoxLayout)->addWidget(pauseOnFocusOut_.checkBox());
 	
 	{
 		QPushButton *const okButton = new QPushButton(tr("OK"), this);
 		QPushButton *const cancelButton = new QPushButton(tr("Cancel"), this);
-		QHBoxLayout *const hLayout = new QHBoxLayout;
+		QHBoxLayout *const hLayout = addLayout(mainLayout, new QHBoxLayout, Qt::AlignBottom | Qt::AlignRight);
 		
 		hLayout->addWidget(okButton);
 		hLayout->addWidget(cancelButton);
@@ -72,42 +72,27 @@ pauseOnFocusOut_(false) {
 		
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-		
-		mainLayout->addLayout(hLayout);
-		mainLayout->setAlignment(hLayout, Qt::AlignBottom | Qt::AlignRight);
 	}
 	
-	setLayout(mainLayout);
-	
-	QSettings settings;
-	settings.beginGroup("misc");
-	turboSpeed_ = std::min(std::max(settings.value("turboSpeed", turboSpeed_).toInt(), 2), 16);
-	pauseOnDialogs_ = settings.value("pauseOnDialogs", pauseOnDialogs_).toBool();
-	pauseOnFocusOut_ = settings.value("pauseOnFocusOut", pauseOnFocusOut_).toBool();
-	settings.endGroup();
-	
+	turboSpeed_ = std::min(std::max(QSettings().value("misc/turboSpeed", turboSpeed_).toInt(), 2), 16);
 	restore();
 }
 
 MiscDialog::~MiscDialog() {
 	QSettings settings;
-	settings.beginGroup("misc");
-	settings.setValue("turboSpeed", turboSpeed_);
-	settings.setValue("pauseOnDialogs", pauseOnDialogs_);
-	settings.setValue("pauseOnFocusOut", pauseOnFocusOut_);
-	settings.endGroup();
+	settings.setValue("misc/turboSpeed", turboSpeed_);
 }
 
 void MiscDialog::store() {
 	turboSpeed_ = turboSpeedBox->value();
-	pauseOnDialogs_ = pauseOnDialogsBox->isChecked();
-	pauseOnFocusOut_ = pauseOnFocusOutBox->isChecked();
+	pauseOnDialogs_.accept();
+	pauseOnFocusOut_.accept();
 }
 
 void MiscDialog::restore() {
 	turboSpeedBox->setValue(turboSpeed_);
-	pauseOnDialogsBox->setChecked(pauseOnDialogs_);
-	pauseOnFocusOutBox->setChecked(pauseOnFocusOut_);
+	pauseOnDialogs_.reject();
+	pauseOnFocusOut_.reject();
 }
 
 void MiscDialog::accept() {

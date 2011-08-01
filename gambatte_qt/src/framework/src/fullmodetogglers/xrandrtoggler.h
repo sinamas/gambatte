@@ -20,15 +20,16 @@
 #define XRANDRTOGGLER_H
 
 #include "../fullmodetoggler.h"
+#include "uncopyable.h"
 
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-class XRandRToggler : public FullModeToggler {
+class XRandRToggler : public FullModeToggler, Uncopyable {
 	Q_OBJECT
 		
 	std::vector<ResInfo> infoVector;
-	XRRScreenConfiguration *config;
+	XRRScreenConfiguration *const config;
 	unsigned originalResIndex;
 	unsigned fullResIndex;
 	Rotation rotation;

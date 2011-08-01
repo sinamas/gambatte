@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "../blitterwidget.h"
+#include "uncopyable.h"
 
 #include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
@@ -33,22 +34,38 @@ class XvBlitter : public BlitterWidget {
 	class ShmBlitter;
 	class PlainBlitter;
 	
-// 	XShmSegmentInfo shminfo;
+	class ConfWidget {
+		const std::auto_ptr<QWidget> widget_;
+		QComboBox *const portSelector_;
+		unsigned portIndex_;
+		
+	public:
+		ConfWidget();
+		~ConfWidget();
+		void store();
+		void restore() const;
+		XvPortID portId() const;
+		int formatId() const;
+		int numPorts() const;
+		QWidget * qwidget() const { return widget_.get(); }
+	};
+	
+	class PortGrabber : Uncopyable {
+		XvPortID port_;
+		bool grabbed_;
+	public:
+		PortGrabber();
+		~PortGrabber();
+		bool grab(XvPortID port);
+		void ungrab();
+		bool grabbed() const { return grabbed_; }
+		XvPortID port() const { return port_; }
+	};
+	
+	ConfWidget confWidget;
+	PortGrabber portGrabber;
 	std::auto_ptr<SubBlitter> subBlitter;
-	XvPortID xvport;
-// 	u_int16_t *xvbuffer;
-// 	u_int32_t *yuv_table;
-// 	XvImage *xvimage;
-	const std::auto_ptr<QWidget> confWidget;
-	QComboBox *const portSelector;
-	unsigned int inWidth, inHeight;
-	int old_w, old_h;
-	unsigned portIndex;
 	GC gc;
-// 	bool init;
-	bool shm;
-	bool portGrabbed;
-	bool failed;
 	bool initialized;
 	
 	void initPort();
@@ -59,7 +76,7 @@ protected:
 // 	void resizeEvent(QResizeEvent *event);
 
 public:
-	XvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	explicit XvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~XvBlitter();
 	void init();
 	void uninit();
@@ -68,7 +85,7 @@ public:
 	void setBufferDimensions(const unsigned int width, const unsigned int height);
 	void blit();
 	
-	QWidget* settingsWidget() const { return confWidget.get(); }
+	QWidget* settingsWidget() const { return confWidget.qwidget(); }
 	void acceptSettings();
 	void rejectSettings() const;
 	

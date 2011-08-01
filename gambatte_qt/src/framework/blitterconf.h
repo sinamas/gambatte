@@ -48,7 +48,6 @@ public:
 	
 	bool operator==(BlitterConf r) const { return blitter == r.blitter; }
 	bool operator!=(BlitterConf r) const { return blitter != r.blitter; }
-	operator ConstBlitterConf() { return ConstBlitterConf(blitter); }
 	operator const ConstBlitterConf() const { return ConstBlitterConf(blitter); }
 };
 

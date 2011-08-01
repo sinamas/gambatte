@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,23 +20,21 @@
 #define QGLBLITTER_H
 
 #include "../blitterwidget.h"
+#include "../../persistcheckbox.h"
+#include "array.h"
 #include <memory>
-
-class QCheckBox;
 
 class QGLBlitter : public BlitterWidget {
 	class SubWidget;
 	
 	FtEst ftEst;
-	SubWidget *subWidget;
 	const std::auto_ptr<QWidget> confWidget;
-	QCheckBox *const vsyncBox;
-	QCheckBox *const bfBox;
-	quint32 *buffer;
+	PersistCheckBox vsync_;
+	PersistCheckBox bf_;
+	Array<quint32> buffer;
 	unsigned swapInterval_;
-	int hz;
-	bool vsync;
-	bool bf;
+	int dhz;
+	std::auto_ptr<SubWidget> subWidget;
 	
 	void resetSubWidget();
 	void privSetPaused(const bool /*paused*/) {}
@@ -46,9 +44,8 @@ protected:
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	QGLBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	explicit QGLBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~QGLBlitter();
-// 	void init();
 	void uninit();
 	bool isUnusable() const;
 	void setCorrectedGeometry(int w, int h, int new_w, int new_h);
@@ -58,12 +55,11 @@ public:
 	long sync();
 	QWidget* settingsWidget() const { return confWidget.get(); }
 	
-// // 	public slots:
 	void acceptSettings();
 	void rejectSettings() const;
 	
 	void setSwapInterval(unsigned);
-	void rateChange(int hz);
+	void rateChange(int dhz);
 	
 };
 
