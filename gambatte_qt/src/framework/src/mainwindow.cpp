@@ -226,7 +226,6 @@ MainWindow::MainWindow(MediaSource *const source)
   fullModeToggler(getFullModeToggler(winId())),
   cursorTimer(new QTimer(this)),
   jsTimer(new QTimer(this)),
-  imageFormat(320, 240),
   windowSize(-1, -1),
   frameTime_(1, 60),
   focusPauseBit(0),
@@ -261,9 +260,9 @@ MainWindow::MainWindow(MediaSource *const source)
 	worker->setSamplesPerFrame(Rational(48000 / 60));
 	blitterContainer->setBlitter(blitters.back());
 	blitterContainer->blitter()->setPaused(false);
-	blitterContainer->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
-	blitterContainer->setSourceSize(QSize(imageFormat.width, imageFormat.height));
-	blitterContainer->setAspectRatio(QSize(imageFormat.width, imageFormat.height));
+	blitterContainer->setMinimumSize(QSize(320, 240));
+	blitterContainer->setSourceSize(QSize(320, 240));
+	blitterContainer->setAspectRatio(QSize(320, 240));
 	connect(fullModeToggler.get(), SIGNAL(rateChange(int)), this, SLOT(refreshRateChange(int)));
 	fullModeToggler->emitRate();
 
@@ -290,7 +289,8 @@ void MainWindow::run() {
 
 	blitterContainer->blitter()->setVisible(true);
 	blitterContainer->blitter()->init();
-	rebuildVideoChain();
+	blitterContainer->blitter()->setVideoFormat(blitterContainer->sourceSize().width(),
+	                                            blitterContainer->sourceSize().height());
 
 	if (pauser.isPaused()) {
 		jsTimer->start();
@@ -318,19 +318,10 @@ void MainWindow::stop() {
 #endif
 }
 
-void MainWindow::rebuildVideoChain() {
-	blitterContainer->blitter()->setVideoFormat(imageFormat.width, imageFormat.height);
-}
-
-void MainWindow::updateMinimumSize() {
-	if (layout()->sizeConstraint() != QLayout::SetFixedSize)
-		centralWidget()->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
-}
-
 void MainWindow::doSetWindowSize(const QSize &sz) {
 	if (!isFullScreen() && isVisible()) {
 		if (sz == QSize(-1, -1)) {
-			centralWidget()->setMinimumSize(QSize(imageFormat.width, imageFormat.height));
+			centralWidget()->setMinimumSize(blitterContainer->sourceSize());
 			layout()->setSizeConstraint(QLayout::SetMinimumSize);
 			setMinimumSize(1, 1); // needed on macx
 			setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
@@ -373,20 +364,38 @@ void MainWindow::setBlitter(BlitterWidget *const blitter) {
 	}
 }
 
-void MainWindow::setVideo(const unsigned w, const unsigned h, BlitterWidget *const blitter)
-{
-	if (imageFormat.width != w || imageFormat.height != h || blitter != blitterContainer->blitter()) {
+void MainWindow::setVideo(const unsigned w, const unsigned h, BlitterWidget *const blitter) {
+	if (QSize(w, h) != blitterContainer->sourceSize() || blitter != blitterContainer->blitter()) {
 		vbmut.lock();
-		imageFormat = ImageFormat(w, h);
 		setBlitter(blitter);
 
 		if (running)
-			rebuildVideoChain();
+			blitterContainer->blitter()->setVideoFormat(w, h);
 
 		vbmut.unlock();
-		updateMinimumSize();
+		
+		if (layout()->sizeConstraint() != QLayout::SetFixedSize)
+			centralWidget()->setMinimumSize(QSize(w, h));
+		
 		blitterContainer->setSourceSize(QSize(w, h));
 	}
+}
+
+void MainWindow::setVideoFormat(const unsigned w, const unsigned h/*, PixelBuffer::PixelFormat pf*/) {
+	setVideo(w, h, /*pf, */blitterContainer->blitter());
+}
+
+void MainWindow::setVideoBlitter(const unsigned blitterNo) {
+	setVideoFormatAndBlitter(blitterContainer->sourceSize().width(),
+	                         blitterContainer->sourceSize().height(), blitterNo);
+}
+
+void MainWindow::setAspectRatio(const QSize &ar) {
+	blitterContainer->setAspectRatio(ar);
+}
+
+void MainWindow::setScalingMethod(const ScalingMethod smet) {
+	blitterContainer->setScalingMethod(smet);
 }
 
 void MainWindow::execPausedQueue() {

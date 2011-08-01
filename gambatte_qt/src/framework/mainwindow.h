@@ -26,16 +26,17 @@
 #include <QSize>
 #include "audioengineconf.h"
 #include "blitterconf.h"
+#include "scalingmethod.h"
 #include "uncopyable.h"
 #include "src/callqueue.h"
 #include "src/mediaworker.h"
-#include "src/blittercontainer.h"
 #include "src/fullmodetoggler.h"
 #include "SDL_joystick.h"
 #include "resample/resamplerinfo.h"
 #include "src/auto_vector.h"
 
 class MediaSource;
+class BlitterContainer;
 
 /**
   * The MainWindow is one of the two main classes in this framework.
@@ -64,19 +65,12 @@ class MainWindow : public QMainWindow {
 		void unset(unsigned bm, MainWindow *mw) { modifyPaused(paused & ~bm, mw); }
 	};
 	
-	struct ImageFormat {
-		unsigned width, height;
-// 		PixelBuffer::PixelFormat pixelFormat;
-		ImageFormat(unsigned width = 0, unsigned height = 0/*,
-		            PixelBuffer::PixelFormat pixelFormat = PixelBuffer::RGB32*/) : width(width), height(height)/*, pixelFormat(pixelFormat)*/ {}
-	};
-	
-	class JoystickIniter : Uncopyable {
+	const class JoystickIniter : Uncopyable {
 		std::vector<SDL_Joystick*> joysticks;
 	public:
 		JoystickIniter();
 		~JoystickIniter();
-	};
+	} jsInit_;
 	
 	typedef CallQueue<MainWindow*> PausedQ;
 	class WorkerCallback;
@@ -91,8 +85,6 @@ class MainWindow : public QMainWindow {
 	QTimer *const jsTimer;
 	PausedQ pausedq;
 	Pauser pauser;
-	JoystickIniter joyIniter;
-	ImageFormat imageFormat;
 	QMutex vbmut;
 	QSize windowSize;
 	Rational frameTime_;
@@ -112,9 +104,7 @@ class MainWindow : public QMainWindow {
 	void focusInEvent(QFocusEvent */*event*/);
 	void keyPressEvent(QKeyEvent*);
 	void keyReleaseEvent(QKeyEvent*);
-	void rebuildVideoChain();
 	void execPausedQueue();
-	void updateMinimumSize();
 	void setBlitter(BlitterWidget *blitter);
 	void setVideo(unsigned w, unsigned h, BlitterWidget *blitter);
 	void correctFullScreenGeometry();
@@ -196,12 +186,10 @@ public:
 	/** The video format is the format of the video content produced by MediaSource.
 	  * This will set the "frame buffer" to the requested format.
 	  */
-	void setVideoFormat(unsigned w, unsigned h/*, PixelBuffer::PixelFormat pf*/) {
-		setVideo(w, h, /*pf, */blitterContainer->blitter());
-	}
+	void setVideoFormat(unsigned w, unsigned h/*, PixelBuffer::PixelFormat pf*/);
 	
-	void setAspectRatio(const QSize &ar) { blitterContainer->setAspectRatio(ar); }
-	void setScalingMethod(ScalingMethod smet) { blitterContainer->setScalingMethod(smet); }
+	void setAspectRatio(const QSize &ar);
+	void setScalingMethod(ScalingMethod smet);
 	
 	/** Sets the size of the presentation area of the MainWindow when not full screen.
 	  * Should be used in place of methods like QMainWindow::resize, because this one doesn't screw up full screen.
@@ -218,9 +206,7 @@ public:
 	const ConstBlitterConf currentBlitterConf() const;
 	
 	/** A video blitter is an engine (DirectDraw, Xv, etc.) responsible for putting video content on the screen. */
-	void setVideoBlitter(unsigned blitterNo) {
-		setVideoFormatAndBlitter(imageFormat.width, imageFormat.height/*, imageFormat.pixelFormat*/, blitterNo);
-	}
+	void setVideoBlitter(unsigned blitterNo);
 	
 	void setVideoFormatAndBlitter(unsigned w, unsigned h,
 			/*PixelBuffer::PixelFormat pf, */unsigned blitterNo)
