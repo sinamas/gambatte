@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,8 +22,8 @@
 
 AlsaEngine::AlsaEngine() :
 	AudioEngine("ALSA"),
-	conf("Custom PCM device:", "default", "alsaengine", "hw"),
-	pcm_handle(NULL),
+	conf("Custom PCM device:", "default", "alsaengine", "plughw"),
+	pcm_handle(0),
 	bufSize(0),
 	prevfur(0)
 {}
@@ -37,7 +37,7 @@ int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 	
 	if (snd_pcm_open(&pcm_handle, conf.device(), SND_PCM_STREAM_PLAYBACK, 0) < 0) {
 		std::fprintf(stderr, "Error opening PCM device %s\n", conf.device());
-		pcm_handle = NULL;
+		pcm_handle = 0;
 		goto fail;
 	}
 	
@@ -107,7 +107,7 @@ int AlsaEngine::doInit(const int inrate, const unsigned latency) {
 		
 		if (snd_pcm_sw_params_current(pcm_handle, swparams) < 0) {
 			std::fprintf(stderr, "Error getting current swparams\n");
-		} else if (snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams, bufSize >> 1) < 0) {
+		} else if (snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams, bufSize) < 0) {
 			std::fprintf(stderr, "Error setting start threshold\n");
 		} else if (snd_pcm_sw_params(pcm_handle, swparams) < 0) {
 			std::fprintf(stderr, "Error setting swparams\n");
@@ -128,13 +128,13 @@ void AlsaEngine::uninit() {
 	if (pcm_handle)
 		snd_pcm_close(pcm_handle);
 	
-	pcm_handle = NULL;
+	pcm_handle = 0;
 }
 
 int AlsaEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
 	bool underrun = false;
 	
-	if (bstate.fromUnderrun == 0) {
+	if (bstate.fromUnderrun == 0 || snd_pcm_state(pcm_handle) != SND_PCM_STATE_RUNNING) {
 		underrun = true;
 	} else if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
 		est.feed(prevfur - bstate.fromUnderrun);
