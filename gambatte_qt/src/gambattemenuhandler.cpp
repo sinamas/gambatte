@@ -49,24 +49,29 @@ struct TmpPauser {
 }
 
 FrameRateAdjuster::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) : index(STEPS) {
-	frameTimes[index] = Rational(baseNum, baseDenom);
-
-	for (unsigned i = index; i < STEPS * 2; ++i) {
-		frameTimes[i + 1] = Rational(frameTimes[i].num * 11 * 0x10000 / (frameTimes[i].denom * 10), 0x10000);
-	}
-
-	for (unsigned i = index; i; --i) {
-		frameTimes[i - 1] = Rational(frameTimes[i].num * 10 * 0x10000 / (frameTimes[i].denom * 11), 0x10000);
-	}
+	setBaseFrameTime(baseNum, baseDenom);
 }
 
-FrameRateAdjuster::FrameRateAdjuster(const unsigned baseNum, const unsigned baseDenom, MainWindow *const mw, QObject *const parent)
+void FrameRateAdjuster::FrameTime::setBaseFrameTime(const unsigned baseNum, const unsigned baseDenom) {
+	frameTimes[STEPS] = Rational(baseNum, baseDenom);
+	
+	const unsigned bnum = baseNum * 10000 / baseDenom;
+
+	for (unsigned i = STEPS, num = bnum; i < STEPS * 2; ++i)
+		frameTimes[i + 1] = Rational(num = num * 110 / 100, 10000);
+
+	for (unsigned i = STEPS, num = bnum; i; --i)
+		frameTimes[i - 1] = Rational(num = num * 100 / 110, 10000);
+}
+
+FrameRateAdjuster::FrameRateAdjuster(const MiscDialog &miscDialog, MainWindow &mw, QObject *const parent)
 : QObject(parent),
-  frameTime_(baseNum, baseDenom),
-  decFrameRateAction_(new QAction(tr("&Decrease Frame Rate"), mw)),
-  incFrameRateAction_(new QAction(tr("&Increase Frame Rate"), mw)),
-  resetFrameRateAction_(new QAction(tr("&Reset Frame Rate"), mw)),
+  frameTime_(miscDialog.baseFps().height(), miscDialog.baseFps().width()),
+  miscDialog_(miscDialog),
   mw_(mw),
+  decFrameRateAction_(new QAction(tr("&Decrease Frame Rate"), &mw)),
+  incFrameRateAction_(new QAction(tr("&Increase Frame Rate"), &mw)),
+  resetFrameRateAction_(new QAction(tr("&Reset Frame Rate"), &mw)),
   enabled_(true)
 {
 	decFrameRateAction_->setShortcut(QString("Ctrl+D"));
@@ -76,6 +81,7 @@ FrameRateAdjuster::FrameRateAdjuster(const unsigned baseNum, const unsigned base
 	connect(decFrameRateAction_,   SIGNAL(triggered()), this, SLOT(decFrameRate()));
 	connect(incFrameRateAction_,   SIGNAL(triggered()), this, SLOT(incFrameRate()));
 	connect(resetFrameRateAction_, SIGNAL(triggered()), this, SLOT(resetFrameRate()));
+	connect(&miscDialog, SIGNAL(accepted()), this, SLOT(miscDialogChange()));
 	
 	changed();
 }
@@ -86,6 +92,12 @@ const QList<QAction*> FrameRateAdjuster::actions() {
 	l.append(incFrameRateAction_);
 	l.append(resetFrameRateAction_);
 	return l;
+}
+
+void FrameRateAdjuster::miscDialogChange() {
+	const QSize &baseFps = miscDialog_.baseFps();
+	frameTime_.setBaseFrameTime(baseFps.height(), baseFps.width());
+	changed();
 }
 
 void FrameRateAdjuster::setDisabled(const bool disabled) {
@@ -120,7 +132,7 @@ void FrameRateAdjuster::changed() {
 	resetFrameRateAction_->setEnabled(enabled_ && frameTime_.resetPossible());
 	
 	const FrameTime::Rational &ft = enabled_ ? frameTime_.get() : frameTime_.base();
-	mw_->setFrameTime(ft.num, ft.denom);
+	mw_.setFrameTime(ft.num, ft.denom);
 }
 
 GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
@@ -131,7 +143,6 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
   videoDialog(new VideoDialog(mw, source->generateVideoSourceInfos(), QString("Video filter:"), QSize(160, 144), mw)),
   miscDialog(new MiscDialog(mw)),
   stateSlotGroup(new QActionGroup(mw)),
-  frameRateAdjuster(4389, 262144, mw),
   pauseInc(4)
 {
 	mw->setWindowTitle("Gambatte");
@@ -209,6 +220,8 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		fileMenu->addAction(tr("E&xit"), qApp, SLOT(closeAllWindows()), tr("Ctrl+Q"));
 		updateRecentFileActions();
 	}
+	
+	FrameRateAdjuster *const frameRateAdjuster = new FrameRateAdjuster(*miscDialog, *mw, this);
 
 	{
 		QMenu *const playm = mw->menuBar()->addMenu(tr("&Play"));
@@ -219,10 +232,10 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		playm->addSeparator();
 		syncFrameRateAction = playm->addAction(tr("&Sync Frame Rate to Refresh Rate"));
 		syncFrameRateAction->setCheckable(true);
-		connect(syncFrameRateAction, SIGNAL(triggered(bool)), &frameRateAdjuster, SLOT(setDisabled(bool)));
-		connect(syncFrameRateAction, SIGNAL(triggered(bool)), mw                , SLOT(setSyncToRefreshRate(bool)));
+		connect(syncFrameRateAction, SIGNAL(triggered(bool)), frameRateAdjuster, SLOT(setDisabled(bool)));
+		connect(syncFrameRateAction, SIGNAL(triggered(bool)), mw               , SLOT(setSyncToRefreshRate(bool)));
 		
-		foreach (QAction *const action, frameRateAdjuster.actions())
+		foreach (QAction *const action, frameRateAdjuster->actions())
 			playm->addAction(romLoadedActions->addAction(action));
 	}
 
@@ -280,9 +293,9 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	connect(source, SIGNAL(setTurbo(bool)), mw, SLOT(setFastForward(bool)));
 	connect(source, SIGNAL(togglePause()), pauseAction, SLOT(trigger()));
 	connect(source, SIGNAL(frameStep()), this, SLOT(frameStep()));
-	connect(source, SIGNAL(decFrameRate()), &frameRateAdjuster, SLOT(decFrameRate()));
-	connect(source, SIGNAL(incFrameRate()), &frameRateAdjuster, SLOT(incFrameRate()));
-	connect(source, SIGNAL(resetFrameRate()), &frameRateAdjuster, SLOT(resetFrameRate()));
+	connect(source, SIGNAL(decFrameRate()), frameRateAdjuster, SLOT(decFrameRate()));
+	connect(source, SIGNAL(incFrameRate()), frameRateAdjuster, SLOT(incFrameRate()));
+	connect(source, SIGNAL(resetFrameRate()), frameRateAdjuster, SLOT(resetFrameRate()));
 	connect(source, SIGNAL(prevStateSlot()), this, SLOT(prevStateSlot()));
 	connect(source, SIGNAL(nextStateSlot()), this, SLOT(nextStateSlot()));
 	connect(source, SIGNAL(saveStateSignal()), this, SLOT(saveState()));

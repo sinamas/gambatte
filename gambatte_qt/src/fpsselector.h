@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Sindre Aamås                                    *
+ *   Copyright (C) 2011 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,36 +16,31 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef MISCDIALOG_H
-#define MISCDIALOG_H
+#ifndef FPSSELECTOR_H
+#define FPSSELECTOR_H
 
-class QSpinBox;
+#include <QObject>
+#include <QSize>
 
-#include "fpsselector.h"
-#include "framework/persistcheckbox.h"
-#include <QDialog>
+class QComboBox;
+class QWidget;
 
-class MiscDialog : public QDialog {
-	QSpinBox *const turboSpeedBox;
-	FpsSelector fpsSelector_;
-	PersistCheckBox pauseOnDialogs_;
-	PersistCheckBox pauseOnFocusOut_;
-	int turboSpeed_;
+class FpsSelector : public QObject {
+	Q_OBJECT
 	
-	void store();
-	void restore();
+	QComboBox *const comboBox_;
+	QSize value_;
+	
+private slots:
+	void indexChanged(int index);
 	
 public:
-	explicit MiscDialog(QWidget *parent = 0);
-	~MiscDialog();
-	int turboSpeed() const { return turboSpeed_; }
-	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
-	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
-	const QSize & baseFps() const { return fpsSelector_.value(); }
-
-public slots:
+	FpsSelector();
+	~FpsSelector();
 	void accept();
 	void reject();
+	const QSize & value() const { return value_; }
+	QWidget * widget() const;
 };
 
 #endif

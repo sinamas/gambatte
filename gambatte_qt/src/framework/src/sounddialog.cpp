@@ -28,8 +28,9 @@
 #include <QSize>
 #include <QInputDialog>
 #include <cassert>
-
 #include "../mainwindow.h"
+
+namespace {
 
 struct SampleRateInfo {
 	enum { NOT_SUPPORTED = -1 };
@@ -109,6 +110,8 @@ static void setRate(QComboBox *rateSelector, const int r) {
 		rateSelector->setCurrentIndex(newIndex);
 }
 
+}
+
 SoundDialog::SoundDialog(const MainWindow *const mw, QWidget *const parent) :
 	QDialog(parent),
 	mw(mw),
@@ -162,7 +165,7 @@ SoundDialog::SoundDialog(const MainWindow *const mw, QWidget *const parent) :
 	{
 		QHBoxLayout *const hLayout = new QHBoxLayout;
 		hLayout->addWidget(new QLabel(tr("Buffer latency:")));
-		latencySelector->setRange(4, 999);
+		latencySelector->setRange(8, 999);
 		latencySelector->setSuffix(" ms");
 		hLayout->addWidget(latencySelector);
 		topLayout->addLayout(hLayout);
@@ -232,7 +235,8 @@ void SoundDialog::rateIndexChange(const int index) {
 		const int currentRate = rate_;
 		bool ok = false;
 		
-		int r = QInputDialog::getInteger(this, tr("Set Sample Rate"), tr("Sample rate (Hz):"), currentRate, sz.width(), sz.height(), 1, &ok);
+		int r = QInputDialog::getInteger(this, tr("Set Sample Rate"),
+				tr("Sample rate (Hz):"), currentRate, sz.width(), sz.height(), 1, &ok);
 		
 		if (!ok)
 			r = currentRate;

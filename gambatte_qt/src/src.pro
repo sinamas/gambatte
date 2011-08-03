@@ -5,11 +5,13 @@ SOURCES += main.cpp \
     gambattesource.cpp \
     gambattemenuhandler.cpp \
     palettedialog.cpp \
-    miscdialog.cpp
+    miscdialog.cpp \
+    fpsselector.cpp
 HEADERS += gambattesource.h \
     gambattemenuhandler.h \
     palettedialog.h \
-    miscdialog.h
+    miscdialog.h \
+    fpsselector.h
 SOURCES += $$COMMONPATH/videolink/rgb32conv.cpp \
     $$COMMONPATH/videolink/vfilterinfo.cpp \
     $$COMMONPATH/videolink/vfilters/catrom2x.cpp \

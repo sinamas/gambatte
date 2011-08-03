@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -53,6 +53,7 @@ class FrameRateAdjuster : public QObject {
 		
 	public:
 		FrameTime(unsigned baseNum, unsigned baseDenom);
+		void setBaseFrameTime(unsigned baseNum, unsigned baseDenom);
 		
 		bool incPossible() const { return index < STEPS * 2; }
 		bool decPossible() const { return index; }
@@ -73,16 +74,20 @@ class FrameRateAdjuster : public QObject {
 		const Rational& base() const { return frameTimes[STEPS]; }
 	} frameTime_;
 	
+	const MiscDialog &miscDialog_;
+	MainWindow &mw_;
 	QAction *const decFrameRateAction_;
 	QAction *const incFrameRateAction_;
 	QAction *const resetFrameRateAction_;
-	MainWindow *const mw_;
 	bool enabled_;
 	
 	void changed();
 	
+private slots:
+	void miscDialogChange();
+	
 public:
-	FrameRateAdjuster(unsigned baseNum, unsigned baseDenom, MainWindow *mw, QObject *parent = 0);
+	FrameRateAdjuster(const MiscDialog &miscDialog, MainWindow &mw, QObject *parent = 0);
 	const QList<QAction*> actions();
 	
 public slots:
@@ -113,7 +118,6 @@ class GambatteMenuHandler : public QObject {
 	PaletteDialog *globalPaletteDialog;
 	PaletteDialog *romPaletteDialog;
 	QActionGroup *const stateSlotGroup;
-	FrameRateAdjuster frameRateAdjuster;
 	QSize wsz;
 	unsigned pauseInc;
 	

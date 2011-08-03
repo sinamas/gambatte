@@ -38,12 +38,13 @@ static ChildLayout * addLayout(Parent *const parent, ChildLayout *const child, c
 	return child;
 }
 
-MiscDialog::MiscDialog(QWidget *const parent) :
-QDialog(parent),
-turboSpeedBox(new QSpinBox(this)),
-pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true),
-pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
-turboSpeed_(4) {
+MiscDialog::MiscDialog(QWidget *const parent)
+: QDialog(parent),
+  turboSpeedBox(new QSpinBox(this)),
+  pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true),
+  pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
+  turboSpeed_(4)
+{
 	setWindowTitle(tr("Miscellaneous Settings"));
 	turboSpeedBox->setRange(2, 16);
 	turboSpeedBox->setSuffix("x");
@@ -59,6 +60,12 @@ turboSpeed_(4) {
 	
 	addLayout(topLayout, new QHBoxLayout)->addWidget(pauseOnDialogs_.checkBox());
 	addLayout(topLayout, new QHBoxLayout)->addWidget(pauseOnFocusOut_.checkBox());
+	
+	{
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
+		hLayout->addWidget(new QLabel(tr("Base frame rate:")));
+		hLayout->addWidget(fpsSelector_.widget());
+	}
 	
 	{
 		QPushButton *const okButton = new QPushButton(tr("OK"), this);
@@ -84,12 +91,14 @@ MiscDialog::~MiscDialog() {
 }
 
 void MiscDialog::store() {
+	fpsSelector_.accept();
 	turboSpeed_ = turboSpeedBox->value();
 	pauseOnDialogs_.accept();
 	pauseOnFocusOut_.accept();
 }
 
 void MiscDialog::restore() {
+	fpsSelector_.reject();
 	turboSpeedBox->setValue(turboSpeed_);
 	pauseOnDialogs_.reject();
 	pauseOnFocusOut_.reject();
