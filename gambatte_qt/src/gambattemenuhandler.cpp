@@ -55,13 +55,13 @@ FrameRateAdjuster::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) : 
 void FrameRateAdjuster::FrameTime::setBaseFrameTime(const unsigned baseNum, const unsigned baseDenom) {
 	frameTimes[STEPS] = Rational(baseNum, baseDenom);
 	
-	const unsigned bnum = baseNum * 10000 / baseDenom;
+	const unsigned bnum = baseNum * 0x10000 / baseDenom;
 
 	for (unsigned i = STEPS, num = bnum; i < STEPS * 2; ++i)
-		frameTimes[i + 1] = Rational(num = num * 11 / 10, 10000);
+		frameTimes[i + 1] = Rational(num = num * 11 / 10, 0x10000);
 
 	for (unsigned i = STEPS, num = bnum; i; --i)
-		frameTimes[i - 1] = Rational(num = num * 10 / 11, 10000);
+		frameTimes[i - 1] = Rational(num = num * 10 / 11, 0x10000);
 }
 
 FrameRateAdjuster::FrameRateAdjuster(const MiscDialog &miscDialog, MainWindow &mw, QObject *const parent)
