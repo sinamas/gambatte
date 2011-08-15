@@ -16,45 +16,33 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "samplebuffer.h"
-#include "resample/resamplerinfo.h"
-#include "resample/resampler.h"
-#include "mediasource.h"
-#include <cstring>
+#ifndef ATOMICVAR_H
+#define ATOMICVAR_H
 
-void SampleBuffer::reset() {
-	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
-	const long maxin = spf_.ceiled() + source_->overupdate;
-	
-	sndInBuffer.reset(0);
-	resampler.reset();
-	samplesBuffered_ = 0;
-	
-	if (insrate > 0 && outsrate > 0) {
-		sndInBuffer.reset(maxin * 2);
-		resampler.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate, maxin));
-	}
-}
+template<typename T>
+class AtomicVar {
+	mutable QMutex mut;
+	T var;
+public:
+	AtomicVar() : mut(QMutex::Recursive) {}
+	explicit AtomicVar(const T var) : mut(QMutex::Recursive), var(var) {}
 
-long SampleBuffer::update(const PixelBuffer &pb) {
-	long insamples = size() - samplesBuffered_;
-	const long res = source_->update(pb, sndInBuffer + samplesBuffered_ * 2, insamples);
-	samplesBuffered_ += insamples;
-	return res < 0 ? res : samplesBuffered_ - insamples + res;
-}
+	class Locked : Uncopyable {
+		AtomicVar &av;
+	public:
+		Locked(AtomicVar &av) : av(av) { av.mut.lock(); }
+		~Locked() { av.mut.unlock(); }
+		T get() const { return av.var; }
+		void set(const T v) { av.var = v; }
+	};
 
-long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwaysResample) {
-	long outsamples = 0;
-	samplesBuffered_ -= insamples;
-	
-	if (out) {
-		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
-			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
-			outsamples = insamples;
-		} else
-			outsamples = resampler->resample(out, sndInBuffer, insamples);
-	}
-	
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * sizeof(qint16) * 2);
-	return outsamples;
-}
+	class ConstLocked : Uncopyable {
+		const AtomicVar &av;
+	public:
+		ConstLocked(const AtomicVar &av) : av(av) { av.mut.lock(); }
+		~ConstLocked() { av.mut.unlock(); }
+		T get() const { return av.var; }
+	};
+};
+
+#endif

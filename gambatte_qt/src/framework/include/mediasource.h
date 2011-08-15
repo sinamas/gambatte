@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -45,7 +45,7 @@ protected:
 	  *                   fit N extra samples per video frame. Otherwise there may be
 	  *                   multiple updates per video frame.
 	  */
-	MediaSource(const unsigned overupdate = 0) : overupdate(overupdate) {}
+	explicit MediaSource(const unsigned overupdate = 0) : overupdate(overupdate) {}
 public:
 	const unsigned overupdate;
 	
@@ -79,7 +79,7 @@ public:
 	  * This gives an opportunity to delay heavy video work until it is clear that it will be used.
 	  * For instance, if the audio buffer is low, we may want to skip updating video to avoid underruns.
 	  * Or if we're fast forwarding we don't want to waste time updating video unnecessarily.
-	  * Heavy post-processing of video is a good candidate for this function.
+	  * Heavy post-processing of video is a good candidate for this method.
 	  */
 	virtual void generateVideoFrame(const PixelBuffer &/*fb*/) {}
 	

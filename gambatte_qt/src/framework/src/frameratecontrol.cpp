@@ -16,45 +16,52 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "samplebuffer.h"
-#include "resample/resamplerinfo.h"
-#include "resample/resampler.h"
-#include "mediasource.h"
-#include <cstring>
+#include "frameratecontrol.h"
+#include "blitterwidget.h"
+#include "mediaworker.h"
 
-void SampleBuffer::reset() {
-	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
-	const long maxin = spf_.ceiled() + source_->overupdate;
-	
-	sndInBuffer.reset(0);
-	resampler.reset();
-	samplesBuffered_ = 0;
-	
-	if (insrate > 0 && outsrate > 0) {
-		sndInBuffer.reset(maxin * 2);
-		resampler.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate, maxin));
+FrameRateControl::FrameRateControl(MediaWorker &worker, BlitterWidget *blitter)
+: worker_(worker), blitter_(blitter), frameTime_(1, 60), refreshRate_(600), refreshRateSync_(false)
+{
+	update();
+}
+
+void FrameRateControl::setBlitter(BlitterWidget *const blitter) {
+	blitter_ = blitter;
+	blitter_->rateChange(refreshRate_);
+	update();
+}
+
+void FrameRateControl::setFrameTime(const Rational frameTime) {
+	if (frameTime_ != frameTime) {
+		frameTime_ = frameTime;
+		update();
 	}
 }
 
-long SampleBuffer::update(const PixelBuffer &pb) {
-	long insamples = size() - samplesBuffered_;
-	const long res = source_->update(pb, sndInBuffer + samplesBuffered_ * 2, insamples);
-	samplesBuffered_ += insamples;
-	return res < 0 ? res : samplesBuffered_ - insamples + res;
+void FrameRateControl::setRefreshRate(int refreshRate) {
+	if (refreshRate < 1)
+		refreshRate = 600;
+	
+	refreshRate_ = refreshRate;
+	blitter_->rateChange(refreshRate);
+	update();
 }
 
-long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwaysResample) {
-	long outsamples = 0;
-	samplesBuffered_ -= insamples;
-	
-	if (out) {
-		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
-			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
-			outsamples = insamples;
-		} else
-			outsamples = resampler->resample(out, sndInBuffer, insamples);
+void FrameRateControl::update() {
+	unsigned si = 0;
+
+	if (refreshRateSync_) {
+		si = (frameTime_.num * refreshRate_ + (frameTime_.denom * 10 >> 1)) / (frameTime_.denom * 10);
+
+		if (si < 1)
+			si = 1;
+
+		if (si > blitter_->maxSwapInterval())
+			si = blitter_->maxSwapInterval();
 	}
-	
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * sizeof(qint16) * 2);
-	return outsamples;
+
+	blitter_->setSwapInterval(si);
+	worker_.setFrameTime(si ? Rational(si * 10, refreshRate_) : frameTime_);
+	worker_.setFrameTimeEstimate(blitter_->frameTimeEst());
 }

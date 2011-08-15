@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,26 +16,55 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "persistcheckbox.h"
-#include <QCheckBox>
-#include <QSettings>
 
-PersistCheckBox::PersistCheckBox(QCheckBox *const checkBox, const QString &key, const bool defaultValue)
-: checkBox_(checkBox), key_(key), value_(defaultValue)
-{
-	value_ = QSettings().value(key, defaultValue).toBool();
-	reject();
-}
+#ifndef SOUNDDIALOG_H
+#define SOUNDDIALOG_H
 
-PersistCheckBox::~PersistCheckBox() {
-	QSettings settings;
-	settings.setValue(key_, value_);
-}
+class MainWindow;
+class QVBoxLayout;
+class QComboBox;
+class QSpinBox;
 
-void PersistCheckBox::accept() {
-	value_ = checkBox_->isChecked();
-}
+#include <QDialog>
 
-void PersistCheckBox::reject() const {
-	checkBox_->setChecked(value_);
-}
+/** A utility class that can optionally be used to provide a GUI for
+  * configuring sound/audio settings.
+  */
+class SoundDialog : public QDialog {
+	Q_OBJECT
+	
+	const MainWindow *const mw;
+	QVBoxLayout *const topLayout;
+	QComboBox *const engineSelector;
+	QComboBox *const resamplerSelector;
+	QComboBox *const rateSelector;
+	QSpinBox *const latencySelector;
+	QWidget *engineWidget;
+	int engineIndex_;
+	int resamplerNum;
+	int rate_;
+	int latency_;
+	
+	void store();
+	void restore();
+	
+private slots:
+	void engineChange(int index);
+	void rateIndexChange(int index);
+	
+public:
+	explicit SoundDialog(const MainWindow *mw, QWidget *parent = 0);
+	~SoundDialog();
+	int engineIndex() const { return engineIndex_; }
+	int resamplerNo() const { return resamplerNum; }
+	int rate() const { return rate_; }
+	int latency() const { return latency_; };
+	
+	static void applySettings(MainWindow *mw, const SoundDialog *sd);
+	
+public slots:
+	void accept();
+	void reject();
+};
+
+#endif

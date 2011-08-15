@@ -21,7 +21,7 @@
 
 #include <QWidget>
 #include <QSize>
-#include "../scalingmethod.h"
+#include "scalingmethod.h"
 
 class BlitterWidget;
 
@@ -31,6 +31,7 @@ class BlitterContainer : public QWidget {
 	QSize sourceSize_;
 	ScalingMethod scalingMethod_;
 	bool parentExclusive;
+	bool cursorHidden_;
 	
 	void doLayout(int w, int h);
 	void testExclusive();
@@ -41,8 +42,10 @@ protected:
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	BlitterContainer(QWidget *parent = 0);
+	explicit BlitterContainer(QWidget *parent = 0);
 	~BlitterContainer();
+	void hideCursor();
+	void showCursor();
 	void setAspectRatio(const QSize &);
 	void setBlitter(BlitterWidget *blitter);
 	void setScalingMethod(ScalingMethod);

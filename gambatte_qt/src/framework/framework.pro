@@ -9,12 +9,17 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/SDL_Joystick/src/SDL_string.c \
     framework/src/sounddialog.cpp \
     framework/src/audioengines/customdevconf.cpp \
+    framework/src/audioengineconf.cpp \
+    framework/src/blitterconf.cpp \
+    framework/src/frameratecontrol.cpp \
     framework/src/mainwindow.cpp \
+    framework/src/mediawidget.cpp \
     framework/src/mediaworker.cpp \
     framework/src/samplebuffer.cpp \
     framework/src/blitterwidget.cpp \
     framework/src/joysticklock.cpp \
-    framework/src/persistcheckbox.cpp
+    framework/src/persistcheckbox.cpp \
+    framework/src/inputbox.cpp
 SOURCES += $$COMMONPATH/resample/src/chainresampler.cpp \
 	$$COMMONPATH/resample/src/i0.cpp \
 	$$COMMONPATH/resample/src/makesinckernel.cpp \
@@ -23,16 +28,23 @@ SOURCES += $$COMMONPATH/resample/src/chainresampler.cpp \
 	$$COMMONPATH/adaptivesleep.cpp \
 	$$COMMONPATH/rateest.cpp \
 	$$COMMONPATH/skipsched.cpp
-HEADERS += framework/src/blitterwidget.h \
-    framework/src/fullmodetoggler.h \
-    framework/videodialog.h \
-    framework/src/blittercontainer.h \
-    framework/resinfo.h \
-    framework/scalingmethod.h \
-    framework/inputdialog.h \
+HEADERS += framework/include/audioengineconf.h \
+    framework/include/auto_vector.h \
+    framework/include/callqueue.h \
+    framework/include/inputdialog.h \
+    framework/include/mainwindow.h \
+    framework/include/mediasource.h \
+    framework/include/persistcheckbox.h \
+    framework/include/pixelbuffer.h \
+    framework/include/resinfo.h \
+    framework/include/scalingmethod.h \
+    framework/include/sounddialog.h \
+    framework/include/videodialog.h \
     framework/src/audioengine.h \
-    framework/audioengineconf.h \
-    framework/persistcheckbox.h \
+    framework/src/blittercontainer.h \
+    framework/src/blitterwidget.h \
+    framework/src/frameratecontrol.h \
+    framework/src/fullmodetoggler.h \
     framework/src/addaudioengines.h \
     framework/src/addblitterwidgets.h \
     framework/src/getfullmodetoggler.h \
@@ -47,18 +59,17 @@ HEADERS += framework/src/blitterwidget.h \
     framework/src/SDL_Joystick/src/SDL_error_c.h \
     framework/src/SDL_Joystick/src/SDL_joystick_c.h \
     framework/src/SDL_Joystick/src/SDL_sysjoystick.h \
-    framework/sounddialog.h \
     framework/src/audioengines/nullaudioengine.h \
     framework/src/audioengines/customdevconf.h \
-    framework/mediasource.h \
+    framework/src/mediawidget.h \
     framework/src/mediaworker.h \
-    framework/mainwindow.h \
     framework/src/samplebuffer.h \
-    framework/src/callqueue.h \
-    framework/pixelbuffer.h \
     framework/src/swscale.h \
     framework/src/rational.h \
-    framework/src/joysticklock.h
+    framework/src/joysticklock.h \
+    framework/src/syncvar.h \
+    framework/src/atomicvar.h \
+    framework/src/inputbox.h
 HEADERS += $$COMMONPATH/resample/src/chainresampler.h \
 	$$COMMONPATH/resample/src/cic2.h \
 	$$COMMONPATH/resample/src/cic3.h \
@@ -83,6 +94,7 @@ HEADERS += $$COMMONPATH/resample/src/chainresampler.h \
 	$$COMMONPATH/skipsched.h
 CONFIG += qt thread
 QT += opengl
+INCLUDEPATH += framework/include
 INCLUDEPATH += framework/src/SDL_Joystick/include
 INCLUDEPATH += $$COMMONPATH
 DEFINES += HAVE_STDINT_H
@@ -99,7 +111,7 @@ macx {
         framework/src/getfullmodetoggler_macx.cpp
     SOURCES += framework/src/SDL_Joystick/src/darwin/SDL_sysjoystick.c \
 #        framework/src/audioengines/openalengine.cpp \
-		framework/src/audioengines/coreaudioengine.cpp \
+        framework/src/audioengines/coreaudioengine.cpp \
         framework/src/fullmodetogglers/quartztoggler.cpp
     HEADERS += framework/src/audioengines/coreaudioengine.h \
 #	    framework/src/audioengines/openalengine.h \

@@ -26,7 +26,8 @@ BlitterContainer::BlitterContainer(QWidget *parent) :
 	aspectRatio_(64, 48),
 	sourceSize_(64, 48),
 	scalingMethod_(UNRESTRICTED),
-	parentExclusive(false)
+	parentExclusive(false),
+	cursorHidden_(false)
 {
 	QPalette pal = palette();
 	pal.setColor(QPalette::Window, QColor(0, 0, 0));
@@ -82,6 +83,20 @@ void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
 		updateLayout();
 		testExclusive();
 	}
+}
+
+void BlitterContainer::hideCursor() {
+	if (!cursorHidden_)
+		setCursor(Qt::BlankCursor);
+
+	cursorHidden_ = true;
+}
+
+void BlitterContainer::showCursor() {
+	if (cursorHidden_)
+		unsetCursor();
+
+	cursorHidden_ = false;
 }
 
 void BlitterContainer::setAspectRatio(const QSize &ar) {

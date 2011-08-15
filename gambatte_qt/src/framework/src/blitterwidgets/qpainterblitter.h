@@ -20,7 +20,7 @@
 #define QPAINTERBLITTER_H
 
 #include "../blitterwidget.h"
-#include "../../persistcheckbox.h"
+#include "persistcheckbox.h"
 #include <memory>
 #include <QImage>
 

@@ -16,37 +16,54 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef AUDIOENGINECONF_H
-#define AUDIOENGINECONF_H
+#ifndef INPUTBOX_H
+#define INPUTBOX_H
 
-#include "src/audioengine.h"
+#include "SDL_event.h"
+#include <QLineEdit>
 
-class ConstAudioEngineConf {
-	const AudioEngine *const ae;
+class InputBox : public QLineEdit {
+	Q_OBJECT
+
+	QWidget *nextFocus;
+	SDL_Event data;
+	int timerId;
+	
+private slots:
+	void textEditedSlot(const QString &) {
+		setData(data);
+	}
+	
+protected:
+	void contextMenuEvent(QContextMenuEvent *event);
+	void focusInEvent(QFocusEvent *event);
+	void focusOutEvent(QFocusEvent *event);
+	void keyPressEvent(QKeyEvent *e);
+	void timerEvent(QTimerEvent */*event*/);
 	
 public:
-	explicit ConstAudioEngineConf(const AudioEngine *const ae) : ae(ae) {}
-	const QString& nameString() const { return ae->nameString(); }
-	QWidget* settingsWidget() const { return ae->settingsWidget(); }
-	void rejectSettings() const { ae->rejectSettings(); }
-	
-	bool operator==(ConstAudioEngineConf r) const { return ae == r.ae; }
-	bool operator!=(ConstAudioEngineConf r) const { return ae != r.ae; }
+	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
+	explicit InputBox(QWidget *nextFocus = 0);
+	void setData(const SDL_Event &data) { setData(data.id, data.value); }
+	void setData(unsigned id, int value = KBD_VALUE);
+	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
+	const SDL_Event& getData() const { return data; }
+
+public slots:
+	void clearData() { setData(0, NULL_VALUE); }
 };
 
-class AudioEngineConf {
-	AudioEngine *const ae;
-	
+class InputBoxPair : public QObject {
+	Q_OBJECT
+
 public:
-	explicit AudioEngineConf(AudioEngine *const ae) : ae(ae) {}
-	const QString& nameString() const { return ae->nameString(); }
-	QWidget* settingsWidget() const { return ae->settingsWidget(); }
-	void acceptSettings() const { ae->acceptSettings(); }
-	void rejectSettings() const { ae->rejectSettings(); }
+	InputBox *const mainBox;
+	InputBox *const altBox;
 	
-	bool operator==(AudioEngineConf r) const { return ae == r.ae; }
-	bool operator!=(AudioEngineConf r) const { return ae != r.ae; }
-	operator const ConstAudioEngineConf() const { return ConstAudioEngineConf(ae); }
+	InputBoxPair(InputBox *mainBox, InputBox *altBox) : mainBox(mainBox), altBox(altBox) {}
+	
+public slots:
+	void clear();
 };
 
 #endif

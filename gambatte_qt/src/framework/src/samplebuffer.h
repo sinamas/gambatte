@@ -27,8 +27,9 @@ class PixelBuffer;
 #include <array.h>
 #include <resample/resampler.h>
 #include "rational.h"
+#include "uncopyable.h"
 
-class SampleBuffer {
+class SampleBuffer : Uncopyable {
 	MediaSource *const source_;
 	std::auto_ptr<Resampler> resampler;
 	Array<qint16> sndInBuffer;
@@ -44,7 +45,7 @@ class SampleBuffer {
 public:
 	explicit SampleBuffer(MediaSource *source) : source_(source), spf_(0), ft_(1, 0), outsrate(0), resamplerNo_(1) { reset(); }
 	long update(const PixelBuffer &pb);
-	long read(long insamples, qint16 *out);
+	long read(long insamples, qint16 *out, bool alwaysResample);
 	long samplesBuffered() const { return samplesBuffered_; }
 	void setSpf(const Rational &spf) { spf_ = spf; reset(); }
 	void setFt(const Rational &ft) { ft_ = ft; reset(); }

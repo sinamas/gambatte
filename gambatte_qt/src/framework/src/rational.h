@@ -35,4 +35,12 @@ struct Rational {
 	long rounded() const { return (num + (denom >> 1)) / denom; }
 };
 
+inline bool operator==(const Rational &lhs, const Rational &rhs) {
+	return lhs.num == rhs.num && lhs.denom == rhs.denom;
+}
+
+inline bool operator!=(const Rational &lhs, const Rational &rhs) {
+	return lhs.num != rhs.num || lhs.denom != rhs.denom;
+}
+
 #endif

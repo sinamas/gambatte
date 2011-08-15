@@ -16,45 +16,41 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "samplebuffer.h"
-#include "resample/resamplerinfo.h"
-#include "resample/resampler.h"
-#include "mediasource.h"
-#include <cstring>
+#ifndef BLITTERCONF_H
+#define BLITTERCONF_H
 
-void SampleBuffer::reset() {
-	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
-	const long maxin = spf_.ceiled() + source_->overupdate;
-	
-	sndInBuffer.reset(0);
-	resampler.reset();
-	samplesBuffered_ = 0;
-	
-	if (insrate > 0 && outsrate > 0) {
-		sndInBuffer.reset(maxin * 2);
-		resampler.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate, maxin));
-	}
-}
+class BlitterWidget;
+class QString;
+class QWidget;
 
-long SampleBuffer::update(const PixelBuffer &pb) {
-	long insamples = size() - samplesBuffered_;
-	const long res = source_->update(pb, sndInBuffer + samplesBuffered_ * 2, insamples);
-	samplesBuffered_ += insamples;
-	return res < 0 ? res : samplesBuffered_ - insamples + res;
-}
+class ConstBlitterConf {
+	const BlitterWidget *const blitter;
+	
+public:
+	explicit ConstBlitterConf(const BlitterWidget *const blitter) : blitter(blitter) {}
+	const QString& nameString() const;
+	unsigned maxSwapInterval() const;
+	QWidget* settingsWidget() const;
+	void rejectSettings() const;
+	
+	bool operator==(ConstBlitterConf r) const { return blitter == r.blitter; }
+	bool operator!=(ConstBlitterConf r) const { return blitter != r.blitter; }
+};
 
-long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwaysResample) {
-	long outsamples = 0;
-	samplesBuffered_ -= insamples;
+class BlitterConf {
+	BlitterWidget *const blitter;
 	
-	if (out) {
-		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
-			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
-			outsamples = insamples;
-		} else
-			outsamples = resampler->resample(out, sndInBuffer, insamples);
-	}
+public:
+	explicit BlitterConf(BlitterWidget *const blitter) : blitter(blitter) {}
+	const QString& nameString() const;
+	unsigned maxSwapInterval() const;
+	QWidget* settingsWidget() const;
+	void acceptSettings() const;
+	void rejectSettings() const;
 	
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * sizeof(qint16) * 2);
-	return outsamples;
-}
+	bool operator==(BlitterConf r) const { return blitter == r.blitter; }
+	bool operator!=(BlitterConf r) const { return blitter != r.blitter; }
+	operator const ConstBlitterConf() const { return ConstBlitterConf(blitter); }
+};
+
+#endif

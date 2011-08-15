@@ -20,16 +20,24 @@
 #define AUTO_VECTOR
 
 #include <vector>
-#include "uncopyable.h"
 
 template<class T, class Allocator = std::allocator<T*> >
-class auto_vector : private std::vector<T*, Allocator>, Uncopyable {
+class auto_vector : private std::vector<T*, Allocator> {
+	struct auto_vector_temporary {
+		std::vector<T*, Allocator> v;
+		explicit auto_vector_temporary(const std::vector<T*, Allocator> &v): v(v) {}
+	};
+	
+	auto_vector& operator=(const auto_vector&);
 public:
+	typedef typename std::vector<T*, Allocator>::const_iterator const_iterator;
 	typedef typename std::vector<T*, Allocator>::iterator iterator;
 	typedef typename std::vector<T*, Allocator>::size_type size_type;
-	explicit auto_vector(const Allocator& a = Allocator()) : std::vector<T*, Allocator>(a) {}
-	explicit auto_vector(size_type n, const Allocator& a = Allocator()) : std::vector<T*, Allocator>(n, 0, a) {}
-	explicit auto_vector(const std::vector<T*, Allocator> &v) : std::vector<T*, Allocator>(v) {}
+	
+	explicit auto_vector(const Allocator &a = Allocator()) : std::vector<T*, Allocator>(a) {}
+	explicit auto_vector(size_type n, const Allocator &a = Allocator()) : std::vector<T*, Allocator>(n, 0, a) {}
+	auto_vector(auto_vector &v) : std::vector<T*, Allocator>() { swap(v); }
+	auto_vector(const auto_vector_temporary &v) : std::vector<T*, Allocator>(v.v) {}
 	
 	template<class InputIterator>
 	auto_vector(InputIterator first, InputIterator last, const Allocator& a = Allocator()) : std::vector<T*, Allocator>(first, last, a) {}
@@ -67,7 +75,7 @@ public:
 		std::vector<T*, Allocator>::pop_back();
 	}
 	
-	iterator insert(iterator position, T* x) { std::vector<T*, Allocator>::insert(position, x); }
+	iterator insert(iterator position, T *x) { std::vector<T*, Allocator>::insert(position, x); }
 	void insert(iterator position, size_type n) { std::vector<T*, Allocator>::insert(position, n, 0); }
 	
 	template<class InputIterator>
@@ -85,7 +93,7 @@ public:
 		return std::vector<T*, Allocator>::erase(first, last);
 	}
 	
-	void swap(auto_vector& vec) { std::vector<T*, Allocator>::swap((std::vector<T*, Allocator>&) vec); }
+	void swap(auto_vector &vec) { std::vector<T*, Allocator>::swap(vec); }
 	
 	void clear() {
 		for (iterator it = begin(); it != end(); ++it)
@@ -95,6 +103,8 @@ public:
 	}
 	
 	~auto_vector() { clear(); }
+	
+	operator const auto_vector_temporary() { std::vector<T*, Allocator> v; v.swap(*this); return auto_vector_temporary(v); }
 };
 
 #endif

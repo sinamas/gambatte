@@ -16,7 +16,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "../sounddialog.h"
+#include "sounddialog.h"
+#include "mainwindow.h"
+#include "audioengineconf.h"
 #include "resample/resamplerinfo.h"
 #include <QComboBox>
 #include <QSpinBox>
@@ -28,7 +30,6 @@
 #include <QSize>
 #include <QInputDialog>
 #include <cassert>
-#include "../mainwindow.h"
 
 namespace {
 
@@ -197,7 +198,7 @@ SoundDialog::SoundDialog(const MainWindow *const mw, QWidget *const parent) :
 	engineIndex_ = filterValue(settings.value("engineIndex", engineIndex_).toInt(), engineSelector->count());
 	resamplerNum = filterValue(settings.value("resamplerNum", resamplerNum).toInt(), resamplerSelector->count(), 0, resamplerNum);
 	setRate(rateSelector, settings.value("rate", rateSelector->itemData(rateSelector->currentIndex())).toInt());
-	latency_ = filterValue(settings.value("latency", latency_).toInt(), latencySelector->maximum(), latencySelector->minimum(), latency_);
+	latency_ = filterValue(settings.value("latency", latency_).toInt(), latencySelector->maximum()+1, latencySelector->minimum(), latency_);
 	settings.endGroup();
 	
 	rate_ = rateSelector->itemData(rateSelector->currentIndex()).toInt();

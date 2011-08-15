@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,26 +16,33 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "persistcheckbox.h"
-#include <QCheckBox>
-#include <QSettings>
+#include "audioengineconf.h"
+#include "audioengine.h"
 
-PersistCheckBox::PersistCheckBox(QCheckBox *const checkBox, const QString &key, const bool defaultValue)
-: checkBox_(checkBox), key_(key), value_(defaultValue)
-{
-	value_ = QSettings().value(key, defaultValue).toBool();
-	reject();
+const QString& ConstAudioEngineConf::nameString() const {
+	return ae->nameString();
 }
 
-PersistCheckBox::~PersistCheckBox() {
-	QSettings settings;
-	settings.setValue(key_, value_);
+QWidget* ConstAudioEngineConf::settingsWidget() const {
+	return ae->settingsWidget();
 }
 
-void PersistCheckBox::accept() {
-	value_ = checkBox_->isChecked();
+void ConstAudioEngineConf::rejectSettings() const {
+	ae->rejectSettings();
 }
 
-void PersistCheckBox::reject() const {
-	checkBox_->setChecked(value_);
+const QString& AudioEngineConf::nameString() const {
+	return ae->nameString();
+}
+
+QWidget* AudioEngineConf::settingsWidget() const {
+	return ae->settingsWidget();
+}
+
+void AudioEngineConf::acceptSettings() const {
+	ae->acceptSettings();
+}
+
+void AudioEngineConf::rejectSettings() const {
+	ae->rejectSettings();
 }

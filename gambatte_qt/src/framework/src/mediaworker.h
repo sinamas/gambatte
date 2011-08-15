@@ -23,120 +23,13 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <deque>
-#include "samplebuffer.h"
 #include "callqueue.h"
-#include "../pixelbuffer.h"
-#include "audioengine.h"
+#include "pixelbuffer.h"
+#include "samplebuffer.h"
+#include "syncvar.h"
+#include "atomicvar.h"
 #include "uncopyable.h"
 #include "usec.h"
-
-// enum { PREPARE = 1, SYNC = 2 };
-
-class SyncVar {
-	QMutex mut;
-	QWaitCondition cond;
-	unsigned var;
-
-public:
-	class Locked : Uncopyable {
-		SyncVar &sv;
-
-	public:
-		Locked(SyncVar &sv) : sv(sv) { sv.mut.lock(); }
-		~Locked() { sv.mut.unlock(); }
-		unsigned get() const { return sv.var; }
-		void set(const unsigned var) { sv.var = var; sv.cond.wakeAll(); }
-		bool wait(const unsigned long time = ULONG_MAX) { return sv.cond.wait(&sv.mut, time); }
-// 		bool waitMaskedEqual(unsigned state, unsigned mask, unsigned long time = ULONG_MAX);
-// 		bool waitMaskedNequal(unsigned state, unsigned mask, unsigned long time = ULONG_MAX);
-// 		bool waitEqual(unsigned state, unsigned long time = ULONG_MAX) { return waitMaskedEqual(state, UINT_MAX, time); }
-// 		bool waitNequal(unsigned state, unsigned long time = ULONG_MAX) { return waitMaskedNequal(state, UINT_MAX, time); }
-// 		bool waitAnd(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedEqual(bits, bits, time); }
-// 		bool waitNand(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedNequal(bits, bits, time); }
-// 		bool waitNor(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedEqual(0, bits, time); }
-// 		bool waitOr(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedNequal(0, bits, time); }
-	};
-
-	explicit SyncVar(const unsigned var = 0) : var(var) {}
-};
-
-/*bool SyncVar::Locked::waitMaskedEqual(const unsigned state, const unsigned mask, const unsigned long time) {
-	while ((get() & mask) != state) {
-		wait(time);
-
-		if (time != ULONG_MAX)
-			return (get() & mask) == state;
-	}
-
-	return true;
-}
-
-bool SyncVar::Locked::waitMaskedNequal(const unsigned state, const unsigned mask, const unsigned long time) {
-	while ((get() & mask) == state) {
-		wait(time);
-
-		if (time != ULONG_MAX)
-			return (get() & mask) != state;
-	}
-
-	return true;
-}*/
-
-template<class T>
-class Mutual {
-	mutable QMutex mut;
-	T t;
-
-public:
-	Mutual() : mut(QMutex::Recursive) {}
-	explicit Mutual(const T &t) : mut(QMutex::Recursive), t(t) {}
-
-	class Locked : Uncopyable {
-		Mutual &lc;
-	public:
-		Locked(Mutual &lc) : lc(lc) { lc.mut.lock(); }
-		~Locked() { lc.mut.unlock(); }
-		T* operator->() { return &lc.t; }
-		const T* operator->() const { return &lc.t; }
-		T& get() { return lc.t; }
-		const T& get() const { return lc.t; }
-	};
-
-	class ConstLocked : Uncopyable {
-		const Mutual &lc;
-	public:
-		ConstLocked(const Mutual &lc) : lc(lc) { lc.mut.lock(); }
-		~ConstLocked() { lc.mut.unlock(); }
-		const T* operator->() const { return &lc.t; }
-		const T& get() const { return lc.t; }
-	};
-};
-
-template<typename T>
-class AtomicVar {
-	mutable QMutex mut;
-	T var;
-public:
-	AtomicVar() : mut(QMutex::Recursive) {}
-	explicit AtomicVar(const T var) : mut(QMutex::Recursive), var(var) {}
-
-	class Locked : Uncopyable {
-		AtomicVar &av;
-	public:
-		Locked(AtomicVar &av) : av(av) { av.mut.lock(); }
-		~Locked() { av.mut.unlock(); }
-		T get() const { return av.var; }
-		void set(const T v) { av.var = v; }
-	};
-
-	class ConstLocked : Uncopyable {
-		const AtomicVar &av;
-	public:
-		ConstLocked(const AtomicVar &av) : av(av) { av.mut.lock(); }
-		~ConstLocked() { av.mut.unlock(); }
-		T get() const { return av.var; }
-	};
-};
 
 class MediaWorker : private QThread {
 public:
@@ -154,6 +47,8 @@ public:
 	};
 
 private:
+	class AudioOut;
+	
 	class PauseVar {
 		CallQueue<> callq;
 		mutable QMutex mut;
@@ -161,12 +56,13 @@ private:
 		unsigned var;
 		bool waiting;
 
+		friend class PushMediaWorkerCall;
 	public:
 		PauseVar() : var(0), waiting(true) {}
 		void localPause(unsigned bits) { if (waiting) var |= bits; else pause(bits); }
 		void pause(unsigned bits) { mut.lock(); var |= bits; mut.unlock(); }
 		void unpause(unsigned bits);
-		void waitWhilePaused(Callback *cb, AudioEngine *ae);
+		void waitWhilePaused(Callback *cb, AudioOut &ao);
 		bool waitingForUnpause() const { bool ret; mut.lock(); ret = waiting; mut.unlock(); return ret; }
 		void unwait() { waiting = false; }
 		void rewait() { waiting = true; }
@@ -213,7 +109,7 @@ private:
 		long var() const { return dsum / sz; }
 		void push(long i);
 	};
-
+	
 	struct SetAudioOut;
 	struct SetResampler;
 	struct SetFrameTime;
@@ -229,12 +125,10 @@ private:
 	TurboSkip turboSkip;
 	SampleBuffer sampleBuffer;
 	Array<qint16> sndOutBuffer;
-	AudioEngine *ae;
+	std::auto_ptr<AudioOut> ao_;
 	long usecft;
-	long estsrate;
-	unsigned aelatency;
-	int aerate;
 
+	friend class PushMediaWorkerCall;
 	long adaptToRateEstimation(long estft);
 	void adjustResamplerRate(long outRate);
 	long sourceUpdate();
@@ -244,7 +138,8 @@ protected:
 	void run();
 
 public:
-	MediaWorker(MediaSource *source, std::auto_ptr<Callback> callback, QObject *parent = 0);
+	MediaWorker(MediaSource *source, class AudioEngine *ae, int aerate,
+			int aelatency, std::auto_ptr<Callback> callback, QObject *parent = 0);
 	MediaSource* source() /*const */{ return sampleBuffer.source(); }
 	SyncVar& waitingForSync() /*const */{ return waitingForSync_; }
 	void start();
@@ -258,10 +153,10 @@ public:
 	void recover() { pauseVar.unpause(8); }
 	bool paused() const { return pauseVar.waitingForUnpause(); }
 
-	void setAudioOut(AudioEngine *newAe, int rate, int latency);
+	void setAudioOut(class AudioEngine *newAe, int rate, int latency);
 	void setResampler(unsigned resamplerNum);
-	void setFrameTime(const Rational &ft);
-	void setSamplesPerFrame(const Rational &spf);
+	void setFrameTime(Rational ft);
+	void setSamplesPerFrame(Rational spf);
 
 	void setFrameTimeEstimate(const long ftest) { AtomicVar<long>::Locked(frameTimeEst).set(ftest); }
 	bool frameStep();
@@ -273,10 +168,12 @@ public:
 
 	void updateJoysticks();
 
-	template<class T> void pushCall(const T &t) { pauseVar.pushCall(t, AtomicVar<bool>::ConstLocked(doneVar).get()); }
+	template<class T>
+	void pushCall(const T &t) { pauseVar.pushCall(t, AtomicVar<bool>::ConstLocked(doneVar).get()); }
 };
 
-template<class T> void MediaWorker::PauseVar::pushCall(const T &t, const bool stopped) {
+template<class T>
+void MediaWorker::PauseVar::pushCall(const T &t, const bool stopped) {
 	mut.lock();
 	callq.push(t);
 	cond.wakeAll();

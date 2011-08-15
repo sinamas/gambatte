@@ -19,7 +19,8 @@
 #include "mediaworker.h"
 #include "joysticklock.h"
 #include "SDL_joystick.h"
-#include "../mediasource.h"
+#include "mediasource.h"
+#include "audioengine.h"
 #include "skipsched.h"
 
 #ifdef Q_WS_WIN
@@ -45,6 +46,55 @@ void MediaWorker::MeanQueue::push(const long i) {
 	q.push_back(newelem);
 }
 
+class MediaWorker::AudioOut : Uncopyable {
+	AudioEngine &ae_;
+	const long rate_;
+	const unsigned latency_;
+	
+	long estrate_;
+	bool inited_;
+	
+public:
+	AudioOut(AudioEngine &ae, long rate, unsigned latency)
+	: ae_(ae), rate_(rate), latency_(latency), estrate_(rate), inited_(false)
+	{
+	}
+	
+	~AudioOut() {
+		uninit();
+	}
+	
+	void init() {
+		inited_ = true;
+		ae_.init(rate_, latency_);
+		estrate_ = rate();
+	}
+	
+	void uninit() {
+		if (inited_) {
+			ae_.uninit();
+			inited_ = false;
+		}
+	}
+	
+	void pause() {
+		if (successfullyInitialized())
+			ae_.pause();
+	}
+	
+	long rate() const { return ae_.rate() > 0 ? ae_.rate() : rate_; }
+	long estimatedRate() const { return estrate_; }
+	bool successfullyInitialized() const { return inited_ && ae_.rate() > 0; }
+	
+	int write(qint16 *buf, std::size_t samples, AudioEngine::BufferState &preBstateOut) {
+		return ae_.write(buf, samples, preBstateOut, estrate_);
+	}
+	
+	int write(qint16 *buf, std::size_t samples) {
+		return ae_.write(buf, samples);
+	}
+};
+
 void MediaWorker::PauseVar::unpause(const unsigned bits) {
 	mut.lock();
 
@@ -54,14 +104,14 @@ void MediaWorker::PauseVar::unpause(const unsigned bits) {
 	mut.unlock();
 }
 
-void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, AudioEngine *const ae) {
+void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, AudioOut &ao) {
 	mut.lock();
 	waiting = true;
 	callq.pop_all();
 
 	if (var) {
-		if (ae && (var & 1))
-			ae->pause();
+		if (var & 1)
+			ao.pause();
 
 		cb->paused();
 
@@ -75,18 +125,17 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, Aud
 	mut.unlock();
 }
 
-MediaWorker::MediaWorker(MediaSource *source, std::auto_ptr<Callback> callback, QObject *parent) :
-QThread(parent),
-callback(callback),
-meanQueue(0, 0),
-frameTimeEst(0),
-doneVar(true),
-sampleBuffer(source),
-ae(0),
-usecft(0),
-estsrate(0),
-aelatency(0),
-aerate(0) {
+MediaWorker::MediaWorker(MediaSource *source, AudioEngine *ae, int aerate,
+		int aelatency, std::auto_ptr<Callback> callback, QObject *parent)
+: QThread(parent),
+  callback(callback),
+  meanQueue(0, 0),
+  frameTimeEst(0),
+  doneVar(true),
+  sampleBuffer(source),
+  ao_(new AudioOut(*ae, aerate, aelatency)),
+  usecft(0)
+{
 }
 
 void MediaWorker::start() {
@@ -112,18 +161,17 @@ void MediaWorker::stop() {
 void MediaWorker::pause() {
 	pauseVar.pause(1);
 
-	if (ae && pauseVar.waitingForUnpause() && !AtomicVar<bool>::ConstLocked(doneVar).get())
-		ae->pause();
+	if (pauseVar.waitingForUnpause())
+		ao_->pause();
 }
 
 void MediaWorker::initAudioEngine() {
-	ae->init(aerate, aelatency);
-	estsrate = ae->rate() > 0 ? ae->rate() : aerate;
-	sampleBuffer.setOutSampleRate(estsrate);
+	ao_->init();
+	sampleBuffer.setOutSampleRate(ao_->rate());
 	sndOutBuffer.reset(sampleBuffer.maxOut() * 2);
-	meanQueue.reset(estsrate, estsrate >> 12);
+	meanQueue.reset(ao_->rate(), ao_->rate() >> 12);
 
-	if (ae->rate() <= 0) {
+	if (!ao_->successfullyInitialized()) {
 		pauseVar.localPause(8);
 		callback->audioEngineFailure();
 	}
@@ -133,16 +181,10 @@ struct MediaWorker::SetAudioOut {
 	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency;
 
 	void operator()() {
-		const bool stopped = AtomicVar<bool>::ConstLocked(w.doneVar).get();
+		w.ao_.reset();
+		w.ao_.reset(new AudioOut(*ae, rate, latency));
 
-		if (!stopped && w.ae)
-			w.ae->uninit();
-
-		w.ae = ae;
-		w.aerate = rate;
-		w.aelatency = latency;
-
-		if (!stopped)
+		if (!AtomicVar<bool>::ConstLocked(w.doneVar).get())
 			w.initAudioEngine();
 	}
 };
@@ -180,7 +222,7 @@ struct MediaWorker::SetFrameTime {
 	}
 };
 
-void MediaWorker::setFrameTime(const Rational &ft) {
+void MediaWorker::setFrameTime(const Rational ft) {
 	const SetFrameTime setFrameTimeStruct = { *this, ft };
 	pushCall(setFrameTimeStruct);
 }
@@ -196,7 +238,7 @@ struct MediaWorker::SetSamplesPerFrame {
 	}
 };
 
-void MediaWorker::setSamplesPerFrame(const Rational &spf) {
+void MediaWorker::setSamplesPerFrame(const Rational spf) {
 	const SetSamplesPerFrame setSamplesPerFrameStruct = { *this, spf };
 	pushCall(setSamplesPerFrameStruct);
 }
@@ -225,23 +267,24 @@ void MediaWorker::updateJoysticks() {
 }
 
 static long calculateSyncft(const long nominalSrate, const long estSrate, const long nominalft) {
-	return static_cast<long>(static_cast<float>(nominalft - (nominalft >> 10)) * nominalSrate / (estSrate ? estSrate : 1));
+	return estSrate ? static_cast<long>(static_cast<qint64>(nominalft - (nominalft >> 10)) * nominalSrate / estSrate)
+	                : nominalft - (nominalft >> 10);
 }
 
 // returns syncft
 long MediaWorker::adaptToRateEstimation(const long estft) {
 	if (estft) {
-		meanQueue.push(static_cast<long>(static_cast<float>(estsrate) * estft / usecft + 0.5f));
+		meanQueue.push(static_cast<long>((static_cast<qint64>(ao_->estimatedRate()) * estft + (usecft >> 1)) / usecft));
 
 		const long mean = meanQueue.mean();
 		const long var = std::max(meanQueue.var(), 1L);
 
 		if (sampleBuffer.resamplerOutRate() < mean - var || sampleBuffer.resamplerOutRate() > mean + var)
 			adjustResamplerRate(mean);
-	} else if (sampleBuffer.resamplerOutRate() != (ae->rate() > 0 ? ae->rate() : aerate))
-		adjustResamplerRate((ae->rate() > 0 ? ae->rate() : aerate));
+	} else if (sampleBuffer.resamplerOutRate() != ao_->rate())
+		adjustResamplerRate(ao_->rate());
 
-	return calculateSyncft(sampleBuffer.resamplerOutRate(), estsrate, usecft);
+	return calculateSyncft(sampleBuffer.resamplerOutRate(), ao_->estimatedRate(), usecft);
 }
 
 long MediaWorker::sourceUpdate() {
@@ -273,13 +316,16 @@ void MediaWorker::adjustResamplerRate(const long outRate) {
 		sndOutBuffer.reset(sz);
 }
 
-static usec_t frameWait(const usec_t base, const usec_t syncft, SyncVar &waitingForSync) {
+static usec_t frameWait(const usec_t base, const usec_t syncft, const usec_t usecsFromUnderrun, SyncVar &waitingForSync) {
 	const usec_t now = getusecs();
 
-	if (now - base + syncft < syncft * 2) {
+	if (base + syncft - now < syncft * 2) {
+		if (base + syncft - now >= usecsFromUnderrun - (usecsFromUnderrun >> 2))
+			return base;
+		
 		SyncVar::Locked wfs(waitingForSync);
 
-		/*while*/if (!wfs.get() && /*wfs.wait(now, syncft - (now - base)*/ wfs.wait((syncft * 2 - (now - base + syncft)) / 1000)) {
+		/*while*/if (!wfs.get() && /*wfs.wait(now, base + syncft - now)*/ wfs.wait((base + syncft - now) / 1000)) {
 			;
 		}
 
@@ -301,10 +347,21 @@ static void blitWait(MediaWorker::Callback *const cb, SyncVar &waitingForSync) {
 }
 
 static bool audioBufIsLow(const AudioEngine::BufferState &bstate, const int outsamples) {
-	// This depends on static_cast<int>(AudioEngine::BufferState::NOT_SUPPORTED) == -1
+	if (bstate.fromUnderrun == AudioEngine::BufferState::NOT_SUPPORTED)
+		return false;
+	
 	const int fur = bstate.fromUnderrun + outsamples;
 	const int fof = static_cast<int>(bstate.fromOverflow) - outsamples;
 	return fur < fof * 2;
+}
+
+static usec_t usecsFromUnderrun(const AudioEngine::BufferState &bstate, const int outsamples, const long estsrate) {
+	if (bstate.fromUnderrun == AudioEngine::BufferState::NOT_SUPPORTED || estsrate == 0)
+		return 0x10000000;
+	
+	const int fur = bstate.fromUnderrun + outsamples;
+	const int fof = static_cast<int>(bstate.fromOverflow) - outsamples;
+	return (fof < 0 ? fur + fof : fur) * 1000000LL / estsrate;
 }
 
 void MediaWorker::run() {
@@ -316,60 +373,57 @@ void MediaWorker::run() {
 	} coinit;
 #endif
 
-	const class AeInit : Uncopyable {
+	const class AoInit : Uncopyable {
 		MediaWorker &w_;
 	public:
-		explicit AeInit(MediaWorker &w) : w_(w) {
-			if (w.ae)
-				w.initAudioEngine();
+		explicit AoInit(MediaWorker &w) : w_(w) {
+			w.initAudioEngine();
 		}
 		
-		~AeInit() {
-			if (w_.ae)
-				w_.ae->uninit();
+		~AoInit() {
+			w_.ao_->uninit();
 		}
-	} aeinit(*this);
+	} aoinit(*this);
 	
 	SkipSched skipSched;
 	bool audioBufLow = false;
 	usec_t base = 0;
 
 	for (;;) {
-		pauseVar.waitWhilePaused(callback.get(), ae);
+		pauseVar.waitWhilePaused(callback.get(), *ao_);
 
 		if (AtomicVar<bool>::ConstLocked(doneVar).get())
 			break;
 
 		const long blitSamples = sourceUpdate();
+		const long ftEst = AtomicVar<long>::ConstLocked(frameTimeEst).get();
 
 		if (turboSkip.update()) {
-			sampleBuffer.read(blitSamples >= 0 ? blitSamples : sampleBuffer.samplesBuffered(), 0);
+			sampleBuffer.read(blitSamples >= 0 ? blitSamples : sampleBuffer.samplesBuffered(), 0, ftEst != 0);
 		} else {
-			const long syncft = blitSamples >= 0 ? adaptToRateEstimation(AtomicVar<long>::ConstLocked(frameTimeEst).get()) : 0;
+			const long syncft = blitSamples >= 0 ? adaptToRateEstimation(ftEst) : 0;
 			const bool blit   = blitSamples >= 0 && !skipSched.skipNext(audioBufLow);
 
 			if (blit)
 				callback->blit(base, syncft);
 
-			{
-				const long outsamples = sampleBuffer.read(
-						blit ? blitSamples : sampleBuffer.samplesBuffered(),
-						static_cast<qint16*>(sndOutBuffer));
+			const long outsamples = sampleBuffer.read(
+					blit ? blitSamples : sampleBuffer.samplesBuffered(),
+					static_cast<qint16*>(sndOutBuffer), ftEst != 0);
 
-				AudioEngine::BufferState bstate = { AudioEngine::BufferState::NOT_SUPPORTED,
-				                                    AudioEngine::BufferState::NOT_SUPPORTED };
+			AudioEngine::BufferState bstate = { AudioEngine::BufferState::NOT_SUPPORTED,
+			                                    AudioEngine::BufferState::NOT_SUPPORTED };
 
-				if (ae->rate() > 0 && ae->write(sndOutBuffer, outsamples, bstate, estsrate) < 0) {
-					ae->pause();
-					pauseVar.pause(8);
-					callback->audioEngineFailure();
-				}
-
-				audioBufLow = audioBufIsLow(bstate, outsamples);
+			if (ao_->successfullyInitialized() && ao_->write(sndOutBuffer, outsamples, bstate) < 0) {
+				ao_->pause();
+				pauseVar.pause(8);
+				callback->audioEngineFailure();
 			}
 
+			audioBufLow = audioBufIsLow(bstate, outsamples);
+
 			if (blit) {
-				base = frameWait(base, syncft, waitingForSync_);
+				base = frameWait(base, syncft, usecsFromUnderrun(bstate, outsamples, ao_->estimatedRate()), waitingForSync_);
 				blitWait(callback.get(), waitingForSync_);
 			}
 		}
@@ -380,15 +434,15 @@ bool MediaWorker::frameStep() {
 	const long blitSamples = sourceUpdate();
 	const long outsamples = sampleBuffer.read(
 			blitSamples >= 0 ? blitSamples : sampleBuffer.samplesBuffered(),
-			static_cast<qint16*>(sndOutBuffer));
+			static_cast<qint16*>(sndOutBuffer), AtomicVar<long>::ConstLocked(frameTimeEst).get() != 0);
 
-	if (ae->rate() > 0) {
-		if (ae->write(sndOutBuffer, outsamples) < 0) {
-			ae->pause();
+	if (ao_->successfullyInitialized()) {
+		if (ao_->write(sndOutBuffer, outsamples) < 0) {
+			ao_->pause();
 			pauseVar.pause(8);
 			callback->audioEngineFailure();
 		} else
-			ae->pause();
+			ao_->pause();
 	}
 
 	return blitSamples >= 0;

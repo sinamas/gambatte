@@ -16,45 +16,41 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "samplebuffer.h"
-#include "resample/resamplerinfo.h"
-#include "resample/resampler.h"
-#include "mediasource.h"
-#include <cstring>
+#include "blitterconf.h"
+#include "blitterwidget.h"
 
-void SampleBuffer::reset() {
-	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
-	const long maxin = spf_.ceiled() + source_->overupdate;
-	
-	sndInBuffer.reset(0);
-	resampler.reset();
-	samplesBuffered_ = 0;
-	
-	if (insrate > 0 && outsrate > 0) {
-		sndInBuffer.reset(maxin * 2);
-		resampler.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate, maxin));
-	}
+const QString& ConstBlitterConf::nameString() const {
+	return blitter->nameString();
 }
 
-long SampleBuffer::update(const PixelBuffer &pb) {
-	long insamples = size() - samplesBuffered_;
-	const long res = source_->update(pb, sndInBuffer + samplesBuffered_ * 2, insamples);
-	samplesBuffered_ += insamples;
-	return res < 0 ? res : samplesBuffered_ - insamples + res;
+unsigned ConstBlitterConf::maxSwapInterval() const {
+	return blitter->maxSwapInterval();
 }
 
-long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwaysResample) {
-	long outsamples = 0;
-	samplesBuffered_ -= insamples;
-	
-	if (out) {
-		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
-			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
-			outsamples = insamples;
-		} else
-			outsamples = resampler->resample(out, sndInBuffer, insamples);
-	}
-	
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * sizeof(qint16) * 2);
-	return outsamples;
+QWidget* ConstBlitterConf::settingsWidget() const {
+	return blitter->settingsWidget();
+}
+
+void ConstBlitterConf::rejectSettings() const {
+	blitter->rejectSettings();
+}
+
+const QString& BlitterConf::nameString() const {
+	return blitter->nameString();
+}
+
+unsigned BlitterConf::maxSwapInterval() const {
+	return blitter->maxSwapInterval();
+}
+
+QWidget* BlitterConf::settingsWidget() const {
+	return blitter->settingsWidget();
+}
+
+void BlitterConf::acceptSettings() const {
+	blitter->acceptSettings();
+}
+
+void BlitterConf::rejectSettings() const {
+	blitter->rejectSettings();
 }

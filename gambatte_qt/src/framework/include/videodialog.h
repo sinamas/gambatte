@@ -19,11 +19,15 @@
 #ifndef VIDEODIALOG_H
 #define VIDEODIALOG_H
 
+#include "auto_vector.h"
+#include "resinfo.h"
+#include "scalingmethod.h"
 #include <QDialog>
 #include <QSize>
 #include <vector>
 #include <memory>
 
+class MainWindow;
 class QVBoxLayout;
 class QHBoxLayout;
 class QComboBox;
@@ -31,8 +35,6 @@ class QAbstractButton;
 class QRadioButton;
 class QLabel;
 class QBoxLayout;
-
-#include "mainwindow.h"
 
 /** A utility class that can optionally be used to provide a GUI for
   * configuring video settings.
@@ -167,8 +169,8 @@ private:
 	const auto_vector<FullResSelector> fullResSelectors;
 	const auto_vector<FullHzSelector> fullHzSelectors;
 	
-	static const std::vector<FullResSelector*> makeFullResSelectors(const QSize &sourceSize, const MainWindow *mw);
-	static const std::vector<FullHzSelector*> makeFullHzSelectors(
+	static auto_vector<FullResSelector> makeFullResSelectors(const QSize &sourceSize, const MainWindow *mw);
+	static auto_vector<FullHzSelector> makeFullHzSelectors(
 			const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *mw);
 	void fillWinResSelector();
 	void fillFullResSelectors();

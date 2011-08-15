@@ -23,9 +23,10 @@
 #include <QFileInfo>
 #include <QSettings>
 #include "palettedialog.h"
-#include "framework/mainwindow.h"
-#include "framework/sounddialog.h"
-#include "framework/videodialog.h"
+#include "blitterconf.h"
+#include "mainwindow.h"
+#include "sounddialog.h"
+#include "videodialog.h"
 #include "gambattesource.h"
 #include "miscdialog.h"
 
@@ -305,7 +306,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	connect(miscDialog, SIGNAL(accepted()), this, SLOT(miscDialogChange()));
 	connect(mw, SIGNAL(videoBlitterFailure()), this, SLOT(videoBlitterFailure()));
 	connect(mw, SIGNAL(audioEngineFailure()), this, SLOT(audioEngineFailure()));
-	connect(mw, SIGNAL(closing()), this, SLOT(saveWindowSize()));
+	connect(mw, SIGNAL(closing()), this, SLOT(saveWindowSizeIfNotFullScreen()));
 	connect(this, SIGNAL(romLoaded(bool)), romLoadedActions, SLOT(setEnabled(bool)));
 	connect(this, SIGNAL(romLoaded(bool)), stateSlotGroup->actions().at(0), SLOT(setChecked(bool)));
 	
@@ -640,13 +641,13 @@ void GambatteMenuHandler::audioEngineFailure() {
 }
 
 void GambatteMenuHandler::toggleFullScreen() {
-	if (!mw->isFullScreen())
-		wsz = mw->size();
-	
+	saveWindowSizeIfNotFullScreen();
 	mw->toggleFullScreen();
 }
 
-void GambatteMenuHandler::saveWindowSize() {
-	QSettings settings;
-	settings.setValue("mainwindow/size", mw->isFullScreen() ? wsz : mw->size());
+void GambatteMenuHandler::saveWindowSizeIfNotFullScreen() {
+	if (!mw->isFullScreen()) {
+		QSettings settings;
+		settings.setValue("mainwindow/size", mw->size());
+	}
 }

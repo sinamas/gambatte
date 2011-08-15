@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,7 +20,6 @@
 #define INPUTDIALOG_H
 
 #include <QDialog>
-#include <QLineEdit>
 #include <QMutex>
 #include <vector>
 #include <map>
@@ -106,52 +105,6 @@ public:
 public slots:
 	void accept();
 	void reject();
-};
-
-// used in the implementation of InputDialog, included here because it's a Q_OBJECT
-class InputBox : public QLineEdit {
-	Q_OBJECT
-
-	QWidget *nextFocus;
-	SDL_Event data;
-	int timerId;
-	
-private slots:
-	void textEditedSlot(const QString &) {
-		setData(data);
-	}
-	
-protected:
-	void contextMenuEvent(QContextMenuEvent *event);
-	void focusInEvent(QFocusEvent *event);
-	void focusOutEvent(QFocusEvent *event);
-	void keyPressEvent(QKeyEvent *e);
-	void timerEvent(QTimerEvent */*event*/);
-	
-public:
-	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
-	explicit InputBox(QWidget *nextFocus = 0);
-	void setData(const SDL_Event &data) { setData(data.id, data.value); }
-	void setData(unsigned id, int value = KBD_VALUE);
-	void setNextFocus(QWidget *const nextFocus) { this->nextFocus = nextFocus; }
-	const SDL_Event& getData() const { return data; }
-
-public slots:
-	void clearData() { setData(0, NULL_VALUE); }
-};
-
-// used in the implementation of InputDialog, included here because it's a Q_OBJECT
-class InputBoxPair : public QObject {
-	Q_OBJECT
-
-public:
-	InputBox *const mainBox;
-	InputBox *const altBox;
-	
-	InputBoxPair(InputBox *mainBox, InputBox *altBox) : mainBox(mainBox), altBox(altBox) {}
-	
-public slots:
-	void clear();
 };
 
 #endif

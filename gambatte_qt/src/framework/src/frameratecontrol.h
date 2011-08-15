@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,55 +16,30 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef FRAME_RATE_CONTROL_H
+#define FRAME_RATE_CONTROL_H
 
-#ifndef SOUNDDIALOG_H
-#define SOUNDDIALOG_H
+#include "rational.h"
 
-class MainWindow;
-class QVBoxLayout;
-class QComboBox;
-class QSpinBox;
+class MediaWorker;
+class BlitterWidget;
 
-#include <QDialog>
+class FrameRateControl {
+	MediaWorker &worker_;
+	BlitterWidget *blitter_;
+	Rational frameTime_;
+	int refreshRate_;
+	bool refreshRateSync_;
 
-/** A utility class that can optionally be used to provide a GUI for
-  * configuring sound/audio settings.
-  */
-class SoundDialog : public QDialog {
-	Q_OBJECT
-	
-	const MainWindow *const mw;
-	QVBoxLayout *const topLayout;
-	QComboBox *const engineSelector;
-	QComboBox *const resamplerSelector;
-	QComboBox *const rateSelector;
-	QSpinBox *const latencySelector;
-	QWidget *engineWidget;
-	int engineIndex_;
-	int resamplerNum;
-	int rate_;
-	int latency_;
-	
-	void store();
-	void restore();
-	
-private slots:
-	void engineChange(int index);
-	void rateIndexChange(int index);
-	
+	void update();
+
 public:
-	SoundDialog(const MainWindow *mw, QWidget *parent = 0);
-	~SoundDialog();
-	int engineIndex() const { return engineIndex_; }
-	int resamplerNo() const { return resamplerNum; }
-	int rate() const { return rate_; }
-	int latency() const { return latency_; };
+	FrameRateControl(MediaWorker &worker, BlitterWidget *blitter);
+	void setBlitter(BlitterWidget *blitter);
+	void setFrameTime(Rational frameTime);
+	void setRefreshRate(int refreshRate);
+	void setRefreshRateSync(bool enable) { refreshRateSync_ = enable; update(); }
 	
-	static void applySettings(MainWindow *mw, const SoundDialog *sd);
-	
-public slots:
-	void accept();
-	void reject();
 };
 
 #endif

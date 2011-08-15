@@ -22,7 +22,7 @@
 class QSpinBox;
 
 #include "fpsselector.h"
-#include "framework/persistcheckbox.h"
+#include "persistcheckbox.h"
 #include <QDialog>
 
 class MiscDialog : public QDialog {

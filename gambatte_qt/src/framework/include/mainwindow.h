@@ -20,23 +20,21 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <memory>
 #include <vector>
-#include <QMutex>
-#include <QSize>
-#include "audioengineconf.h"
-#include "blitterconf.h"
+#include "resinfo.h"
 #include "scalingmethod.h"
 #include "uncopyable.h"
-#include "src/callqueue.h"
-#include "src/mediaworker.h"
-#include "src/fullmodetoggler.h"
-#include "SDL_joystick.h"
-#include "resample/resamplerinfo.h"
-#include "src/auto_vector.h"
+#include "callqueue.h"
+#include "pixelbuffer.h"
 
+class AudioEngineConf;
+class BlitterConf;
+class ConstAudioEngineConf;
+class ConstBlitterConf;
+class MediaWidget;
 class MediaSource;
-class BlitterContainer;
+class MediaWorker;
+class QSize;
 
 /**
   * The MainWindow is one of the two main classes in this framework.
@@ -48,89 +46,17 @@ class BlitterContainer;
   */
 class MainWindow : public QMainWindow {
 	Q_OBJECT
-	
-	class Pauser {
-		struct DoPause;
-		struct DoUnpause;
-		
-		unsigned paused;
-		
-		void modifyPaused(unsigned newPaused, MainWindow *mw);
-	public:
-		Pauser() : paused(0) {}
-		bool isPaused() const { return paused; }
-		void dec(unsigned dec, MainWindow *mw) { modifyPaused(paused - dec, mw); }
-		void inc(unsigned inc, MainWindow *mw) { modifyPaused(paused + inc, mw); }
-		void set(unsigned bm, MainWindow *mw) { modifyPaused(paused | bm, mw); }
-		void unset(unsigned bm, MainWindow *mw) { modifyPaused(paused & ~bm, mw); }
-	};
-	
-	const class JoystickIniter : Uncopyable {
-		std::vector<SDL_Joystick*> joysticks;
-	public:
-		JoystickIniter();
-		~JoystickIniter();
-	} jsInit_;
-	
-	typedef CallQueue<MainWindow*> PausedQ;
-	class WorkerCallback;
-	struct FrameStepFun;
-	
-	MediaWorker *const worker;
-	BlitterContainer *const blitterContainer;
-	auto_vector<AudioEngine> audioEngines;
-	auto_vector<BlitterWidget> blitters;
-	const std::auto_ptr<FullModeToggler> fullModeToggler;
-	QTimer *const cursorTimer;
-	QTimer *const jsTimer;
-	PausedQ pausedq;
-	Pauser pauser;
-	QMutex vbmut;
-	QSize windowSize;
-	Rational frameTime_;
-	unsigned focusPauseBit;
-	int refreshRate;
-	bool running;
-	bool refreshRateSync;
-	bool cursorHidden;
-	
-	void mouseMoveEvent(QMouseEvent *e);
-	void customEvent(QEvent *ev);
-	void closeEvent(QCloseEvent *e);
-	void moveEvent(QMoveEvent */*event*/);
-	void resizeEvent(QResizeEvent */*event*/);
-	void showEvent(QShowEvent *e);
-	void focusOutEvent(QFocusEvent */*event*/);
-	void focusInEvent(QFocusEvent */*event*/);
-	void keyPressEvent(QKeyEvent*);
-	void keyReleaseEvent(QKeyEvent*);
-	void execPausedQueue();
-	void setBlitter(BlitterWidget *blitter);
-	void setVideo(unsigned w, unsigned h, BlitterWidget *blitter);
-	void correctFullScreenGeometry();
-	void doSetWindowSize(const QSize &sz);
-	void updateSwapInterval();
-	void showCursor();
-	void emitVideoBlitterFailure() { emit videoBlitterFailure(); }
-	void emitAudioEngineFailure() { emit audioEngineFailure(); worker->recover(); }
-	
-private slots:
-	void refreshRateChange(int refreshRate);
-	void updateJoysticks();
-	
 public:
 	/** Can be used to gain frame buffer access outside the MediaSource
 	  * methods that take the frame buffer as argument.
-	  * The frame buffer is the buffer that a MediaSource should write
-	  * its video content to.
 	  */
 	class FrameBuffer {
-		MainWindow *const mw;
+		MediaWidget *const mw;
 	public:
-		FrameBuffer(MainWindow *const mw) : mw(mw) {}
+		explicit FrameBuffer(MainWindow *const mw) : mw(mw->w_) {}
 		
 		class Locked : Uncopyable {
-			MainWindow *mw;
+			MediaWidget *mw;
 			PixelBuffer pb;
 		public:
 			Locked(FrameBuffer fb);
@@ -145,7 +71,7 @@ public:
 	  * Eg. use setFrameTime(1, 60) for 60 fps video.
 	  * Can be used to speed things up or slow things down. Audio pitch will change accordingly.
 	  */
-	void setFrameTime(unsigned num, unsigned denom);
+	void setFrameTime(long num, long denom);
 	
 	/** Sets the mean number of audio samples produced by MediaSource::update for each video frame produced.
 	  * So, for instance if you have 60 fps video, and 48 kHz audio, you would use setSamplesPerFrame(48000 / 60);
@@ -156,17 +82,17 @@ public:
 	/** Advance a single video frame forward. It only makes sense to use this when paused. */
 	void frameStep();
 	
-	/** Pauses audio/video production. Will set the pauseVar bits given by bitmask. Pauses when pauseVar is not 0. */
-	void pause(unsigned bitmask = 1) { pauser.set(bitmask, this); }
+	/** Pauses audio/video production. Will set the pause bits given by bitmask. Pauses when pause is not 0. */
+	void pause(unsigned bitmask = 1);
 	
-	/** Resumes audio/video production. Will unset the pauseVar bits given by bitmask. Unpauses when pauseVar is 0. */
-	void unpause(unsigned bitmask = 1) { pauser.unset(bitmask, this); }
+	/** Resumes audio/video production. Will unset the pause bits given by bitmask. Unpauses when pause is 0. */
+	void unpause(unsigned bitmask = 1);
 	
-	/** Pauses audio/video production. Will add inc to pauseVar. Pauses when pauseVar is not 0. */
-	void incPause(unsigned inc) { pauser.inc(inc, this); }
+	/** Pauses audio/video production. Will add inc to pause. Pauses when pause is not 0. */
+	void incPause(unsigned inc);
 	
-	/** Resumes audio/video production. Will subtract dec from pauseVar. Unpauses when pauseVar is 0. */
-	void decPause(unsigned dec) { pauser.dec(dec, this); }
+	/** Resumes audio/video production. Will subtract dec from pause. Unpauses when pause is 0. */
+	void decPause(unsigned dec);
 	
 	/** Pauses audio/video production automatically when the central widget of the MainWindow loses focus.
 	  * Calls pause(bitmask) on focusOut, and unpause(bitmask) on focusIn.
@@ -181,7 +107,7 @@ public:
 	  */
 	void stop();
 	
-	bool isRunning() const { return running; }
+	bool isRunning() const;
 	
 	/** The video format is the format of the video content produced by MediaSource.
 	  * This will set the "frame buffer" to the requested format.
@@ -191,7 +117,7 @@ public:
 	void setAspectRatio(const QSize &ar);
 	void setScalingMethod(ScalingMethod smet);
 	
-	/** Sets the size of the presentation area of the MainWindow when not full screen.
+	/** Sets the size of the video area of the MainWindow when not full screen.
 	  * Should be used in place of methods like QMainWindow::resize, because this one doesn't screw up full screen.
 	  * Pass sz = QSize(-1,-1) for a variable size, such that the user may adjust the window size.
 	  * Otherwise a fixed window size equal to sz will be used. This window size does not include window borders or menus.
@@ -199,23 +125,20 @@ public:
 	void setWindowSize(const QSize &sz);
 	
 	/** Each blitter has some properties that can be accessed through its BlitterConf. */
-	const BlitterConf blitterConf(unsigned blitterNo) { return BlitterConf(blitters[blitterNo]); }
-	const ConstBlitterConf blitterConf(unsigned blitterNo) const { return ConstBlitterConf(blitters[blitterNo]); }
-	unsigned numBlitters() const { return blitters.size(); }
+	const BlitterConf blitterConf(std::size_t blitterNo);
+	const ConstBlitterConf blitterConf(std::size_t blitterNo) const;
+	std::size_t numBlitters() const;
 	const BlitterConf currentBlitterConf();
 	const ConstBlitterConf currentBlitterConf() const;
 	
 	/** A video blitter is an engine (DirectDraw, Xv, etc.) responsible for putting video content on the screen. */
-	void setVideoBlitter(unsigned blitterNo);
+	void setVideoBlitter(std::size_t blitterNo);
 	
 	void setVideoFormatAndBlitter(unsigned w, unsigned h,
-			/*PixelBuffer::PixelFormat pf, */unsigned blitterNo)
-	{
-		setVideo(w, h,/* pf,*/ blitters[blitterNo]);
-	}
+			/*PixelBuffer::PixelFormat pf, */std::size_t blitterNo);
 	
 	/** speed = N, gives N times faster than normal when fastForward is enabled. */
-	void setFastForwardSpeed(unsigned speed) { worker->setFastForwardSpeed(speed); }
+	void setFastForwardSpeed(unsigned speed);
 	
 	/** Sets the video mode that is used for full screen (see toggleFullScreen).
 	  * A screen is basically a monitor. A different full screen mode can be selected for each screen.
@@ -224,24 +147,24 @@ public:
 	  * @param resIndex Index of the selected resolution in the screens modeVector.
 	  * @param rateIndex Index of the selected refresh rate for the selected resolution.
 	  */
-	void setFullScreenMode(unsigned screenNo, unsigned resIndex, unsigned rateIndex);
+	void setFullScreenMode(std::size_t screenNo, std::size_t resIndex, std::size_t rateIndex);
 	
 	/** Returns the modes supported by each screen. */
-	const std::vector<ResInfo>& modeVector(unsigned screen) const { return fullModeToggler->modeVector(screen); }
+	const std::vector<ResInfo>& modeVector(std::size_t screen) const;
 	
-	const QString screenName(unsigned screen) const { return fullModeToggler->screenName(screen); }
+	const QString screenName(std::size_t screen) const;
 	
 	/** Returns the number of screens. */
-	unsigned screens() const { return fullModeToggler->screens(); }
+	std::size_t screens() const;
 	
 	/** Returns the current full screen resolution index selected for a screen. */
-	unsigned currentResIndex(unsigned screen) const { return fullModeToggler->currentResIndex(screen); }
+	std::size_t currentResIndex(std::size_t screen) const;
 	
 	/** Returns the current full screen rate index selected for a screen. */
-	unsigned currentRateIndex(unsigned screen) const { return fullModeToggler->currentRateIndex(screen); }
+	std::size_t currentRateIndex(std::size_t screen) const;
 	
 	/** Returns the current screen that will be used for full screen. */
-	unsigned currentScreen() const { return fullModeToggler->screen(); }
+	std::size_t currentScreen() const;
 	
 	/** Toggle full screen mode on/off. QMainWindow::isFullScreen() can be used to determine the current state.
 	  * QMainWindow::setFullScreen should not be used.
@@ -249,21 +172,21 @@ public:
 	void toggleFullScreen();
 	
 	/** Each AudioEngine has some properties that can be accessed through its AudioEngineConf. */
-	const AudioEngineConf audioEngineConf(unsigned aeNo) { return AudioEngineConf(audioEngines[aeNo]); }
-	const ConstAudioEngineConf audioEngineConf(unsigned aeNo) const { return ConstAudioEngineConf(audioEngines[aeNo]); }
-	unsigned numAudioEngines() const { return audioEngines.size(); }
+	const AudioEngineConf audioEngineConf(std::size_t aeNo);
+	const ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const;
+	std::size_t numAudioEngines() const;
 	
 	/** Sets the AudioEngine (DirectSound, ALSA, etc.) to be used for audio output,
 	  * as well as which output sampling rate and buffer size in milliseconds to use.
 	  * This does not need to match the sampling rate of the audio content produced
 	  * by the source, as it will be converted to match the output rate.
 	  */
-	void setAudioOut(unsigned engineNo, unsigned srateHz, unsigned msecLatency);
+	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency);
 	
 	/** A few different audio resamplers of different performance can be selected between. */
-	unsigned numResamplers() const { return ResamplerInfo::num(); }
-	const char* resamplerDesc(unsigned resamplerNo) const { return ResamplerInfo::get(resamplerNo).desc; }
-	void setResampler(unsigned resamplerNo);
+	std::size_t numResamplers() const;
+	const char* resamplerDesc(std::size_t resamplerNo) const;
+	void setResampler(std::size_t resamplerNo);
 	
 	/** Pause doesn't take effect immediately. Call this to wait until the worker thread is paused.
 	  * Meant as a tool to simplify thread safety.
@@ -275,7 +198,8 @@ public:
 	  * fun should implement operator() and have a copy-constructor.
 	  * Meant as a tool to simplify thread safety.
 	  */
-	template<class T> void callWhenPaused(const T& fun);
+	template<class T>
+	void callWhenPaused(const T &fun);
 	
 	/** Puts fun into a queue of functors that are called in the worker thread at a later time.
 	  * fun should implement operator() and have a copy-constructor.
@@ -283,29 +207,75 @@ public:
 	  * Generally you should prefer this to callWhenPaused, because callWhenPaused
 	  * is more likely to cause audio underruns.
 	  */
-	template<class T> void callInWorkerThread(const T& fun) { worker->pushCall(fun); }
+	template<class T>
+	void callInWorkerThread(const T &fun);
 
 public slots:
 	void hideCursor();
-	void setFastForward(bool enable) { worker->setFastForward(enable); }
+	void setFastForward(bool enable);
 	
 	/** Will synchronize frame rate to vertical retrace if the blitter supports a swapInterval of at least 1.
 	  * Picks a swapInterval closest to the current frame rate.
 	  * Literally speeds things up or slows things down to match the swapInterval. Audio pitch will change accordingly.
 	  */
-	void setSyncToRefreshRate(bool on);
+	void setSyncToRefreshRate(bool enable);
 	
 signals:
 	void audioEngineFailure();
 	void videoBlitterFailure();
 	void closing();
+	
+protected:
+	virtual void mouseMoveEvent(QMouseEvent*);
+	virtual void closeEvent(QCloseEvent*);
+	virtual void moveEvent(QMoveEvent*);
+	virtual void resizeEvent(QResizeEvent*);
+	virtual void showEvent(QShowEvent*);
+	virtual void focusOutEvent(QFocusEvent*);
+	virtual void focusInEvent(QFocusEvent*);
+	virtual void keyPressEvent(QKeyEvent*);
+	virtual void keyReleaseEvent(QKeyEvent*);
+	
+private:
+	void correctFullScreenGeometry();
+	void doSetWindowSize(const QSize &sz);
+	
+	MediaWidget *const w_;
+	QSize winSize_;
+};
+
+class CallWhenMediaWorkerPaused : Uncopyable {
+	MediaWorker &worker_;
+	CallQueue<> &callq_;
+public:
+	explicit CallWhenMediaWorkerPaused(MediaWidget &mw);
+	~CallWhenMediaWorkerPaused();
+	
+	template<class T>
+	void operator()(const T &function) const { callq_.push(function); }
 };
 
 template<class T>
-void MainWindow::callWhenPaused(const T& fun) {
-	worker->qPause();
-	pausedq.push(fun);
-	execPausedQueue();
+void MainWindow::callWhenPaused(const T &fun) {
+	const CallWhenMediaWorkerPaused call(*w_);
+	call(fun);
+}
+
+class PushMediaWorkerCall : Uncopyable {
+	MediaWorker &worker_;
+	CallQueue<> &callq_;
+public:
+	explicit PushMediaWorkerCall(MediaWidget &mw);
+	~PushMediaWorkerCall();
+	
+	template<class T>
+	void operator()(const T &function) const { callq_.push(function); }
+};
+
+template<class T>
+void MainWindow::callInWorkerThread(const T &fun) {
+	const PushMediaWorkerCall pushMediaWorkerCall(*w_);
+	pushMediaWorkerCall(fun);
 }
 
 #endif

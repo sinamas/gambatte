@@ -25,7 +25,7 @@
 #include <QString>
 #include <vector>
 
-#include "../resinfo.h"
+#include "resinfo.h"
 
 class FullModeToggler : public QObject {
 	Q_OBJECT

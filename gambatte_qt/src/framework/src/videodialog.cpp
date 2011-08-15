@@ -16,7 +16,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "../videodialog.h"
+#include "videodialog.h"
+#include "mainwindow.h"
+#include "blitterconf.h"
 
 #include <QPushButton>
 #include <QComboBox>
@@ -327,10 +329,10 @@ void VideoDialog::FullHzSelector::setRates(const std::vector<short> &rates) {
 		comboBox_->addItem(QString::number(rates[i] / 10.0) + QString(" Hz"), i);
 }
 
-const std::vector<VideoDialog::FullResSelector*> VideoDialog::makeFullResSelectors(
+auto_vector<VideoDialog::FullResSelector> VideoDialog::makeFullResSelectors(
 						const QSize &sourceSize, const MainWindow *const mw)
 {
-	std::vector<FullResSelector*> v(mw->screens(), 0);
+	auto_vector<FullResSelector> v(mw->screens());
 	
 	for (std::size_t i = 0; i < v.size(); ++i) {
 		v[i] = new FullResSelector("video/fullRes" + QString::number(i),
@@ -340,10 +342,10 @@ const std::vector<VideoDialog::FullResSelector*> VideoDialog::makeFullResSelecto
 	return v;
 }
 
-const std::vector<VideoDialog::FullHzSelector*> VideoDialog::makeFullHzSelectors(
+auto_vector<VideoDialog::FullHzSelector> VideoDialog::makeFullHzSelectors(
 					const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *const mw)
 {
-	std::vector<FullHzSelector*> v(fullResSelectors.size(), 0);
+	auto_vector<FullHzSelector> v(fullResSelectors.size());
 	
 	for (std::size_t i = 0; i < v.size(); ++i) {
 		const int index = fullResSelectors[i]->comboBox()->currentIndex();

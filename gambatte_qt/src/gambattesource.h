@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,10 +19,10 @@
 #ifndef GAMBATTESOURCE_H
 #define GAMBATTESOURCE_H
 
-#include "framework/mediasource.h"
-#include "framework/inputdialog.h"
-#include "framework/videodialog.h"
-#include "framework/pixelbuffer.h"
+#include "mediasource.h"
+#include "inputdialog.h"
+#include "videodialog.h"
+#include "pixelbuffer.h"
 #include <gambatte.h>
 #include <cstring>
 #include <memory>

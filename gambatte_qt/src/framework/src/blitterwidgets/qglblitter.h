@@ -20,7 +20,7 @@
 #define QGLBLITTER_H
 
 #include "../blitterwidget.h"
-#include "../../persistcheckbox.h"
+#include "persistcheckbox.h"
 #include "array.h"
 #include <memory>
 

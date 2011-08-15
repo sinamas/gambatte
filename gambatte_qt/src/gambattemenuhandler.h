@@ -118,7 +118,6 @@ class GambatteMenuHandler : public QObject {
 	PaletteDialog *globalPaletteDialog;
 	PaletteDialog *romPaletteDialog;
 	QActionGroup *const stateSlotGroup;
-	QSize wsz;
 	unsigned pauseInc;
 	
 	void loadFile(const QString &fileName);
@@ -158,7 +157,7 @@ private slots:
 	void videoBlitterFailure();
 	void audioEngineFailure();
 	void toggleFullScreen();
-	void saveWindowSize();
+	void saveWindowSizeIfNotFullScreen();
 	
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);

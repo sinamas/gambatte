@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,7 +19,7 @@
 
 #include <QApplication>
 #include <QSize>
-#include "framework/mainwindow.h"
+#include "mainwindow.h"
 #include "gambattesource.h"
 #include "gambattemenuhandler.h"
 

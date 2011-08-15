@@ -16,39 +16,37 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef BLITTERCONF_H
-#define BLITTERCONF_H
+#ifndef MUTUAL_H
+#define MUTUAL_H
 
-#include "src/blitterwidget.h"
+template<class T>
+class Mutual {
+	mutable QMutex mut;
+	T t;
 
-class ConstBlitterConf {
-	const BlitterWidget *const blitter;
-	
 public:
-	explicit ConstBlitterConf(const BlitterWidget *const blitter) : blitter(blitter) {}
-	const QString& nameString() const { return blitter->nameString(); }
-	unsigned maxSwapInterval() const { return blitter->maxSwapInterval(); }
-	QWidget* settingsWidget() const { return blitter->settingsWidget(); }
-	void rejectSettings() const { blitter->rejectSettings(); }
-	
-	bool operator==(ConstBlitterConf r) const { return blitter == r.blitter; }
-	bool operator!=(ConstBlitterConf r) const { return blitter != r.blitter; }
-};
+	Mutual() : mut(QMutex::Recursive) {}
+	explicit Mutual(const T &t) : mut(QMutex::Recursive), t(t) {}
 
-class BlitterConf {
-	BlitterWidget *const blitter;
-	
-public:
-	explicit BlitterConf(BlitterWidget *const blitter) : blitter(blitter) {}
-	const QString& nameString() const { return blitter->nameString(); }
-	unsigned maxSwapInterval() const { return blitter->maxSwapInterval(); }
-	QWidget* settingsWidget() const { return blitter->settingsWidget(); }
-	void acceptSettings() const { blitter->acceptSettings(); }
-	void rejectSettings() const { blitter->rejectSettings(); }
-	
-	bool operator==(BlitterConf r) const { return blitter == r.blitter; }
-	bool operator!=(BlitterConf r) const { return blitter != r.blitter; }
-	operator const ConstBlitterConf() const { return ConstBlitterConf(blitter); }
+	class Locked : Uncopyable {
+		Mutual &lc;
+	public:
+		Locked(Mutual &lc) : lc(lc) { lc.mut.lock(); }
+		~Locked() { lc.mut.unlock(); }
+		T* operator->() { return &lc.t; }
+		const T* operator->() const { return &lc.t; }
+		T& get() { return lc.t; }
+		const T& get() const { return lc.t; }
+	};
+
+	class ConstLocked : Uncopyable {
+		const Mutual &lc;
+	public:
+		ConstLocked(const Mutual &lc) : lc(lc) { lc.mut.lock(); }
+		~ConstLocked() { lc.mut.unlock(); }
+		const T* operator->() const { return &lc.t; }
+		const T& get() const { return lc.t; }
+	};
 };
 
 #endif
