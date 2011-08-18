@@ -30,6 +30,8 @@ using namespace zlib;
 
 static const unsigned int MAX_FILE_NAME = 512;
 
+namespace gambatte {
+
 File::File(const char *filename) : stream(filename, ios::in | ios::binary), is_zip(false), fsize(0), count(0)
 {
   if (stream)
@@ -164,4 +166,6 @@ void File::read(char *buffer, size_t amount)
   {
     count = 0;
   }
+}
+
 }

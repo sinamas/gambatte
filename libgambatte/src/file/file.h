@@ -19,6 +19,8 @@ Free Software Foundation, Inc.,
 
 #include <fstream>
 
+namespace gambatte {
+
 class File {
   private:
   std::ifstream stream;
@@ -40,3 +42,5 @@ class File {
   std::size_t gcount() const { return count; }
   bool fail() const { return stream.fail(); }
 };
+
+}
