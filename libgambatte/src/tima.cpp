@@ -21,6 +21,8 @@
 
 static const unsigned char timaClock[4] = { 10, 4, 6, 8 };
 
+namespace gambatte {
+
 Tima::Tima() :
 lastUpdate_(0),
 tmatime_(DISABLED_TIME),
@@ -164,4 +166,6 @@ unsigned Tima::tima(unsigned long cycleCounter) {
 void Tima::doIrqEvent(const TimaInterruptRequester timaIrq) {
 	timaIrq.flagIrq();
 	timaIrq.setNextIrqEventTime(timaIrq.nextIrqEventTime() + ((256u - tma_) << timaClock[tac_ & 3]));
+}
+
 }

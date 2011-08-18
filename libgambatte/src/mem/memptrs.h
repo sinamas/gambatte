@@ -19,6 +19,8 @@
 #ifndef MEMPTRS_H
 #define MEMPTRS_H
 
+namespace gambatte {
+
 enum OamDmaSrc { OAM_DMA_SRC_ROM, OAM_DMA_SRC_SRAM, OAM_DMA_SRC_VRAM,
                  OAM_DMA_SRC_WRAM, OAM_DMA_SRC_INVALID, OAM_DMA_SRC_OFF };
 
@@ -66,6 +68,8 @@ public:
 
 inline bool isCgb(const MemPtrs &memptrs) {
 	return memptrs.wramdataend() - memptrs.wramdata(0) == 0x8000;
+}
+
 }
 
 #endif

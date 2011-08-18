@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,9 @@
 #define STATESAVER_H
 
 #include "int.h"
+#include <string>
+
+namespace gambatte {
 
 class SaveState;
 
@@ -33,8 +36,10 @@ public:
 	enum { SS_HEIGHT = 144 >> SS_SHIFT };
 	
 	static void saveState(const SaveState &state,
-			const Gambatte::uint_least32_t *videoBuf, int pitch, const char *filename);
-	static bool loadState(SaveState &state, const char *filename);
+			const uint_least32_t *videoBuf, int pitch, const std::string &filename);
+	static bool loadState(SaveState &state, const std::string &filename);
 };
+
+}
 
 #endif

@@ -262,7 +262,7 @@ static const unsigned char z_bits[] = { 0x58,
 static const unsigned char SPC_bits[] = { 0x38,
    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-namespace BitmapFont {
+namespace bitmapfont {
 const unsigned char *const font[] = {
 	0,
 	n0_bits, n1_bits, n2_bits, n3_bits, n4_bits, n5_bits, n6_bits, n7_bits, n8_bits, n9_bits,
@@ -290,13 +290,13 @@ class Rgb32Fill {
 public:
 	explicit Rgb32Fill(unsigned long color) : color(color) {}
 	
-	void operator()(Gambatte::uint_least32_t *dest, unsigned /*pitch*/) const {
+	void operator()(gambatte::uint_least32_t *dest, unsigned /*pitch*/) const {
 		*dest = color;
 	}
 };
 }
 
-void print(Gambatte::uint_least32_t *dest, const unsigned pitch, const unsigned long color, const char *chars) {
+void print(gambatte::uint_least32_t *dest, const unsigned pitch, const unsigned long color, const char *chars) {
 	print(dest, pitch, Rgb32Fill(color), chars);
 }
 

@@ -22,6 +22,8 @@
 #include "savestate.h"
 #include <algorithm>
 
+namespace gambatte {
+
 LycIrq::LycIrq() :
 	time_(DISABLED_TIME),
 	lycRegSrc_(0),
@@ -95,4 +97,6 @@ void LycIrq::reschedule(const LyCounter & lyCounter, const unsigned long cc) {
 void LycIrq::lcdReset() {
 	statReg_ = statRegSrc_;
 	lycReg_ = lycRegSrc_;
+}
+
 }

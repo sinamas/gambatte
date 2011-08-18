@@ -19,6 +19,8 @@
 #ifndef LY_COUNTER_H
 #define LY_COUNTER_H
 
+namespace gambatte {
+
 class SaveState;
 
 class LyCounter {
@@ -48,5 +50,7 @@ public:
 	void setDoubleSpeed(bool ds_in);
 	unsigned long time() const { return time_; }
 };
+
+}
 
 #endif

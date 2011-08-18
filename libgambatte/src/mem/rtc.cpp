@@ -19,19 +19,22 @@
 #include "rtc.h"
 #include "../savestate.h"
 
-Rtc::Rtc() :
-activeData(NULL),
-activeSet(NULL),
-baseTime(0),
-haltTime(0),
-index(5),
-dataDh(0),
-dataDl(0),
-dataH(0),
-dataM(0),
-dataS(0),
-enabled(false),
-lastLatchData(false) {
+namespace gambatte {
+
+Rtc::Rtc()
+: activeData(NULL),
+  activeSet(NULL),
+  baseTime(0),
+  haltTime(0),
+  index(5),
+  dataDh(0),
+  dataDl(0),
+  dataH(0),
+  dataM(0),
+  dataS(0),
+  enabled(false),
+  lastLatchData(false)
+{
 }
 
 void Rtc::doLatch() {
@@ -152,4 +155,6 @@ void Rtc::setS(const unsigned new_seconds) {
 	const time_t unixtime = (dataDh & 0x40) ? haltTime : std::time(0);
 	baseTime += (unixtime - baseTime) % 60;
 	baseTime -= new_seconds;
+}
+
 }

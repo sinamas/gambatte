@@ -28,7 +28,6 @@ class auto_vector : private std::vector<T*, Allocator> {
 		explicit auto_vector_temporary(const std::vector<T*, Allocator> &v): v(v) {}
 	};
 	
-	auto_vector& operator=(const auto_vector&);
 public:
 	typedef typename std::vector<T*, Allocator>::const_iterator const_iterator;
 	typedef typename std::vector<T*, Allocator>::iterator iterator;
@@ -41,6 +40,9 @@ public:
 	
 	template<class InputIterator>
 	auto_vector(InputIterator first, InputIterator last, const Allocator& a = Allocator()) : std::vector<T*, Allocator>(first, last, a) {}
+	~auto_vector() { clear(); }
+
+	auto_vector& operator=(auto_vector &v) { clear(); swap(v); }
 	
 	using std::vector<T*, Allocator>::begin;
 	using std::vector<T*, Allocator>::end;
@@ -101,8 +103,6 @@ public:
 		
 		std::vector<T*, Allocator>::clear();
 	}
-	
-	~auto_vector() { clear(); }
 	
 	operator const auto_vector_temporary() { std::vector<T*, Allocator> v; v.swap(*this); return auto_vector_temporary(v); }
 };

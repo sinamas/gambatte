@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,8 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "interrupter.h"
-
 #include "memory.h"
+
+namespace gambatte {
 
 Interrupter::Interrupter(unsigned short &SP_in, unsigned short &PC_in) :
 	SP(SP_in),
@@ -36,4 +37,6 @@ unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycle
 	cycleCounter += 8;
 	
 	return cycleCounter;
+}
+
 }

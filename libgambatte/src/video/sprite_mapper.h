@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,9 +22,8 @@
 #include "ly_counter.h"
 #include "../savestate.h"
 
-class M3ExtraCycles;
+namespace gambatte {
 class NextM0Time;
-class SaveState;
 
 class SpriteMapper {
 	class OamReader {
@@ -124,5 +123,7 @@ public:
 	void loadState(const SaveState &state, const unsigned char *const oamram) { oamReader.loadState(state, oamram); mapSprites(); }
 	bool inactivePeriodAfterDisplayEnable(unsigned long cc) const { return oamReader.inactivePeriodAfterDisplayEnable(cc); }
 };
+
+}
 
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,7 +23,7 @@
 
 #include <cstdint>
 
-namespace Gambatte {
+namespace gambatte {
 using std::uint_least32_t;
 using std::uint_least16_t;
 }
@@ -32,14 +32,14 @@ using std::uint_least16_t;
 
 #include <stdint.h>
 
-namespace Gambatte {
+namespace gambatte {
 using ::uint_least32_t;
 using ::uint_least16_t;
 }
 
 #else
 
-namespace Gambatte {
+namespace gambatte {
 #ifdef CHAR_LEAST_32
 typedef unsigned char uint_least32_t;
 #elif defined(SHORT_LEAST_32)

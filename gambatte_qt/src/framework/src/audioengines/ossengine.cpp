@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -80,7 +80,7 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 	}
 	
 	{
-		int arg = 0x60000 | std::min(static_cast<int>(std::log(speed * latency * 4 / 6000.0) / std::log(2.0) + 0.5), 0xFFFF);
+		int arg = 0x60000 | static_cast<int>(std::log(speed * latency * 4 / 6000.0) / std::log(2.0) + 0.5);
 		
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &arg) == -1) {
 			std::perror("SNDCTL_DSP_SETFRAGMENT");
@@ -159,7 +159,7 @@ const AudioEngine::BufferState OssEngine::bufferState() const {
 		if (info.bytes < 0)
 			info.bytes = 0;
 		else if (static_cast<unsigned>(info.bytes >> 2) > bufSize)
-			info.bytes = bufSize;
+			info.bytes = bufSize << 2;
 		
 		s.fromUnderrun = bufSize - (info.bytes >> 2);
 		s.fromOverflow = info.bytes >> 2;

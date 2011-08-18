@@ -22,8 +22,8 @@
 #include "counterdef.h"
 #include "minkeeper.h"
 
+namespace gambatte {
 struct SaveState;
-
 enum MemEventId { UNHALT, END, BLIT, SERIAL, OAM, DMA, TIMA, VIDEO, INTERRUPTS };
 
 class InterruptRequester {
@@ -86,5 +86,7 @@ inline void flagGdmaReq(InterruptRequester *const intreq) { intreq->setEventTime
 inline void ackDmaReq(InterruptRequester *const intreq) { intreq->setEventTime<DMA>(DISABLED_TIME); }
 inline bool hdmaReqFlagged(const InterruptRequester &intreq) { return intreq.eventTime(DMA) == 0; }
 inline bool gdmaReqFlagged(const InterruptRequester &intreq) { return intreq.eventTime(DMA) == 1; }
+
+}
 
 #endif

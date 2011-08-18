@@ -21,7 +21,7 @@
 #include "videolink/vfilterinfo.h"
 #include <algorithm>
 
-using namespace Gambatte;
+using namespace gambatte;
 
 GambatteSource::GambatteSource() :
 MediaSource(2064),
@@ -222,7 +222,7 @@ void GambatteSource::saveState(const PixelBuffer &pb) {
 	gb.saveState(gbpixels, gbpitch);
 }
 
-void GambatteSource::saveState(const PixelBuffer &pb, const char *filepath) {
+void GambatteSource::saveState(const PixelBuffer &pb, const std::string &filepath) {
 	setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
 	gb.saveState(gbpixels, gbpitch, filepath);
 }

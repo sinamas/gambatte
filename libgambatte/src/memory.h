@@ -26,17 +26,16 @@
 #include "interrupter.h"
 #include "tima.h"
 
-namespace Gambatte {
+namespace gambatte {
 class InputGetter;
 class FilterInfo;
-}
 
 class Memory {
 	unsigned char ioamhram[0x200];
 	unsigned char vram[0x2000 * 2];
 	unsigned char *vrambank;
 	
-	Gambatte::InputGetter *getInput;
+	InputGetter *getInput;
 	unsigned long divLastUpdate;
 	unsigned long lastOamDmaUpdate;
 	
@@ -130,23 +129,25 @@ public:
 	unsigned long event(unsigned long cycleCounter);
 	unsigned long resetCounters(unsigned long cycleCounter);
 
-	bool loadROM(const char *romfile, bool forceDmg);
-	void setSaveDir(const char *dir) { cart.setSaveDir(dir); }
+	bool loadROM(const std::string &romfile, bool forceDmg);
+	void setSaveDir(const std::string &dir) { cart.setSaveDir(dir); }
 
-	void setInputGetter(Gambatte::InputGetter *getInput) {
+	void setInputGetter(InputGetter *getInput) {
 		this->getInput = getInput;
 	}
 
 	void setEndtime(unsigned long cc, unsigned long inc);
 	
-	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { sound.setBuffer(buf); }
+	void setSoundBuffer(uint_least32_t *const buf) { sound.setBuffer(buf); }
 	unsigned fillSoundBuffer(unsigned long cc);
 	
-	void setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const int pitch) {
+	void setVideoBuffer(uint_least32_t *const videoBuf, const int pitch) {
 		display.setVideoBuffer(videoBuf, pitch);
 	}
 	
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
 };
+
+}
 
 #endif

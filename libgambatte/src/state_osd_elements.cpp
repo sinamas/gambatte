@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,7 +24,8 @@
 
 namespace {
 
-using namespace BitmapFont;
+using namespace gambatte;
+using namespace bitmapfont;
 
 static const char stateLoadedTxt[] = { S,t,a,t,e,SPC,N0,SPC,l,o,a,d,e,d,0 };
 static const char stateSavedTxt[]  = { S,t,a,t,e,SPC,N0,SPC,s,a,v,e,d,0 };
@@ -33,7 +34,7 @@ static const unsigned stateSavedTxtWidth  = getWidth(stateSavedTxt);
 
 class ShadedTextOsdElment : public OsdElement {
 	struct ShadeFill {
-		void operator()(Gambatte::uint_least32_t *dest, const unsigned pitch) const {
+		void operator()(uint_least32_t *dest, const unsigned pitch) const {
 			dest[2] = dest[1] = dest[0] = 0x000000ul;
 			dest += pitch;
 			dest[2] = dest[0] = 0x000000ul;
@@ -42,7 +43,7 @@ class ShadedTextOsdElment : public OsdElement {
 		}
 	};
 	
-	Gambatte::uint_least32_t *const pixels;
+	uint_least32_t *const pixels;
 	unsigned life;
 	
 	ShadedTextOsdElment(const ShadedTextOsdElment&);
@@ -50,14 +51,14 @@ class ShadedTextOsdElment : public OsdElement {
 public:
 	ShadedTextOsdElment(unsigned w, const char *txt);
 	~ShadedTextOsdElment();
-	const Gambatte::uint_least32_t* update();
+	const uint_least32_t* update();
 };
 
 ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt) :
 OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT, width + 2, HEIGHT + 2, THREE_FOURTHS),
-pixels(new Gambatte::uint_least32_t[w() * h()]),
+pixels(new uint_least32_t[w() * h()]),
 life(4 * 60) {
-	std::memset(pixels, 0xFF, w() * h() * sizeof(Gambatte::uint_least32_t));
+	std::memset(pixels, 0xFF, w() * h() * sizeof(uint_least32_t));
 	
 	/*print(pixels + 0 * w() + 0, w(), 0x000000ul, txt);
 	print(pixels + 0 * w() + 1, w(), 0x000000ul, txt);
@@ -77,7 +78,7 @@ ShadedTextOsdElment::~ShadedTextOsdElment() {
 	delete []pixels;
 }
 
-const Gambatte::uint_least32_t* ShadedTextOsdElment::update() {
+const uint_least32_t* ShadedTextOsdElment::update() {
 	if (life--)
 		return pixels;
 	
@@ -85,7 +86,7 @@ const Gambatte::uint_least32_t* ShadedTextOsdElment::update() {
 }
 
 /*class FramedTextOsdElment : public OsdElement {
-	Gambatte::uint_least32_t *const pixels;
+	uint_least32_t *const pixels;
 	unsigned life;
 	
 	FramedTextOsdElment(const FramedTextOsdElment&);
@@ -93,14 +94,14 @@ const Gambatte::uint_least32_t* ShadedTextOsdElment::update() {
 public:
 	FramedTextOsdElment(unsigned w, const char *txt);
 	~FramedTextOsdElment();
-	const Gambatte::uint_least32_t* update();
+	const uint_least32_t* update();
 };
 
 FramedTextOsdElment::FramedTextOsdElment(unsigned width, const char *txt) :
 OsdElement(NUMBER_WIDTH, 144 - HEIGHT * 2 - HEIGHT / 2, width + NUMBER_WIDTH * 2, HEIGHT * 2),
-pixels(new Gambatte::uint_least32_t[w() * h()]),
+pixels(new uint_least32_t[w() * h()]),
 life(4 * 60) {
-	std::memset(pixels, 0x00, w() * h() * sizeof(Gambatte::uint_least32_t));
+	std::memset(pixels, 0x00, w() * h() * sizeof(uint_least32_t));
 	print(pixels + (w() - width) / 2 + ((h() - HEIGHT) / 2) * w(), w(), 0xA0A0A0ul, txt);
 }
 
@@ -108,7 +109,7 @@ FramedTextOsdElment::~FramedTextOsdElment() {
 	delete []pixels;
 }
 
-const Gambatte::uint_least32_t* FramedTextOsdElment::update() {
+const uint_least32_t* FramedTextOsdElment::update() {
 	if (life--)
 		return pixels;
 	
@@ -116,19 +117,19 @@ const Gambatte::uint_least32_t* FramedTextOsdElment::update() {
 }*/
 
 class SaveStateOsdElement : public OsdElement {
-	Gambatte::uint_least32_t pixels[StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT];
+	uint_least32_t pixels[StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT];
 	unsigned life;
 	
 public:
-	SaveStateOsdElement(const char *fileName, unsigned stateNo);
-	const Gambatte::uint_least32_t* update();
+	SaveStateOsdElement(const std::string &fileName, unsigned stateNo);
+	const uint_least32_t* update();
 };
 
-SaveStateOsdElement::SaveStateOsdElement(const char *fileName, unsigned stateNo) :
+SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned stateNo) :
 OsdElement((stateNo ? stateNo - 1 : 9) * ((160 - StateSaver::SS_WIDTH) / 10)
 		+ ((160 - StateSaver::SS_WIDTH) / 10) / 2, 4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT),
 life(4 * 60) {
-	std::ifstream file(fileName, std::ios_base::binary);
+	std::ifstream file(fileName.c_str(), std::ios_base::binary);
 	
 	if (file.is_open()) {
 		file.ignore(5);
@@ -137,16 +138,16 @@ life(4 * 60) {
 		std::memset(pixels, 0, sizeof pixels);
 		
 		{
-			using namespace BitmapFont;
+			using namespace bitmapfont;
 			
-			static const char txt[] = { E,m,p,t,BitmapFont::y,0 };
+			static const char txt[] = { E,m,p,t,bitmapfont::y,0 };
 			
-			print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - BitmapFont::HEIGHT / 2) * StateSaver::SS_WIDTH, StateSaver::SS_WIDTH, 0x808080ul, txt);
+			print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - bitmapfont::HEIGHT / 2) * StateSaver::SS_WIDTH, StateSaver::SS_WIDTH, 0x808080ul, txt);
 		}
 	}
 }
 
-const Gambatte::uint_least32_t* SaveStateOsdElement::update() {
+const uint_least32_t* SaveStateOsdElement::update() {
 	if (life--)
 		return pixels;
 	
@@ -154,6 +155,8 @@ const Gambatte::uint_least32_t* SaveStateOsdElement::update() {
 }
 
 } // anon namespace
+
+namespace gambatte {
 
 std::auto_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo) {
 	char txt[sizeof stateLoadedTxt];
@@ -173,6 +176,8 @@ std::auto_ptr<OsdElement> newStateSavedOsdElement(unsigned stateNo) {
 	return std::auto_ptr<OsdElement>(new ShadedTextOsdElment(stateSavedTxtWidth, txt));
 }
 
-std::auto_ptr<OsdElement> newSaveStateOsdElement(const char *fileName, unsigned stateNo) {
+std::auto_ptr<OsdElement> newSaveStateOsdElement(const std::string &fileName, unsigned stateNo) {
 	return std::auto_ptr<OsdElement>(new SaveStateOsdElement(fileName, stateNo));
+}
+
 }

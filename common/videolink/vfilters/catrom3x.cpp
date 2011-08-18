@@ -25,22 +25,22 @@ enum { WIDTH  = VfilterInfo::IN_WIDTH };
 enum { HEIGHT = VfilterInfo::IN_HEIGHT };
 enum { PITCH  = WIDTH + 3 };
 
-static inline Gambatte::uint_least32_t* buffer(const Catrom3x *c3x) {
-	return static_cast<Gambatte::uint_least32_t*>(c3x->inBuf()) - (PITCH + 1);
+static inline gambatte::uint_least32_t* buffer(const Catrom3x *c3x) {
+	return static_cast<gambatte::uint_least32_t*>(c3x->inBuf()) - (PITCH + 1);
 }
 
 struct Colorsum {
-	Gambatte::uint_least32_t r, g, b;
+	gambatte::uint_least32_t r, g, b;
 };
 
-static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) {
+static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) {
 	unsigned w = WIDTH;
 	
 	while (w--) {
 		{
-			Gambatte::uint_least32_t rsum = sums[1].r;
-			Gambatte::uint_least32_t gsum = sums[1].g;
-			Gambatte::uint_least32_t bsum = sums[1].b;
+			gambatte::uint_least32_t rsum = sums[1].r;
+			gambatte::uint_least32_t gsum = sums[1].g;
+			gambatte::uint_least32_t bsum = sums[1].b;
 
 			if (rsum & 0x80000000)
 				rsum = 0;
@@ -91,9 +91,9 @@ static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) 
 			*dest++ = rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum;
 		}
 		{
-			Gambatte::uint_least32_t rsum = sums[1].r * 21;
-			Gambatte::uint_least32_t gsum = sums[1].g * 21;
-			Gambatte::uint_least32_t bsum = sums[1].b * 21;
+			gambatte::uint_least32_t rsum = sums[1].r * 21;
+			gambatte::uint_least32_t gsum = sums[1].g * 21;
+			gambatte::uint_least32_t bsum = sums[1].b * 21;
 
 			rsum -= sums[0].r << 1;
 			gsum -= sums[0].g << 1;
@@ -157,9 +157,9 @@ static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) 
 			*dest++ = rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum;
 		}
 		{
-			Gambatte::uint_least32_t rsum = sums[1].r * 9;
-			Gambatte::uint_least32_t gsum = sums[1].g * 9;
-			Gambatte::uint_least32_t bsum = sums[1].b * 9;
+			gambatte::uint_least32_t rsum = sums[1].r * 9;
+			gambatte::uint_least32_t gsum = sums[1].g * 9;
+			gambatte::uint_least32_t bsum = sums[1].b * 9;
 
 			rsum -= sums[0].r;
 			gsum -= sums[0].g;
@@ -226,12 +226,12 @@ static void merge_columns(Gambatte::uint_least32_t *dest, const Colorsum *sums) 
 	}
 }
 
-static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const Gambatte::uint_least32_t *sline) {
+static void filter(gambatte::uint_least32_t *dline, const unsigned pitch, const gambatte::uint_least32_t *sline) {
 	Colorsum sums[PITCH];
 
 	for (unsigned h = HEIGHT; h--;) {
 		{
-			const Gambatte::uint_least32_t *s = sline;
+			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
 			
@@ -250,7 +250,7 @@ static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const 
 		dline += pitch;
 
 		{
-			const Gambatte::uint_least32_t *s = sline;
+			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
 			
@@ -289,7 +289,7 @@ static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const 
 		dline += pitch;
 
 		{
-			const Gambatte::uint_least32_t *s = sline;
+			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
 			
@@ -331,8 +331,8 @@ static void filter(Gambatte::uint_least32_t *dline, const unsigned pitch, const 
 }
 }
 
-Catrom3x::Catrom3x() : VideoLink((new Gambatte::uint_least32_t[(HEIGHT + 3UL) * PITCH]) + (PITCH + 1), PITCH) {
-	std::memset(buffer(this), 0, (HEIGHT + 3UL) * PITCH * sizeof(Gambatte::uint_least32_t));
+Catrom3x::Catrom3x() : VideoLink((new gambatte::uint_least32_t[(HEIGHT + 3UL) * PITCH]) + (PITCH + 1), PITCH) {
+	std::memset(buffer(this), 0, (HEIGHT + 3UL) * PITCH * sizeof(gambatte::uint_least32_t));
 }
 
 Catrom3x::~Catrom3x() {
@@ -340,5 +340,5 @@ Catrom3x::~Catrom3x() {
 }
 
 void Catrom3x::draw(void *const dbuffer, const unsigned pitch) {
-	::filter(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + PITCH);
+	::filter(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + PITCH);
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,6 +18,8 @@
  ***************************************************************************/
 #include "ly_counter.h"
 #include "../savestate.h"
+
+namespace gambatte {
 
 LyCounter::LyCounter()
 : time_(0), lineTime_(0), ly_(0), ds(false)
@@ -61,4 +63,6 @@ void LyCounter::reset(const unsigned long videoCycles, const unsigned long lastU
 void LyCounter::setDoubleSpeed(const bool ds_in) {
 	ds = ds_in;
 	lineTime_ = 456U << ds_in;
+}
+
 }

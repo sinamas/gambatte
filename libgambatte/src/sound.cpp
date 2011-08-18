@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,7 +17,6 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "sound.h"
-
 #include "savestate.h"
 #include <cstring>
 #include <algorithm>
@@ -41,14 +40,17 @@ S	1       -           Clock       -
 S) start step on sound power on.
 */
 
-PSG::PSG() :
-buffer(0),
-lastUpdate(0),
-soVol(0),
-rsum(0x8000), // initialize to 0x8000 to prevent borrows from high word, xor away later
-bufferPos(0),
-enabled(false)
-{}
+namespace gambatte {
+
+PSG::PSG()
+: buffer(0),
+  lastUpdate(0),
+  soVol(0),
+  rsum(0x8000), // initialize to 0x8000 to prevent borrows from high word, xor away later
+  bufferPos(0),
+  enabled(false)
+{
+}
 
 void PSG::init(const bool cgb) {
 	ch1.init(cgb);
@@ -88,9 +90,9 @@ void PSG::loadState(const SaveState &state) {
 }
 
 void PSG::accumulate_channels(const unsigned long cycles) {
-	Gambatte::uint_least32_t *const buf = buffer + bufferPos;
+	uint_least32_t *const buf = buffer + bufferPos;
 	
-	std::memset(buf, 0, cycles * sizeof(Gambatte::uint_least32_t));
+	std::memset(buf, 0, cycles * sizeof(uint_least32_t));
 	ch1.update(buf, soVol, cycles);
 	ch2.update(buf, soVol, cycles);
 	ch3.update(buf, soVol, cycles);
@@ -113,8 +115,8 @@ void PSG::resetCounter(const unsigned long newCc, const unsigned long oldCc, con
 }
 
 unsigned PSG::fillBuffer() {
-	Gambatte::uint_least32_t sum = rsum;
-	Gambatte::uint_least32_t *b = buffer;
+	uint_least32_t sum = rsum;
+	uint_least32_t *b = buffer;
 	unsigned n = bufferPos;
 	
 	if (unsigned n2 = n >> 3) {
@@ -175,4 +177,6 @@ void PSG::map_so(const unsigned nr51) {
 
 unsigned PSG::getStatus() const {
 	return ch1.isActive() | ch2.isActive() << 1 | ch3.isActive() << 2 | ch4.isActive() << 3;
+}
+
 }

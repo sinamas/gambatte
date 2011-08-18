@@ -19,6 +19,8 @@
 #ifndef SOUND_UNIT_H
 #define SOUND_UNIT_H
 
+namespace gambatte {
+
 class SoundUnit {
 protected:
 	unsigned long counter;
@@ -31,5 +33,7 @@ public:
 	unsigned long getCounter() const { return counter; }
 	virtual void resetCounters(unsigned long /*oldCc*/) { if (counter != COUNTER_DISABLED) counter -= COUNTER_MAX; }
 };
+
+}
 
 #endif

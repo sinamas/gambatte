@@ -19,9 +19,11 @@
 #ifndef RTC_H
 #define RTC_H
 
-struct SaveState;
-
 #include <ctime>
+
+namespace gambatte {
+
+struct SaveState;
 
 class Rtc {
 private:
@@ -93,5 +95,7 @@ public:
 		*activeData = data;
 	}
 };
+
+}
 
 #endif

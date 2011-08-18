@@ -23,6 +23,8 @@
 #include "savestate.h"
 #include <cstring>
 
+namespace gambatte {
+
 Memory::Memory(const Interrupter &interrupter_in) :
 vrambank(vram),
 getInput(0),
@@ -962,7 +964,7 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 		ioamhram[P - 0xFE00] = data;
 }
 
-bool Memory::loadROM(const char *romfile, const bool forceDmg) {
+bool Memory::loadROM(const std::string &romfile, const bool forceDmg) {
 	if (cart.loadROM(romfile, forceDmg))
 		return true;
 
@@ -979,4 +981,6 @@ unsigned Memory::fillSoundBuffer(const unsigned long cycleCounter) {
 
 void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
 	display.setDmgPaletteColor(palNum, colorNum, rgb32);
+}
+
 }

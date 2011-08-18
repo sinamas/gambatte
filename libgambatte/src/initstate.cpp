@@ -24,6 +24,8 @@
 #include <cstring>
 #include <ctime>
 
+namespace {
+
 static void setInitialCgbWram(unsigned char *const wram) {
 	static const struct { unsigned short addr; unsigned char val; } cgbWramDumpDiff[] = {
 		{ 0x0083, 0x7F }, { 0x008B, 0x10 }, { 0x00C0, 0x7F }, { 0x00E1, 0x7F },
@@ -1143,7 +1145,9 @@ static void setInitialDmgIoamhram(unsigned char *const ioamhram) {
 	std::memcpy(ioamhram + 0x100, ffxxDump, sizeof(ffxxDump));
 }
 
-void setInitState(SaveState &state, const bool cgb) {
+} // anon namespace
+
+void gambatte::setInitState(SaveState &state, const bool cgb) {
 	static const unsigned char cgbObjpDump[0x40] = {
 		0x00, 0x00, 0xF2, 0xAB, 
 		0x61, 0xC2, 0xD9, 0xBA, 

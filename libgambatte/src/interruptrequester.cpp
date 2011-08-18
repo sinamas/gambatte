@@ -19,6 +19,8 @@
 #include "interruptrequester.h"
 #include "savestate.h"
 
+namespace gambatte {
+
 InterruptRequester::InterruptRequester() : minIntTime(0), ifreg_(0), iereg_(0) {}
 
 void InterruptRequester::saveState(SaveState &state) const {
@@ -96,4 +98,6 @@ void InterruptRequester::setIfreg(const unsigned ifreg) {
 	
 	if (intFlags.imeOrHalted())
 		eventTimes.setValue<INTERRUPTS>(pendingIrqs() ? minIntTime : static_cast<unsigned long>(DISABLED_TIME));
+}
+
 }

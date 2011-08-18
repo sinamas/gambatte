@@ -20,6 +20,8 @@
 #include <algorithm>
 #include <cstring>
 
+namespace gambatte {
+
 MemPtrs::MemPtrs() :
 	memchunk_(0), rambankdata_(0), rdisabledRam_(0), wdisabledRam_(0),
 	rsrambankptr_(0), wsrambankptr_(0), oamDmaSrc_(OAM_DMA_SRC_OFF)
@@ -134,4 +136,6 @@ void MemPtrs::disconnectOamDmaAreas() {
 			break;
 		}
 	}
+}
+
 }

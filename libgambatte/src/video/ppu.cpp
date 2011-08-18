@@ -24,6 +24,8 @@
 
 namespace {
 
+using namespace gambatte;
+
 #define PREP(u8) (((u8) << 7 & 0x80) | ((u8) << 5 & 0x40) | ((u8) << 3 & 0x20) | ((u8) << 1 & 0x10) | \
                   ((u8) >> 1 & 0x08) | ((u8) >> 3 & 0x04) | ((u8) >> 5 & 0x02) | ((u8) >> 7 & 0x01))
 
@@ -291,7 +293,7 @@ namespace M3Start {
 }
 
 namespace M3Loop {
-	static void doFullTilesUnrolledDmg(PPUPriv &p, const int xend, Gambatte::uint_least32_t *const dbufline,
+	static void doFullTilesUnrolledDmg(PPUPriv &p, const int xend, uint_least32_t *const dbufline,
 			const unsigned char *const tileMapLine, const unsigned tileline, unsigned tileMapXpos) {
 		const unsigned tileIndexSign = ~p.lcdc << 3 & 0x80;
 		const unsigned char *const tileDataLine = p.vram + tileIndexSign * 32 + tileline * 2;
@@ -352,7 +354,7 @@ namespace M3Loop {
 				n = static_cast<unsigned>(p.cycles) >> 3 < n ? static_cast<unsigned>(p.cycles) >> 3 : n;
 				
 				unsigned ntileword = p.ntileword;
-				Gambatte::uint_least32_t *dst = dbufline + xpos - 8;
+				uint_least32_t *dst = dbufline + xpos - 8;
 				p.cycles -= n * 8;
 				xpos += n * 8;
 				
@@ -391,7 +393,7 @@ namespace M3Loop {
 			}
 			
 			{
-				Gambatte::uint_least32_t *const dst = dbufline + (xpos - 8);
+				uint_least32_t *const dst = dbufline + (xpos - 8);
 				const unsigned tileword = p.ntileword;
 				
 				dst[0] = p.bgPalette[tileword       & twmask];
@@ -485,7 +487,7 @@ namespace M3Loop {
 		p.xpos = xpos;
 	}
 	
-	static void doFullTilesUnrolledCgb(PPUPriv &p, const int xend, Gambatte::uint_least32_t *const dbufline,
+	static void doFullTilesUnrolledCgb(PPUPriv &p, const int xend, uint_least32_t *const dbufline,
 			const unsigned char *const tileMapLine, const unsigned tileline, unsigned tileMapXpos) {
 		int xpos = p.xpos;
 		const unsigned tileIndexSign = ~p.lcdc << 3 & 0x80;
@@ -536,7 +538,7 @@ namespace M3Loop {
 				
 				unsigned ntileword = p.ntileword;
 				unsigned nattrib   = p.nattrib;
-				Gambatte::uint_least32_t *dst = dbufline + xpos - 8;
+				uint_least32_t *dst = dbufline + xpos - 8;
 				p.cycles -= n * 8;
 				xpos += n * 8;
 				
@@ -583,7 +585,7 @@ namespace M3Loop {
 			}
 			
 			{
-				Gambatte::uint_least32_t *const dst = dbufline + (xpos - 8);
+				uint_least32_t *const dst = dbufline + (xpos - 8);
 				const unsigned tileword = p.ntileword;
 				const unsigned attrib   = p.nattrib;
 				const unsigned long *const bgPalette = p.bgPalette + (attrib & 7) * 4;
@@ -723,7 +725,7 @@ namespace M3Loop {
 		if (xpos >= xend)
 			return;
 		
-		Gambatte::uint_least32_t *const dbufline = p.framebuf.fbline();
+		uint_least32_t *const dbufline = p.framebuf.fbline();
 		const unsigned char *tileMapLine;
 		unsigned tileline;
 		unsigned tileMapXpos;
@@ -739,7 +741,7 @@ namespace M3Loop {
 		}
 		
 		if (xpos < 8) {
-			Gambatte::uint_least32_t prebuf[16];
+			uint_least32_t prebuf[16];
 			
 			if (p.cgb) {
 				doFullTilesUnrolledCgb(p, xend < 8 ? xend : 8, prebuf + (8 - xpos), tileMapLine, tileline, tileMapXpos);
@@ -749,7 +751,7 @@ namespace M3Loop {
 			const int newxpos = p.xpos;
 			
 			if (newxpos > 8) {
-				std::memcpy(dbufline, prebuf + (8 - xpos), (newxpos - 8) * sizeof(Gambatte::uint_least32_t));
+				std::memcpy(dbufline, prebuf + (8 - xpos), (newxpos - 8) * sizeof(uint_least32_t));
 			} else if (newxpos < 8)
 				return;
 			
@@ -768,7 +770,7 @@ namespace M3Loop {
 	static void plotPixel(PPUPriv &p) {
 		const int xpos = p.xpos;
 		const unsigned tileword = p.tileword;
-		Gambatte::uint_least32_t *const fbline = p.framebuf.fbline();
+		uint_least32_t *const fbline = p.framebuf.fbline();
 		
 		if (static_cast<int>(p.wx) == xpos && (p.weMaster || (p.wy2 == p.lyCounter.ly() && (p.lcdc & 0x20))) && xpos < 167) {
 			if (p.winDrawState == 0 && (p.lcdc & 0x20)) {
@@ -1447,6 +1449,8 @@ namespace M2 {
 
 } // anon namespace
 
+namespace gambatte {
+
 PPUPriv::PPUPriv(NextM0Time &nextM0Time, const unsigned char *const oamram, const unsigned char *const vram) :
 	vram(vram),
 	nextCallPtr(&M2::Ly0::f0_),
@@ -1747,4 +1751,6 @@ void PPU::update(const unsigned long cc) {
 		p_.framebuf.setFbline(p_.lyCounter.ly());
 		p_.nextCallPtr->f(p_);
 	}
+}
+
 }

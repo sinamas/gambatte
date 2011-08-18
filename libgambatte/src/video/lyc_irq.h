@@ -19,8 +19,10 @@
 #ifndef VIDEO_LYC_IRQ_H
 #define VIDEO_LYC_IRQ_H
 
-class LyCounter;
+namespace gambatte {
+
 class SaveState;
+class LyCounter;
 
 class LycIrq {
 	unsigned long time_;
@@ -51,5 +53,7 @@ public:
 		regChange(statRegSrc_, lycReg, lyCounter, cc);
 	}
 };
+
+}
 
 #endif

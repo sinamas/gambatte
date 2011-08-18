@@ -31,7 +31,7 @@ class BlitterWrapper {
 	unsigned vsrci;
 	
 public:
-	struct Buf { Gambatte::uint_least32_t* pixels; unsigned pitch; };
+	struct Buf { gambatte::uint_least32_t* pixels; unsigned pitch; };
 	BlitterWrapper() : vsrci(0) {}
 	const Buf inBuf() const;
 	void draw();

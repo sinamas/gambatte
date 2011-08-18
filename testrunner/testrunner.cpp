@@ -7,9 +7,9 @@
 #include <cstring>
 #include <cassert>
 
-static Gambatte::uint_least32_t soundbuf[35112 + 2064];
+static gambatte::uint_least32_t soundbuf[35112 + 2064];
 
-static void readPng(Gambatte::uint_least32_t *const out, const char *const filename) {
+static void readPng(gambatte::uint_least32_t *const out, const char *const filename) {
 	const struct PngContext {
 		png_structp png;
 		png_infop info;
@@ -52,8 +52,8 @@ static void readPng(Gambatte::uint_least32_t *const out, const char *const filen
 		out[y * 160 + x] = rows[y][x * 4] << 16 | rows[y][x * 4 + 1] << 8 | rows[y][x * 4 + 2];
 }
 
-static const Gambatte::uint_least32_t* tileFromChar(const char c) {
-	static const Gambatte::uint_least32_t tiles[0x10 * 8 * 8] = {
+static const gambatte::uint_least32_t* tileFromChar(const char c) {
+	static const gambatte::uint_least32_t tiles[0x10 * 8 * 8] = {
 		#define _ 0xF8F8F8
 		#define O 0x000000
 		
@@ -209,7 +209,7 @@ static const Gambatte::uint_least32_t* tileFromChar(const char c) {
 	return num < 0x10 ? tiles + num * 8*8 : 0;
 }
 
-static bool tilesAreEqual(const Gambatte::uint_least32_t *const lhs, const Gambatte::uint_least32_t *const rhs) {
+static bool tilesAreEqual(const gambatte::uint_least32_t *const lhs, const gambatte::uint_least32_t *const rhs) {
 	for (unsigned y = 0; y < 8; ++y)
 	for (unsigned x = 0; x < 8; ++x)
 		if ((lhs[y * 160 + x] & 0xF8F8F8) != rhs[y * 8 + x])
@@ -218,8 +218,8 @@ static bool tilesAreEqual(const Gambatte::uint_least32_t *const lhs, const Gamba
 	return true;
 }
 
-static bool frameBufferMatchesOut(const Gambatte::uint_least32_t *const framebuf, const std::string &out) {
-	const Gambatte::uint_least32_t *outTile;
+static bool frameBufferMatchesOut(const gambatte::uint_least32_t *const framebuf, const std::string &out) {
+	const gambatte::uint_least32_t *outTile;
 	
 	for (std::size_t i = 0; (outTile = tileFromChar(out[i])) != 0; ++i) {
 		if (!tilesAreEqual(framebuf + i * 8, outTile))
@@ -229,7 +229,7 @@ static bool frameBufferMatchesOut(const Gambatte::uint_least32_t *const framebuf
 	return true;
 }
 
-static bool frameBufsEqual(const Gambatte::uint_least32_t lhs[], const Gambatte::uint_least32_t rhs[]) {
+static bool frameBufsEqual(const gambatte::uint_least32_t lhs[], const gambatte::uint_least32_t rhs[]) {
 	for (std::size_t i = 0; i < 160 * 144; ++i) {
 		if ((lhs[i] ^ rhs[i]) & 0xFCFCFC)
 			return false;
@@ -238,7 +238,7 @@ static bool frameBufsEqual(const Gambatte::uint_least32_t lhs[], const Gambatte:
 	return true;
 }
 
-static bool evaluateStrTestResults(const Gambatte::uint_least32_t *const framebuf, const std::string &file, const char *const outstr) {
+static bool evaluateStrTestResults(const gambatte::uint_least32_t *const framebuf, const std::string &file, const char *const outstr) {
 	const std::size_t outpos = file.find(outstr);
 	
 	if (outpos != std::string::npos) {
@@ -251,8 +251,8 @@ static bool evaluateStrTestResults(const Gambatte::uint_least32_t *const framebu
 	return true;
 }
 
-static void runTestRom(Gambatte::uint_least32_t framebuf[], const char *const file, const bool forceDmg) {
-	Gambatte::GB gb;
+static void runTestRom(gambatte::uint_least32_t framebuf[], const char *const file, const bool forceDmg) {
+	gambatte::GB gb;
 	
 	if (gb.load(file, forceDmg)) {
 		std::printf("Failed to load ROM file %s\n", file);
@@ -269,16 +269,16 @@ static void runTestRom(Gambatte::uint_least32_t framebuf[], const char *const fi
 }
 
 static bool runStrTest(const char *const romfile, const bool forceDmg, const char *const outstr) {
-	Gambatte::uint_least32_t framebuf[160 * 144];
+	gambatte::uint_least32_t framebuf[160 * 144];
 	runTestRom(framebuf, romfile, forceDmg);
 	return evaluateStrTestResults(framebuf, romfile, outstr);
 }
 
 static bool runPngTest(const char *const romfile, const bool forceDmg, const char *const pngfile) {
-	Gambatte::uint_least32_t framebuf[160 * 144];
+	gambatte::uint_least32_t framebuf[160 * 144];
 	runTestRom(framebuf, romfile, forceDmg);
 	
-	Gambatte::uint_least32_t pngbuf[160 * 144];
+	gambatte::uint_least32_t pngbuf[160 * 144];
 	readPng(pngbuf, pngfile);
 	
 	if (!frameBufsEqual(framebuf, pngbuf)) {

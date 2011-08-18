@@ -24,11 +24,11 @@ const BlitterWrapper::Buf BlitterWrapper::inBuf() const {
 	Buf buf;
 	
 	if (VideoLink *const gblink = vfilter.get() ? vfilter.get() : cconvert.get()) {
-		buf.pixels = static_cast<Gambatte::uint_least32_t*>(gblink->inBuf());
+		buf.pixels = static_cast<gambatte::uint_least32_t*>(gblink->inBuf());
 		buf.pitch  = gblink->inPitch();
 	} else {
 		const SdlBlitter::PixelBuffer &pxbuf = blitter.inBuffer();
-		buf.pixels = static_cast<Gambatte::uint_least32_t*>(pxbuf.pixels);
+		buf.pixels = static_cast<gambatte::uint_least32_t*>(pxbuf.pixels);
 		buf.pitch = pxbuf.pitch;
 	}
 	

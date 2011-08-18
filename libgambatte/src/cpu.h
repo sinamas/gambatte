@@ -19,10 +19,10 @@
 #ifndef CPU_H
 #define CPU_H
 
-class SaveState;
-
 #include "int.h"
 #include "memory.h"
+
+namespace gambatte {
 
 class CPU {
 	Memory memory;
@@ -55,15 +55,15 @@ public:
 	void loadSavedata() { memory.loadSavedata(); }
 	void saveSavedata() { memory.saveSavedata(); }
 	
-	void setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const int pitch) {
+	void setVideoBuffer(uint_least32_t *const videoBuf, const int pitch) {
 		memory.setVideoBuffer(videoBuf, pitch);
 	}
 	
-	void setInputGetter(Gambatte::InputGetter *getInput) {
+	void setInputGetter(InputGetter *getInput) {
 		memory.setInputGetter(getInput);
 	}
 	
-	void setSaveDir(const char *sdir) {
+	void setSaveDir(const std::string &sdir) {
 		memory.setSaveDir(sdir);
 	}
 	
@@ -75,10 +75,10 @@ public:
 		memory.setOsdElement(osdElement);
 	}
 	
-	bool load(const char* romfile, bool forceDmg);
+	bool load(const std::string &romfile, bool forceDmg);
 	bool loaded() const { return memory.loaded(); }
 	
-	void setSoundBuffer(Gambatte::uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
+	void setSoundBuffer(uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
 	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }
 	
 	bool isCgb() const { return memory.isCgb(); }
@@ -87,5 +87,7 @@ public:
 		memory.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 };
+
+}
 
 #endif

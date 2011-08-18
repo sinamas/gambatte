@@ -26,6 +26,8 @@
 
 namespace {
 
+using namespace gambatte;
+
 enum AsciiChar {
 	NUL, SOH, STX, ETX, EOT, ENQ, ACK, BEL,  BS, TAB,  LF,  VT,  FF,  CR,  SO,  SI,
 	DLE, DC1, DC2, DC3, DC4, NAK, SYN, ETB, CAN,  EM, SUB, ESC,  FS,  GS,  RS,  US,
@@ -172,6 +174,8 @@ static void read(std::ifstream &file, bool *data, unsigned long sz) {
 
 } // anon namespace
 
+namespace gambatte {
+
 class SaverList {
 public:
 	typedef std::vector<Saver> list_t;
@@ -188,6 +192,13 @@ public:
 	unsigned maxLabelsize() const { return maxLabelsize_; }
 };
 
+static void pushSaver(SaverList::list_t &list, const char *label,
+		void (*save)(std::ofstream &file, const SaveState &state),
+		void (*load)(std::ifstream &file, SaveState &state), unsigned labelsize) {
+	const Saver saver = { label, save, load, labelsize };
+	list.push_back(saver);
+}
+
 SaverList::SaverList() {
 #define ADD(arg) do { \
 	struct Func { \
@@ -195,8 +206,7 @@ SaverList::SaverList() {
 		static void load(std::ifstream &file, SaveState &state) { read(file, state.arg); } \
 	}; \
 	\
-	Saver saver = { label, Func::save, Func::load, sizeof label }; \
-	list.push_back(saver); \
+	pushSaver(list, label, Func::save, Func::load, sizeof label); \
 } while (0)
 
 #define ADDPTR(arg) do { \
@@ -205,8 +215,7 @@ SaverList::SaverList() {
 		static void load(std::ifstream &file, SaveState &state) { read(file, state.arg.ptr, state.arg.getSz()); } \
 	}; \
 	\
-	Saver saver = { label, Func::save, Func::load, sizeof label }; \
-	list.push_back(saver); \
+	pushSaver(list, label, Func::save, Func::load, sizeof label); \
 } while (0)
 
 #define ADDARRAY(arg) do { \
@@ -215,8 +224,7 @@ SaverList::SaverList() {
 		static void load(std::ifstream &file, SaveState &state) { read(file, state.arg, sizeof(state.arg)); } \
 	}; \
 	\
-	Saver saver = { label, Func::save, Func::load, sizeof label }; \
-	list.push_back(saver); \
+	pushSaver(list, label, Func::save, Func::load, sizeof label); \
 } while (0)
 	
 	{ static const char label[] = { c,c,           NUL }; ADD(cpu.cycleCounter); }
@@ -348,11 +356,13 @@ SaverList::SaverList() {
 	}
 }
 
+}
+
 namespace {
 
 struct PxlSum { unsigned long rb, g; };
 
-static void addPxlPairs(PxlSum *const sum, const Gambatte::uint_least32_t *const p) {
+static void addPxlPairs(PxlSum *const sum, const uint_least32_t *const p) {
 	sum[0].rb += (p[0] & 0xFF00FF) + (p[3] & 0xFF00FF);
 	sum[0].g  += (p[0] & 0x00FF00) + (p[3] & 0x00FF00);
 	sum[1].rb += (p[1] & 0xFF00FF) + (p[2] & 0xFF00FF);
@@ -364,15 +374,15 @@ static void blendPxlPairs(PxlSum *const dst, const PxlSum *const sums) {
 	dst->g  = sums[1].g  * 8 + (sums[0].g  - sums[1].g ) * 3;
 }
 
-static void writeSnapShot(std::ofstream &file, const Gambatte::uint_least32_t *pixels, const int pitch) {
-	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(Gambatte::uint_least32_t) : 0);
+static void writeSnapShot(std::ofstream &file, const uint_least32_t *pixels, const int pitch) {
+	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(uint_least32_t) : 0);
 	
 	if (pixels) {
-		Gambatte::uint_least32_t buf[StateSaver::SS_WIDTH];
+		uint_least32_t buf[StateSaver::SS_WIDTH];
 		
 		for (unsigned h = StateSaver::SS_HEIGHT; h--;) {
 			for (unsigned x = 0; x < StateSaver::SS_WIDTH; ++x) {
-				const Gambatte::uint_least32_t *const p = pixels + x * StateSaver::SS_DIV;
+				const uint_least32_t *const p = pixels + x * StateSaver::SS_DIV;
 				PxlSum pxlsum[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
 				
 				addPxlPairs(pxlsum    , p            );
@@ -398,10 +408,12 @@ static SaverList list;
 
 } // anon namespace
 
+namespace gambatte {
+
 void StateSaver::saveState(const SaveState &state,
-		const Gambatte::uint_least32_t *const videoBuf,
-		const int pitch, const char *const filename) {
-	std::ofstream file(filename, std::ios_base::binary);
+		const uint_least32_t *const videoBuf,
+		const int pitch, const std::string &filename) {
+	std::ofstream file(filename.c_str(), std::ios_base::binary);
 	
 	if (file.fail())
 		return;
@@ -416,8 +428,8 @@ void StateSaver::saveState(const SaveState &state,
 	}
 }
 
-bool StateSaver::loadState(SaveState &state, const char *filename) {
-	std::ifstream file(filename, std::ios_base::binary);
+bool StateSaver::loadState(SaveState &state, const std::string &filename) {
+	std::ifstream file(filename.c_str(), std::ios_base::binary);
 	
 	if (file.fail() || file.get() != 0)
 		return false;
@@ -452,4 +464,6 @@ bool StateSaver::loadState(SaveState &state, const char *filename) {
 	state.spu.cycleCounter &= 0x7FFFFFFF;
 	
 	return true;
+}
+
 }

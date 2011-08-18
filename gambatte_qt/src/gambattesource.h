@@ -32,18 +32,18 @@
 class GambatteSource : public QObject, public MediaSource {
 	Q_OBJECT
 	
-	struct GetInput : public Gambatte::InputGetter {
+	struct GetInput : public gambatte::InputGetter {
 		unsigned is;
 		GetInput() : is(0) {}
 		unsigned operator()() { return is; }
 	};
 	
-	Gambatte::GB gb;
+	gambatte::GB gb;
 	GetInput inputGetter;
 	InputDialog *inputDialog_;
 	std::auto_ptr<VideoLink> cconvert;
 	std::auto_ptr<VideoLink> vfilter;
-	Gambatte::uint_least32_t *gbpixels;
+	gambatte::uint_least32_t *gbpixels;
 	PixelBuffer::PixelFormat pxformat;
 	unsigned gbpitch;
 	unsigned vsrci;
@@ -74,15 +74,15 @@ public:
 	
 	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
 	
-	bool load(const char* romfile, const bool forceDmg) { return gb.load(romfile, forceDmg); }
+	bool load(const std::string &romfile, const bool forceDmg) { return gb.load(romfile, forceDmg); }
 	void reset() { gb.reset(); }
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
-	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir.c_str()); }
+	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir); }
 	bool isCgb() const { return gb.isCgb(); }
 	void selectState(int n) { gb.selectState(n); }
 	int currentState() const { return gb.currentState(); }
-	void saveState(const PixelBuffer &fb, const char *filepath);
-	void loadState(const char *filepath) { gb.loadState(filepath); }
+	void saveState(const PixelBuffer &fb, const std::string &filepath);
+	void loadState(const std::string &filepath) { gb.loadState(filepath); }
 	QDialog* inputDialog() const { return inputDialog_; }
 	
 	//overrides

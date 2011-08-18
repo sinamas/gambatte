@@ -38,7 +38,7 @@
 #include "blitterwrapper.h"
 #include "videolink/vfilterinfo.h"
 
-using namespace Gambatte;
+using namespace gambatte;
 
 struct DescOption : Parser::Option {
 	DescOption(const char *s, char c = 0, int nArgs = 0) : Option(s, c, nArgs) {}
@@ -681,7 +681,7 @@ int GambatteSdl::exec() {
 		const BlitterWrapper::Buf &vbuf = blitter.inBuf();
 		unsigned emusamples = 35112 - samples;
 		const int ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
-				reinterpret_cast<Gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, emusamples);
+				reinterpret_cast<gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, emusamples);
 		const unsigned insamples = ret < 0 ? samples + emusamples : samples + ret;
 		samples += emusamples;
 		samples -= insamples;

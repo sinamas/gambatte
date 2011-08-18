@@ -119,8 +119,8 @@ static /*inline*/ bool Diff(const unsigned long w1, const unsigned long w2) {
 }
 
 template<unsigned Xres, unsigned Yres>
-static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
-		const Gambatte::uint_least32_t *pIn)
+static void filter(gambatte::uint_least32_t *pOut, const unsigned dstPitch,
+		const gambatte::uint_least32_t *pIn)
 {
 	unsigned long w[10];
 
@@ -2840,16 +2840,16 @@ static void filter(Gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 	}
 }
 
-static inline Gambatte::uint_least32_t* buffer(const MaxStHq2x *hq2x) {
-	return static_cast<Gambatte::uint_least32_t*>(hq2x->inBuf());
+static inline gambatte::uint_least32_t* buffer(const MaxStHq2x *hq2x) {
+	return static_cast<gambatte::uint_least32_t*>(hq2x->inBuf());
 }
 
-MaxStHq2x::MaxStHq2x() : VideoLink(new Gambatte::uint_least32_t[VfilterInfo::IN_HEIGHT * VfilterInfo::IN_WIDTH], VfilterInfo::IN_WIDTH) {}
+MaxStHq2x::MaxStHq2x() : VideoLink(new gambatte::uint_least32_t[VfilterInfo::IN_HEIGHT * VfilterInfo::IN_WIDTH], VfilterInfo::IN_WIDTH) {}
 
 MaxStHq2x::~MaxStHq2x() {
 	delete[] buffer(this);
 }
 
 void MaxStHq2x::draw(void *const dbuffer, const unsigned pitch) {
-	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this));
+	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this));
 }

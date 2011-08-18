@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,24 +20,27 @@
 #include "memory.h"
 #include "savestate.h"
 
-CPU::CPU() :
-memory(Interrupter(SP, PC_)),
-cycleCounter_(0),
-PC_(0x100),
-SP(0xFFFE),
-HF1(0xF),
-HF2(0xF),
-ZF(0),
-CF(0x100),
-A_(0x01),
-B(0x00),
-C(0x13),
-D(0x00),
-E(0xD8),
-H(0x01),
-L(0x4D),
-skip(false)
-{}
+namespace gambatte {
+
+CPU::CPU()
+: memory(Interrupter(SP, PC_)),
+  cycleCounter_(0),
+  PC_(0x100),
+  SP(0xFFFE),
+  HF1(0xF),
+  HF2(0xF),
+  ZF(0),
+  CF(0x100),
+  A_(0x01),
+  B(0x00),
+  C(0x13),
+  D(0x00),
+  E(0xD8),
+  H(0x01),
+  L(0x4D),
+  skip(false)
+{
+}
 
 long CPU::runFor(const unsigned long cycles) {
 	process(cycles/* << memory.isDoubleSpeed()*/);
@@ -50,7 +53,7 @@ long CPU::runFor(const unsigned long cycles) {
 	return csb;
 }
 
-bool CPU::load(const char* romfile, const bool forceDmg) {
+bool CPU::load(const std::string &romfile, const bool forceDmg) {
 	return memory.loadROM(romfile, forceDmg);
 }
 
@@ -2811,4 +2814,6 @@ void CPU::process(const unsigned long cycles) {
 	
 	A_ = A;
 	cycleCounter_ = cycleCounter;
+}
+
 }

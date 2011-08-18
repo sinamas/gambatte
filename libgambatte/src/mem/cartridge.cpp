@@ -24,12 +24,15 @@
 #include <cstring>
 #include <fstream>
 
-Cartridge::Cartridge() :
-rombank(1),
-rambank(0),
-enableRam(false),
-rambankMode(false)
-{}
+namespace gambatte {
+
+Cartridge::Cartridge()
+: rombank(1),
+  rambank(0),
+  enableRam(false),
+  rambankMode(false)
+{
+}
 
 enum Cartridgetype { PLAIN, MBC1, MBC2, MBC3, MBC5 };
 
@@ -242,8 +245,8 @@ const std::string Cartridge::saveBasePath() const {
 	return saveDir.empty() ? defaultSaveBasePath : saveDir + stripDir(defaultSaveBasePath);
 }
 
-void Cartridge::setSaveDir(const char *dir) {
-	saveDir = dir ? dir : "";
+void Cartridge::setSaveDir(const std::string &dir) {
+	saveDir = dir;
 
 	if (!saveDir.empty() && saveDir[saveDir.length() - 1] != '/')
 		saveDir += '/';
@@ -266,8 +269,8 @@ static unsigned pow2ceil(unsigned n) {
 	return n;
 }
 
-bool Cartridge::loadROM(const char *const romfile, const bool forceDmg) {
-	File rom(romfile);
+bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg) {
+	File rom(romfile.c_str());
 
 	if (!rom.is_open()) {
 		return 1;
@@ -444,4 +447,6 @@ void Cartridge::saveSavedata() {
 		file.put(basetime >> 8 & 0xFF);
 		file.put(basetime & 0xFF);
 	}
+}
+
 }

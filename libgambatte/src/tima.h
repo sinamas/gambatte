@@ -21,7 +21,7 @@
 
 #include "interruptrequester.h"
 
-struct SaveState;
+namespace gambatte {
 
 class TimaInterruptRequester {
 	InterruptRequester &intreq;
@@ -61,5 +61,7 @@ public:
 	
 	void doIrqEvent(TimaInterruptRequester timaIrq);
 };
+
+}
 
 #endif

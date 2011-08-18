@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,8 @@
 #define OSD_ELEMENT_H
 
 #include "int.h"
+
+namespace gambatte {
 
 class OsdElement {
 public:
@@ -58,7 +60,9 @@ public:
 	unsigned h() const { return h_; }
 	Opacity opacity() const { return opacity_; }
 	
-	virtual const Gambatte::uint_least32_t* update() = 0;
+	virtual const uint_least32_t* update() = 0;
 };
+
+}
 
 #endif

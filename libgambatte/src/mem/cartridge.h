@@ -23,6 +23,8 @@
 #include "rtc.h"
 #include <string>
 
+namespace gambatte {
+
 struct SaveState;
 
 class Cartridge {
@@ -62,7 +64,7 @@ public:
 	
 	void mbcWrite(unsigned addr, unsigned data);
 	
-	bool isCgb() const { return ::isCgb(memptrs); }
+	bool isCgb() const { return gambatte::isCgb(memptrs); }
 	
 	void rtcWrite(unsigned data) { rtc.write(data); }
 	unsigned char rtcRead() const { return *rtc.getActive(); }
@@ -70,8 +72,10 @@ public:
 	void loadSavedata();
 	void saveSavedata();
 	const std::string saveBasePath() const;
-	void setSaveDir(const char *dir);
-	bool loadROM(const char *romfile, bool forceDmg);
+	void setSaveDir(const std::string &dir);
+	bool loadROM(const std::string &romfile, bool forceDmg);
 };
+
+}
 
 #endif

@@ -19,22 +19,14 @@
 #ifndef GAMBATTE_H
 #define GAMBATTE_H
 
-class CPU;
-
 #include "inputgetter.h"
 #include "int.h"
+#include <string>
 
-namespace Gambatte {
+namespace gambatte {
 enum { BG_PALETTE = 0, SP1_PALETTE = 1, SP2_PALETTE = 2 };
 
 class GB {
-	CPU *const z80;
-	int stateNo;
-
-	void loadState(const char *filepath, bool osdMessage);
-	GB(const GB &);
-	GB & operator=(const GB &);
-
 public:
 	GB();
 	~GB();
@@ -45,7 +37,7 @@ public:
 	  * @param forceDmg Treat the ROM as not having CGB support regardless of what its header advertises.
 	  * @return true if failed to load ROM image.
 	  */
-	bool load(const char *romfile, bool forceDmg = false);
+	bool load(const std::string &romfile, bool forceDmg = false);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
 	  * or until a video frame has been drawn.
@@ -68,8 +60,8 @@ public:
 	  * @param samples in: number of stereo samples to produce, out: actual number of samples produced
 	  * @return sample number at which the video frame was produced. -1 means no frame was produced.
 	  */
-	long runFor(Gambatte::uint_least32_t *videoBuf, int pitch,
-			Gambatte::uint_least32_t *soundBuf, unsigned &samples);
+	long runFor(gambatte::uint_least32_t *videoBuf, int pitch,
+			gambatte::uint_least32_t *soundBuf, unsigned &samples);
 	
 	/** Reset to initial state.
 	  * Equivalent to reloading a ROM image, or turning a Game Boy Color off and on again.
@@ -85,7 +77,7 @@ public:
 	void setInputGetter(InputGetter *getInput);
 	
 	/** Sets the directory used for storing save data. The default is the same directory as the ROM Image file. */
-	void setSaveDir(const char *sdir);
+	void setSaveDir(const std::string &sdir);
 	
 	/** Returns true if the currently loaded ROM image is treated as having CGB support. */
 	bool isCgb() const;
@@ -99,7 +91,7 @@ public:
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
 	  */
-	void saveState(const Gambatte::uint_least32_t *videoBuf, int pitch);
+	void saveState(const gambatte::uint_least32_t *videoBuf, int pitch);
 	
 	/** Loads emulator state from the state slot selected with selectState().
 	  */
@@ -110,11 +102,11 @@ public:
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
 	  */
-	void saveState(const Gambatte::uint_least32_t *videoBuf, int pitch, const char *filepath);
+	void saveState(const gambatte::uint_least32_t *videoBuf, int pitch, const std::string &filepath);
 	
 	/** Loads emulator state from the file given by 'filepath'.
 	  */
-	void loadState(const char *filepath);
+	void loadState(const std::string &filepath);
 	
 	/** Selects which state slot to save state to or load state from.
 	  * There are 10 such slots, numbered from 0 to 9 (periodically extended for all n).
@@ -123,6 +115,14 @@ public:
 	
 	/** Current state slot selected with selectState(). Returns a value between 0 and 9 inclusive. */
 	int currentState() const { return stateNo; }
+	
+private:
+	class CPU *const z80;
+	int stateNo;
+
+	void loadState(const std::string &filepath, bool osdMessage);
+	GB(const GB &);
+	GB & operator=(const GB &);
 };
 }
 

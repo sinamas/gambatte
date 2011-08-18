@@ -21,8 +21,9 @@
 #include "next_m0_time.h"
 #include "../insertion_sort.h"
 #include <cstring>
-
 #include <algorithm>
+
+namespace gambatte {
 
 SpriteMapper::OamReader::OamReader(const LyCounter &lyCounter, const unsigned char *oamram)
 : lyCounter(lyCounter), oamram(oamram), cgb_(false) {
@@ -183,4 +184,6 @@ unsigned long SpriteMapper::doEvent(const unsigned long time) {
 	oamReader.update(time);
 	mapSprites();
 	return oamReader.changed() ? time + oamReader.lyCounter.lineTime() : static_cast<unsigned long>(DISABLED_TIME);
+}
+
 }

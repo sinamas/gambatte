@@ -24,8 +24,8 @@
 namespace {
 class Rgb32ToUyvy {
 	struct CacheUnit {
-		Gambatte::uint_least32_t rgb32;
-		Gambatte::uint_least32_t uyvy;
+		gambatte::uint_least32_t rgb32;
+		gambatte::uint_least32_t uyvy;
 	};
 	
 	enum { cache_size = 0x100 };
@@ -35,7 +35,7 @@ class Rgb32ToUyvy {
 	
 public:
 	Rgb32ToUyvy();
-	void operator()(const Gambatte::uint_least32_t *s, Gambatte::uint_least32_t *d,
+	void operator()(const gambatte::uint_least32_t *s, gambatte::uint_least32_t *d,
 				unsigned w, unsigned h, unsigned srcPitch, unsigned dstPitch);
 };
 
@@ -48,7 +48,7 @@ Rgb32ToUyvy::Rgb32ToUyvy() {
 	std::fill(cache, cache + cache_size, c);
 }
 
-void Rgb32ToUyvy::operator()(const Gambatte::uint_least32_t *s, Gambatte::uint_least32_t *d, const unsigned w, unsigned h, const unsigned s_pitch, const unsigned d_pitch) {
+void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s, gambatte::uint_least32_t *d, const unsigned w, unsigned h, const unsigned s_pitch, const unsigned d_pitch) {
 	while (h--) {
 		unsigned n = w >> 1;
 		
@@ -85,7 +85,7 @@ void Rgb32ToUyvy::operator()(const Gambatte::uint_least32_t *s, Gambatte::uint_l
 	}
 }
 
-static void rgb32ToRgb16(const Gambatte::uint_least32_t *s, Gambatte::uint_least16_t *d,
+static void rgb32ToRgb16(const gambatte::uint_least32_t *s, gambatte::uint_least16_t *d,
 		const unsigned w, unsigned h, const unsigned srcPitch, const unsigned dstPitch)
 {
 	do {
@@ -108,13 +108,13 @@ class Rgb32ToUyvyLink : public VideoLink {
 
 public:
 	Rgb32ToUyvyLink(unsigned width, unsigned height) :
-			VideoLink(new Gambatte::uint_least32_t[width * height], width),
+			VideoLink(new gambatte::uint_least32_t[width * height], width),
 			width_(width), height_(height) {}
-	~Rgb32ToUyvyLink() { delete[] static_cast<Gambatte::uint_least32_t*>(inBuf()); }
+	~Rgb32ToUyvyLink() { delete[] static_cast<gambatte::uint_least32_t*>(inBuf()); }
 	
 	void draw(void *dst, unsigned dstpitch) {
-		rgb32ToUyvy(static_cast<Gambatte::uint_least32_t*>(inBuf()),
-				static_cast<Gambatte::uint_least32_t*>(dst), width_, height_, inPitch(), dstpitch);
+		rgb32ToUyvy(static_cast<gambatte::uint_least32_t*>(inBuf()),
+				static_cast<gambatte::uint_least32_t*>(dst), width_, height_, inPitch(), dstpitch);
 	}
 };
 
@@ -124,13 +124,13 @@ class Rgb32ToRgb16Link : public VideoLink {
 
 public:
 	Rgb32ToRgb16Link(unsigned width, unsigned height) :
-			VideoLink(new Gambatte::uint_least32_t[width * height], width),
+			VideoLink(new gambatte::uint_least32_t[width * height], width),
 			width_(width), height_(height) {}
-	~Rgb32ToRgb16Link() { delete[] static_cast<Gambatte::uint_least32_t*>(inBuf()); }
+	~Rgb32ToRgb16Link() { delete[] static_cast<gambatte::uint_least32_t*>(inBuf()); }
 	
 	void draw(void *dst, unsigned dstpitch) {
-		rgb32ToRgb16(static_cast<Gambatte::uint_least32_t*>(inBuf()),
-				static_cast<Gambatte::uint_least16_t*>(dst), width_, height_, inPitch(), dstpitch);
+		rgb32ToRgb16(static_cast<gambatte::uint_least32_t*>(inBuf()),
+				static_cast<gambatte::uint_least16_t*>(dst), width_, height_, inPitch(), dstpitch);
 	}
 };
 }

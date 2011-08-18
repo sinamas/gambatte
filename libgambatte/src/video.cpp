@@ -21,6 +21,8 @@
 #include <cstring>
 #include <algorithm>
 
+namespace gambatte {
+
 void LCD::setDmgPalette(unsigned long *const palette, const unsigned long *const dmgColors, const unsigned data) {
 	palette[0] = dmgColors[data      & 3];
 	palette[1] = dmgColors[data >> 2 & 3];
@@ -184,8 +186,8 @@ void LCD::refreshPalettes() {
 namespace {
 
 template<class Blend>
-static void blitOsdElement(Gambatte::uint_least32_t *d,
-		const Gambatte::uint_least32_t *s, const unsigned width, unsigned h, const int dpitch, Blend blend)
+static void blitOsdElement(uint_least32_t *d,
+		const uint_least32_t *s, const unsigned width, unsigned h, const int dpitch, Blend blend)
 {
 	while (h--) {
 		for (unsigned w = width; w--;) {
@@ -204,7 +206,7 @@ template<unsigned weight>
 struct Blend {
 	enum { SW = weight - 1 };
 	enum { LOWMASK = SW * 0x010101ul };
-	Gambatte::uint_least32_t operator()(const Gambatte::uint_least32_t s, const Gambatte::uint_least32_t d) const {
+	uint_least32_t operator()(const uint_least32_t s, const uint_least32_t d) const {
 		return (s * SW + d - (((s & LOWMASK) * SW + (d & LOWMASK)) & LOWMASK)) / weight;
 	}
 };
@@ -230,8 +232,8 @@ void LCD::updateScreen(const bool blanklcd, const unsigned long cycleCounter) {
 	}
 
 	if (ppu.frameBuf().fb() && osdElement.get()) {
-		if (const Gambatte::uint_least32_t *const s = osdElement->update()) {
-			Gambatte::uint_least32_t *const d = ppu.frameBuf().fb()
+		if (const uint_least32_t *const s = osdElement->update()) {
+			uint_least32_t *const d = ppu.frameBuf().fb()
 					+ static_cast<long>(osdElement->y()) * ppu.frameBuf().pitch() + osdElement->x();
 
 			switch (osdElement->opacity()) {
@@ -300,7 +302,7 @@ unsigned long LCD::m0TimeOfCurrentLine(const unsigned long cc) {
 		nextM0Time_.predictNextM0Time(ppu);
 	}
 	
-	return ::m0TimeOfCurrentLine(ppu.lyCounter().time(), ppu.lastM0Time(), nextM0Time_.predictedNextM0Time());
+	return gambatte::m0TimeOfCurrentLine(ppu.lyCounter().time(), ppu.lastM0Time(), nextM0Time_.predictedNextM0Time());
 }
 
 static bool isHdmaPeriod(const LyCounter &lyCounter,
@@ -320,7 +322,8 @@ void LCD::enableHdma(const unsigned long cycleCounter) {
 		update(cycleCounter);
 	
 	if (isHdmaPeriod(ppu.lyCounter(),
-			::m0TimeOfCurrentLine(ppu.lyCounter().time(), ppu.lastM0Time(), nextM0Time_.predictedNextM0Time()), cycleCounter)) {
+			gambatte::m0TimeOfCurrentLine(ppu.lyCounter().time(),
+				ppu.lastM0Time(), nextM0Time_.predictedNextM0Time()), cycleCounter)) {
 		eventTimes_.flagHdmaReq();
 	}
 	
@@ -759,7 +762,7 @@ void LCD::update(const unsigned long cycleCounter) {
 	ppu.update(cycleCounter);
 }
 
-void LCD::setVideoBuffer(Gambatte::uint_least32_t *const videoBuf, const int pitch) {
+void LCD::setVideoBuffer(uint_least32_t *const videoBuf, const int pitch) {
 	ppu.setFrameBuf(videoBuf, pitch);
 }
 
@@ -773,4 +776,6 @@ void LCD::setDmgPaletteColor(const unsigned palNum, const unsigned colorNum, con
 
 	setDmgPaletteColor(palNum * 4 | colorNum, rgb32);
 	refreshPalettes();
+}
+
 }

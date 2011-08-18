@@ -71,14 +71,14 @@ static inline unsigned long qInterpolate(const unsigned long a, const unsigned l
 }
 
 template<unsigned srcPitch, unsigned width, unsigned height>
-static void filter(Gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
-		   const Gambatte::uint_least32_t *srcPtr)
+static void filter(gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
+		   const gambatte::uint_least32_t *srcPtr)
 {
 	unsigned h = height;
 	
 	while (h--) {
-		const Gambatte::uint_least32_t *bP = srcPtr;
-		Gambatte::uint_least32_t *dP = dstPtr;
+		const gambatte::uint_least32_t *bP = srcPtr;
+		gambatte::uint_least32_t *dP = dstPtr;
 		
 		for (unsigned finish = width; finish--;) {
 			register unsigned long colorA, colorB;
@@ -215,14 +215,14 @@ enum { PITCH  = WIDTH + 3 };
 enum { BUF_SIZE = (HEIGHT + 3) * PITCH };
 enum { BUF_OFFSET = PITCH + 1 };
 
-static inline Gambatte::uint_least32_t* buffer(const Kreed2xSaI *c2x) {
-	return static_cast<Gambatte::uint_least32_t*>(c2x->inBuf()) - BUF_OFFSET;
+static inline gambatte::uint_least32_t* buffer(const Kreed2xSaI *c2x) {
+	return static_cast<gambatte::uint_least32_t*>(c2x->inBuf()) - BUF_OFFSET;
 }
 
 }
 
-Kreed2xSaI::Kreed2xSaI() : VideoLink(new Gambatte::uint_least32_t[BUF_SIZE] + BUF_OFFSET, PITCH) {
-	std::memset(buffer(this), 0, BUF_SIZE * sizeof(Gambatte::uint_least32_t));
+Kreed2xSaI::Kreed2xSaI() : VideoLink(new gambatte::uint_least32_t[BUF_SIZE] + BUF_OFFSET, PITCH) {
+	std::memset(buffer(this), 0, BUF_SIZE * sizeof(gambatte::uint_least32_t));
 }
 
 Kreed2xSaI::~Kreed2xSaI() {
@@ -230,5 +230,5 @@ Kreed2xSaI::~Kreed2xSaI() {
 }
 
 void Kreed2xSaI::draw(void *const dbuffer, const unsigned pitch) {
-	::filter<PITCH, WIDTH, HEIGHT>(static_cast<Gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + BUF_OFFSET);
+	::filter<PITCH, WIDTH, HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + BUF_OFFSET);
 }

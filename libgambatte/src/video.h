@@ -19,8 +19,6 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-class SaveState;
-
 #include "video/ppu.h"
 #include "video/lyc_irq.h"
 #include "video/next_m0_time.h"
@@ -29,12 +27,14 @@ class SaveState;
 #include "minkeeper.h"
 #include <memory>
 
+namespace gambatte {
+
 class VideoInterruptRequester {
 	InterruptRequester * intreq;
 	
 public:
 	explicit VideoInterruptRequester(InterruptRequester * intreq) : intreq(intreq) {}
-	void flagHdmaReq() const { ::flagHdmaReq(intreq); }
+	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq); }
 	void flagIrq(const unsigned bit) const { intreq->flagIrq(bit); }
 	void setNextEventTime(const unsigned long time) const { intreq->setEventTime<VIDEO>(time); }
 };
@@ -157,7 +157,7 @@ public:
 	void saveState(SaveState &state) const;
 	void loadState(const SaveState &state, const unsigned char *oamram);
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
-	void setVideoBuffer(Gambatte::uint_least32_t *videoBuf, int pitch);
+	void setVideoBuffer(uint_least32_t *videoBuf, int pitch);
 
 	void setOsdElement(std::auto_ptr<OsdElement> osdElement) { this->osdElement = osdElement; }
 
@@ -247,5 +247,7 @@ public:
 	bool isCgb() const { return ppu.cgb(); }
 	bool isDoubleSpeed() const { return ppu.lyCounter().isDoubleSpeed(); }
 };
+
+}
 
 #endif
