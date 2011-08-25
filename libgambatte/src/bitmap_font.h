@@ -19,7 +19,7 @@
 #ifndef BITMAP_FONT_H
 #define BITMAP_FONT_H
 
-#include "int.h"
+#include "gbint.h"
 
 namespace bitmapfont {
 enum Char {

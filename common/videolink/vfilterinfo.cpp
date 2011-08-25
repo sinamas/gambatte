@@ -39,10 +39,10 @@ static const VfilterInfo vfinfos[] = {
 	VFINFO("MaxSt's hq3x", MaxStHq3x)
 };
 
-unsigned VfilterInfo::numVfilters() {
-	return (sizeof(vfinfos) / sizeof(VfilterInfo));
+std::size_t VfilterInfo::numVfilters() {
+	return sizeof(vfinfos) / sizeof(vfinfos[0]);
 }
 
-const VfilterInfo& VfilterInfo::get(unsigned n) {
+const VfilterInfo& VfilterInfo::get(std::size_t n) {
 	return vfinfos[n];
 }

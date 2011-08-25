@@ -23,13 +23,14 @@
 #include "subresampler.h"
 #include "makesinckernel.h"
 #include "cic4.h"
+#include "array.h"
 #include <cmath>
 #include <cstdlib>
 
 template<unsigned channels, unsigned phases>
 class BlackmanSinc : public SubResampler {
 	PolyPhaseConvoluter<channels, phases> convoluters[channels];
-	short *kernel;
+	Array<short> kernel;
 	
 	static double blackmanWin(const long i, const long M) {
 		static const double PI = 3.14159265358979323846;
@@ -64,16 +65,15 @@ public:
 
 	BlackmanSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc); }
 	BlackmanSinc(unsigned div, RollOff ro) { init(div, ro.taps, ro.fc); }
-	~BlackmanSinc() { delete[] kernel; }
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	void adjustDiv(unsigned div);
 	unsigned mul() const { return MUL; }
 	unsigned div() const { return convoluters[0].div(); }
 };
 
-template<const unsigned channels, const unsigned phases>
+template<unsigned channels, unsigned phases>
 void BlackmanSinc<channels, phases>::init(const unsigned div, const unsigned phaseLen, const double fc) {
-	kernel = new short[phaseLen * phases];
+	kernel.reset(phaseLen * phases);
 	
 	makeSincKernel(kernel, phases, phaseLen, fc, blackmanWin);
 	
@@ -81,7 +81,7 @@ void BlackmanSinc<channels, phases>::init(const unsigned div, const unsigned pha
 		convoluters[i].reset(kernel, phaseLen, div);
 }
 
-template<const unsigned channels, const unsigned phases>
+template<unsigned channels, unsigned phases>
 std::size_t BlackmanSinc<channels, phases>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t samplesOut;
 	
@@ -91,7 +91,7 @@ std::size_t BlackmanSinc<channels, phases>::resample(short *const out, const sho
 	return samplesOut;
 }
 
-template<const unsigned channels, const unsigned phases>
+template<unsigned channels, unsigned phases>
 void BlackmanSinc<channels, phases>::adjustDiv(const unsigned div) {
 	for (unsigned i = 0; i < channels; ++i)
 		convoluters[i].adjustDiv(div);

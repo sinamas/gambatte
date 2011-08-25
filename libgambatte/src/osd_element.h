@@ -19,7 +19,7 @@
 #ifndef OSD_ELEMENT_H
 #define OSD_ELEMENT_H
 
-#include "int.h"
+#include "gbint.h"
 
 namespace gambatte {
 

@@ -40,7 +40,7 @@ public:
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 };
 
-template<const unsigned channels>
+template<unsigned channels>
 void LinintCore<channels>::init(const long inRate, const long outRate) {
 	adjustRate(inRate, outRate);
 	pos_ = (ratio >> 16) + 1;
@@ -48,7 +48,7 @@ void LinintCore<channels>::init(const long inRate, const long outRate) {
 	prevSample_ = 0;
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t LinintCore<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t opos = 0;
 	std::size_t pos = pos_;
@@ -101,7 +101,7 @@ public:
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 };
 
-template<const unsigned channels>
+template<unsigned channels>
 Linint<channels>::Linint(const long inRate, const long outRate) {
 	setRate(inRate, outRate);
 	
@@ -109,7 +109,7 @@ Linint<channels>::Linint(const long inRate, const long outRate) {
 		cores[i].init(inRate, outRate);
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 void Linint<channels>::adjustRate(const long inRate, const long outRate) {
 	setRate(inRate, outRate);
 	
@@ -117,7 +117,7 @@ void Linint<channels>::adjustRate(const long inRate, const long outRate) {
 		cores[i].adjustRate(inRate, outRate);
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t Linint<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t outlen = 0;
 	

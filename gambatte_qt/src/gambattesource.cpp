@@ -41,6 +41,7 @@ dpadLeftLast(false) {
 	std::fill(inputState, inputState + 8, false);
 }
 
+namespace {
 static const InputDialog::Button constructButtonInfo(InputDialog::Button::Action *action, const char *label,
 		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown) {
 	InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
@@ -65,6 +66,7 @@ struct GbDirAct : InputDialog::Button::Action {
 };
 
 enum { A_BUT, B_BUT, SELECT_BUT, START_BUT, RIGHT_BUT, LEFT_BUT, UP_BUT, DOWN_BUT };
+}
 
 InputDialog* GambatteSource::createInputDialog() {
 	std::vector<InputDialog::Button> v;

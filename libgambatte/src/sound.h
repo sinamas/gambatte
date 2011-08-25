@@ -19,7 +19,6 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-#include "int.h"
 #include "sound/channel1.h"
 #include "sound/channel2.h"
 #include "sound/channel3.h"

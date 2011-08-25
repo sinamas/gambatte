@@ -39,12 +39,12 @@ struct ChainSincInfo {
 };
 
 const ResamplerInfo ResamplerInfo::resamplers[] = {
-	{ "2-tap linear interpolation", LinintInfo::create },
-	{ "Rectangular windowed sinc (~20 dB SNR)", ChainSincInfo<RectSinc>::create },
+	{ "Fast", LinintInfo::create },
+	{ "High quality (CIC + sinc chain)", ChainSincInfo<RectSinc>::create },
 // 	{ "Hamming windowed sinc (~50 dB SNR)", ChainSincInfo<HammingSinc>::create },
 // 	{ "Blackman windowed sinc (~70 dB SNR)", ChainSincInfo<BlackmanSinc>::create },
-	{ "Kaiser windowed sinc (~50 dB SNR)", ChainSincInfo<Kaiser50Sinc>::create },
-	{ "Kaiser windowed sinc (~70 dB SNR)", ChainSincInfo<Kaiser70Sinc>::create }
+	{ "Very high quality (CIC + sinc chain)", ChainSincInfo<Kaiser50Sinc>::create },
+	{ "Highest quality (CIC + sinc chain)", ChainSincInfo<Kaiser70Sinc>::create }
 };
 
 const unsigned ResamplerInfo::num_ = sizeof(ResamplerInfo::resamplers) / sizeof(ResamplerInfo);

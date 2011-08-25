@@ -21,39 +21,36 @@
 
 #include <algorithm>
 #include <cstring>
+#include "array.h"
 #include "rshift16_round.h"
 
 template<unsigned channels, unsigned phases>
 class PolyPhaseConvoluter {
 	const short *kernel;
-	short *prevbuf;
+	Array<short> prevbuf;
 	
-	unsigned phaseLen;
 	unsigned div_;
 	unsigned x_;
 	
 public:
-	PolyPhaseConvoluter() : kernel(NULL), prevbuf(NULL), phaseLen(0), div_(0), x_(0) {}
+	PolyPhaseConvoluter() : kernel(0), div_(0), x_(0) {}
 	PolyPhaseConvoluter(const short *kernel, unsigned phaseLen, unsigned div) { reset(kernel, phaseLen, div); }
-	~PolyPhaseConvoluter() { delete[] prevbuf; }
 	void reset(const short *kernel, unsigned phaseLen, unsigned div);
 	std::size_t filter(short *out, const short *in, std::size_t inlen);
 	void adjustDiv(const unsigned div) { this->div_ = div; }
 	unsigned div() const { return div_; }
 };
 
-template<const unsigned channels, const unsigned phases>
+template<unsigned channels, unsigned phases>
 void PolyPhaseConvoluter<channels, phases>::reset(const short *const kernel, const unsigned phaseLen, const unsigned div) {
 	this->kernel = kernel;
-	this->phaseLen = phaseLen;
 	this->div_ = div;
 	x_ = 0;
-	delete[] prevbuf;
-	prevbuf = new short[phaseLen];
-	std::fill(prevbuf, prevbuf + phaseLen, 0);
+	prevbuf.reset(phaseLen);
+	std::fill(prevbuf.get(), prevbuf.get() + phaseLen, 0);
 }
 
-template<const unsigned channels, const unsigned phases>
+template<unsigned channels, unsigned phases>
 std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const short *const in, std::size_t inlen) {
 	if (!kernel || !inlen)
 		return 0;
@@ -86,6 +83,7 @@ std::size_t PolyPhaseConvoluter<channels, phases>::filter(short *out, const shor
 		} while (--n);
 	}*/
 	
+	const std::size_t phaseLen = prevbuf.size();
 	const std::size_t M = phaseLen * phases - 1;
 	inlen *= phases;
 	std::size_t x = x_;

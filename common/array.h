@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -28,14 +28,12 @@ class Array : Uncopyable {
 	std::size_t sz;
 	
 public:
-	Array(const std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}
+	explicit Array(const std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}
 	~Array() { delete []a; }
 	void reset(const std::size_t size = 0) { delete []a; a = size ? new T[size] : 0; sz = size; }
 	std::size_t size() const { return sz; }
-	T * get() { return a; }
-	const T * get() const { return a; }
-	operator T*() { return a; }
-	operator const T*() const { return a; }
+	T * get() const { return a; }
+	operator T*() const { return a; }
 };
 
 #endif

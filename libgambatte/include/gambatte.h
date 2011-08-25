@@ -20,7 +20,7 @@
 #define GAMBATTE_H
 
 #include "inputgetter.h"
-#include "int.h"
+#include "gbint.h"
 #include <string>
 
 namespace gambatte {

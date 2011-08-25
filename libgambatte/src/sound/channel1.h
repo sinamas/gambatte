@@ -19,7 +19,7 @@
 #ifndef SOUND_CHANNEL1_H
 #define SOUND_CHANNEL1_H
 
-#include "int.h"
+#include "gbint.h"
 #include "master_disabler.h"
 #include "length_counter.h"
 #include "duty_unit.h"

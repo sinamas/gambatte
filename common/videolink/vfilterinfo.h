@@ -19,6 +19,8 @@
 #ifndef VFILTERINFO_H
 #define VFILTERINFO_H
 
+#include <cstddef>
+
 class VideoLink;
 
 struct VfilterInfo {
@@ -30,8 +32,8 @@ struct VfilterInfo {
 	unsigned outHeight;
 	VideoLink* (*create)();
 	
-	static const VfilterInfo& get(unsigned n);
-	static unsigned numVfilters();
+	static const VfilterInfo& get(std::size_t n);
+	static std::size_t numVfilters();
 };
 
 #endif

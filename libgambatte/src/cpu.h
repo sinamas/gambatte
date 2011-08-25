@@ -19,7 +19,6 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "int.h"
 #include "memory.h"
 
 namespace gambatte {

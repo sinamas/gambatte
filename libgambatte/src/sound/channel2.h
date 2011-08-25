@@ -19,7 +19,7 @@
 #ifndef SOUND_CHANNEL2_H
 #define SOUND_CHANNEL2_H
 
-#include "int.h"
+#include "gbint.h"
 #include "length_counter.h"
 #include "duty_unit.h"
 #include "envelope_unit.h"

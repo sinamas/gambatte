@@ -20,8 +20,6 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "maxsthq3x.h"
-#include <int.h>
-#include <cstring>
 
 static /*inline*/ unsigned long Interp1(const unsigned long c1, const unsigned long c2) {
 	const unsigned long lowbits = ((c1 & 0x030303) * 3 + (c2 & 0x030303)) & 0x030303;
@@ -116,8 +114,7 @@ static /*inline*/ bool Diff(const unsigned long w1, const unsigned long w2) {
 }
 
 template<unsigned Xres, unsigned Yres>
-static void filter(gambatte::uint_least32_t *pOut, const unsigned dstPitch,
-		   const gambatte::uint_least32_t *pIn)
+static void filter(gambatte::uint_least32_t *pOut, const int dstPitch, const gambatte::uint_least32_t *pIn)
 {
 	unsigned long w[10];
 
@@ -3806,20 +3803,23 @@ static void filter(gambatte::uint_least32_t *pOut, const unsigned dstPitch,
 			++pIn;
 			pOut += 3;
 		}
-		pOut += dstPitch * 3 - Xres * 3;
+		pOut += dstPitch * 3 - static_cast<int>(Xres * 3);
 	}
 }
 
-static inline gambatte::uint_least32_t* buffer(const MaxStHq3x *hq3x) {
-	return static_cast<gambatte::uint_least32_t*>(hq3x->inBuf());
+MaxStHq3x::MaxStHq3x()
+: buffer_(VfilterInfo::IN_HEIGHT * VfilterInfo::IN_WIDTH)
+{
 }
 
-MaxStHq3x::MaxStHq3x() : VideoLink(new gambatte::uint_least32_t[VfilterInfo::IN_HEIGHT * VfilterInfo::IN_WIDTH], VfilterInfo::IN_WIDTH) {}
-
-MaxStHq3x::~MaxStHq3x() {
-	delete[] buffer(this);
+void* MaxStHq3x::inBuf() const {
+	return buffer_;
 }
 
-void MaxStHq3x::draw(void *const dbuffer, const unsigned pitch) {
-	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this));
+int MaxStHq3x::inPitch() const {
+	return VfilterInfo::IN_WIDTH;
+}
+
+void MaxStHq3x::draw(void *const dbuffer, const int pitch) {
+	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_);
 }

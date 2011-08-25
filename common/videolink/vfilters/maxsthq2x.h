@@ -21,15 +21,19 @@
 
 #include "../videolink.h"
 #include "../vfilterinfo.h"
+#include "array.h"
+#include "gbint.h"
 
 class MaxStHq2x : public VideoLink {
+	const Array<gambatte::uint_least32_t> buffer_;
 public:
 	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
 	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
 	
 	MaxStHq2x();
-	~MaxStHq2x();
-	void draw(void *dst, unsigned dstpitch);
+	virtual void* inBuf() const;
+	virtual int inPitch() const;
+	virtual void draw(void *dst, int dstpitch);
 };
 
 #endif

@@ -37,7 +37,7 @@ class Cic3Core {
 // 	unsigned bufpos;
 	
 public:
-	Cic3Core(const unsigned div = 1) {
+	explicit Cic3Core(const unsigned div = 1) {
 		reset(div);
 	}
 	
@@ -46,7 +46,7 @@ public:
 	void reset(unsigned div);
 };
 
-template<const unsigned channels> 
+template<unsigned channels> 
 void Cic3Core<channels>::reset(const unsigned div) {
 	sum3 = sum2 = sum1 = 0;
 	prev3 = prev2 = prev1 = 0;
@@ -55,7 +55,7 @@ void Cic3Core<channels>::reset(const unsigned div) {
 // 	bufpos = div - 1;
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::size_t inlen) {
 // 	const std::size_t produced = (inlen + div_ - (bufpos + 1)) / div_;
 	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
@@ -210,7 +210,7 @@ public:
 	void reset(unsigned div);
 };
 
-template<const unsigned channels> 
+template<unsigned channels> 
 void Cic3EvenOddCore<channels>::reset(const unsigned div) {
 	sum3 = sum2 = sum1 = 0;
 	prev3 = prev2 = prev1 = 0;
@@ -218,7 +218,7 @@ void Cic3EvenOddCore<channels>::reset(const unsigned div) {
 	nextdivn = div;
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 void Cic3EvenOddCore<channels>::filterEven(short *out, const short *s, std::size_t n) {
 	const int mul = getMul(div_);
 	unsigned long sm1 = sum1;
@@ -255,7 +255,7 @@ void Cic3EvenOddCore<channels>::filterEven(short *out, const short *s, std::size
 	sum3 = sm3;
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 void Cic3EvenOddCore<channels>::filterOdd(short *out, const short *s, std::size_t n) {
 	const int mul = getMul(div_);
 	unsigned long sm1 = sum1;
@@ -297,7 +297,7 @@ void Cic3EvenOddCore<channels>::filterOdd(short *out, const short *s, std::size_
 	sum3 = sm3;
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t Cic3EvenOddCore<channels>::filter(short *out, const short *const in, std::size_t inlen) {
 	short *const outStart = out;
 	const short *s = in;
@@ -357,19 +357,19 @@ class Cic3 : public SubResampler {
 	
 public:
 	enum { MAX_DIV = 23 };
-	Cic3(unsigned div);
+	explicit Cic3(unsigned div);
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	unsigned mul() const { return 1; }
 	unsigned div() const { return cics[0].div(); }
 };
 
-template<const unsigned channels>
+template<unsigned channels>
 Cic3<channels>::Cic3(const unsigned div) {
 	for (unsigned i = 0; i < channels; ++i)
 		cics[i].reset(div);
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t Cic3<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t samplesOut;
 	

@@ -17,17 +17,12 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "catrom3x.h"
-#include <cstring>
-#include <int.h>
+#include <algorithm>
 
 namespace {
 enum { WIDTH  = VfilterInfo::IN_WIDTH };
 enum { HEIGHT = VfilterInfo::IN_HEIGHT };
 enum { PITCH  = WIDTH + 3 };
-
-static inline gambatte::uint_least32_t* buffer(const Catrom3x *c3x) {
-	return static_cast<gambatte::uint_least32_t*>(c3x->inBuf()) - (PITCH + 1);
-}
 
 struct Colorsum {
 	gambatte::uint_least32_t r, g, b;
@@ -226,7 +221,7 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 	}
 }
 
-static void filter(gambatte::uint_least32_t *dline, const unsigned pitch, const gambatte::uint_least32_t *sline) {
+static void filter(gambatte::uint_least32_t *dline, const int pitch, const gambatte::uint_least32_t *sline) {
 	Colorsum sums[PITCH];
 
 	for (unsigned h = HEIGHT; h--;) {
@@ -331,14 +326,20 @@ static void filter(gambatte::uint_least32_t *dline, const unsigned pitch, const 
 }
 }
 
-Catrom3x::Catrom3x() : VideoLink((new gambatte::uint_least32_t[(HEIGHT + 3UL) * PITCH]) + (PITCH + 1), PITCH) {
-	std::memset(buffer(this), 0, (HEIGHT + 3UL) * PITCH * sizeof(gambatte::uint_least32_t));
+Catrom3x::Catrom3x()
+: buffer_((HEIGHT + 3UL) * PITCH)
+{
+	std::fill_n(buffer_.get(), buffer_.size(), 0);
 }
 
-Catrom3x::~Catrom3x() {
-	delete[] buffer(this);
+void* Catrom3x::inBuf() const {
+	return buffer_ + PITCH + 1;
 }
 
-void Catrom3x::draw(void *const dbuffer, const unsigned pitch) {
-	::filter(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + PITCH);
+int Catrom3x::inPitch() const {
+	return PITCH;
+}
+
+void Catrom3x::draw(void *const dbuffer, const int pitch) {
+	::filter(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_ + PITCH);
 }

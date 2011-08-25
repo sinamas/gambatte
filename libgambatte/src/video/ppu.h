@@ -21,7 +21,7 @@
 
 #include "video/ly_counter.h"
 #include "video/sprite_mapper.h"
-#include "int.h"
+#include "gbint.h"
 
 namespace gambatte {
 

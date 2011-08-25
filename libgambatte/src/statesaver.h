@@ -19,7 +19,7 @@
 #ifndef STATESAVER_H
 #define STATESAVER_H
 
-#include "int.h"
+#include "gbint.h"
 #include <string>
 
 namespace gambatte {

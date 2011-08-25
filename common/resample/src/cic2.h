@@ -35,7 +35,7 @@ class Cic2Core {
 // 	unsigned bufpos;
 	
 public:
-	Cic2Core(const unsigned div = 2) {
+	explicit Cic2Core(const unsigned div = 2) {
 		reset(div);
 	}
 	
@@ -44,7 +44,7 @@ public:
 	void reset(unsigned div);
 };
 
-template<const unsigned channels> 
+template<unsigned channels> 
 void Cic2Core<channels>::reset(const unsigned div) {
 	sum2 = sum1 = 0;
 	prev2 = prev1 = 0;
@@ -53,7 +53,7 @@ void Cic2Core<channels>::reset(const unsigned div) {
 // 	bufpos = div - 1;
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::size_t inlen) {
 // 	const std::size_t produced = (inlen + div_ - (bufpos + 1)) / div_;
 	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
@@ -173,19 +173,19 @@ class Cic2 : public SubResampler {
 	
 public:
 	enum { MAX_DIV = 64 };
-	Cic2(unsigned div);
+	explicit Cic2(unsigned div);
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	unsigned mul() const { return 1; }
 	unsigned div() const { return cics[0].div(); }
 };
 
-template<const unsigned channels>
+template<unsigned channels>
 Cic2<channels>::Cic2(const unsigned div) {
 	for (unsigned i = 0; i < channels; ++i)
 		cics[i].reset(div);
 }
 
-template<const unsigned channels>
+template<unsigned channels>
 std::size_t Cic2<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t samplesOut;
 	

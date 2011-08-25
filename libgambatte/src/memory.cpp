@@ -25,17 +25,17 @@
 
 namespace gambatte {
 
-Memory::Memory(const Interrupter &interrupter_in) :
-vrambank(vram),
-getInput(0),
-divLastUpdate(0),
-lastOamDmaUpdate(DISABLED_TIME),
-display(ioamhram, vram, VideoInterruptRequester(&intreq)),
-interrupter(interrupter_in),
-dmaSource(0),
-dmaDestination(0),
-oamDmaPos(0xFE),
-blanklcd(false)
+Memory::Memory(const Interrupter &interrupter_in)
+: vrambank(vram),
+  getInput(0),
+  divLastUpdate(0),
+  lastOamDmaUpdate(DISABLED_TIME),
+  display(ioamhram, vram, VideoInterruptRequester(&intreq)),
+  interrupter(interrupter_in),
+  dmaSource(0),
+  dmaDestination(0),
+  oamDmaPos(0xFE),
+  blanklcd(false)
 {
 	intreq.setEventTime<BLIT>(144*456ul);
 	intreq.setEventTime<END>(0);
@@ -758,7 +758,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 				if (data & 0x80) {
 					intreq.setEventTime<BLIT>(display.nextMode1IrqTime() + (blanklcd ? 0 : 70224 << isDoubleSpeed()));
 				} else {
-					ioamhram[0x141] |= lyc; //Mr. Do! needs conicidence flag preserved.
+					ioamhram[0x141] |= lyc;
 					intreq.setEventTime<BLIT>(cycleCounter + (456 * 4 << isDoubleSpeed()));
 
 					if (hdmaEnabled)

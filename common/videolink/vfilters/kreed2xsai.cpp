@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   Copyright (C) 1999 Derek Liauw Kie Fa (Kreed)                         *
@@ -19,8 +19,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "kreed2xsai.h"
-#include <cstring>
-#include <int.h>
+#include <algorithm>
 
 namespace {
 
@@ -71,8 +70,7 @@ static inline unsigned long qInterpolate(const unsigned long a, const unsigned l
 }
 
 template<unsigned srcPitch, unsigned width, unsigned height>
-static void filter(gambatte::uint_least32_t *dstPtr, const unsigned dstPitch,
-		   const gambatte::uint_least32_t *srcPtr)
+static void filter(gambatte::uint_least32_t *dstPtr, const int dstPitch, const gambatte::uint_least32_t *srcPtr)
 {
 	unsigned h = height;
 	
@@ -215,20 +213,22 @@ enum { PITCH  = WIDTH + 3 };
 enum { BUF_SIZE = (HEIGHT + 3) * PITCH };
 enum { BUF_OFFSET = PITCH + 1 };
 
-static inline gambatte::uint_least32_t* buffer(const Kreed2xSaI *c2x) {
-	return static_cast<gambatte::uint_least32_t*>(c2x->inBuf()) - BUF_OFFSET;
 }
 
+Kreed2xSaI::Kreed2xSaI()
+: buffer_(BUF_SIZE)
+{
+	std::fill_n(buffer_.get(), buffer_.size(), 0);
 }
 
-Kreed2xSaI::Kreed2xSaI() : VideoLink(new gambatte::uint_least32_t[BUF_SIZE] + BUF_OFFSET, PITCH) {
-	std::memset(buffer(this), 0, BUF_SIZE * sizeof(gambatte::uint_least32_t));
+void* Kreed2xSaI::inBuf() const {
+	return buffer_ + BUF_OFFSET;
 }
 
-Kreed2xSaI::~Kreed2xSaI() {
-	delete[] buffer(this);
+int Kreed2xSaI::inPitch() const {
+	return PITCH;
 }
 
-void Kreed2xSaI::draw(void *const dbuffer, const unsigned pitch) {
-	::filter<PITCH, WIDTH, HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer(this) + BUF_OFFSET);
+void Kreed2xSaI::draw(void *const dbuffer, const int pitch) {
+	::filter<PITCH, WIDTH, HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_ + BUF_OFFSET);
 }

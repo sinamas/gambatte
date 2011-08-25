@@ -20,15 +20,11 @@
 #define VIDEOLINK_H
 
 class VideoLink {
-	void *const inbuf;
-	const unsigned inpitch;
-protected:
-	VideoLink(void *inbuf, unsigned inpitch) : inbuf(inbuf), inpitch(inpitch) {}
 public:
-	void* inBuf() const { return inbuf; }
-	unsigned inPitch() const { return inpitch; }
 	virtual ~VideoLink() {}
-	virtual void draw(void *dst, unsigned dstpitch) = 0;
+	virtual void* inBuf() const = 0;
+	virtual int inPitch() const = 0;
+	virtual void draw(void *dst, int dstpitch) = 0;
 };
 
 #endif

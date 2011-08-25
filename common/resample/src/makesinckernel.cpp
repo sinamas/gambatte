@@ -17,13 +17,14 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "makesinckernel.h"
+#include "array.h"
 
 void makeSincKernel(short *const kernel, const unsigned phases, const unsigned phaseLen, double fc, double (*win)(long m, long M)) {
 	static const double PI = 3.14159265358979323846;
 	fc /= phases;
 	
 	/*{
-		double *const dkernel = new double[phaseLen * phases];
+		const Array<double> dkernel(phaseLen * phases);
 		const long M = static_cast<long>(phaseLen) * phases - 1;
 		
 		for (long i = 0; i < M + 1; ++i) {
@@ -61,15 +62,13 @@ void makeSincKernel(short *const kernel, const unsigned phases, const unsigned p
 		
 		for (long i = 0; i < M + 1; ++i)
 			kernel[i] = std::floor(dkernel[i] * gain + 0.5);
-		
-		delete[] dkernel;
 	}*/
 	
 	// The following is equivalent to the more readable version above
 	
 	const long M = static_cast<long>(phaseLen) * phases - 1;
 	
-	double *const dkernel = new double[M / 2 + 1];
+	const Array<double> dkernel(M / 2 + 1);
 	
 	{
 		double *dk = dkernel;
@@ -140,6 +139,4 @@ void makeSincKernel(short *const kernel, const unsigned phases, const unsigned p
 		for (long i = ph; i < M / 2 + 1; i += phases)
 			*km-- = *k++ = std::floor(*dk++ * gain + 0.5);
 	}
-	
-	delete[] dkernel;
 }

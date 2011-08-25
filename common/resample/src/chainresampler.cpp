@@ -38,6 +38,11 @@ float ChainResampler::get3ChainCost(const float ratio, const float rollOff, cons
 	return ratio1 * ratio / ((ratio1 - 1) * 2) + ratio2 * ratio1 / ((ratio2 - 1) * 2) + ratio2 / rollOff;
 }
 
+ChainResampler::ChainResampler()
+: bigSinc(0), buffer2(0), periodSize(0)
+{
+}
+
 std::size_t ChainResampler::reallocateBuffer() {
 	std::size_t bufSz[2] = { 0, 0 };
 	std::size_t inSz = periodSize;
@@ -55,12 +60,10 @@ std::size_t ChainResampler::reallocateBuffer() {
 	if (inSz >= bufSz[i&1])
 		bufSz[i&1] = 0;
 	
-	if (bufferSize < bufSz[0] + bufSz[1]) {
-		delete[] buffer;
-		buffer = (bufferSize = bufSz[0] + bufSz[1]) ? new short[bufferSize * channels] : NULL;
-	}
+	if (buffer.size() < (bufSz[0] + bufSz[1]) * channels)
+		buffer.reset((bufSz[0] + bufSz[1]) * channels);
 	
-	buffer2 = bufSz[1] ? buffer + bufSz[0] * channels : NULL;
+	buffer2 = bufSz[1] ? buffer + bufSz[0] * channels : 0;
 	
 	return (maxOut_ = inSz);
 }
@@ -93,7 +96,7 @@ std::size_t ChainResampler::resample(short *const out, const short *const in, st
 	short *const buf2 = buffer2 ? buffer2 : out;
 	
 	const short *inbuf = in;
-	short *outbuf = NULL;
+	short *outbuf = 0;
 	
 	for (list_t::iterator it = list.begin(); it != list.end(); ++it) {
 		outbuf = ++list_t::iterator(it) == list.end() ? out : (inbuf == buf ? buf2 : buf);
@@ -105,11 +108,10 @@ std::size_t ChainResampler::resample(short *const out, const short *const in, st
 }
 
 void ChainResampler::uninit() {
-	delete[] buffer;
-	buffer2 = buffer = NULL;
-	bufferSize = 0;
+	buffer2 = 0;
+	buffer.reset();
 	periodSize = 0;
-	bigSinc = NULL;
+	bigSinc = 0;
 	
 	for (list_t::iterator it = list.begin(); it != list.end(); ++it)
 		delete *it;

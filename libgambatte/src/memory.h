@@ -20,7 +20,6 @@
 #define MEMORY_H
 
 #include "mem/cartridge.h"
-#include "int.h"
 #include "video.h"
 #include "sound.h"
 #include "interrupter.h"

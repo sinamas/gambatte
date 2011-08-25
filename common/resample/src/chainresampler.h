@@ -24,6 +24,7 @@
 #include <cassert>
 #include <cstddef>
 #include <list>
+#include "array.h"
 #include "subresampler.h"
 #include "../resampler.h"
 #include "upsampler.h"
@@ -33,9 +34,8 @@ class ChainResampler : public Resampler {
 	
 	list_t list;
 	SubResampler *bigSinc;
-	short *buffer;
+	Array<short> buffer;
 	short *buffer2;
-	std::size_t bufferSize;
 	std::size_t periodSize;
 	std::size_t maxOut_;
 	
@@ -56,14 +56,14 @@ class ChainResampler : public Resampler {
 	template<template<unsigned,unsigned> class Sinc>
 	std::size_t downinit(long inRate, long outRate, std::size_t periodSize);
 	
-	std::size_t reallocateBuffer();
-	
 	template<template<unsigned,unsigned> class Sinc>
 	std::size_t upinit(long inRate, long outRate, std::size_t periodSize);
 	
+	std::size_t reallocateBuffer();
+	
 public:
 	enum { channels = 2 };
-	ChainResampler() : bigSinc(NULL), buffer(NULL), buffer2(NULL), bufferSize(0), periodSize(0) {}
+	ChainResampler();
 	~ChainResampler() { uninit(); }
 	
 	void adjustRate(long inRate, long outRate);

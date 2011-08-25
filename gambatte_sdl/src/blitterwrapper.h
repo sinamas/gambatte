@@ -20,7 +20,7 @@
 #define BLITTERWRAPPER_H
 
 #include "sdlblitter.h"
-#include "int.h"
+#include "gbint.h"
 #include "videolink/videolink.h"
 #include <memory>
 
