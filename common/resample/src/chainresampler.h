@@ -39,19 +39,17 @@ class ChainResampler : public Resampler {
 	std::size_t periodSize;
 	std::size_t maxOut_;
 	
-	static float get1ChainCost(const float ratio, const float rollOff) {
-		return ratio / rollOff;
+	static float get1ChainCost(float ratio, float finalRollOffLen) { return ratio / finalRollOffLen; }
+
+	static float get2ChainMidRatio(float ratio, float finalRollOffLen, float midRollOffStartPlusEnd);
+	static float get2ChainCost(float ratio, float finalRollOffLen, float midRatio, float midRollOffStartPlusEnd);
+
+	static float get3ChainRatio2(float ratio1, float finalRollOffLen, float midRollOffStartPlusEnd) {
+		return get2ChainMidRatio(ratio1, finalRollOffLen, midRollOffStartPlusEnd);
 	}
 
-	static float get2ChainMidRatio(float ratio, float rollOff);
-	static float get2ChainCost(float ratio, float rollOff, float midRatio);
-
-	static float get3ChainRatio2(const float ratio1, const float rollOff) {
-		return get2ChainMidRatio(ratio1, rollOff);
-	}
-
-	static float get3ChainRatio1(float ratio1, float rollOff, float ratio);
-	static float get3ChainCost(float ratio, float rollOff, float ratio1, float ratio2);
+	static float get3ChainRatio1(float ratio1, float finalRollOffLen, float ratio, float midRollOffStartPlusEnd);
+	static float get3ChainCost(float ratio, float finalRollOffLen, float ratio1, float ratio2, float midRollOffStartPlusEnd);
 	
 	template<template<unsigned,unsigned> class Sinc>
 	std::size_t downinit(long inRate, long outRate, std::size_t periodSize);
@@ -94,9 +92,6 @@ std::size_t ChainResampler::downinit(const long inRate, const long outRate, cons
 	uninit();
 	this->periodSize = periodSize;
 	
-	// For high outRate: Start roll-off at 36000 Hz continue until outRate Hz, then wrap around back down to 40000 Hz.
-	const float rollOff = std::max((outRate - 36000.0f + outRate - 40000.0f) / outRate, 0.2f);
-	
 	double ratio = static_cast<double>(inRate) / outRate;
 	
 	while (ratio >= BigSinc::cicLimit() * 2) {
@@ -106,31 +101,41 @@ std::size_t ChainResampler::downinit(const long inRate, const long outRate, cons
 		ratio /= div;
 	}
 	
+	// For high outRate: Start roll-off at 36000 Hz continue until outRate Hz, then wrap around back down to 40000 Hz.
+	const float outPeriod = 1.0f / outRate;
+	const float finalRollOffLen = std::max((outRate - 36000.0f + outRate - 40000.0f) * outPeriod, 0.2f);
+	
 	{
-		int div_2c = ratio * SmallSinc::MUL / get2ChainMidRatio(ratio, rollOff) + 0.5f;
-		double ratio_2c = ratio * SmallSinc::MUL / div_2c;
-		float cost_2c = get2ChainCost(ratio, rollOff, ratio_2c);
+		const float midRollOffStart = std::min(36000.0f * outPeriod, 1.0f);
+		const float midRollOffEnd   = std::min(40000.0f * outPeriod, 1.0f); // after wrap at folding freq.
+		const float midRollOffStartPlusEnd = midRollOffStart + midRollOffEnd;
 		
-		if (cost_2c < get1ChainCost(ratio, rollOff)) {
-			const int div1_3c = ratio * SmallSinc::MUL / get3ChainRatio1(ratio_2c, rollOff, ratio) + 0.5f;
+		int div_2c = ratio * SmallSinc::MUL / get2ChainMidRatio(ratio, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f;
+		double ratio_2c = ratio * SmallSinc::MUL / div_2c;
+		float cost_2c = get2ChainCost(ratio, finalRollOffLen, ratio_2c, midRollOffStartPlusEnd);
+		
+		if (cost_2c < get1ChainCost(ratio, finalRollOffLen)) {
+			const int div1_3c = ratio * SmallSinc::MUL / get3ChainRatio1(ratio_2c, finalRollOffLen, ratio, midRollOffStartPlusEnd) + 0.5f;
 			const double ratio1_3c = ratio * SmallSinc::MUL / div1_3c;
-			const int div2_3c = ratio1_3c * SmallSinc::MUL / get3ChainRatio2(ratio1_3c, rollOff) + 0.5f;
+			const int div2_3c = ratio1_3c * SmallSinc::MUL / get3ChainRatio2(ratio1_3c, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f;
 			const double ratio2_3c = ratio1_3c * SmallSinc::MUL / div2_3c;
 			
-			if (get3ChainCost(ratio, rollOff, ratio1_3c, ratio2_3c) < cost_2c) {
-				list.push_back(new SmallSinc(div1_3c, typename SmallSinc::RollOff(0.5f / ratio, (ratio1_3c - 1) / ratio)));
+			if (get3ChainCost(ratio, finalRollOffLen, ratio1_3c, ratio2_3c, midRollOffStartPlusEnd) < cost_2c) {
+				list.push_back(new SmallSinc(div1_3c, typename SmallSinc::RollOff(
+						0.5f * midRollOffStart / ratio, (ratio1_3c - 0.5f * midRollOffStartPlusEnd) / ratio)));
 				ratio = ratio1_3c;
 				div_2c = div2_3c;
 				ratio_2c = ratio2_3c;
 			}
 			
-			list.push_back(new SmallSinc(div_2c, typename SmallSinc::RollOff(0.5f / ratio, (ratio_2c - 1) / ratio)));
+			list.push_back(new SmallSinc(div_2c, typename SmallSinc::RollOff(
+					0.5f * midRollOffStart / ratio, (ratio_2c - 0.5f * midRollOffStartPlusEnd) / ratio)));
 			ratio = ratio_2c;
 		}
 	}
 	
-	list.push_back(bigSinc = new BigSinc(BigSinc::MUL * ratio + 0.5,
-		       typename BigSinc::RollOff(0.5f * (1 + std::max((outRate - 40000.0f) / outRate, 0.0f) - rollOff) / ratio, 0.5f * rollOff / ratio)));
+	list.push_back(bigSinc = new BigSinc(BigSinc::MUL * ratio + 0.5, typename BigSinc::RollOff(
+			0.5f * (1.0f + std::max((outRate - 40000.0f) * outPeriod, 0.0f) - finalRollOffLen) / ratio, 0.5f * finalRollOffLen / ratio)));
 	
 	return reallocateBuffer();
 }
@@ -142,8 +147,6 @@ std::size_t ChainResampler::upinit(const long inRate, const long outRate, const 
 
 	uninit();
 	this->periodSize = periodSize;
-	
-	const float rollOff = std::max((inRate - 36000.0f) / inRate, 0.2f);
 	
 	double ratio = static_cast<double>(outRate) / inRate;
 	
@@ -157,7 +160,9 @@ std::size_t ChainResampler::upinit(const long inRate, const long outRate, const 
 		}
 	}
 	
-	{
+	const float rollOff = std::max((inRate - 36000.0f) / inRate, 0.2f);
+	
+	/*{
 		int div_2c = get2ChainMidRatio(ratio, rollOff) * SmallSinc::MUL / ratio + 0.5f;
 		double ratio_2c = ratio * div_2c / SmallSinc::MUL;
 		float cost_2c = get2ChainCost(ratio, rollOff, ratio_2c);
@@ -178,7 +183,7 @@ std::size_t ChainResampler::upinit(const long inRate, const long outRate, const 
 			list.push_front(new SmallSinc(div_2c, typename SmallSinc::RollOff(0.5f / ratio_2c, (ratio_2c - 1) / ratio_2c)));
 			ratio = ratio_2c;
 		}
-	}
+	}*/
 	
 	list.push_front(bigSinc = new BigSinc(BigSinc::MUL / ratio + 0.5, typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff)));
 	

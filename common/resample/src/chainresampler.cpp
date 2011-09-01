@@ -18,24 +18,28 @@
  ***************************************************************************/
 #include "chainresampler.h"
 
-float ChainResampler::get2ChainMidRatio(const float ratio, const float rollOff) {
-	return std::sqrt(0.5f * rollOff * ratio) + 1;
+float ChainResampler::get2ChainMidRatio(const float ratio, const float finalRollOffLen, const float midRollOffStartPlusEnd) {
+	return 0.5f * (std::sqrt(ratio * midRollOffStartPlusEnd * finalRollOffLen) + midRollOffStartPlusEnd);
 }
 
-float ChainResampler::get2ChainCost(const float ratio, const float rollOff, const float midRatio) {
-	return midRatio * ratio / ((midRatio - 1) * 2) + midRatio / rollOff;
+float ChainResampler::get2ChainCost(const float ratio, const float finalRollOffLen, const float midRatio, const float midRollOffStartPlusEnd) {
+	const float midRollOffLen = midRatio * 2 - midRollOffStartPlusEnd;
+	return midRatio * ratio / midRollOffLen + get1ChainCost(midRatio, finalRollOffLen);
 }
 
-float ChainResampler::get3ChainRatio1(float ratio1, const float rollOff, const float ratio) {
+float ChainResampler::get3ChainRatio1(float ratio1, const float finalRollOffLen, const float ratio, const float midRollOffStartPlusEnd) {
 	for (unsigned n = 8; n--;) {
-		ratio1 = std::sqrt(ratio - ratio / get3ChainRatio2(ratio1, rollOff)) + 1;
+		const float ratio2 = get3ChainRatio2(ratio1, finalRollOffLen, midRollOffStartPlusEnd);
+		ratio1 = 0.5f * (std::sqrt(ratio * midRollOffStartPlusEnd * (2 - midRollOffStartPlusEnd / ratio2)) + midRollOffStartPlusEnd);
 	}
 
 	return ratio1;
 }
 
-float ChainResampler::get3ChainCost(const float ratio, const float rollOff, const float ratio1, const float ratio2) {
-	return ratio1 * ratio / ((ratio1 - 1) * 2) + ratio2 * ratio1 / ((ratio2 - 1) * 2) + ratio2 / rollOff;
+float ChainResampler::get3ChainCost(const float ratio, const float finalRollOffLen,
+		const float ratio1, const float ratio2, const float midRollOffStartPlusEnd) {
+	const float firstRollOffLen  = ratio1 * 2 - midRollOffStartPlusEnd;
+	return ratio1 * ratio / firstRollOffLen + get2ChainCost(ratio1, finalRollOffLen, ratio2, midRollOffStartPlusEnd);
 }
 
 ChainResampler::ChainResampler()
