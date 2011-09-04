@@ -29,7 +29,7 @@ class Cic2Core {
 	unsigned long sum1;
 	unsigned long sum2;
 	unsigned long prev1;
-	unsigned long prev2;
+// 	unsigned long prev2;
 	unsigned div_;
 	unsigned nextdivn;
 // 	unsigned bufpos;
@@ -47,7 +47,7 @@ public:
 template<unsigned channels> 
 void Cic2Core<channels>::reset(const unsigned div) {
 	sum2 = sum1 = 0;
-	prev2 = prev1 = 0;
+	/*prev2 = */prev1 = 0;
 	this->div_ = div;
 	nextdivn = div;
 // 	bufpos = div - 1;
@@ -127,25 +127,68 @@ std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::s
 	unsigned long sm2 = sum2;
 	
 	if (inlen >= nextdivn) {
-		unsigned divn = nextdivn;
-		std::size_t n = produced;
-		
-		do {
+		{
+			unsigned divn = nextdivn;
+			
 			do {
 				sm1 += static_cast<long>(*s);
 				s += channels;
 				sm2 += sm1;
 			} while (--divn);
 			
-			const unsigned long out2 = sm2 - prev2;
-			prev2 = sm2;
+			const unsigned long out2 = sm2;
+			sm2 = 0;
 			
 			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
+		}
+		
+		if (div_ & 1) {
+			std::size_t n = produced;
 			
-			divn = div_;
-		} while (--n);
+			while (--n) {
+				unsigned divn = div_ >> 1;
+				
+				do {
+					sm1 += static_cast<long>(*s);
+					s += channels;
+					sm2 += sm1;
+					sm1 += static_cast<long>(*s);
+					s += channels;
+					sm2 += sm1;
+				} while (--divn);
+				
+				sm1 += static_cast<long>(*s);
+				s += channels;
+				sm2 += sm1;
+				
+				*out = rshift16_round(static_cast<long>(sm2 - prev1) * mul);
+				out += channels;
+				prev1 = sm2;
+				sm2 = 0;
+			}
+		} else {
+			std::size_t n = produced;
+			
+			while (--n) {
+				unsigned divn = div_ >> 1;
+				
+				do {
+					sm1 += static_cast<long>(*s);
+					s += channels;
+					sm2 += sm1;
+					sm1 += static_cast<long>(*s);
+					s += channels;
+					sm2 += sm1;
+				} while (--divn);
+				
+				*out = rshift16_round(static_cast<long>(sm2 - prev1) * mul);
+				out += channels;
+				prev1 = sm2;
+				sm2 = 0;
+			}
+		}
 		
 		nextdivn = div_;
 	}
