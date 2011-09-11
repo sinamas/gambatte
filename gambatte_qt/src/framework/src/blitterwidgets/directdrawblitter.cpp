@@ -49,6 +49,7 @@ DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	confWidget(new QWidget),
 	vblank_(new QCheckBox(QString("Wait for vertical blank")), "directdrawblitter/vblank", false),
 	flipping_(new QCheckBox(QString("Exclusive full screen")), "directdrawblitter/flipping", false),
+	vblankflip_(new QCheckBox(QString("Flip during vertical blank")), "directdrawblitter/vblankflip", true),
 	triplebuf_(new QCheckBox("Triple buffering"), "directdrawblitter/triplebuf", false),
 	videoSurface_(new QCheckBox(QString("Use video memory surface")), "directdrawblitter/videoSurface", true),
 	deviceSelector(new QComboBox),
@@ -95,10 +96,18 @@ DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	}
 
 	mainLayout->addWidget(vblank_.checkBox());
+	vblank_.checkBox()->setToolTip(tr("Prevents tearing. Does not work well on all systems.\n"
+	                                  "Ignored when exclusive full screen or DWM composition is active."));
 	mainLayout->addWidget(flipping_.checkBox());
+	flipping_.checkBox()->setToolTip(tr("Grabs device for better performance when full screen."));
 
 	{
 		QHBoxLayout *l = new QHBoxLayout;
+		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
+		l->addWidget(vblankflip_.checkBox());
+		vblankflip_.checkBox()->setToolTip(tr("Prevents tearing. Recommended."));
+		mainLayout->addLayout(l);
+		l = new QHBoxLayout;
 		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
 		l->addWidget(triplebuf_.checkBox());
 		mainLayout->addLayout(l);
@@ -107,7 +116,9 @@ DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	mainLayout->addWidget(videoSurface_.checkBox());
 	confWidget->setLayout(mainLayout);
 
+	vblankflip_.checkBox()->setEnabled(flipping_.checkBox()->isChecked());
 	triplebuf_.checkBox()->setEnabled(flipping_.checkBox()->isChecked());
+	connect(flipping_.checkBox(), SIGNAL(toggled(bool)), vblankflip_.checkBox(), SLOT(setEnabled(bool)));
 	connect(flipping_.checkBox(), SIGNAL(toggled(bool)), triplebuf_.checkBox(), SLOT(setEnabled(bool)));
 
 	rejectSettings();
@@ -561,12 +572,12 @@ long DirectDrawBlitter::sync() {
 			lastblank = now;
 		} else {
 			if (!blitted)
-				finalBlit(vblank_.value() ? DDBLT_DONOTWAIT : DDBLT_WAIT);
+				finalBlit(vblankflip_.value() ? DDBLT_DONOTWAIT : DDBLT_WAIT);
 
 			if (lpDDSPrimary && blitted)
 				ddrval = lpDDSPrimary->Flip(NULL,
-						(vblank_.value() ? DDFLIP_DONOTWAIT : DDFLIP_WAIT) |
-						(vblank_.value() ? 0 : DDFLIP_NOVSYNC));
+						(vblankflip_.value() ? DDFLIP_DONOTWAIT : DDFLIP_WAIT) |
+						(vblankflip_.value() ? 0 : DDFLIP_NOVSYNC));
 		}
 	} else {
 		if (const unsigned si = swapInterval ? swapInterval : vblank_.value() && !DwmControl::isCompositingEnabled()) {
@@ -606,6 +617,7 @@ void DirectDrawBlitter::acceptSettings() {
 
 	vblank_.accept();
 	flipping_.accept();
+	vblankflip_.accept();
 	triplebuf_.accept();
 	videoSurface_.accept();
 
@@ -629,6 +641,7 @@ void DirectDrawBlitter::acceptSettings() {
 void DirectDrawBlitter::rejectSettings() const {
 	vblank_.reject();
 	flipping_.reject();
+	vblankflip_.reject();
 	triplebuf_.reject();
 	videoSurface_.reject();
 	deviceSelector->setCurrentIndex(deviceIndex);

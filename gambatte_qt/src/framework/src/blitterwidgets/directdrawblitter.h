@@ -33,6 +33,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	const std::auto_ptr<QWidget> confWidget;
 	PersistCheckBox vblank_;
 	PersistCheckBox flipping_;
+	PersistCheckBox vblankflip_;
 	PersistCheckBox triplebuf_;
 	PersistCheckBox videoSurface_;
 	QComboBox *const deviceSelector;

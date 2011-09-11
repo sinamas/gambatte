@@ -66,6 +66,7 @@ Direct3DBlitter::Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	adapterSelector(new QComboBox),
 	vblankblit_(new QCheckBox("Wait for vertical blank"), "direct3dblitter/vblankblit", false),
 	flipping_(new QCheckBox("Exclusive full screen"), "direct3dblitter/flipping", false),
+	vblankflip_(new QCheckBox("Flip during vertical blank"), "direct3dblitter/vblankflip", true),
 	triplebuf_(new QCheckBox("Triple buffering"), "direct3dblitter/triplebuf", false),
 	bf_(new QCheckBox("Bilinear filtering"), "direct3dblitter/bf", true),
 	d3d9handle(NULL),
@@ -128,12 +129,27 @@ Direct3DBlitter::Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent) :
 		}
 
 		mainLayout->addWidget(vblankblit_.checkBox());
+		vblankblit_.checkBox()->setToolTip(tr("Prevents tearing. Does not work well on all systems.\n"
+		                                      "Ignored when exclusive full screen or DWM composition is active."));
 		mainLayout->addWidget(flipping_.checkBox());
+		flipping_.checkBox()->setToolTip(tr("Grabs device for better performance when full screen."));
+
+		{
+			QHBoxLayout *const l = new QHBoxLayout;
+			l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
+			l->addWidget(vblankflip_.checkBox());
+			vblankflip_.checkBox()->setToolTip(tr("Prevents tearing. Recommended."));
+			mainLayout->addLayout(l);
+		}
+
 		mainLayout->addWidget(triplebuf_.checkBox());
+		triplebuf_.checkBox()->setToolTip(tr("Attempts to improve video flow at the cost of increased latency."));
 		mainLayout->addWidget(bf_.checkBox());
 		confWidget->setLayout(mainLayout);
 	}
 
+	vblankflip_.checkBox()->setEnabled(flipping_.checkBox()->isChecked());
+	connect(flipping_.checkBox(), SIGNAL(toggled(bool)), vblankflip_.checkBox(), SLOT(setEnabled(bool)));
 	rejectSettings();
 }
 
@@ -180,7 +196,7 @@ void Direct3DBlitter::getPresentParams(D3DPRESENT_PARAMETERS *const presentParam
 	presentParams->Flags = 0;
 	presentParams->FullScreen_RefreshRateInHz = excl ? displayMode.RefreshRate : 0;
 	presentParams->PresentationInterval = swapInterval == 2 ? D3DPRESENT_INTERVAL_TWO :
-			(swapInterval == 1 || (vblankblit_.value() && (excl || !DwmControl::isCompositingEnabled()))
+			(swapInterval == 1 || (excl ? vblankflip_.value() : vblankblit_.value() && !DwmControl::isCompositingEnabled())
 					? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE);
 }
 
@@ -378,7 +394,9 @@ void Direct3DBlitter::present() {
 
 			if (swapChain) {
 				enum { DONOTWAIT = 1 };
-				swapChain->Present(NULL, NULL, 0, NULL, vblankblit_.value() ? DONOTWAIT : 0);
+
+				const DWORD flags = (windowed ? vblankblit_.value() : vblankflip_.value()) ? DONOTWAIT : 0;
+				swapChain->Present(NULL, NULL, 0, NULL, flags);
 				swapChain->Release();
 			} else
 				device->Present(NULL, NULL, 0, NULL);
@@ -567,6 +585,7 @@ void Direct3DBlitter::acceptSettings() {
 		exclusiveChange();
 
 	vblankblit_.accept();
+	vblankflip_.accept();
 	triplebuf_.accept();
 	bf_.accept();
 	resetDevice();
@@ -576,6 +595,7 @@ void Direct3DBlitter::rejectSettings() const {
 	adapterSelector->setCurrentIndex(adapterIndex);
 	flipping_.reject();
 	vblankblit_.reject();
+	vblankflip_.reject();
 	triplebuf_.reject();
 	bf_.reject();
 }

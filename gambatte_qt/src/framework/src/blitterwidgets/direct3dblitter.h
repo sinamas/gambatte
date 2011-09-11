@@ -33,6 +33,7 @@ class Direct3DBlitter : public BlitterWidget {
 	QComboBox *const adapterSelector;
 	PersistCheckBox vblankblit_;
 	PersistCheckBox flipping_;
+	PersistCheckBox vblankflip_;
 	PersistCheckBox triplebuf_;
 	PersistCheckBox bf_;
 	HMODULE d3d9handle;
