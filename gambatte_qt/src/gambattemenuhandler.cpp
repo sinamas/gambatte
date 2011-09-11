@@ -35,7 +35,7 @@ static const QString strippedName(const QString &fullFileName) {
 }
 
 namespace {
-struct TmpPauser {
+struct TmpPauser : private Uncopyable {
 	MainWindow *const mw;
 	const unsigned inc;
 	
@@ -136,14 +136,109 @@ void FrameRateAdjuster::changed() {
 	mw_.setFrameTime(ft.num, ft.denom);
 }
 
+WindowSizeMenu::WindowSizeMenu(MainWindow *const mw, const VideoDialog *const vd)
+: mw_(mw),
+  menu_(new QMenu(tr("&Window Size"), mw)),
+  group_(new QActionGroup(menu_)),
+  maxSize_(QApplication::desktop()->screen()->size())
+{
+	fillMenu(vd->sourceSize(), vd->scalingMethod());
+	setCheckedSize(QSettings().value("video/windowSize", QSize(-1, -1)).toSize());
+	connect(group_, SIGNAL(triggered(QAction*)), this, SLOT(triggered(QAction*)));
+
+	const QSize &size = checkedSize();
+	mw_->setWindowSize(size);
+
+	if (size == QSize(-1, -1))
+		mw_->resize(QSettings().value("mainwindow/size", QSize(160, 144)).toSize());
+}
+
+WindowSizeMenu::~WindowSizeMenu() {
+	QSettings settings;
+	settings.setValue("video/windowSize", checkedSize());
+}
+
+void WindowSizeMenu::videoDialogChange(const VideoDialog *const vd) {
+	const QSize &oldSize = checkedSize();
+	disconnect(group_, SIGNAL(triggered(QAction*)), this, SLOT(triggered(QAction*)));
+	menu_->clear();
+	delete group_;
+	group_ = new QActionGroup(menu_);
+
+	fillMenu(vd->sourceSize(), vd->scalingMethod());
+	setCheckedSize(oldSize);
+	connect(group_, SIGNAL(triggered(QAction*)), this, SLOT(triggered(QAction*)));
+
+	const QSize &newSize = checkedSize();
+
+	if (newSize != oldSize)
+		mw_->setWindowSize(newSize);
+}
+
+void WindowSizeMenu::triggered(QAction *) {
+	mw_->setWindowSize(checkedSize());
+}
+
+void WindowSizeMenu::fillMenu(const QSize &sourceSize, const ScalingMethod scalingMethod) {
+	const QSize aspectRatio(160, 144);
+	const QSize basesz(scalingMethod == INTEGER ? sourceSize : aspectRatio);
+
+	/*if (scalingMethod != INTEGER) {
+		const unsigned scale = std::max(sourceSize.width() / aspectRatio.width(), sourceSize.height() / aspectRatio.height());
+
+		basesz = QSize(aspectRatio.width() * scale, aspectRatio.height() * scale);
+
+		if (basesz.width() < sourceSize.width() || basesz.height() < sourceSize.height())
+			basesz += aspectRatio;
+	}*/
+
+	QSize sz(basesz);
+
+	while (sz.width() <= maxSize_.width() && sz.height() <= maxSize_.height()) {
+		if (sz.width() >= sourceSize.width() && sz.height() >= sourceSize.height()) {
+			QAction *const a = menu_->addAction(
+					"&" + QString::number(sz.width()) + "x" + QString::number(sz.height()));
+			a->setData(sz);
+			a->setCheckable(true);
+			group_->addAction(a);
+		}
+
+		sz += basesz;
+	}
+
+	QAction *const a = menu_->addAction(tr("&Variable"));
+	a->setData(QSize(-1, -1));
+	a->setCheckable(true);
+	group_->addAction(a);
+}
+
+void WindowSizeMenu::setCheckedSize(const QSize &size) {
+	const QList<QAction *> &actions = group_->actions();
+
+	foreach (QAction *const a, actions) {
+		if (a->data() == size) {
+			a->setChecked(true);
+			return;
+		}
+	}
+
+	if (!group_->checkedAction())
+		actions.front()->setChecked(true);
+}
+
+const QSize WindowSizeMenu::checkedSize() const {
+	return group_->checkedAction() ? group_->checkedAction()->data().toSize() : QSize(-1, -1);
+}
+
 GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		GambatteSource *const source, const int argc, const char *const argv[])
 : mw(mw),
   source(source),
   soundDialog(new SoundDialog(mw, mw)),
-  videoDialog(new VideoDialog(mw, source->generateVideoSourceInfos(), QString("Video filter:"), QSize(160, 144), mw)),
+  videoDialog(new VideoDialog(mw, source->generateVideoSourceInfos(), QString("Video filter:"), mw)),
   miscDialog(new MiscDialog(mw)),
   stateSlotGroup(new QActionGroup(mw)),
+  windowSizeMenu(mw, videoDialog),
   pauseInc(4)
 {
 	mw->setWindowTitle("Gambatte");
@@ -246,7 +341,8 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	settingsm->addAction(tr("&Miscellaneous..."), this, SLOT(execMiscDialog()));
 	settingsm->addAction(tr("&Sound..."), this, SLOT(execSoundDialog()));
 	settingsm->addAction(tr("&Video..."), this, SLOT(execVideoDialog()));
-
+	settingsm->addSeparator();
+	settingsm->addMenu(windowSizeMenu.menu());
 	settingsm->addSeparator();
 
 	forceDmgAction = settingsm->addAction(tr("Force &DMG Mode"));
@@ -307,14 +403,14 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	connect(mw, SIGNAL(videoBlitterFailure()), this, SLOT(videoBlitterFailure()));
 	connect(mw, SIGNAL(audioEngineFailure()), this, SLOT(audioEngineFailure()));
 	connect(mw, SIGNAL(closing()), this, SLOT(saveWindowSizeIfNotFullScreen()));
+	connect(mw, SIGNAL(dwmCompositionChange()), this, SLOT(reconsiderSyncFrameRateActionEnable()));
 	connect(this, SIGNAL(romLoaded(bool)), romLoadedActions, SLOT(setEnabled(bool)));
 	connect(this, SIGNAL(romLoaded(bool)), stateSlotGroup->actions().at(0), SLOT(setChecked(bool)));
 	
+	mw->setAspectRatio(QSize(160, 144));
 	videoDialogChange();
 	soundDialogChange();
 	miscDialogChange();
-	
-	mw->resize(QSettings().value("mainwindow/size", QSize(160, 144)).toSize());
 
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-') {
@@ -389,7 +485,12 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 }
 
 void GambatteMenuHandler::open() {
+#ifdef Q_WS_WIN
+	TmpPauser tmpPauser(mw, 4);
+	mw->waitUntilPaused();
+#else
 	TmpPauser tmpPauser(mw, pauseInc);
+#endif
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Open"), recentFileActs[0]->data().toString(),
 						tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip);;All Files (*)"));
 
@@ -457,15 +558,8 @@ void GambatteMenuHandler::videoDialogChange() {
 	}
 
 	applySettings(mw, videoDialog);
-
-	if (mw->blitterConf(videoDialog->blitterNo()).maxSwapInterval()) {
-		syncFrameRateAction->setEnabled(true);
-	} else {
-		if (syncFrameRateAction->isChecked())
-			syncFrameRateAction->trigger();
-		
-		syncFrameRateAction->setEnabled(false);
-	}
+	windowSizeMenu.videoDialogChange(videoDialog);
+	reconsiderSyncFrameRateActionEnable();
 }
 
 void GambatteMenuHandler::soundDialogChange() {
@@ -473,9 +567,21 @@ void GambatteMenuHandler::soundDialogChange() {
 }
 
 void GambatteMenuHandler::miscDialogChange() {
+	mw->setDwmTripleBuffer(miscDialog->dwmTripleBuf());
 	mw->setFastForwardSpeed(miscDialog->turboSpeed());
 	mw->setPauseOnFocusOut(miscDialog->pauseOnFocusOut() ? 2 : 0);
 	pauseInc = miscDialog->pauseOnDialogs() ? 4 : 0;
+}
+
+void GambatteMenuHandler::reconsiderSyncFrameRateActionEnable() {
+	if (mw->blitterConf(videoDialog->blitterNo()).maxSwapInterval() && !MainWindow::isDwmCompositionEnabled()) {
+		syncFrameRateAction->setEnabled(true);
+	} else {
+		if (syncFrameRateAction->isChecked())
+			syncFrameRateAction->trigger();
+
+		syncFrameRateAction->setEnabled(false);
+	}
 }
 
 void GambatteMenuHandler::execGlobalPaletteDialog() {
@@ -569,7 +675,12 @@ struct SaveStateAsFun {
 }
 
 void GambatteMenuHandler::saveStateAs() {
+#ifdef Q_WS_WIN
+	TmpPauser tmpPauser(mw, 4);
+	mw->waitUntilPaused();
+#else
 	TmpPauser tmpPauser(mw, pauseInc);
+#endif
 	const QString &fileName = QFileDialog::getSaveFileName(mw, tr("Save State"),
 					QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
 
@@ -590,7 +701,12 @@ struct LoadStateFromFun {
 }
 
 void GambatteMenuHandler::loadStateFrom() {
+#ifdef Q_WS_WIN
+	TmpPauser tmpPauser(mw, 4);
+	mw->waitUntilPaused();
+#else
 	TmpPauser tmpPauser(mw, pauseInc);
+#endif
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Load State"),
 					QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
 

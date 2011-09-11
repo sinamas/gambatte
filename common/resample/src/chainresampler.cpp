@@ -77,7 +77,7 @@ void ChainResampler::adjustRate(const long inRate, const long outRate) {
 	
 	exactRatio(mul, div);
 	
-	bigSinc->adjustDiv(static_cast<double>(inRate) * mul / (static_cast<double>(div / bigSinc->div()) * outRate) + 0.5);
+	bigSinc->adjustDiv(static_cast<int>(static_cast<double>(inRate) * mul / (static_cast<double>(div / bigSinc->div()) * outRate) + 0.5));
 	
 	reallocateBuffer();
 	setRate(inRate, outRate);

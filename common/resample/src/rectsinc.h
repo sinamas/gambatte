@@ -47,7 +47,7 @@ public:
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
 			static const float widthTimesTaps = 0.9f;
-			return std::ceil(widthTimesTaps / rollOffWidth);
+			return static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth));
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {

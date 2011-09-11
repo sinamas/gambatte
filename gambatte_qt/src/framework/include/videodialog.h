@@ -105,26 +105,6 @@ private:
 		int index() const { return index_; }
 	};
 	
-	class WinResSelector {
-		QComboBox *const comboBox_;
-		const QSize defaultRes_;
-		QSize aspectRatio_;
-		int index_;
-		
-		void fillComboBox(const QSize &sourceSize, bool integerScaling);
-	public:
-		WinResSelector(const QSize &aspectRatio, const QSize &sourceSize, bool integerScaling);
-		~WinResSelector();
-		void addToLayout(QBoxLayout *layout);
-		const QComboBox * comboBox() const { return comboBox_; }
-		void store();
-		void restore();
-		void setAspectRatio(const QSize &aspectRatio, const QSize &sourceSize, bool integerScaling);
-		void setBaseSize(const QSize &sourceSize, bool integerScaling);
-		const QSize & aspectRatio() const { return aspectRatio_; }
-		int index() const { return index_; }
-	};
-	
 	class FullResSelector {
 		QComboBox *const comboBox_;
 		const QString key_;
@@ -165,14 +145,12 @@ private:
 	EngineSelector engineSelector;
 	ScalingMethodSelector scalingMethodSelector;
 	SourceSelector sourceSelector;
-	WinResSelector winResSelector;
 	const auto_vector<FullResSelector> fullResSelectors;
 	const auto_vector<FullHzSelector> fullHzSelectors;
 	
 	static auto_vector<FullResSelector> makeFullResSelectors(const QSize &sourceSize, const MainWindow *mw);
 	static auto_vector<FullHzSelector> makeFullHzSelectors(
 			const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *mw);
-	void fillWinResSelector();
 	void fillFullResSelectors();
 	void store();
 	void restore();
@@ -181,16 +159,13 @@ private slots:
 	void engineChange(int index);
 	void fullresChange(int index);
 	void sourceChange(int index);
-	void integerScalingChange(bool checked);
 
 public:
 	VideoDialog(const MainWindow *mw,
 	            const std::vector<VideoSourceInfo> &sourceInfos,
 	            const QString &sourcesLabel,
-	            const QSize &aspectRatio,
 	            QWidget *parent = 0);
 	int blitterNo() const;
-	const QSize windowSize() const;
 	unsigned fullResIndex(unsigned screen) const;
 	unsigned fullRateIndex(unsigned screen) const;
 	unsigned sourceIndex() const { return sourceSelector.index(); }
@@ -198,8 +173,6 @@ public:
 	void setVideoSources(const std::vector<VideoSourceInfo> &sourceInfos);
 	void setSourceSize(const QSize &sourceSize);
 	ScalingMethod scalingMethod() const { return scalingMethodSelector.scalingMethod(); }
-	const QSize& aspectRatio() const { return winResSelector.aspectRatio(); }
-	void setAspectRatio(const QSize &aspectRatio);
 	
 public slots:
 	void accept();

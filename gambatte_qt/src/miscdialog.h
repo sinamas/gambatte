@@ -30,6 +30,7 @@ class MiscDialog : public QDialog {
 	FpsSelector fpsSelector_;
 	PersistCheckBox pauseOnDialogs_;
 	PersistCheckBox pauseOnFocusOut_;
+	PersistCheckBox dwmTripleBuf_;
 	int turboSpeed_;
 	
 	void store();
@@ -41,6 +42,7 @@ public:
 	int turboSpeed() const { return turboSpeed_; }
 	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
 	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
+	bool dwmTripleBuf() const { return dwmTripleBuf_.value(); }
 	const QSize & baseFps() const { return fpsSelector_.value(); }
 
 public slots:

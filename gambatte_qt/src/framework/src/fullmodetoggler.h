@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -43,7 +43,7 @@ public:
 	virtual void setScreen(const QWidget *widget) = 0;
 	virtual unsigned screen() const = 0;
 	virtual unsigned screens() const = 0;
-	virtual const QString screenName(unsigned screen) const { return QString::number(screen); }
+	virtual const QString screenName(unsigned screen) const { return QString::number(screen + 1); }
 
 signals:
 	void rateChange(int newHz);

@@ -21,6 +21,8 @@
 
 namespace gambatte {
 
+class SaverList;
+
 struct SaveState {
 	template<typename T>
 	class Ptr {

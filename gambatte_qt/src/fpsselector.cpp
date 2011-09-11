@@ -79,8 +79,9 @@ void FpsSelector::indexChanged(const int index) {
 	if (getCustomIndex(comboBox_) == index) {
 		bool ok = false;
 		
-		const QSize v(QInputDialog::getDouble(comboBox_, tr("Set Frame Rate"), tr("Frame rate (fps):"),
-				static_cast<double>(value_.width()) / value_.height(), 30.0, 120.0, 4, &ok) * 10000 + 0.5, 10000);
+		const QSize v(static_cast<int>(
+				QInputDialog::getDouble(comboBox_, tr("Set Frame Rate"), tr("Frame rate (fps):"),
+				static_cast<double>(value_.width()) / value_.height(), 30.0, 120.0, 4, &ok) * 10000 + 0.5), 10000);
 		
 		setFps(comboBox_, ok ? v : value_);
 	}

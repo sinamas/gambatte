@@ -210,6 +210,10 @@ public:
 	template<class T>
 	void callInWorkerThread(const T &fun);
 
+	void setDwmTripleBuffer(bool enable);
+	static bool hasDwmCapability();
+	static bool isDwmCompositionEnabled();
+
 public slots:
 	void hideCursor();
 	void setFastForward(bool enable);
@@ -224,17 +228,20 @@ signals:
 	void audioEngineFailure();
 	void videoBlitterFailure();
 	void closing();
+	void dwmCompositionChange();
 	
 protected:
 	virtual void mouseMoveEvent(QMouseEvent*);
 	virtual void closeEvent(QCloseEvent*);
 	virtual void moveEvent(QMoveEvent*);
 	virtual void resizeEvent(QResizeEvent*);
+	virtual void hideEvent(QHideEvent*);
 	virtual void showEvent(QShowEvent*);
 	virtual void focusOutEvent(QFocusEvent*);
 	virtual void focusInEvent(QFocusEvent*);
 	virtual void keyPressEvent(QKeyEvent*);
 	virtual void keyReleaseEvent(QKeyEvent*);
+	virtual bool winEvent(MSG *msg, long *result);
 	
 private:
 	void correctFullScreenGeometry();

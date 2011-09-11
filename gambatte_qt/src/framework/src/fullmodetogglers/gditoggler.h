@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,8 +21,9 @@
 #define GDITOGGLER_H_
 
 #include "../fullmodetoggler.h"
+#include "uncopyable.h"
 
-class GdiToggler : public FullModeToggler {
+class GdiToggler : public FullModeToggler, private Uncopyable {
 	Q_OBJECT
 	
 	class MultiMon;

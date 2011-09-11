@@ -150,80 +150,6 @@ void VideoDialog::SourceSelector::setVideoSources(const std::vector<VideoSourceI
 	}
 }
 
-VideoDialog::WinResSelector::WinResSelector(const QSize &aspectRatio, const QSize &sourceSize, const bool integerScaling)
-: comboBox_(new QComboBox),
-  defaultRes_(QApplication::desktop()->screen()->size()),
-  aspectRatio_(aspectRatio),
-  index_(0)
-{
-	fillComboBox(sourceSize, integerScaling);
-
-	index_ = filterValue(QSettings().value("video/winIndex", comboBox_->count() - 1).toInt(),
-							comboBox_->count(), 0, comboBox_->count() - 1);
-	restore();
-}
-
-VideoDialog::WinResSelector::~WinResSelector() {
-	QSettings settings;
-	settings.setValue("video/winIndex", index_);
-}
-
-void VideoDialog::WinResSelector::addToLayout(QBoxLayout *const containingLayout) {
-	QHBoxLayout *const hLayout = new QHBoxLayout;
-	hLayout->addWidget(new QLabel(QString(tr("Window size:"))));
-	hLayout->addWidget(comboBox_);
-	containingLayout->addLayout(hLayout);
-}
-
-void VideoDialog::WinResSelector::store() {
-	index_ = comboBox_->currentIndex();
-}
-
-void VideoDialog::WinResSelector::restore() {
-	comboBox_->setCurrentIndex(index_);
-}
-
-void VideoDialog::WinResSelector::setAspectRatio(const QSize &aspectRatio, const QSize &sourceSize, const bool integerScaling) {
-	aspectRatio_ = aspectRatio;
-	setBaseSize(sourceSize, integerScaling);
-}
-
-void VideoDialog::WinResSelector::setBaseSize(const QSize &sourceSize, const bool integerScaling) {
-	const QString oldtext(comboBox_->itemText(comboBox_->currentIndex()));
-	
-	comboBox_->clear();
-	fillComboBox(sourceSize, integerScaling);
-	
-	const int newIndex = comboBox_->findText(oldtext);
-
-	if (newIndex >= 0)
-		comboBox_->setCurrentIndex(newIndex);
-}
-
-void VideoDialog::WinResSelector::fillComboBox(const QSize &sourceSize, const bool integerScaling) {
-	const QSize basesz(integerScaling ? sourceSize : aspectRatio_);
-	
-	/*if (!integerScaling) {
-		const unsigned scale = std::max(sourceSize.width() / aspectRatio_.width(), sourceSize.height() / aspectRatio_.height());
-		
-		basesz = QSize(aspectRatio_.width() * scale, aspectRatio_.height() * scale);
-		
-		if (basesz.width() < sourceSize.width() || basesz.height() < sourceSize.height())
-			basesz += aspectRatio_;
-	}*/
-	
-	QSize sz(basesz);
-	
-	while (sz.width() <= defaultRes_.width() && sz.height() <= defaultRes_.height()) {
-		if (sz.width() >= sourceSize.width() && sz.height() >= sourceSize.height())
-			comboBox_->addItem(QString::number(sz.width()) + "x" + QString::number(sz.height()), sz);
-		
-		sz += basesz;
-	}
-	
-	comboBox_->addItem(QString(tr("Variable")), QVariant(QSize(-1, -1)));
-}
-
 VideoDialog::FullResSelector::FullResSelector(
 	const QString &key, const int defaultIndex,
 	const QSize &sourceSize, const std::vector<ResInfo> &resVector)
@@ -361,7 +287,6 @@ auto_vector<VideoDialog::FullHzSelector> VideoDialog::makeFullHzSelectors(
 VideoDialog::VideoDialog(const MainWindow *const mw,
                          const std::vector<VideoSourceInfo> &sourceInfos,
                          const QString &sourcesLabel,
-                         const QSize &aspectRatio,
                          QWidget *parent)
 : QDialog(parent),
   mw(mw),
@@ -369,9 +294,6 @@ VideoDialog::VideoDialog(const MainWindow *const mw,
   engineWidget(0),
   engineSelector(mw),
   sourceSelector(sourcesLabel, sourceInfos),
-  winResSelector(aspectRatio,
-                 sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(),
-                 scalingMethodSelector.integerScalingButton()->isChecked()),
   fullResSelectors(makeFullResSelectors(sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(), mw)),
   fullHzSelectors(makeFullHzSelectors(fullResSelectors, mw))
 {
@@ -382,8 +304,6 @@ VideoDialog::VideoDialog(const MainWindow *const mw,
 	
 	if ((engineWidget = mw->blitterConf(engineSelector.comboBox()->currentIndex()).settingsWidget()))
 		topLayout->addWidget(engineWidget);
-
-	winResSelector.addToLayout(topLayout);
 
 	for (std::size_t i = 0; i < fullResSelectors.size(); ++i) {
 		QHBoxLayout *const hLayout = new QHBoxLayout;
@@ -424,7 +344,6 @@ VideoDialog::VideoDialog(const MainWindow *const mw,
 		connect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(fullresChange(int)));
 	}
 	
-	connect(scalingMethodSelector.integerScalingButton(), SIGNAL(toggled(bool)), this, SLOT(integerScalingChange(bool)));
 	connect(sourceSelector.comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
 	connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
@@ -456,7 +375,6 @@ void VideoDialog::store() {
 	engineSelector.store();
 	scalingMethodSelector.store();
 	sourceSelector.store();
-	winResSelector.store();
 	std::for_each(fullResSelectors.begin(), fullResSelectors.end(), std::mem_fun(&FullResSelector::store));
 	std::for_each(fullHzSelectors.begin(), fullHzSelectors.end(), std::mem_fun(&FullHzSelector::store));
 }
@@ -468,7 +386,6 @@ void VideoDialog::restore() {
 	engineSelector.restore();
 	scalingMethodSelector.restore();
 	sourceSelector.restore();
-	winResSelector.restore();
 	std::for_each(fullResSelectors.begin(), fullResSelectors.end(), std::mem_fun(&FullResSelector::restore));
 	std::for_each(fullHzSelectors.begin(), fullHzSelectors.end(), std::mem_fun(&FullHzSelector::restore));
 }
@@ -493,23 +410,11 @@ void VideoDialog::fullresChange(const int index) {
 }
 
 void VideoDialog::sourceChange(int /*index*/) {
-	winResSelector.setBaseSize(
-			sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(),
-			scalingMethodSelector.integerScalingButton()->isChecked());
 	fillFullResSelectors();
-}
-
-void VideoDialog::integerScalingChange(const bool checked) {
-	winResSelector.setBaseSize(
-			sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(), checked);
 }
 
 int VideoDialog::blitterNo() const {
 	return engineSelector.index();
-}
-
-const QSize VideoDialog::windowSize() const {
-	return winResSelector.comboBox()->itemData(winResSelector.index()).toSize();
 }
 
 unsigned VideoDialog::fullResIndex(unsigned screen) const {
@@ -522,15 +427,6 @@ unsigned VideoDialog::fullRateIndex(unsigned screen) const {
 
 const QSize VideoDialog::sourceSize() const {
 	return sourceSelector.comboBox()->itemData(sourceIndex()).toSize();
-}
-
-void VideoDialog::setAspectRatio(const QSize &aspectRatio) {
-	restore();
-	winResSelector.setAspectRatio(aspectRatio, 
-			sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(),
-			scalingMethodSelector.integerScalingButton()->isChecked());
-	store();
-	emit accepted();
 }
 
 void VideoDialog::setVideoSources(const std::vector<VideoSourceInfo> &sourceInfos) {
@@ -567,9 +463,7 @@ void applySettings(MainWindow *const mw, const VideoDialog *const vd) {
 		curBlitter.acceptSettings();
 	}
 	
-	mw->setAspectRatio(vd->aspectRatio());
 	mw->setScalingMethod(vd->scalingMethod());
-	mw->setWindowSize(vd->windowSize());
 	
 	for (std::size_t i = 0; i < mw->screens(); ++i)
 		mw->setFullScreenMode(i, vd->fullResIndex(i), vd->fullRateIndex(i));

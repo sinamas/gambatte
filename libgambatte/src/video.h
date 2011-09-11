@@ -111,7 +111,7 @@ class LCD {
 		MemEvent nextMemEvent() const { return static_cast<MemEvent>(memEventMin_.min()); }
 		unsigned long nextMemEventTime() const { return memEventMin_.minValue(); }
 		unsigned long operator()(const MemEvent e) const { return memEventMin_.value(e); }
-		template<MemEvent e> void set(const unsigned long time) { memEventMin_.setValue<e>(time); setMemEvent(); }
+		template<MemEvent e> void setm(const unsigned long time) { memEventMin_.setValue<e>(time); setMemEvent(); }
 		void set(const MemEvent e, const unsigned long time) { memEventMin_.setValue(e, time); setMemEvent(); }
 		
 		void flagIrq(const unsigned bit) { memEventRequester_.flagIrq(bit); }

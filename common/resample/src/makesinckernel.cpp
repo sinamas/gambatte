@@ -137,6 +137,6 @@ void makeSincKernel(short *const kernel, const unsigned phases, const unsigned p
 		short *km = kernel + phaseLen - 1 + ((ph + 1) % phases) * phaseLen;
 		
 		for (long i = ph; i < M / 2 + 1; i += phases)
-			*km-- = *k++ = std::floor(*dk++ * gain + 0.5);
+			*km-- = *k++ = static_cast<short>(std::floor(*dk++ * gain + 0.5));
 	}
 }

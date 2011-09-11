@@ -163,6 +163,9 @@ std::size_t MainWindow::numAudioEngines() const { return w_->numAudioEngines(); 
 std::size_t MainWindow::numResamplers() const { return w_->numResamplers(); }
 const char* MainWindow::resamplerDesc(std::size_t resamplerNo) const { return w_->resamplerDesc(resamplerNo); }
 void MainWindow::setResampler(std::size_t resamplerNo) { w_->setResampler(resamplerNo); }
+void MainWindow::setDwmTripleBuffer(bool enable) { w_->setDwmTripleBuffer(enable); }
+bool MainWindow::hasDwmCapability() { return DwmControl::hasDwmCapability(); }
+bool MainWindow::isDwmCompositionEnabled() { return DwmControl::isCompositingEnabled(); }
 
 void MainWindow::closeEvent(QCloseEvent */*e*/) {
 	w_->stop();
@@ -170,9 +173,14 @@ void MainWindow::closeEvent(QCloseEvent */*e*/) {
 // 	w_->setFullScreen(false); // avoid misleading auto-minimize on close focusOut event.
 }
 
+void MainWindow::hideEvent(QHideEvent *) {
+	w_->hideEvent();
+}
+
 void MainWindow::showEvent(QShowEvent *) {
 	// some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
 	doSetWindowSize(winSize_);
+	w_->showEvent();
 }
 
 void MainWindow::focusOutEvent(QFocusEvent *) {
@@ -191,6 +199,13 @@ void MainWindow::mouseMoveEvent(QMouseEvent *) { w_->mouseMoveEvent(); }
 void MainWindow::setPauseOnFocusOut(unsigned bitmask) { w_->setPauseOnFocusOut(bitmask, hasFocus()); }
 void MainWindow::keyPressEvent(QKeyEvent *e) { w_->keyPressEvent(e); }
 void MainWindow::keyReleaseEvent(QKeyEvent *e) { w_->keyReleaseEvent(e); }
+
+bool MainWindow::winEvent(MSG *msg, long *) {
+	if (w_->winEvent(*msg))
+		emit dwmCompositionChange();
+
+	return false;
+}
 
 void MainWindow::doSetWindowSize(const QSize &sz) {
 	if (!isFullScreen() && isVisible()) {

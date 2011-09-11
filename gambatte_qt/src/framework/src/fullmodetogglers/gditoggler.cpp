@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include "gditoggler.h"
 #include "../gdisettings.h"
+#include "uncopyable.h"
 #include <QApplication>
 #include <QDesktopWidget>
 #include <algorithm>
@@ -57,7 +58,7 @@ static void addMode(const DEVMODE &devmode, std::vector<ResInfo> &infoVector, un
 		*rateIndex = std::distance(it->rates.begin(), rateIt);
 }
 
-class GdiToggler::MultiMon {
+class GdiToggler::MultiMon : Uncopyable {
 	HMONITOR *devMonitors;
 	unsigned numDevs;
 	
@@ -102,7 +103,7 @@ isFull(false)
 	fullRateIndex.resize(mon->numScreens());
 	
 	DEVMODE devmode;
-	devmode.dmSize = sizeof(DEVMODE);
+	devmode.dmSize = sizeof devmode;
 	devmode.dmDriverExtra = 0;
 	
 	for (unsigned i = 0; i < mon->numScreens(); ++i) {
@@ -158,7 +159,7 @@ void GdiToggler::setMode(const unsigned screen, const unsigned resIndex, const u
 
 void GdiToggler::setFullMode(const bool enable) {
 	DEVMODE devmode;
-	devmode.dmSize = sizeof(DEVMODE);
+	devmode.dmSize = sizeof devmode;
 	devmode.dmDriverExtra = 0;
 	
 	mon->enumDisplaySettings(widgetScreen, ENUM_CURRENT_SETTINGS, &devmode);
@@ -188,7 +189,7 @@ void GdiToggler::setFullMode(const bool enable) {
 
 void GdiToggler::emitRate() {
 	DEVMODE devmode;
-	devmode.dmSize = sizeof(DEVMODE);
+	devmode.dmSize = sizeof devmode;
 	devmode.dmDriverExtra = 0;
 	mon->enumDisplaySettings(widgetScreen, ENUM_CURRENT_SETTINGS, &devmode);
 	emit rateChange(devmode.dmDisplayFrequency * 10);

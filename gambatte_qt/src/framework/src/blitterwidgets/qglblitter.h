@@ -20,6 +20,7 @@
 #define QGLBLITTER_H
 
 #include "../blitterwidget.h"
+#include "../dwmcontrol.h"
 #include "persistcheckbox.h"
 #include "array.h"
 #include <memory>
@@ -27,6 +28,7 @@
 class QGLBlitter : public BlitterWidget {
 	class SubWidget;
 	
+	const DwmControlHwndChange hwndChange_;
 	FtEst ftEst;
 	const std::auto_ptr<QWidget> confWidget;
 	PersistCheckBox vsync_;
@@ -44,11 +46,12 @@ protected:
 	void resizeEvent(QResizeEvent *event);
 	
 public:
-	explicit QGLBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	explicit QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent = 0);
 	~QGLBlitter();
 	void uninit();
 	bool isUnusable() const;
 	void setCorrectedGeometry(int w, int h, int new_w, int new_h);
+	WId hwnd() const;
 	long frameTimeEst() const;
 	void blit();
 	void draw();
@@ -60,7 +63,7 @@ public:
 	
 	void setSwapInterval(unsigned);
 	void rateChange(int dhz);
-	
+	void compositionEnabledChange();
 };
 
 #endif

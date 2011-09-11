@@ -110,14 +110,16 @@ std::size_t ChainResampler::downinit(const long inRate, const long outRate, cons
 		const float midRollOffEnd   = std::min(40000.0f * outPeriod, 1.0f); // after wrap at folding freq.
 		const float midRollOffStartPlusEnd = midRollOffStart + midRollOffEnd;
 		
-		int div_2c = ratio * SmallSinc::MUL / get2ChainMidRatio(ratio, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f;
+		int div_2c = static_cast<int>(ratio * SmallSinc::MUL / get2ChainMidRatio(ratio, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f);
 		double ratio_2c = ratio * SmallSinc::MUL / div_2c;
 		float cost_2c = get2ChainCost(ratio, finalRollOffLen, ratio_2c, midRollOffStartPlusEnd);
 		
 		if (cost_2c < get1ChainCost(ratio, finalRollOffLen)) {
-			const int div1_3c = ratio * SmallSinc::MUL / get3ChainRatio1(ratio_2c, finalRollOffLen, ratio, midRollOffStartPlusEnd) + 0.5f;
+			const int div1_3c = static_cast<int>(
+					ratio * SmallSinc::MUL / get3ChainRatio1(ratio_2c, finalRollOffLen, ratio, midRollOffStartPlusEnd) + 0.5f);
 			const double ratio1_3c = ratio * SmallSinc::MUL / div1_3c;
-			const int div2_3c = ratio1_3c * SmallSinc::MUL / get3ChainRatio2(ratio1_3c, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f;
+			const int div2_3c = static_cast<int>(
+					ratio1_3c * SmallSinc::MUL / get3ChainRatio2(ratio1_3c, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f);
 			const double ratio2_3c = ratio1_3c * SmallSinc::MUL / div2_3c;
 			
 			if (get3ChainCost(ratio, finalRollOffLen, ratio1_3c, ratio2_3c, midRollOffStartPlusEnd) < cost_2c) {
@@ -134,7 +136,7 @@ std::size_t ChainResampler::downinit(const long inRate, const long outRate, cons
 		}
 	}
 	
-	list.push_back(bigSinc = new BigSinc(BigSinc::MUL * ratio + 0.5, typename BigSinc::RollOff(
+	list.push_back(bigSinc = new BigSinc(static_cast<int>(BigSinc::MUL * ratio + 0.5), typename BigSinc::RollOff(
 			0.5f * (1.0f + std::max((outRate - 40000.0f) * outPeriod, 0.0f) - finalRollOffLen) / ratio, 0.5f * finalRollOffLen / ratio)));
 	
 	return reallocateBuffer();
@@ -185,7 +187,8 @@ std::size_t ChainResampler::upinit(const long inRate, const long outRate, const 
 		}
 	}*/
 	
-	list.push_front(bigSinc = new BigSinc(BigSinc::MUL / ratio + 0.5, typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff)));
+	list.push_front(bigSinc = new BigSinc(
+			static_cast<int>(BigSinc::MUL / ratio + 0.5), typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff)));
 	
 	return reallocateBuffer();
 }

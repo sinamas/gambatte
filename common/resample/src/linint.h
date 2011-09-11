@@ -33,7 +33,11 @@ class LinintCore {
 	
 public:
 	LinintCore(long inRate = 1, long outRate = 1) { init(inRate, outRate); }
-	void adjustRate(long inRate, long outRate) { ratio = (static_cast<double>(inRate) / outRate) * 0x10000 + 0.5; }
+
+	void adjustRate(long inRate, long outRate) {
+		ratio = static_cast<unsigned long>((static_cast<double>(inRate) / outRate) * 0x10000 + 0.5);
+	}
+
 	void exactRatio(unsigned long &mul, unsigned long &div) const { mul = 0x10000; div = ratio; }
 	void init(long inRate, long outRate);
 	std::size_t maxOut(std::size_t inlen) const { return inlen ? u48div(inlen - 1, 0xFFFF, ratio) + 1 : 0; }

@@ -19,6 +19,7 @@
 #ifndef GAMBATTEMENUHANDLER_H
 #define GAMBATTEMENUHANDLER_H
 
+#include "scalingmethod.h"
 #include <QObject>
 #include <QList>
 #include <QSize>
@@ -97,6 +98,28 @@ public slots:
 	void resetFrameRate();
 };
 
+class WindowSizeMenu : public QObject {
+	Q_OBJECT
+
+	MainWindow *const mw_;
+	QMenu *const menu_;
+	QActionGroup *group_;
+	const QSize maxSize_;
+
+	void fillMenu(const QSize &sourceSize, ScalingMethod scalingMethod);
+	void setCheckedSize(const QSize &size);
+	const QSize checkedSize() const;
+
+private slots:
+	void triggered(QAction*);
+
+public:
+	WindowSizeMenu(MainWindow *mw, const VideoDialog *videoDialog);
+	~WindowSizeMenu();
+	QMenu* menu() const { return menu_; }
+	void videoDialogChange(const VideoDialog *vd);
+};
+
 class GambatteMenuHandler : public QObject {
 	Q_OBJECT
 		
@@ -118,6 +141,7 @@ class GambatteMenuHandler : public QObject {
 	PaletteDialog *globalPaletteDialog;
 	PaletteDialog *romPaletteDialog;
 	QActionGroup *const stateSlotGroup;
+	WindowSizeMenu windowSizeMenu;
 	unsigned pauseInc;
 	
 	void loadFile(const QString &fileName);
@@ -138,6 +162,7 @@ private slots:
 	void videoDialogChange();
 	void soundDialogChange();
 	void miscDialogChange();
+	void reconsiderSyncFrameRateActionEnable();
 	void execGlobalPaletteDialog();
 	void execRomPaletteDialog();
 	void execInputDialog();

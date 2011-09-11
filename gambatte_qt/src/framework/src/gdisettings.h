@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
+ *   Copyright (C) 2008 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,9 +19,10 @@
 #ifndef GDISETTINGS_H_
 #define GDISETTINGS_H_
 
+#include "uncopyable.h"
 #include <windows.h>
 
-class GdiSettings {
+class GdiSettings : Uncopyable {
 	struct MonInfo { 
 		DWORD  cbSize; 
 		RECT   rcMonitor; 

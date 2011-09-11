@@ -39,6 +39,7 @@
 #include "auto_vector.h"
 #include "callqueue.h"
 #include "pixelbuffer.h"
+#include "dwmcontrol.h"
 
 class QMainWindow;
 
@@ -76,12 +77,14 @@ class MediaWidget : public QObject {
 	const auto_vector<AudioEngine> audioEngines;
 	const auto_vector<BlitterWidget> blitters;
 	const std::auto_ptr<FullModeToggler> fullModeToggler;
+	WorkerCallback *const workerCallback_;
 	MediaWorker *const worker;
 	FrameRateControl frameRateControl;
 	QTimer *const cursorTimer;
 	QTimer *const jsTimer;
 	CallQueue<> pausedq;
 	Pauser pauser;
+	DwmControl dwmControl_;
 	unsigned focusPauseBit;
 	bool running;
 	
@@ -105,9 +108,13 @@ public:
 	
 	QWidget* widget() const { return blitterContainer; }
 	
+	/** @return compositionChange */
+	bool winEvent(const MSG &message) { return dwmControl_.winEvent(message); }
+	void hideEvent() { dwmControl_.hideEvent(); }
+	void showEvent() { dwmControl_.showEvent(); }
 	void mouseMoveEvent() { blitterContainer->showCursor(); cursorTimer->start(); }
 	void moveEvent(const QWidget *parent) { fullModeToggler->setScreen(parent); }
-	void resizeEvent(const QWidget *parent) { fullModeToggler->setScreen(parent); }
+	void resizeEvent(const QWidget *parent);
 	void focusOutEvent();
 	void focusInEvent();
 	void keyPressEvent(QKeyEvent*);
@@ -189,6 +196,7 @@ public:
 		execPausedQueue();
 	}
 
+	void setDwmTripleBuffer(bool enable) { dwmControl_.setDwmTripleBuffer(enable); }
 	void setFastForward(bool enable) { worker->setFastForward(enable); }
 	void setSyncToRefreshRate(bool on) { frameRateControl.setRefreshRateSync(on); }
 	

@@ -255,10 +255,9 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 	glLoadIdentity();
 
 	{
-		quint32 *const nulltexture = new quint32[textureRes * textureRes]; // avoids bilinear filter border garbage
-		std::memset(nulltexture, 0, textureRes * textureRes * sizeof(quint32));
+		const Array<quint32> nulltexture(textureRes * textureRes); // avoids bilinear filter border garbage
+		std::memset(nulltexture, 0, nulltexture.size() * sizeof(quint32));
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
-		delete []nulltexture;
 	}
 
 	glOrtho(0, 1, 1, 0, -1, 1);
@@ -274,8 +273,9 @@ void QGLBlitter::SubWidget::updateTexture(quint32 *const buffer) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, textureRes - inHeight, inWidth, inHeight, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
 }
 
-QGLBlitter::QGLBlitter(VideoBufferLocker vbl, QWidget *parent) :
+QGLBlitter::QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent) :
 	BlitterWidget(vbl, QString("OpenGL"), 2, parent),
+	hwndChange_(hwndChange),
 	confWidget(new QWidget),
 	vsync_(new QCheckBox(QString("Wait for vertical blank")), "qglblitter/vsync", false),
 	bf_(new QCheckBox(QString("Bilinear filtering")), "qglblitter/bf", true),
@@ -405,7 +405,7 @@ void QGLBlitter::resetSubWidget() {
 // 		else if (hz == hz2 || hz == hz1 * 2)
 // 			swapInterval = 2;
 // 	}
-	const unsigned swapInterval = swapInterval_ ? swapInterval_ : vsync_.value();
+	const unsigned swapInterval = swapInterval_ ? swapInterval_ : vsync_.value() && !DwmControl::isCompositingEnabled();
 
 	if (swapInterval == subWidget->getSwapInterval())
 		return;
@@ -426,6 +426,8 @@ void QGLBlitter::resetSubWidget() {
 
 	if (buffer)
 		subWidget->setBufferDimensions(w, h);
+
+	hwndChange_(this);
 }
 
 void QGLBlitter::acceptSettings() {
@@ -445,7 +447,15 @@ void QGLBlitter::setSwapInterval(unsigned si) {
 	resetSubWidget();
 }
 
+void QGLBlitter::compositionEnabledChange() {
+	resetSubWidget();
+}
+
 void QGLBlitter::rateChange(const int dhz) {
 	this->dhz = dhz ? dhz : 600;
 	ftEst.init(subWidget->getSwapInterval() * 10000000 / this->dhz);
+}
+
+WId QGLBlitter::hwnd() const {
+	return subWidget->winId();
 }

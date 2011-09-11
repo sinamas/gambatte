@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@
 #define DIRECTDRAWBLITTER_H_
 
 #include "../blitterwidget.h"
+#include "persistcheckbox.h"
 #include <QList>
 #include <ddraw.h>
 #include <memory>
@@ -30,10 +31,10 @@ class QComboBox;
 class DirectDrawBlitter : public BlitterWidget {
 	FtEst ftEst;
 	const std::auto_ptr<QWidget> confWidget;
-	QCheckBox *const vblankBox;
-	QCheckBox *const flippingBox;
-	QCheckBox *const triplebufBox;
-	QCheckBox *const videoSurfaceBox;
+	PersistCheckBox vblank_;
+	PersistCheckBox flipping_;
+	PersistCheckBox triplebuf_;
+	PersistCheckBox videoSurface_;
 	QComboBox *const deviceSelector;
 	LPDIRECTDRAW7 lpDD;
 	LPDIRECTDRAWSURFACE7 lpDDSPrimary;
@@ -43,19 +44,12 @@ class DirectDrawBlitter : public BlitterWidget {
 	LPDIRECTDRAWSURFACE7 lpDDSClear;
 	LPDIRECTDRAWCLIPPER lpClipper;
 	QList<GUID> deviceList;
-	PixelBuffer::PixelFormat pixelFormat;
 	usec_t lastblank;
 	unsigned clear;
 	unsigned dhz;
 	unsigned swapInterval;
 	unsigned deviceIndex;
-	unsigned inWidth;
-	unsigned inHeight;
-	bool vblank;
-	bool videoSurface;
 	bool exclusive;
-	bool flipping;
-	bool triplebuf;
 	bool blitted;
 
 	static BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
@@ -78,7 +72,7 @@ protected:
 	void setBufferDimensions(unsigned int w, unsigned int h);
 
 public:
-	DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	explicit DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~DirectDrawBlitter();
 	void blit();
 	void draw();

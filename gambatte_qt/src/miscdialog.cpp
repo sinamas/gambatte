@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "miscdialog.h"
+#include "mainwindow.h"
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QLabel>
@@ -43,6 +44,7 @@ MiscDialog::MiscDialog(QWidget *const parent)
   turboSpeedBox(new QSpinBox(this)),
   pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true),
   pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
+  dwmTripleBuf_(new QCheckBox(tr("DWM triple buffering")), "misc/dwmTripleBuf", true),
   turboSpeed_(4)
 {
 	setWindowTitle(tr("Miscellaneous Settings"));
@@ -67,6 +69,11 @@ MiscDialog::MiscDialog(QWidget *const parent)
 		hLayout->addWidget(fpsSelector_.widget());
 	}
 	
+	if (MainWindow::hasDwmCapability()) {
+		dwmTripleBuf_.checkBox()->setToolTip(tr("Avoids excessive frame duplication when DWM composition is active. Recommended."));
+		addLayout(topLayout, new QHBoxLayout)->addWidget(dwmTripleBuf_.checkBox());
+	}
+
 	{
 		QPushButton *const okButton = new QPushButton(tr("OK"), this);
 		QPushButton *const cancelButton = new QPushButton(tr("Cancel"), this);
@@ -95,6 +102,7 @@ void MiscDialog::store() {
 	turboSpeed_ = turboSpeedBox->value();
 	pauseOnDialogs_.accept();
 	pauseOnFocusOut_.accept();
+	dwmTripleBuf_.accept();
 }
 
 void MiscDialog::restore() {
@@ -102,6 +110,7 @@ void MiscDialog::restore() {
 	turboSpeedBox->setValue(turboSpeed_);
 	pauseOnDialogs_.reject();
 	pauseOnFocusOut_.reject();
+	dwmTripleBuf_.reject();
 }
 
 void MiscDialog::accept() {

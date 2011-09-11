@@ -104,6 +104,8 @@ public:
 		std::vector<T*, Allocator>::clear();
 	}
 	
+	const std::vector<T*,Allocator> get() const { return *this; }
+
 	operator const auto_vector_temporary() { std::vector<T*, Allocator> v; v.swap(*this); return auto_vector_temporary(v); }
 };
 

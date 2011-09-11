@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Sindre Aam�s                                    *
+ *   Copyright (C) 2009 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -185,7 +185,7 @@ void WasapiEngine::rejectSettings() const {
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
-int WasapiEngine::doInit(const int rate, const unsigned latency) {
+int WasapiEngine::doInit(int rate, const unsigned latency) {
 	{
 		IMMDevice *pDevice = NULL;
 		IMMDeviceEnumerator *pEnumerator = NULL;
@@ -224,6 +224,15 @@ int WasapiEngine::doInit(const int rate, const unsigned latency) {
 
 		std::cout << "defPer: " << defPer << " minPer: " << minPer << std::endl;
 	}*/
+
+	if (!exclusive) {
+		WAVEFORMATEX *wfe = 0;
+
+		if (SUCCEEDED(pAudioClient->GetMixFormat(&wfe)) && wfe) {
+			rate = wfe->nSamplesPerSec;
+			CoTaskMemFree(wfe);
+		}
+	}
 
 	{
 		WAVEFORMATEX wfe;

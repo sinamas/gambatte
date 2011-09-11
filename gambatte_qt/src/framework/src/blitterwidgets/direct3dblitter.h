@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@
 #define DIRECT3DBLITTER_H_
 
 #include "../blitterwidget.h"
+#include "persistcheckbox.h"
 #include <memory>
 #include <d3d9.h>
 
@@ -27,26 +28,20 @@ class QCheckBox;
 class QComboBox;
 
 class Direct3DBlitter : public BlitterWidget {
-	typedef IDirect3D9* (WINAPI *Direct3DCreate9Ptr)(UINT);
-
 	FtEst ftEst;
 	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *const adapterSelector;
-	QCheckBox *const vblankblitBox;
-	QCheckBox *const flippingBox;
-	QCheckBox *const triplebufBox;
-	QCheckBox *const bfBox;
+	PersistCheckBox vblankblit_;
+	PersistCheckBox flipping_;
+	PersistCheckBox triplebuf_;
+	PersistCheckBox bf_;
 	HMODULE d3d9handle;
-	Direct3DCreate9Ptr direct3DCreate9;
 	IDirect3D9 *d3d;
 	IDirect3DDevice9* device;
 	IDirect3DVertexBuffer9* vertexBuffer;
 	IDirect3DTexture9 *stexture;
 	IDirect3DTexture9 *vtexture;
 	usec_t lastblank;
-	unsigned inWidth;
-	unsigned inHeight;
-	unsigned textRes;
 	unsigned backBufferWidth;
 	unsigned backBufferHeight;
 	unsigned clear;
@@ -56,13 +51,9 @@ class Direct3DBlitter : public BlitterWidget {
 	bool exclusive;
 	bool windowed;
 	bool drawn;
-	//bool vblank;
-	bool flipping;
-	bool vblankblit;
-	bool triplebuf;
-	bool bf;
 
 	void getPresentParams(D3DPRESENT_PARAMETERS *presentParams) const;
+	unsigned textureSizeFromInBufferSize() const;
 	void lockTexture();
 	void setVertexBuffer();
 	void setVideoTexture();
@@ -78,7 +69,7 @@ protected:
 	void setBufferDimensions(unsigned w, unsigned h);
 
 public:
-	Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	explicit Direct3DBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~Direct3DBlitter();
 	void init();
 	void uninit();
@@ -95,6 +86,7 @@ public:
 	QPaintEngine* paintEngine () const { return NULL; }
 	void setSwapInterval(unsigned si);
 	void rateChange(int dhz);
+	void compositionEnabledChange();
 };
 
 #endif /*DIRECT3DBLITTER_H_*/

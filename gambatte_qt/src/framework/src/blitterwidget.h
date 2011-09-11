@@ -95,6 +95,7 @@ public:
 		setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h);
 	}
 	
+	virtual WId hwnd() const { return winId(); }
 	virtual long frameTimeEst() const { return 0; }
 	virtual long sync() { return 0; }
 	virtual void setExclusive(bool) {}
@@ -105,6 +106,7 @@ public:
 	virtual void rejectSettings() const {}
 
 	virtual void rateChange(int /*newHz*/) {}
+	virtual void compositionEnabledChange() {}
 };
 
 #endif

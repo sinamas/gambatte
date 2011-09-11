@@ -11,6 +11,7 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/audioengines/customdevconf.cpp \
     framework/src/audioengineconf.cpp \
     framework/src/blitterconf.cpp \
+    framework/src/dwmcontrol.cpp \
     framework/src/frameratecontrol.cpp \
     framework/src/mainwindow.cpp \
     framework/src/mediawidget.cpp \
@@ -43,6 +44,7 @@ HEADERS += framework/include/audioengineconf.h \
     framework/src/audioengine.h \
     framework/src/blittercontainer.h \
     framework/src/blitterwidget.h \
+    framework/src/dwmcontrol.h \
     framework/src/frameratecontrol.h \
     framework/src/fullmodetoggler.h \
     framework/src/addaudioengines.h \

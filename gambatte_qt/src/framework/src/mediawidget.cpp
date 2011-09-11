@@ -134,6 +134,8 @@ public:
 	const PixelBuffer& videoBuffer() {
 		return mw.blitterContainer->blitter()->inBuffer();
 	}
+
+	void consumeBlitRequest();
 };
 
 void MediaWidget::WorkerCallback::blit(const usec_t synctimebase, const usec_t synctimeinc) {
@@ -142,29 +144,7 @@ void MediaWidget::WorkerCallback::blit(const usec_t synctimebase, const usec_t s
 		explicit BlitEvent(WorkerCallback &cb) : cb(cb) {}
 
 		void exec() {
-			if (blitRequested(cb.blitState) && cb.mw.running) {
-				usec_t base, inc;
-				BlitterWidget *const blitter = cb.mw.blitterContainer->blitter();
-				MediaWorker *const worker = cb.mw.worker;
-
-				worker->source()->generateVideoFrame(blitter->inBuffer());
-				blitter->blit();
-
-				base = cb.synctimebase;
-				inc  = cb.synctimeinc;
-
-				SyncVar::Locked(worker->waitingForSync()).set(true);
-
-				blitter->draw();
-
-				if (!blitter->frameTimeEst())
-					cb.asleep.sleepUntil(base, inc);
-
-				if (blitter->sync() < 0)
-					cb.mw.emitVideoBlitterFailure();
-
-				worker->setFrameTimeEstimate(blitter->frameTimeEst());
-			}
+			cb.consumeBlitRequest();
 
 			AtomicVar<unsigned>::Locked bs(cb.blitState);
 
@@ -215,11 +195,38 @@ void MediaWidget::WorkerCallback::audioEngineFailure() {
 	QCoreApplication::postEvent(&mw, new AudioFailureEvent(mw));
 }
 
-static auto_vector<BlitterWidget> makeBlitterWidgets(const VideoBufferLocker vbl) {
+void MediaWidget::WorkerCallback::consumeBlitRequest() {
+	if (blitRequested(blitState) && mw.running) {
+		usec_t base, inc;
+		BlitterWidget *const blitter = mw.blitterContainer->blitter();
+		MediaWorker *const worker = mw.worker;
+
+		worker->source()->generateVideoFrame(blitter->inBuffer());
+		blitter->blit();
+
+		base = synctimebase;
+		inc  = synctimeinc;
+
+		SyncVar::Locked(worker->waitingForSync()).set(true);
+
+		blitter->draw();
+
+		if (!blitter->frameTimeEst())
+			asleep.sleepUntil(base, inc);
+
+		if (blitter->sync() < 0)
+			mw.emitVideoBlitterFailure();
+
+		worker->setFrameTimeEstimate(blitter->frameTimeEst());
+		mw.dwmControl_.tick();
+	}
+}
+
+static auto_vector<BlitterWidget> makeBlitterWidgets(const VideoBufferLocker vbl, const DwmControlHwndChange hwndc) {
 	auto_vector<BlitterWidget> blitters;
 	
 	addBlitterWidgets(blitters, vbl);
-	blitters.push_back(new QGLBlitter(vbl));
+	blitters.push_back(new QGLBlitter(vbl, hwndc));
 	blitters.push_back(new QPainterBlitter(vbl));
 	
 	for (auto_vector<BlitterWidget>::iterator it = blitters.begin(); it != blitters.end();) {
@@ -246,13 +253,15 @@ MediaWidget::MediaWidget(MediaSource *const source, QWidget &parent)
   vbmut(),
   blitterContainer(new BlitterContainer(&parent)),
   audioEngines(makeAudioEngines(parent.winId())),
-  blitters(makeBlitterWidgets(VideoBufferLocker(vbmut))),
+  blitters(makeBlitterWidgets(VideoBufferLocker(vbmut), DwmControlHwndChange(dwmControl_))),
   fullModeToggler(getFullModeToggler(parent.winId())),
+  workerCallback_(new WorkerCallback(*this)),
   worker(new MediaWorker(source, audioEngines.back(), 48000, 100,
-		std::auto_ptr<MediaWorker::Callback>(new WorkerCallback(*this)), this)),
+		std::auto_ptr<MediaWorker::Callback>(workerCallback_), this)),
   frameRateControl(*worker, blitters.back()),
   cursorTimer(new QTimer(this)),
   jsTimer(new QTimer(this)),
+  dwmControl_(blitters.get()),
   focusPauseBit(0),
   running(false)
 {
@@ -276,6 +285,8 @@ MediaWidget::MediaWidget(MediaSource *const source, QWidget &parent)
 
 	jsTimer->setInterval(200);
 	connect(jsTimer, SIGNAL(timeout()), this, SLOT(updateJoysticks()));
+
+	dwmControl_.setDwmTripleBuffer(true);
 }
 
 MediaWidget::~MediaWidget() {
@@ -373,6 +384,14 @@ void MediaWidget::execPausedQueue() {
 
 void MediaWidget::customEvent(QEvent *const ev) {
 	reinterpret_cast<CustomEvent*>(ev)->exec();
+}
+
+void MediaWidget::resizeEvent(const QWidget *parent) {
+	fullModeToggler->setScreen(parent);
+#ifdef Q_WS_WIN
+	// Events are blocked while resizing on windows. Workaround.
+	workerCallback_->consumeBlitRequest();
+#endif
 }
 
 void MediaWidget::focusOutEvent() {

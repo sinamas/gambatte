@@ -38,7 +38,7 @@ sourceFiles = Split('''
 
 conf = env.Configure()
 
-if conf.CheckHeader('zlib.h') and conf.CheckLib('z'):
+if conf.CheckHeader('zlib.h'):
 	sourceFiles.append('src/file/unzip/unzip.c')
 	sourceFiles.append('src/file/unzip/ioapi.c')
 	sourceFiles.append('src/file/file_zip.cpp')
