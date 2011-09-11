@@ -20,6 +20,7 @@
 #define WASAPIENGINE_H
 
 #include "../audioengine.h"
+#include "persistcheckbox.h"
 #include <BaseTsd.h>
 #include <memory>
 #include "rateest.h"
@@ -33,17 +34,17 @@ class IAudioClock;
 class WasapiEngine: public AudioEngine {
 	const std::auto_ptr<QWidget> confWidget;
 	QComboBox *const deviceSelector;
-	QCheckBox *const exclusiveBox;
+	PersistCheckBox exclusive_;
 	IAudioClient *pAudioClient;
 	IAudioRenderClient *pRenderClient;
 	IAudioClock *pAudioClock;
+	void *eventHandle_;
 	unsigned pos_;
 	unsigned posFrames;
 	unsigned deviceIndex;
 	UINT32 bufferFrameCount;
 	RateEst est;
 	bool started;
-	bool exclusive;
 
 	int doInit(int rate, unsigned latency);
 	void doAcceptSettings();

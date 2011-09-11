@@ -130,10 +130,21 @@ bool WasapiEngine::isUsable() {
 	return SUCCEEDED(hr);
 }
 
-WasapiEngine::WasapiEngine() : AudioEngine("WASAPI"), confWidget(new QWidget), deviceSelector(new QComboBox),
-exclusiveBox(new QCheckBox("Exclusive mode")), pAudioClient(NULL),
-pRenderClient(NULL), pAudioClock(NULL), pos_(0), posFrames(0), deviceIndex(0), bufferFrameCount(0), started(false),
-exclusive(false) {
+WasapiEngine::WasapiEngine()
+: AudioEngine("WASAPI"),
+  confWidget(new QWidget),
+  deviceSelector(new QComboBox),
+  exclusive_(new QCheckBox("Exclusive mode"), "wasapiengine/exclusive", false),
+  pAudioClient(NULL),
+  pRenderClient(NULL),
+  pAudioClock(NULL),
+  eventHandle_(0),
+  pos_(0),
+  posFrames(0),
+  deviceIndex(0),
+  bufferFrameCount(0),
+  started(false)
+{
 	fillDeviceSelector(deviceSelector);
 
 	{
@@ -147,14 +158,13 @@ exclusive(false) {
 			mainLayout->addLayout(hlayout);
 		}
 
-		mainLayout->addWidget(exclusiveBox);
+		mainLayout->addWidget(exclusive_.checkBox());
 		confWidget->setLayout(mainLayout);
 	}
 
 	{
 		QSettings settings;
 		settings.beginGroup("wasapiengine");
-		exclusive = settings.value("exclusive", exclusive).toBool();
 
 		if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
 			deviceIndex = 0;
@@ -170,18 +180,17 @@ WasapiEngine::~WasapiEngine() {
 
 	QSettings settings;
 	settings.beginGroup("wasapiengine");
-	settings.setValue("exclusive", exclusive);
 	settings.setValue("deviceIndex", deviceIndex);
 	settings.endGroup();
 }
 
 void WasapiEngine::doAcceptSettings() {
-	exclusive = exclusiveBox->isChecked();
+	exclusive_.accept();
 	deviceIndex = deviceSelector->currentIndex();
 }
 
 void WasapiEngine::rejectSettings() const {
-	exclusiveBox->setChecked(exclusive);
+	exclusive_.reject();
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
@@ -225,13 +234,17 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 		std::cout << "defPer: " << defPer << " minPer: " << minPer << std::endl;
 	}*/
 
-	if (!exclusive) {
+	if (!exclusive_.value()) {
 		WAVEFORMATEX *wfe = 0;
 
 		if (SUCCEEDED(pAudioClient->GetMixFormat(&wfe)) && wfe) {
 			rate = wfe->nSamplesPerSec;
 			CoTaskMemFree(wfe);
-		}
+		} else
+			std::cout << "pAudioClient->GetMixFormat failed\r\n";
+
+		if (!(eventHandle_ = CreateEventA(0, false, false, 0)))
+			std::cout << "CreateEvent failed\r\n";
 	}
 
 	{
@@ -244,11 +257,17 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 		wfe.nBlockAlign = wfe.nChannels * wfe.wBitsPerSample >> 3;
 		wfe.nAvgBytesPerSec = rate * wfe.nBlockAlign;
 
-		if (FAILED(pAudioClient->Initialize(exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED,
-				0, latency * 10000, 0, &wfe, NULL))) {
+		if (FAILED(pAudioClient->Initialize(
+				exclusive_.value() ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED,
+				eventHandle_ ? AUDCLNT_STREAMFLAGS_EVENTCALLBACK : 0, latency * 10000, 0, &wfe, NULL))) {
 			std::cout << "pAudioClient->Initialize failed" << std::endl;
 			goto fail;
 		}
+	}
+
+	if (eventHandle_ && FAILED(pAudioClient->SetEventHandle(eventHandle_))) {
+		std::cout << "pAudioClient->SetEventHandle failed\r\n";
+		goto fail;
 	}
 
 	if (FAILED(pAudioClient->GetBufferSize(&bufferFrameCount))) {
@@ -286,11 +305,16 @@ void WasapiEngine::uninit() {
 	safeRelease(pAudioClock);
 	safeRelease(pRenderClient);
 	safeRelease(pAudioClient);
+
+	if (eventHandle_ && !CloseHandle(eventHandle_))
+		std::cout << "CloseHandle failed\r\n";
+
+	eventHandle_ = 0;
 	started = false;
 }
 
 int WasapiEngine::waitForSpace(UINT32 &numFramesPadding, const unsigned space) {
-	for (unsigned n = 100; n-- && bufferFrameCount - numFramesPadding < space;) {
+	for (unsigned n = eventHandle_ ? 10 : 100; n-- && bufferFrameCount - numFramesPadding < space;) {
 		if (!started) {
 			if (FAILED(pAudioClient->Start()))
 				return -1;
@@ -298,7 +322,10 @@ int WasapiEngine::waitForSpace(UINT32 &numFramesPadding, const unsigned space) {
 			started = true;
 		}
 
-		Sleep(1);
+		if (eventHandle_) {
+			WaitForSingleObject(eventHandle_, 11);
+		} else
+			Sleep(1);
 
 		if (FAILED(pAudioClient->GetCurrentPadding(&numFramesPadding)))
 			return -1;

@@ -53,6 +53,7 @@ static SampleRateInfo generateSampleRateInfo() {
 	
 	srinfo.rates.push_back(48000);
 	srinfo.rates.push_back(44100);
+	srinfo.rates.push_back(96000);
 	srinfo.defaultRateIndex = 0;
 	srinfo.minCustomRate = 8000;
 	srinfo.maxCustomRate = 192000;
