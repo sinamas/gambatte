@@ -22,32 +22,46 @@
 
 QMutex JoystickLock::mut(QMutex::Recursive);
 
-int pollJsEvent(SDL_Event *ev) {
+int pollJsEvent(SDL_Event *const ev, const int insensitivity) {
 	typedef std::map<unsigned, int> map_t;
-	
 	static map_t axisState;
-	
-	int returnVal;
+
+	int evValid;
 	
 	do {
-		returnVal = SDL_PollEvent(ev);
+		evValid = SDL_PollEvent(ev);
 		
-		if (returnVal && ev->type == SDL_JOYAXISMOTION) {
-			if (ev->value > 8192)
-				ev->value = AXIS_POSITIVE;
-			else if (ev->value < -8192)
-				ev->value = AXIS_NEGATIVE;
-			else
-				ev->value = 0;
+		if (evValid && ev->type == SDL_JOYAXISMOTION) {
+			enum { THRESHOLD = 8192 };
+			const map_t::iterator it = axisState.insert(map_t::value_type(ev->id, 0)).first;
 			
-			const std::pair<map_t::iterator, bool> &axisInsert = axisState.insert(map_t::value_type(ev->id, ev->value));
-			
-			if (!axisInsert.second && axisInsert.first->second == ev->value)
-				continue;
-			
-			axisInsert.first->second = ev->value;
+			switch (it->second) {
+			case 0:
+				if (ev->value >= THRESHOLD + insensitivity)
+					ev->value = AXIS_POSITIVE;
+				else if (ev->value <= -(THRESHOLD + insensitivity))
+					ev->value = AXIS_NEGATIVE;
+				else
+					continue;
+
+				break;
+			case AXIS_POSITIVE:
+				if (ev->value >= THRESHOLD - insensitivity)
+					continue;
+
+				ev->value = ev->value <= -(THRESHOLD + insensitivity) ? AXIS_NEGATIVE : 0;
+				break;
+			case AXIS_NEGATIVE:
+				if (ev->value <= -(THRESHOLD - insensitivity))
+					continue;
+
+				ev->value = ev->value >= THRESHOLD + insensitivity ? AXIS_POSITIVE : 0;
+				break;
+			}
+
+			it->second = ev->value;
 		}
 	} while (false);
 	
-	return returnVal;
+	return evValid;
 }

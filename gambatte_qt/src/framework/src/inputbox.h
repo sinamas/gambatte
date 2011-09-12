@@ -28,6 +28,7 @@ class InputBox : public QLineEdit {
 	QWidget *nextFocus;
 	SDL_Event data;
 	int timerId;
+	int ignoreCnt;
 	
 private slots:
 	void textEditedSlot(const QString &) {

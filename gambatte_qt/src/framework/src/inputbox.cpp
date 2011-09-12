@@ -345,7 +345,11 @@ static const char* keyToString(int key) {
 	}
 }
 
-InputBox::InputBox(QWidget *nextFocus) : nextFocus(nextFocus), timerId(0) {
+InputBox::InputBox(QWidget *nextFocus)
+: nextFocus(nextFocus),
+  timerId(0),
+  ignoreCnt(0)
+{
 // 	setReadOnly(true);
 	setData(0, NULL_VALUE);
 	connect(this, SIGNAL(textEdited(const QString&)), this, SLOT(textEditedSlot(const QString&)));
@@ -369,8 +373,10 @@ void InputBox::focusInEvent(QFocusEvent *event) {
 	SDL_JoystickUpdate();
 	SDL_ClearEvents();
 	
-	if (!timerId)
+	if (!timerId) {
+		ignoreCnt = 1;
 		timerId = startTimer(100);
+	}
 	
 	QLineEdit::focusInEvent(event);
 }
@@ -404,7 +410,9 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 	int value = 0;
 	unsigned id = 0;
 	
-	while (pollJsEvent(&ev)) {
+	if (ignoreCnt) {
+		ignoreCnt--;
+	} else while (pollJsEvent(&ev, 256)) {
 		switch (ev.type) {
 		case SDL_JOYAXISMOTION:
 		case SDL_JOYHATMOTION:

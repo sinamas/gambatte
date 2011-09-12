@@ -28,7 +28,7 @@ enum { AXIS_CENTERED = 0, AXIS_POSITIVE = 1, AXIS_NEGATIVE = 2 };
 // (a single bit for buttons, two for axes, four for hats).
 // Only hats can have multiple bits set at once. In practice only axis values
 // are converted (to AXIS_CENTERED, AXIS_POSITIVE or AXIS_NEGATIVE).
-int pollJsEvent(SDL_Event *ev);
+int pollJsEvent(SDL_Event *ev, int insensitivity = 0);
 
 class JoystickLock {
 	static QMutex mut;
