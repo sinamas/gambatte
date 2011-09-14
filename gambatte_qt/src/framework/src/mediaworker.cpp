@@ -22,6 +22,8 @@
 #include "mediasource.h"
 #include "audioengine.h"
 #include "skipsched.h"
+#include "mmpriority.h"
+#include <QtGlobal> // for Q_WS_WIN define
 
 #ifdef Q_WS_WIN
 #include <Objbase.h> // For CoInitialize
@@ -84,6 +86,7 @@ public:
 	
 	long rate() const { return ae_.rate() > 0 ? ae_.rate() : rate_; }
 	long estimatedRate() const { return estrate_; }
+	bool initialized() const { return inited_; }
 	bool successfullyInitialized() const { return inited_ && ae_.rate() > 0; }
 	
 	int write(qint16 *buf, std::size_t samples, AudioEngine::BufferState &preBstateOut) {
@@ -154,8 +157,6 @@ void MediaWorker::stop() {
 	pauseVar.unpause(~0U);
 	wait();
 	pauseVar.rewait();
-	sampleBuffer.setOutSampleRate(0);
-	sndOutBuffer.reset(0);
 }
 
 void MediaWorker::pause() {
@@ -177,14 +178,31 @@ void MediaWorker::initAudioEngine() {
 	}
 }
 
+struct MediaWorker::ResetAudio {
+	MediaWorker &w;
+
+	void operator()() const {
+		if (w.ao_->initialized()) {
+			w.ao_->uninit();
+			w.initAudioEngine();
+		}
+	}
+};
+
+void MediaWorker::resetAudio() {
+	const ResetAudio resetAudioStruct = { *this };
+	pushCall(resetAudioStruct);
+}
+
 struct MediaWorker::SetAudioOut {
 	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency;
 
 	void operator()() {
+		const bool inited = w.ao_->initialized();
 		w.ao_.reset();
 		w.ao_.reset(new AudioOut(*ae, rate, latency));
 
-		if (!AtomicVar<bool>::ConstLocked(w.doneVar).get())
+		if (inited)
 			w.initAudioEngine();
 	}
 };
@@ -382,9 +400,13 @@ void MediaWorker::run() {
 		
 		~AoInit() {
 			w_.ao_->uninit();
+			w_.sampleBuffer.setOutSampleRate(0);
+			w_.sndOutBuffer.reset(0);
 		}
 	} aoinit(*this);
 	
+	const SetThreadPriorityAudio setmmprio;
+
 	SkipSched skipSched;
 	bool audioBufLow = false;
 	usec_t base = 0;

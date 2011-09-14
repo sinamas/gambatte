@@ -176,6 +176,7 @@ private slots:
 	void saveStateAs();
 	void loadState();
 	void loadStateFrom();
+	void reset();
 	void pauseChange();
 	void frameStep();
 	void escPressed();

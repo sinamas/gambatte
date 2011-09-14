@@ -21,6 +21,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QLayout>
+#include <QtGlobal> // for Q_WS_WIN define
 
 MainWindow::FrameBuffer::Locked::Locked(FrameBuffer fb) : mw(0), pb() {
 	if (fb.mw->tryLockFrameBuf()) {
@@ -163,6 +164,7 @@ std::size_t MainWindow::numAudioEngines() const { return w_->numAudioEngines(); 
 std::size_t MainWindow::numResamplers() const { return w_->numResamplers(); }
 const char* MainWindow::resamplerDesc(std::size_t resamplerNo) const { return w_->resamplerDesc(resamplerNo); }
 void MainWindow::setResampler(std::size_t resamplerNo) { w_->setResampler(resamplerNo); }
+void MainWindow::resetAudio() { w_->resetAudio(); }
 void MainWindow::setDwmTripleBuffer(bool enable) { w_->setDwmTripleBuffer(enable); }
 bool MainWindow::hasDwmCapability() { return DwmControl::hasDwmCapability(); }
 bool MainWindow::isDwmCompositionEnabled() { return DwmControl::isCompositingEnabled(); }

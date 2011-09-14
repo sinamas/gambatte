@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include "blitterwidget.h"
 #include <adaptivesleep.h>
+#include <QtGlobal> // for Q_WS_WIN define
 #include <cstdlib>
 
 static long limit(long est, const long ref) {

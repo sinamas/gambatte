@@ -20,6 +20,7 @@
 #include <QEvent>
 #include <QKeyEvent>
 #include <QCoreApplication>
+#include <QtGlobal> // for Q_WS_WIN define
 #include "adaptivesleep.h"
 #include "audioengines/nullaudioengine.h"
 #include "blitterwidgets/qpainterblitter.h"

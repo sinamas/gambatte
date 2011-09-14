@@ -16,6 +16,7 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/mainwindow.cpp \
     framework/src/mediawidget.cpp \
     framework/src/mediaworker.cpp \
+    framework/src/mmpriority.cpp \
     framework/src/samplebuffer.cpp \
     framework/src/blitterwidget.cpp \
     framework/src/joysticklock.cpp \
@@ -47,6 +48,7 @@ HEADERS += framework/include/audioengineconf.h \
     framework/src/dwmcontrol.h \
     framework/src/frameratecontrol.h \
     framework/src/fullmodetoggler.h \
+    framework/src/mmpriority.h \
     framework/src/addaudioengines.h \
     framework/src/addblitterwidgets.h \
     framework/src/getfullmodetoggler.h \

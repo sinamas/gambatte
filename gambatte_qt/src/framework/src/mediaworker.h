@@ -110,6 +110,7 @@ private:
 		void push(long i);
 	};
 	
+	struct ResetAudio;
 	struct SetAudioOut;
 	struct SetResampler;
 	struct SetFrameTime;
@@ -153,6 +154,7 @@ public:
 	void recover() { pauseVar.unpause(8); }
 	bool paused() const { return pauseVar.waitingForUnpause(); }
 
+	void resetAudio();
 	void setAudioOut(class AudioEngine *newAe, int rate, int latency);
 	void setResampler(unsigned resamplerNum);
 	void setFrameTime(Rational ft);

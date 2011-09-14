@@ -210,6 +210,9 @@ public:
 	template<class T>
 	void callInWorkerThread(const T &fun);
 
+	/** Discard buffered audio data */
+	void resetAudio();
+
 	void setDwmTripleBuffer(bool enable);
 	static bool hasDwmCapability();
 	static bool isDwmCompositionEnabled();

@@ -196,6 +196,7 @@ public:
 		execPausedQueue();
 	}
 
+	void resetAudio() { if (running) { worker->resetAudio(); } }
 	void setDwmTripleBuffer(bool enable) { dwmControl_.setDwmTripleBuffer(enable); }
 	void setFastForward(bool enable) { worker->setFastForward(enable); }
 	void setSyncToRefreshRate(bool on) { frameRateControl.setRefreshRateSync(on); }

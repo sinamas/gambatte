@@ -22,6 +22,7 @@
 #include <QActionGroup>
 #include <QFileInfo>
 #include <QSettings>
+#include <QtGlobal> // for Q_WS_WIN define
 #include "palettedialog.h"
 #include "blitterconf.h"
 #include "mainwindow.h"
@@ -282,7 +283,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 			recentMenu->addAction(recentFileActs[i]);
 
 		fileMenu->addSeparator();
-		romLoadedActions->addAction(fileMenu->addAction(tr("&Reset"), recentFileActs[0], SLOT(trigger()), tr("Ctrl+R")));
+		romLoadedActions->addAction(fileMenu->addAction(tr("&Reset"), this, SLOT(reset()), tr("Ctrl+R")));
 		fileMenu->addSeparator();
 
 		romLoadedActions->addAction(fileMenu->addAction(tr("Save State &As..."), this, SLOT(saveStateAs())));
@@ -462,6 +463,8 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 
 	if (source->load((fileName.toLocal8Bit()).constData(), forceDmgAction->isChecked())) {
 		mw->stop();
+		emit dmgRomLoaded(false);
+		emit romLoaded(false);
 		QMessageBox::critical(
 		                       mw,
 		                       tr("Error"),
@@ -481,6 +484,7 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	emit romLoaded(true);
 	emit dmgRomLoaded(!source->isCgb());
 
+	mw->resetAudio();
 	mw->run();
 }
 
@@ -714,6 +718,18 @@ void GambatteMenuHandler::loadStateFrom() {
 		const LoadStateFromFun fun = { source, fileName };
 		mw->callInWorkerThread(fun);
 	}
+}
+
+namespace {
+struct ResetFun {
+	GambatteSource *source;
+	void operator()() const { source->reset(); }
+};
+}
+
+void GambatteMenuHandler::reset() {
+	const ResetFun fun = { source };
+	mw->callInWorkerThread(fun);
 }
 
 void GambatteMenuHandler::pauseChange() {
