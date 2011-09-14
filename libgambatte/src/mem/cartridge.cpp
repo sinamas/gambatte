@@ -101,7 +101,7 @@ static Cartridgetype cartridgeType(const unsigned headerByte0x147) {
 	};
 	
 	assert(headerByte0x147 < sizeof(typeLut));
-	
+
 	return static_cast<Cartridgetype>(typeLut[headerByte0x147]);
 }
 
@@ -293,28 +293,28 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg) {
 		case 0x06: std::puts("MBC2 ROM+BATTERY loaded."); break;
 		case 0x08: std::puts("Plain ROM with additional RAM loaded."); break;
 		case 0x09: std::puts("Plain ROM with additional RAM and Battery loaded."); break;
-		case 0x0B: /*std::puts("MM01 ROM not supported.");*/ return 1;
-		case 0x0C: /*std::puts("MM01 ROM not supported.");*/ return 1;
-		case 0x0D: /*std::puts("MM01 ROM not supported.");*/ return 1;
+		case 0x0B: std::puts("MM01 ROM not supported."); return 1;
+		case 0x0C: std::puts("MM01 ROM not supported."); return 1;
+		case 0x0D: std::puts("MM01 ROM not supported."); return 1;
 		case 0x0F: std::puts("MBC3 ROM+TIMER+BATTERY loaded."); break;
 		case 0x10: std::puts("MBC3 ROM+TIMER+RAM+BATTERY loaded."); break;
 		case 0x11: std::puts("MBC3 ROM loaded."); break;
 		case 0x12: std::puts("MBC3 ROM+RAM loaded."); break;
 		case 0x13: std::puts("MBC3 ROM+RAM+BATTERY loaded."); break;
-		case 0x15: /*std::puts("MBC4 ROM not supported.");*/ return 1;
-		case 0x16: /*std::puts("MBC4 ROM not supported.");*/ return 1;
-		case 0x17: /*std::puts("MBC4 ROM not supported.");*/ return 1;
+		case 0x15: std::puts("MBC4 ROM not supported."); return 1;
+		case 0x16: std::puts("MBC4 ROM not supported."); return 1;
+		case 0x17: std::puts("MBC4 ROM not supported."); return 1;
 		case 0x19: std::puts("MBC5 ROM loaded."); break;
 		case 0x1A: std::puts("MBC5 ROM+RAM loaded."); break;
 		case 0x1B: std::puts("MBC5 ROM+RAM+BATTERY loaded."); break;
 		case 0x1C: std::puts("MBC5+RUMLE ROM not supported."); break;
 		case 0x1D: std::puts("MBC5+RUMLE+RAM ROM not suported."); break;
 		case 0x1E: std::puts("MBC5+RUMLE+RAM+BATTERY ROM not supported."); break;
-		case 0xFC: /*std::puts("Pocket Camera ROM not supported.");*/ return 1;
-		case 0xFD: /*std::puts("Bandai TAMA5 ROM not supported.");*/ return 1;
-		case 0xFE: /*std::puts("HuC3 ROM not supported.");*/ return 1; 
-		case 0xFF: /*std::puts("HuC1 ROM not supported.");*/ return 1;
-		default: /*std::puts("Wrong data-format, corrupt or unsupported ROM loaded.");*/ return 1;
+		case 0xFC: std::puts("Pocket Camera ROM not supported."); return 1;
+		case 0xFD: std::puts("Bandai TAMA5 ROM not supported."); return 1;
+		case 0xFE: std::puts("HuC3 ROM not supported."); return 1;
+		case 0xFF: std::puts("HuC1 ROM not supported."); return 1;
+		default: std::puts("Wrong data-format, corrupt or unsupported ROM."); return 1;
 		}
 
 		/*switch (header[0x0148]) {
