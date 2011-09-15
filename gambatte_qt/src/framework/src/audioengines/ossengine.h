@@ -44,6 +44,7 @@ public:
 	long rateEstimate() const { return est.result(); }
 	const BufferState bufferState() const;
 	void pause() { prevbytes = 0; est.reset(); }
+	bool drainsBuffersWhenPaused() const { return true; }
 	QWidget* settingsWidget() const { return conf.settingsWidget(); }
 	void rejectSettings() const { conf.rejectSettings(); }
 };

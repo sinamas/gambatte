@@ -83,7 +83,8 @@ public:
 		if (successfullyInitialized())
 			ae_.pause();
 	}
-	
+
+	bool drainsBuffersWhenPaused() const { return ae_.drainsBuffersWhenPaused(); }
 	long rate() const { return ae_.rate() > 0 ? ae_.rate() : rate_; }
 	long estimatedRate() const { return estrate_; }
 	bool initialized() const { return inited_; }
@@ -182,7 +183,7 @@ struct MediaWorker::ResetAudio {
 	MediaWorker &w;
 
 	void operator()() const {
-		if (w.ao_->initialized()) {
+		if (w.ao_->initialized() && !w.ao_->drainsBuffersWhenPaused()) {
 			w.ao_->uninit();
 			w.initAudioEngine();
 		}
