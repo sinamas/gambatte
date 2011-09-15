@@ -202,12 +202,14 @@ void MainWindow::setPauseOnFocusOut(unsigned bitmask) { w_->setPauseOnFocusOut(b
 void MainWindow::keyPressEvent(QKeyEvent *e) { w_->keyPressEvent(e); }
 void MainWindow::keyReleaseEvent(QKeyEvent *e) { w_->keyReleaseEvent(e); }
 
+#ifdef Q_WS_WIN
 bool MainWindow::winEvent(MSG *msg, long *) {
-	if (w_->winEvent(*msg))
+	if (w_->winEvent(msg))
 		emit dwmCompositionChange();
 
 	return false;
 }
+#endif
 
 void MainWindow::doSetWindowSize(const QSize &sz) {
 	if (!isFullScreen() && isVisible()) {

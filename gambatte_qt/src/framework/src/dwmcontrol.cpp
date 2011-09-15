@@ -143,10 +143,10 @@ void DwmControl::showEvent() {
 	}
 }
 
-bool DwmControl::winEvent(const MSG &msg) {
+bool DwmControl::winEvent(const void *const msg) {
 	enum { WM_DWMCOMPOSITIONCHANGED = 0x031E };
 
-	if (msg.message == WM_DWMCOMPOSITIONCHANGED) {
+	if (static_cast<const MSG*>(msg)->message == WM_DWMCOMPOSITIONCHANGED) {
 		for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
 			(*it)->compositionEnabledChange();
 		}
@@ -197,7 +197,7 @@ DwmControl::DwmControl(const std::vector<BlitterWidget*> &) {}
 void DwmControl::setDwmTripleBuffer(bool) {}
 void DwmControl::hideEvent() {}
 void DwmControl::showEvent() {}
-bool DwmControl::winEvent(const MSG &) { return false; }
+bool DwmControl::winEvent(const void *) { return false; }
 void DwmControl::tick() {}
 void DwmControl::hwndChange(BlitterWidget *) {}
 bool DwmControl::hasDwmCapability() { return false; }

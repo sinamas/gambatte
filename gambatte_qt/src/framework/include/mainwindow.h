@@ -244,7 +244,9 @@ protected:
 	virtual void focusInEvent(QFocusEvent*);
 	virtual void keyPressEvent(QKeyEvent*);
 	virtual void keyReleaseEvent(QKeyEvent*);
+#ifdef Q_WS_WIN
 	virtual bool winEvent(MSG *msg, long *result);
+#endif
 	
 private:
 	void correctFullScreenGeometry();

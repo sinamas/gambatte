@@ -35,7 +35,7 @@ public:
 	void hideEvent();
 	void showEvent();
 	/** @return compositionChange */
-	bool winEvent(const MSG &msg);
+	bool winEvent(const void *msg);
 	void tick();
 	void hwndChange(BlitterWidget *blitter);
 

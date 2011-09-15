@@ -109,7 +109,7 @@ public:
 	QWidget* widget() const { return blitterContainer; }
 	
 	/** @return compositionChange */
-	bool winEvent(const MSG &message) { return dwmControl_.winEvent(message); }
+	bool winEvent(const void *message) { return dwmControl_.winEvent(message); }
 	void hideEvent() { dwmControl_.hideEvent(); }
 	void showEvent() { dwmControl_.showEvent(); }
 	void mouseMoveEvent() { blitterContainer->showCursor(); cursorTimer->start(); }
