@@ -50,7 +50,9 @@ public:
 	virtual long rateEstimate() const { return rate_; }
 	virtual const BufferState bufferState() const { static const BufferState s = { BufferState::NOT_SUPPORTED, BufferState::NOT_SUPPORTED }; return s; }
 	virtual void pause() {}
-	virtual bool drainsBuffersWhenPaused() const { return false; }
+
+	/** @return success */
+	virtual bool flushPausedBuffers() const { return false; }
 	
 	virtual int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out) {
 		preBufState_out = bufferState();
