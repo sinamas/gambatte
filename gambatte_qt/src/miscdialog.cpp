@@ -20,6 +20,7 @@
 #include "mainwindow.h"
 #include <QSpinBox>
 #include <QCheckBox>
+#include <QDir>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -39,12 +40,15 @@ static ChildLayout * addLayout(Parent *const parent, ChildLayout *const child, c
 	return child;
 }
 
-MiscDialog::MiscDialog(QWidget *const parent)
+MiscDialog::MiscDialog(const QString &savepath, QWidget *const parent)
 : QDialog(parent),
   turboSpeedBox(new QSpinBox(this)),
+  savepathSelector_("Choose Save Path:", "misc/savepath",
+                    std::make_pair(QDir::toNativeSeparators(savepath), savepath),
+		    std::make_pair(tr("Same folder as ROM image"), QString())),
   pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true),
   pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
-  dwmTripleBuf_(new QCheckBox(tr("DWM triple buffering")), "misc/dwmTripleBuf", true),
+  dwmTripleBuf_(new QCheckBox(tr("DWM triple buffering"), this), "misc/dwmTripleBuf", true),
   turboSpeed_(4)
 {
 	setWindowTitle(tr("Miscellaneous Settings"));
@@ -72,6 +76,13 @@ MiscDialog::MiscDialog(QWidget *const parent)
 	if (MainWindow::hasDwmCapability()) {
 		dwmTripleBuf_.checkBox()->setToolTip(tr("Avoids excessive frame duplication when DWM composition is active. Recommended."));
 		addLayout(topLayout, new QHBoxLayout)->addWidget(dwmTripleBuf_.checkBox());
+	} else
+		dwmTripleBuf_.checkBox()->hide();
+	
+	{
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
+		hLayout->addWidget(new QLabel(tr("Save path:")));
+		hLayout->addWidget(savepathSelector_.widget());
 	}
 
 	{
@@ -103,6 +114,7 @@ void MiscDialog::store() {
 	pauseOnDialogs_.accept();
 	pauseOnFocusOut_.accept();
 	dwmTripleBuf_.accept();
+	savepathSelector_.accept();
 }
 
 void MiscDialog::restore() {
@@ -111,6 +123,7 @@ void MiscDialog::restore() {
 	pauseOnDialogs_.reject();
 	pauseOnFocusOut_.reject();
 	dwmTripleBuf_.reject();
+	savepathSelector_.reject();
 }
 
 void MiscDialog::accept() {

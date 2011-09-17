@@ -356,14 +356,8 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg) {
 		}
 		
 		defaultSaveBasePath = stripExtension(romfile);
-		
-		cgb = header[0x0143] >> 7 & 1;
 
-		if (cgb & forceDmg) {
-			cgb = false;
-			defaultSaveBasePath += "_dmg";
-		}
-		
+		cgb = header[0x0143] >> 7 & (1 ^ forceDmg);
 		std::printf("cgb: %d\n", cgb);
 	}
 

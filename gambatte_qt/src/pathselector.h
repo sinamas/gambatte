@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Sindre Aamås                                    *
+ *   Copyright (C) 2011 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -16,41 +16,37 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef MISCDIALOG_H
-#define MISCDIALOG_H
+#ifndef PATHSELECTOR_H
+#define PATHSELECTOR_H
 
-class QSpinBox;
+#include <QObject>
+#include <QString>
+#include <utility>
 
-#include "fpsselector.h"
-#include "pathselector.h"
-#include "persistcheckbox.h"
-#include <QDialog>
+class QComboBox;
+class QWidget;
 
-class MiscDialog : public QDialog {
-	QSpinBox *const turboSpeedBox;
-	FpsSelector fpsSelector_;
-	PathSelector savepathSelector_;
-	PersistCheckBox pauseOnDialogs_;
-	PersistCheckBox pauseOnFocusOut_;
-	PersistCheckBox dwmTripleBuf_;
-	int turboSpeed_;
+class PathSelector : public QObject {
+	Q_OBJECT
 	
-	void store();
-	void restore();
+	QComboBox *const comboBox_;
+	QString value_;
+	const QString caption_;
+	const QString key_;
+	
+private slots:
+	void indexChanged(int index);
 	
 public:
-	explicit MiscDialog(const QString &savePath, QWidget *parent = 0);
-	~MiscDialog();
-	int turboSpeed() const { return turboSpeed_; }
-	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
-	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
-	bool dwmTripleBuf() const { return dwmTripleBuf_.value(); }
-	const QSize & baseFps() const { return fpsSelector_.value(); }
-	const QString & savePath() const { return savepathSelector_.value(); }
-
-public slots:
+	typedef std::pair<QString, QString> Mapping;
+	
+	PathSelector(const QString &caption, const QString &settingskey,
+	             const Mapping &default1, const Mapping &default2 = Mapping());
+	~PathSelector();
 	void accept();
 	void reject();
+	const QString & value() const { return value_; }
+	QWidget * widget() const;
 };
 
 #endif

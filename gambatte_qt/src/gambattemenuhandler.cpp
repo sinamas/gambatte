@@ -231,37 +231,39 @@ const QSize WindowSizeMenu::checkedSize() const {
 	return group_->checkedAction() ? group_->checkedAction()->data().toSize() : QSize(-1, -1);
 }
 
+static const QString settingsPath() {
+	QString path = QSettings(QSettings::IniFormat, QSettings::UserScope,
+			QCoreApplication::organizationName(), QCoreApplication::applicationName()).fileName();
+	path.truncate(path.lastIndexOf("/"));
+	return path;
+}
+
+static const QString defaultSavePath() {
+	return settingsPath() + "/saves";
+}
+
 GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		GambatteSource *const source, const int argc, const char *const argv[])
 : mw(mw),
   source(source),
   soundDialog(new SoundDialog(mw, mw)),
   videoDialog(new VideoDialog(mw, source->generateVideoSourceInfos(), QString("Video filter:"), mw)),
-  miscDialog(new MiscDialog(mw)),
+  miscDialog(new MiscDialog(defaultSavePath(), mw)),
   stateSlotGroup(new QActionGroup(mw)),
   windowSizeMenu(mw, videoDialog),
   pauseInc(4)
 {
 	mw->setWindowTitle("Gambatte");
 	source->inputDialog()->setParent(mw, source->inputDialog()->windowFlags());
+	QDir::root().mkpath(defaultSavePath());
 
 	{
-		QSettings iniSettings(QSettings::IniFormat, QSettings::UserScope, "gambatte", "gambatte_qt");
-		QString savepath = iniSettings.fileName();
-		savepath.truncate(iniSettings.fileName().lastIndexOf("/") + 1);
-
-		{
-			const QString &palpath = savepath + "palettes";
-			QDir::root().mkpath(palpath);
-			globalPaletteDialog = new PaletteDialog(palpath, 0, mw);
-			romPaletteDialog = new PaletteDialog(palpath, globalPaletteDialog, mw);
-			connect(globalPaletteDialog, SIGNAL(accepted()), this, SLOT(globalPaletteChange()));
-			connect(romPaletteDialog, SIGNAL(accepted()), this, SLOT(romPaletteChange()));
-		}
-
-		savepath += "saves";
-		QDir::root().mkpath(savepath);
-		source->setSavedir(savepath.toLocal8Bit().constData());
+		const QString &palpath = settingsPath() + "/palettes";
+		QDir::root().mkpath(palpath);
+		globalPaletteDialog = new PaletteDialog(palpath, 0, mw);
+		romPaletteDialog = new PaletteDialog(palpath, globalPaletteDialog, mw);
+		connect(globalPaletteDialog, SIGNAL(accepted()), this, SLOT(globalPaletteChange()));
+		connect(romPaletteDialog, SIGNAL(accepted()), this, SLOT(romPaletteChange()));
 	}
 
 	QActionGroup *const romLoadedActions = new QActionGroup(mw);
@@ -570,7 +572,16 @@ void GambatteMenuHandler::soundDialogChange() {
 	SoundDialog::applySettings(mw, soundDialog);
 }
 
+namespace {
+struct SetSaveDirFun {
+	GambatteSource *source; QString path;
+	void operator()() const { source->setSavedir(path.toLocal8Bit().constData()); }
+};
+}
+
 void GambatteMenuHandler::miscDialogChange() {
+	const SetSaveDirFun setSaveDirFun = { source, miscDialog->savePath() };
+	mw->callInWorkerThread(setSaveDirFun);
 	mw->setDwmTripleBuffer(miscDialog->dwmTripleBuf());
 	mw->setFastForwardSpeed(miscDialog->turboSpeed());
 	mw->setPauseOnFocusOut(miscDialog->pauseOnFocusOut() ? 2 : 0);
