@@ -133,6 +133,7 @@ class GambatteMenuHandler : public QObject {
 	QAction *recentFileActs[MaxRecentFiles];
 	QAction *pauseAction;
 	QAction *syncFrameRateAction;
+	QAction *gbaCgbAction;
 	QAction *forceDmgAction;
 #ifdef Q_WS_MAC
 	QAction *fsAct;
@@ -187,6 +188,7 @@ private slots:
 	
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);
+	~GambatteMenuHandler();
 };
 
 #endif

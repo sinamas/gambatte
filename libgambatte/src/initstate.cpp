@@ -1147,7 +1147,7 @@ static void setInitialDmgIoamhram(unsigned char *const ioamhram) {
 
 } // anon namespace
 
-void gambatte::setInitState(SaveState &state, const bool cgb) {
+void gambatte::setInitState(SaveState &state, const bool cgb, const bool gbaCgbMode) {
 	static const unsigned char cgbObjpDump[0x40] = {
 		0x00, 0x00, 0xF2, 0xAB, 
 		0x61, 0xC2, 0xD9, 0xBA, 
@@ -1171,7 +1171,7 @@ void gambatte::setInitState(SaveState &state, const bool cgb) {
 	state.cpu.PC = 0x100;
 	state.cpu.SP = 0xFFFE;
 	state.cpu.A = cgb * 0x10 | 0x01;
-	state.cpu.B = 0x00;
+	state.cpu.B = cgb & gbaCgbMode;
 	state.cpu.C = 0x13;
 	state.cpu.D = 0x00;
 	state.cpu.E = 0xD8;

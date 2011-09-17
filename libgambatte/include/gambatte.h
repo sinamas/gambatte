@@ -31,13 +31,18 @@ public:
 	GB();
 	~GB();
 	
-	/** Load Game Boy Color ROM image.
+	enum LoadFlag {
+		FORCE_DMG = 1, /**< Treat the ROM as not having CGB support regardless of what its header advertises. */
+		GBA_CGB   = 2  /**< Use GBA intial CPU register values when in CGB mode. */
+	};
+	
+	/** Load ROM image.
 	  *
 	  * @param romfile  Path to rom image file. Typically a .gbc, .gb, or .zip-file (if zip-support is compiled in).
-	  * @param forceDmg Treat the ROM as not having CGB support regardless of what its header advertises.
+	  * @param flags    ORed combination of LoadFlags.
 	  * @return true if failed to load ROM image.
 	  */
-	bool load(const std::string &romfile, bool forceDmg = false);
+	bool load(const std::string &romfile, unsigned flags = 0);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
 	  * or until a video frame has been drawn.
@@ -114,11 +119,11 @@ public:
 	void selectState(int n);
 	
 	/** Current state slot selected with selectState(). Returns a value between 0 and 9 inclusive. */
-	int currentState() const { return stateNo; }
+	int currentState() const;
 	
 private:
-	class CPU *const z80;
-	int stateNo;
+	struct Priv;
+	Priv *const p_;
 
 	void loadState(const std::string &filepath, bool osdMessage);
 	GB(const GB &);

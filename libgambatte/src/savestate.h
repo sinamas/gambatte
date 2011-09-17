@@ -36,7 +36,7 @@ struct SaveState {
 		void set(T *ptr, const unsigned long sz) { this->ptr = ptr; this->sz = sz; }
 		
 		friend class SaverList;
-		friend void setInitState(SaveState &, bool);
+		friend void setInitState(SaveState &, bool, bool);
 	};
 
 	struct CPU {

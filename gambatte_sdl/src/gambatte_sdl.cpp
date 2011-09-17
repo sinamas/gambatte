@@ -38,6 +38,8 @@
 #include "blitterwrapper.h"
 #include "videolink/vfilterinfo.h"
 
+namespace {
+
 using namespace gambatte;
 
 struct DescOption : Parser::Option {
@@ -62,6 +64,15 @@ public:
 	void exec(const char *const */*argv*/, int /*index*/) { execed = true; }
 	const char* getDesc() const { return "\t\tList valid input KEYS\n"; }
 	bool isExeced() const { return execed; }
+};
+
+class GbaCgbOption : public DescOption {
+	bool gbaCgb_;
+public:
+	GbaCgbOption() : DescOption("gba-cgb"), gbaCgb_(false) {}
+	void exec(const char *const */*argv*/, int /*index*/) { gbaCgb_ = true; }
+	const char* getDesc() const { return "\t\t\tGBA CGB mode\n"; }
+	bool gbaCgb() const { return gbaCgb_; }
 };
 
 class ForceDmgOption : public DescOption {
@@ -439,6 +450,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		Parser parser;
 		
 		std::vector<DescOption*> v;
+		GbaCgbOption gbaCgbOption;
+		v.push_back(&gbaCgbOption);
 		ForceDmgOption forceDmgOption;
 		v.push_back(&forceDmgOption);
 		FsOption fsOption;
@@ -502,7 +515,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 			return 1;
 		}
 		
-		if (gambatte.load(argv[loadIndex], forceDmgOption.forceDmg())) {
+		if (gambatte.load(argv[loadIndex], gbaCgbOption.gbaCgb() * GB::GBA_CGB + forceDmgOption.forceDmg() * GB::FORCE_DMG)) {
 			std::printf("failed to load ROM %s\n", argv[loadIndex]);
 			return 1;
 		}
@@ -710,6 +723,8 @@ int GambatteSdl::exec() {
 	
 	return 0;
 }
+
+} // anon namespace
 
 int main(int argc, char **argv) {
 	GambatteSdl gambatteSdl(argc, argv);

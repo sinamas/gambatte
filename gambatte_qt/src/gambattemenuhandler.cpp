@@ -348,6 +348,9 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	settingsm->addMenu(windowSizeMenu.menu());
 	settingsm->addSeparator();
 
+	gbaCgbAction = settingsm->addAction(tr("GB&A CGB Mode"));
+	gbaCgbAction->setCheckable(true);
+	gbaCgbAction->setChecked(QSettings().value("gbacgb", false).toBool());
 	forceDmgAction = settingsm->addAction(tr("Force &DMG Mode"));
 	forceDmgAction->setCheckable(true);
 
@@ -423,6 +426,11 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	}
 }
 
+GambatteMenuHandler::~GambatteMenuHandler() {
+	QSettings settings;
+	settings.setValue("gbacgb", gbaCgbAction->isChecked());
+}
+
 void GambatteMenuHandler::updateRecentFileActions() {
 	QSettings settings;
 	QStringList files = settings.value("recentFileList").toStringList();
@@ -463,7 +471,8 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	pauseChange();
 	mw->waitUntilPaused();
 
-	if (source->load((fileName.toLocal8Bit()).constData(), forceDmgAction->isChecked())) {
+	if (source->load((fileName.toLocal8Bit()).constData(),
+			gbaCgbAction->isChecked() * gambatte::GB::GBA_CGB + forceDmgAction->isChecked() * gambatte::GB::FORCE_DMG)) {
 		mw->stop();
 		emit dmgRomLoaded(false);
 		emit romLoaded(false);

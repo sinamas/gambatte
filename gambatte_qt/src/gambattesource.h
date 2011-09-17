@@ -74,7 +74,7 @@ public:
 	
 	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
 	
-	bool load(const std::string &romfile, const bool forceDmg) { return gb.load(romfile, forceDmg); }
+	bool load(const std::string &romfile, const unsigned flags) { return gb.load(romfile, flags); }
 	void reset() { gb.reset(); }
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
 	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir); }
