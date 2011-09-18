@@ -528,9 +528,8 @@ void GambatteMenuHandler::about() {
 	                    mw,
 	                    "About Gambatte",
 	                    QString::fromUtf8("<h3>Gambatte Qt SVN</h3>\
-	                       <p><b>Author:</b> Sindre Aamås (<a href=\"mailto:sinamas@users.sourceforge.net\">sinamas@users.sourceforge.net</a>)<br>\
-	                       <b>Homepage:</b> <a href=\"http://sourceforge.net/projects/gambatte\">http://sourceforge.net/projects/gambatte</a></p>\
-	                       <p>Gambatte is an accuracy-focused, open-source, cross-platform Game Boy Color emulator written in C++. It is based on hundreds of corner case hardware tests, as well as previous documentation and reverse engineering efforts.</p>")
+	                       <p><b>Homepage:</b> <a href=\"http://sourceforge.net/projects/gambatte\">http://sourceforge.net/projects/gambatte</a></p>\
+	                       <p>Gambatte is an accuracy-focused, open-source, cross-platform Game Boy Color emulator written in C++. It is based on hundreds of corner-case hardware tests, as well as previous documentation and reverse engineering efforts.</p>")
 	                  );
 }
 
