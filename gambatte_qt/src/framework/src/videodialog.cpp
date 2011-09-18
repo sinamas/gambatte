@@ -201,7 +201,7 @@ void VideoDialog::FullResSelector::fillComboBox(const QSize &sourceSize, const s
 		const int vres = resVector[i].h;
 		
 		if (hres >= sourceSize.width() && vres >= sourceSize.height()) {
-			comboBox_->addItem(QString::number(hres) + QString("x") + QString::number(vres), i);
+			comboBox_->addItem(QString::number(hres) + QString("x") + QString::number(vres), static_cast<uint>(i));
 		} else {
 			const long area = static_cast<long>(std::min(hres, sourceSize.width())) * std::min(vres, sourceSize.height());
 			
@@ -214,7 +214,7 @@ void VideoDialog::FullResSelector::fillComboBox(const QSize &sourceSize, const s
 	
 	//add resolution giving maximal area if all resolutions are too small.
 	if (comboBox_->count() < 1 && maxArea)
-		comboBox_->addItem(QString::number(resVector[maxAreaI].w) + "x" + QString::number(resVector[maxAreaI].h), maxAreaI);
+		comboBox_->addItem(QString::number(resVector[maxAreaI].w) + "x" + QString::number(resVector[maxAreaI].h), static_cast<uint>(maxAreaI));
 }
 
 VideoDialog::FullHzSelector::FullHzSelector(const QString &key, const std::vector<short> &rates, const int defaultIndex)
@@ -252,7 +252,7 @@ void VideoDialog::FullHzSelector::setRates(const std::vector<short> &rates) {
 	comboBox_->clear();
 	
 	for (std::size_t i = 0; i < rates.size(); ++i)
-		comboBox_->addItem(QString::number(rates[i] / 10.0) + QString(" Hz"), i);
+		comboBox_->addItem(QString::number(rates[i] / 10.0) + QString(" Hz"), static_cast<uint>(i));
 }
 
 auto_vector<VideoDialog::FullResSelector> VideoDialog::makeFullResSelectors(
