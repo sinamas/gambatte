@@ -42,6 +42,7 @@ class WasapiEngine: public AudioEngine {
 	unsigned pos_;
 	unsigned posFrames;
 	unsigned deviceIndex;
+	unsigned nchannels_;
 	UINT32 bufferFrameCount;
 	RateEst est;
 	bool started;

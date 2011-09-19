@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include "wasapiengine.h"
 #include "wasapiinc.h"
+#include <MMReg.h>
 #include <QWidget>
 #include <QCheckBox>
 #include <QLabel>
@@ -142,6 +143,7 @@ WasapiEngine::WasapiEngine()
   pos_(0),
   posFrames(0),
   deviceIndex(0),
+  nchannels_(2),
   bufferFrameCount(0),
   started(false)
 {
@@ -234,34 +236,55 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 		std::cout << "defPer: " << defPer << " minPer: " << minPer << std::endl;
 	}*/
 
-	if (!exclusive_.value()) {
-		WAVEFORMATEX *wfe = 0;
-
-		if (SUCCEEDED(pAudioClient->GetMixFormat(&wfe)) && wfe) {
-			rate = wfe->nSamplesPerSec;
-			CoTaskMemFree(wfe);
-		} else
-			std::cout << "pAudioClient->GetMixFormat failed\r\n";
-
-		if (!(eventHandle_ = CreateEventA(0, false, false, 0)))
-			std::cout << "CreateEvent failed\r\n";
-	}
-
 	{
-		WAVEFORMATEX wfe;
-		std::memset(&wfe, 0, sizeof(wfe));
-		wfe.wFormatTag = WAVE_FORMAT_PCM;
-		wfe.nChannels = 2;
-		wfe.nSamplesPerSec = rate;
-		wfe.wBitsPerSample = 16;
-		wfe.nBlockAlign = wfe.nChannels * wfe.wBitsPerSample >> 3;
-		wfe.nAvgBytesPerSec = rate * wfe.nBlockAlign;
+		static const GUID ksdataformat_subtype_pcm = {
+				WAVE_FORMAT_PCM, 0x0000, 0x0010, { 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 }
+		};
 
-		if (FAILED(pAudioClient->Initialize(
-				exclusive_.value() ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED,
-				eventHandle_ ? AUDCLNT_STREAMFLAGS_EVENTCALLBACK : 0, latency * 10000, 0, &wfe, NULL))) {
-			std::cout << "pAudioClient->Initialize failed" << std::endl;
-			goto fail;
+		WAVEFORMATEXTENSIBLE wfext;
+		std::memset(&wfext, 0, sizeof wfext);
+		wfext.Format.cbSize = (sizeof wfext) - (sizeof wfext.Format);
+		wfext.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+		wfext.Format.nChannels = 2;
+		wfext.Format.nSamplesPerSec = rate;
+		wfext.Format.wBitsPerSample = 16;
+		wfext.Samples.wValidBitsPerSample = 16;
+		wfext.SubFormat = ksdataformat_subtype_pcm;
+		wfext.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+
+		if (!exclusive_.value()) {
+			WAVEFORMATEX *mwfe = 0;
+
+			if (SUCCEEDED(pAudioClient->GetMixFormat(&mwfe)) && mwfe) {
+				wfext.Format.nChannels = mwfe->nChannels > 2 ? mwfe->nChannels : 2;
+				wfext.Format.nSamplesPerSec = mwfe->nSamplesPerSec;
+
+				if (mwfe->wFormatTag == WAVE_FORMAT_EXTENSIBLE)
+					wfext.dwChannelMask = reinterpret_cast<WAVEFORMATEXTENSIBLE *>(mwfe)->dwChannelMask;
+
+				CoTaskMemFree(mwfe);
+			} else
+				std::cout << "pAudioClient->GetMixFormat failed\r\n";
+
+			if (!(eventHandle_ = CreateEventA(0, false, false, 0)))
+				std::cout << "CreateEvent failed\r\n";
+		}
+
+		wfext.Format.nBlockAlign = wfext.Format.nChannels * wfext.Format.wBitsPerSample >> 3;
+		wfext.Format.nAvgBytesPerSec = wfext.Format.nSamplesPerSec * wfext.Format.nBlockAlign;
+
+		nchannels_ = wfext.Format.nChannels;
+		rate = wfext.Format.nSamplesPerSec;
+
+		{
+			HRESULT hr;
+
+			if (FAILED(hr = pAudioClient->Initialize(
+					exclusive_.value() ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED,
+					eventHandle_ ? AUDCLNT_STREAMFLAGS_EVENTCALLBACK : 0, latency * 10000, 0, &wfext.Format, NULL))) {
+				std::cout << "pAudioClient->Initialize failed: " << hr << "\r\n";
+				goto fail;
+			}
 		}
 	}
 
@@ -334,13 +357,19 @@ int WasapiEngine::waitForSpace(UINT32 &numFramesPadding, const unsigned space) {
 	return bufferFrameCount - numFramesPadding;
 }
 
-static int write(IAudioRenderClient *const pRenderClient, void *const buffer, const unsigned frames) {
+static int write(IAudioRenderClient *const pRenderClient, void *const buffer, const unsigned frames, const unsigned nchannels) {
 	BYTE *pData = NULL;
 
 	if (FAILED(pRenderClient->GetBuffer(frames, &pData)))
 		return -1;
 
-	std::memcpy(pData, buffer, frames * 4);
+	if (nchannels > 2) {
+		std::memset(pData, 0, frames * nchannels * 2);
+
+		for (unsigned i = 0; i < frames; ++i)
+			*reinterpret_cast<UINT32*>(pData + i * nchannels * 2) = static_cast<const UINT32*>(buffer)[i];
+	} else
+		std::memcpy(pData, buffer, frames * 4);
 
 	pRenderClient->ReleaseBuffer(frames, 0);
 
@@ -372,7 +401,7 @@ int WasapiEngine::write(void *buffer, unsigned frames, UINT32 numFramesPadding) 
 
 		const unsigned n = static_cast<unsigned>(fof) < frames ? static_cast<unsigned>(fof) : frames;
 
-		if (::write(pRenderClient, buffer, n) < 0) {
+		if (::write(pRenderClient, buffer, n, nchannels_) < 0) {
 			std::cout << "::write fail" << std::endl;
 			return -1;
 		}
