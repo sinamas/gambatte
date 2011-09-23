@@ -144,6 +144,8 @@ else:unix {
         framework/src/fullmodetogglers/xrandr12toggler.h #\
 #        framework/src/fullmodetogglers/xf86vidmodetoggler.h
     LIBS += -L/usr/X11R6/lib \
+        -lX11 \
+        -lXext \
         -lXv \
         -lXrandr #\
 #        -lXxf86vm \
