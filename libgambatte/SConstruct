@@ -1,10 +1,14 @@
 global_cflags = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer')
 global_cxxflags = ARGUMENTS.get('CXXFLAGS', global_cflags + ' -fno-exceptions -fno-rtti')
 global_defines = ' -DHAVE_STDINT_H'
+vars = Variables()
+vars.Add('CC')
+vars.Add('CXX')
 
 env = Environment(CPPPATH = ['src', 'include', '../common'],
                   CFLAGS = global_cflags + global_defines,
-                  CXXFLAGS = global_cxxflags + global_defines)
+                  CXXFLAGS = global_cxxflags + global_defines,
+                  variables = vars)
 
 sourceFiles = Split('''
 			src/bitmap_font.cpp
