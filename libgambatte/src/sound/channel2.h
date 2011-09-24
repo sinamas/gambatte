@@ -27,7 +27,7 @@
 
 namespace gambatte {
 
-class SaveState;
+struct SaveState;
 
 class Channel2 {
 	friend class StaticOutputTester<Channel2,DutyUnit>;

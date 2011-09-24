@@ -25,7 +25,7 @@
 
 namespace gambatte {
 
-class SaveState;
+struct SaveState;
 
 class Channel3 {
 	class Ch3MasterDisabler : public MasterDisabler {

@@ -24,7 +24,7 @@
 
 namespace gambatte {
 
-class SaveState;
+struct SaveState;
 
 class StateSaver {
 	StateSaver();

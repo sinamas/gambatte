@@ -64,7 +64,7 @@ long GB::runFor(gambatte::uint_least32_t *const videoBuf, const int pitch,
 	const long cyclesSinceBlit = p_->cpu.runFor(samples * 2);
 	samples = p_->cpu.fillSoundBuffer();
 	
-	return cyclesSinceBlit < 0 ? cyclesSinceBlit : samples - (cyclesSinceBlit >> 1);
+	return cyclesSinceBlit < 0 ? cyclesSinceBlit : static_cast<long>(samples) - (cyclesSinceBlit >> 1);
 }
 
 void GB::reset() {

@@ -1175,7 +1175,7 @@ void CPU::process(const unsigned long cycles) {
 				READ(A, HL());
 				break;
 			case 0x7F:
-				A = A;
+				// A = A;
 				break;
 			case 0x80:
 				add_a_u8(B);

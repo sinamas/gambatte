@@ -28,7 +28,7 @@
 
 namespace gambatte {
 
-class SaveState;
+struct SaveState;
 
 class Channel1 {
 	class SweepUnit : public SoundUnit {

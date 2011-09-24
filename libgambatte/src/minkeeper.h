@@ -65,11 +65,11 @@ class MinKeeper {
 	template<int id, int dummy> struct FillLut {
 		static void fillLut(MinKeeper<ids> *const s) {
 			s->updateValueLut[id] = updateValue<id>;
-			FillLut<id+1,dummy>::fillLut(s);
+			FillLut<id-1,dummy>::fillLut(s);
 		}
 	};
 	
-	template<int dummy> struct FillLut<Num<LEVELS-1>::RESULT,dummy> {
+	template<int dummy> struct FillLut<-1,dummy> {
 		static void fillLut(MinKeeper<ids> *) {}
 	};
 	
@@ -128,7 +128,7 @@ MinKeeper<ids>::MinKeeper(const unsigned long initValue) {
 	
 	minValue_ = values[a[0]];
 
-	FillLut<0,0>::fillLut(this);
+	FillLut<Num<LEVELS-1>::RESULT-1,0>::fillLut(this);
 }
 
 template<int ids>

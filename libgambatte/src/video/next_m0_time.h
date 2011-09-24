@@ -8,7 +8,7 @@ class NextM0Time {
 	
 public:
 	NextM0Time() : predictedNextM0Time_(0) {}
-	void predictNextM0Time(const struct PPU &v);
+	void predictNextM0Time(const class PPU &v);
 	void invalidatePredictedNextM0Time() { predictedNextM0Time_ = 0; }
 	unsigned predictedNextM0Time() const { return predictedNextM0Time_; }
 };

@@ -21,7 +21,7 @@
 
 namespace gambatte {
 
-class SaveState;
+struct SaveState;
 
 class LyCounter {
 	unsigned long time_;

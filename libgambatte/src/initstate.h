@@ -20,7 +20,7 @@
 #define INITSTATE_H
 
 namespace gambatte {
-void setInitState(class SaveState &state, bool cgb, bool gbaCgbMode);
+void setInitState(struct SaveState &state, bool cgb, bool gbaCgbMode);
 }
 
 #endif
