@@ -49,6 +49,7 @@ public:
 	
 	const unsigned char * rmem(unsigned area) const { return rmem_[area]; }
 	unsigned char * wmem(unsigned area) const { return wmem_[area]; }
+	unsigned char * romdata() const { return memchunk_ + 0x4000; }
 	unsigned char * romdata(unsigned area) const { return romdata_[area]; }
 	unsigned char * romdataend() const { return rambankdata_; }
 	unsigned char * wramdata(unsigned area) const { return wramdata_[area]; }
@@ -60,6 +61,7 @@ public:
 	unsigned char * wsrambankptr() const { return wsrambankptr_; }
 	OamDmaSrc oamDmaSrc() const { return oamDmaSrc_; }
 	
+	void setRombank0(unsigned bank);
 	void setRombank(unsigned bank);
 	void setRambank(bool enableRam, bool rtcActive, unsigned rambank);
 	void setWrambank(unsigned bank);

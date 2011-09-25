@@ -471,8 +471,10 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	pauseChange();
 	mw->waitUntilPaused();
 
-	if (source->load((fileName.toLocal8Bit()).constData(),
-			gbaCgbAction->isChecked() * gambatte::GB::GBA_CGB + forceDmgAction->isChecked() * gambatte::GB::FORCE_DMG)) {
+	if (source->load(fileName.toLocal8Bit().constData(),
+			  gbaCgbAction->isChecked()     * gambatte::GB::GBA_CGB
+			+ forceDmgAction->isChecked()   * gambatte::GB::FORCE_DMG
+			+ miscDialog->multicartCompat() * gambatte::GB::MULTICART_COMPAT)) {
 		mw->stop();
 		emit dmgRomLoaded(false);
 		emit romLoaded(false);

@@ -91,7 +91,7 @@ bool GB::load(const std::string &romfile, const unsigned flags) {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
 	
-	const bool failed = p_->cpu.load(romfile, flags & FORCE_DMG);
+	const bool failed = p_->cpu.load(romfile, flags & FORCE_DMG, flags & MULTICART_COMPAT);
 	
 	if (!failed) {
 		SaveState state;

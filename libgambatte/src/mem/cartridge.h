@@ -38,9 +38,10 @@ class Cartridge {
 	unsigned char rambank;
 	bool enableRam;
 	bool rambankMode;
+	bool multi64rom;
 	
 	unsigned rambanks() const { return (memptrs.rambankdataend() - memptrs.rambankdata()) / 0x2000; }
-	unsigned rombanks() const { return (memptrs.romdataend()     - memptrs.romdata(0)   ) / 0x4000; }
+	unsigned rombanks() const { return (memptrs.romdataend()     - memptrs.romdata()    ) / 0x4000; }
 	
 public:
 	Cartridge();
@@ -73,7 +74,7 @@ public:
 	void saveSavedata();
 	const std::string saveBasePath() const;
 	void setSaveDir(const std::string &dir);
-	bool loadROM(const std::string &romfile, bool forceDmg);
+	bool loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
 };
 
 }

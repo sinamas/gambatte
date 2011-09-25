@@ -33,6 +33,7 @@ class MiscDialog : public QDialog {
 	PersistCheckBox pauseOnDialogs_;
 	PersistCheckBox pauseOnFocusOut_;
 	PersistCheckBox dwmTripleBuf_;
+	PersistCheckBox multicartCompat_;
 	int turboSpeed_;
 	
 	void store();
@@ -45,6 +46,7 @@ public:
 	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
 	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
 	bool dwmTripleBuf() const { return dwmTripleBuf_.value(); }
+	bool multicartCompat() const { return multicartCompat_.value(); }
 	const QSize & baseFps() const { return fpsSelector_.value(); }
 	const QString & savePath() const { return savepathSelector_.value(); }
 

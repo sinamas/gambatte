@@ -53,10 +53,6 @@ long CPU::runFor(const unsigned long cycles) {
 	return csb;
 }
 
-bool CPU::load(const std::string &romfile, const bool forceDmg) {
-	return memory.loadROM(romfile, forceDmg);
-}
-
 // (HF2 & 0x200) == true means HF is set.
 // (HF2 & 0x400) marks the subtract flag.
 // (HF2 & 0x800) is set for inc/dec.

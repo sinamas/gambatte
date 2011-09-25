@@ -49,6 +49,7 @@ MiscDialog::MiscDialog(const QString &savepath, QWidget *const parent)
   pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true),
   pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
   dwmTripleBuf_(new QCheckBox(tr("DWM triple buffering"), this), "misc/dwmTripleBuf", true),
+  multicartCompat_(new QCheckBox(tr("Multicart compatibility"), this), "misc/multicartCompat", false),
   turboSpeed_(4)
 {
 	setWindowTitle(tr("Miscellaneous Settings"));
@@ -78,6 +79,9 @@ MiscDialog::MiscDialog(const QString &savepath, QWidget *const parent)
 		addLayout(topLayout, new QHBoxLayout)->addWidget(dwmTripleBuf_.checkBox());
 	} else
 		dwmTripleBuf_.checkBox()->hide();
+	
+	multicartCompat_.checkBox()->setToolTip(tr("Support certain multicart ROM images by not strictly respecting ROM header MBC type."));
+	addLayout(topLayout, new QHBoxLayout)->addWidget(multicartCompat_.checkBox());
 	
 	{
 		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
@@ -114,6 +118,7 @@ void MiscDialog::store() {
 	pauseOnDialogs_.accept();
 	pauseOnFocusOut_.accept();
 	dwmTripleBuf_.accept();
+	multicartCompat_.accept();
 	savepathSelector_.accept();
 }
 
@@ -123,6 +128,7 @@ void MiscDialog::restore() {
 	pauseOnDialogs_.reject();
 	pauseOnFocusOut_.reject();
 	dwmTripleBuf_.reject();
+	multicartCompat_.reject();
 	savepathSelector_.reject();
 }
 

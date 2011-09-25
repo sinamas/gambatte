@@ -84,6 +84,15 @@ public:
 	bool forceDmg() const { return forceDmg_; }
 };
 
+class MulticartCompatOption : public DescOption {
+	bool enabled_;
+public:
+	MulticartCompatOption() : DescOption("multicart-compat"), enabled_(false) {}
+	void exec(const char *const */*argv*/, int /*index*/) { enabled_ = true; }
+	const char* getDesc() const { return "\tSupport certain multicart ROM images by not strictly respecting ROM header MBC type\n"; }
+	bool enabled() const { return enabled_; }
+};
+
 class RateOption : public DescOption {
 	unsigned rate;
 public:
@@ -454,6 +463,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&gbaCgbOption);
 		ForceDmgOption forceDmgOption;
 		v.push_back(&forceDmgOption);
+		MulticartCompatOption multicartCompatOption;
+		v.push_back(&multicartCompatOption);
 		FsOption fsOption;
 		v.push_back(&fsOption);
 		InputOption inputOption;
@@ -515,7 +526,9 @@ bool GambatteSdl::init(int argc, char **argv) {
 			return 1;
 		}
 		
-		if (gambatte.load(argv[loadIndex], gbaCgbOption.gbaCgb() * GB::GBA_CGB + forceDmgOption.forceDmg() * GB::FORCE_DMG)) {
+		if (gambatte.load(argv[loadIndex],   gbaCgbOption.gbaCgb()           * GB::GBA_CGB
+		                                   + forceDmgOption.forceDmg()       * GB::FORCE_DMG
+		                                   + multicartCompatOption.enabled() * GB::MULTICART_COMPAT)) {
 			std::printf("failed to load ROM %s\n", argv[loadIndex]);
 			return 1;
 		}

@@ -74,7 +74,10 @@ public:
 		memory.setOsdElement(osdElement);
 	}
 	
-	bool load(const std::string &romfile, bool forceDmg);
+	bool load(const std::string &romfile, bool forceDmg, bool multicartCompat) {
+		return memory.loadROM(romfile, forceDmg, multicartCompat);
+	}
+	
 	bool loaded() const { return memory.loaded(); }
 	
 	void setSoundBuffer(uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
