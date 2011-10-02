@@ -575,7 +575,7 @@ void GambatteMenuHandler::open() {
 	TmpPauser tmpPauser(mw, pauseInc);
 #endif
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Open"), recentFileActs[0]->data().toString(),
-						tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip);;All Files (*)"));
+						tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip *.gz);;All Files (*)"));
 
 	if (!fileName.isEmpty())
 		loadFile(fileName);

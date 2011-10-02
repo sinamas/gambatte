@@ -306,11 +306,10 @@ static unsigned pow2ceil(unsigned n) {
 }
 
 bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
-	File rom(romfile.c_str());
+	const std::auto_ptr<File> rom(newFileInstance(romfile));
 
-	if (!rom.is_open()) {
+	if (rom->fail())
 		return 1;
-	}
 	
 	unsigned rambanks = 1;
 	unsigned rombanks = 2;
@@ -318,7 +317,7 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 
 	{
 		unsigned char header[0x150];
-		rom.read(reinterpret_cast<char*>(header), sizeof(header));
+		rom->read(reinterpret_cast<char*>(header), sizeof(header));
 
 		switch (header[0x0147]) {
 		case 0x00: std::puts("Plain ROM loaded."); break;
@@ -399,22 +398,23 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 
 	std::printf("rambanks: %u\n", rambanks);
 
-	rombanks = pow2ceil(rom.size() / 0x4000);
-	std::printf("rombanks: %u\n", rom.size() / 0x4000);
+	const std::size_t filesize = rom->size();
+	rombanks = pow2ceil(filesize / 0x4000);
+	std::printf("rombanks: %u\n", filesize / 0x4000);
 	
 	memptrs.reset(rombanks, rambanks, cgb ? 8 : 2);
 
-	rom.rewind();
-	rom.read(reinterpret_cast<char*>(memptrs.romdata()), (rom.size() / 0x4000) * 0x4000ul);
+	rom->rewind();
+	rom->read(reinterpret_cast<char*>(memptrs.romdata()), (filesize / 0x4000) * 0x4000ul);
 	// In case rombanks isn't a power of 2, allocate a disabled area for invalid rombank addresses.
-	std::memset(memptrs.romdata() + (rom.size() / 0x4000) * 0x4000ul, 0xFF, (rombanks - rom.size() / 0x4000) * 0x4000ul);
+	std::memset(memptrs.romdata() + (filesize / 0x4000) * 0x4000ul, 0xFF, (rombanks - filesize / 0x4000) * 0x4000ul);
 	enforce8bit(memptrs.romdata(), rombanks * 0x4000ul);
 	
 	if ((multi64rom = !rambanks && rombanks == 64 && cartridgeType(memptrs.romdata()[0x147]) == MBC1 && multicartCompat))
 		std::puts("Multi-ROM \"MBC1\" presumed");
 	
 
-	if (rom.fail()) {
+	if (rom->fail()) {
 		defaultSaveBasePath.clear(); // indicates no valid ROM loaded.
 		return 1;
 	}
