@@ -276,9 +276,11 @@ void XRandR12Toggler::setFullMode(const bool enable) {
 			RRMode mode = crtcInfo->mode;
 			
 			if (enable) {
-				mode = getMode(resources, crtcInfo, isFull ? originalMode : crtcInfo->mode,
-						infoVector[widgetScreen][fullResIndex[widgetScreen]],
-						infoVector[widgetScreen][fullResIndex[widgetScreen]].rates[fullRateIndex[widgetScreen]]);
+				if (!infoVector[widgetScreen].empty()) {
+					mode = getMode(resources, crtcInfo, isFull ? originalMode : crtcInfo->mode,
+							infoVector[widgetScreen][fullResIndex[widgetScreen]],
+							infoVector[widgetScreen][fullResIndex[widgetScreen]].rates[fullRateIndex[widgetScreen]]);
+				}
 				
 				if (!isFull)
 					originalMode = crtcInfo->mode;

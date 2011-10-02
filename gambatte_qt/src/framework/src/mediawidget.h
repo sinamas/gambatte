@@ -111,7 +111,7 @@ public:
 	/** @return compositionChange */
 	bool winEvent(const void *message) { return dwmControl_.winEvent(message); }
 	void hideEvent() { dwmControl_.hideEvent(); }
-	void showEvent() { dwmControl_.showEvent(); }
+	void showEvent(const QWidget *parent) { dwmControl_.showEvent(); fullModeToggler->setScreen(parent); }
 	void mouseMoveEvent() { blitterContainer->showCursor(); cursorTimer->start(); }
 	void moveEvent(const QWidget *parent) { fullModeToggler->setScreen(parent); }
 	void resizeEvent(const QWidget *parent);
@@ -172,7 +172,8 @@ public:
 	std::size_t currentRateIndex(std::size_t screen) const { return fullModeToggler->currentRateIndex(screen); }
 	std::size_t currentScreen() const { return fullModeToggler->screen(); }
 	const QRect fullScreenRect(const QWidget *w) const { return fullModeToggler->fullScreenRect(w); }
-	void setFullScreen(bool fullscreen) { fullModeToggler->setFullMode(fullscreen); }
+	void setFullMode(bool fullscreen) { fullModeToggler->setFullMode(fullscreen); }
+	bool isFullMode() const { return fullModeToggler->isFullMode(); }
 	void parentExclusiveEvent(bool exclusive) { blitterContainer->parentExclusiveEvent(exclusive); }
 	
 	const AudioEngineConf audioEngineConf(std::size_t aeNo) { return AudioEngineConf(audioEngines[aeNo]); }

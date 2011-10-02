@@ -251,9 +251,11 @@ protected:
 private:
 	void correctFullScreenGeometry();
 	void doSetWindowSize(const QSize &sz);
+	void doShowFullScreen();
 	
 	MediaWidget *const w_;
 	QSize winSize_;
+	bool fullscreen_;
 };
 
 class CallWhenMediaWorkerPaused : Uncopyable {

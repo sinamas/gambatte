@@ -30,6 +30,7 @@
 #include "videodialog.h"
 #include "gambattesource.h"
 #include "miscdialog.h"
+#include <iostream>
 
 static const QString strippedName(const QString &fullFileName) {
 	return QFileInfo(fullFileName).fileName();
@@ -242,6 +243,47 @@ static const QString defaultSavePath() {
 	return settingsPath() + "/saves";
 }
 
+static const QString toCmdString(const QAction *const a) {
+	QString text = a->text().toLower();
+	text.replace("&", "");
+	text.replace(" ", "-");
+	return text;
+}
+
+static char toCmdChar(const QAction *const a) {
+	return a->shortcut().count() == 1 ? (a->shortcut()[0] - Qt::Key_A + 'a') & 0xff : 0;
+}
+
+static QAction * findCmdStringAction(const QList<QAction*> &l, const QString &cmdstr) {
+	foreach (QAction *const a, l) {
+		if (cmdstr == toCmdString(a))
+			return a;
+	}
+	
+	return 0;
+}
+
+static QAction * findCmdCharAction(const QList<QAction*> &l, const char c) {
+	foreach (QAction *const a, l) {
+		if (c == toCmdChar(a))
+			return a;
+	}
+	
+	return 0;
+}
+
+static void printUsage(const char *const arg0, const QList<QAction*> &actions) {
+	std::cout << "Usage: " << arg0 << " [OPTION]... [romfile]\n";
+	
+	foreach (const QAction *const a, actions) {
+		if (a->isCheckable() && a->isEnabled()) {
+			const std::string &text = toCmdString(a).toStdString();
+			const char c = toCmdChar(a);			
+			std::cout << ("  " + (c ? "-" + std::string(1, c) + ", " : std::string("    ")) + "--" + text + "[=0]\n");
+		}
+	}
+}
+
 GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		GambatteSource *const source, const int argc, const char *const argv[])
 : mw(mw),
@@ -321,6 +363,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	}
 	
 	FrameRateAdjuster *const frameRateAdjuster = new FrameRateAdjuster(*miscDialog, *mw, this);
+	QList<QAction*> cmdactions;
 
 	{
 		QMenu *const playm = mw->menuBar()->addMenu(tr("&Play"));
@@ -336,6 +379,8 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		
 		foreach (QAction *const action, frameRateAdjuster->actions())
 			playm->addAction(romLoadedActions->addAction(action));
+		
+		cmdactions += playm->actions();
 	}
 
 	QMenu *const settingsm = mw->menuBar()->addMenu(tr("&Settings"));
@@ -366,17 +411,16 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 
 	settingsm->addSeparator();
 
-	{
 #ifndef Q_WS_MAC
-		QAction *fsAct;
+	QAction *fsAct;
 #endif
-		fsAct = settingsm->addAction(tr("&Full Screen"), this, SLOT(toggleFullScreen()), tr("Ctrl+F"));
-		fsAct->setCheckable(true);
-	}
-
+	fsAct = settingsm->addAction(tr("&Full Screen"), this, SLOT(toggleFullScreen()), tr("Ctrl+F"));
+	fsAct->setCheckable(true);
+	
 	romLoadedActions->setEnabled(false);
 
 // 	settingsm->addAction(hideMenuAct);
+	cmdactions += settingsm->actions();
 
 	mw->menuBar()->addSeparator();
 
@@ -417,9 +461,31 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	videoDialogChange();
 	soundDialogChange();
 	miscDialogChange();
+	
+	bool unknownCmd = false;
+	
+	for (int i = 1; i < argc; ++i) {
+		if (argv[i][0] == '-' && argv[i][1]) {
+			const QString argstr(argv[i] + 2);
+			
+			if (QAction *const a = argv[i][1] == '-'
+					? findCmdStringAction(cmdactions, argstr.left(argstr.lastIndexOf('=')))
+					: findCmdCharAction(cmdactions, argv[i][1])) {
+				if (argstr.endsWith("=0") == a->isChecked() && a->isEnabled())
+					a->trigger();
+			} else
+				unknownCmd = true;
+		}
+	}
+	
+	if (unknownCmd)
+		printUsage(argv[0], cmdactions);
 
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-') {
+			if (fsAct->isChecked())
+				mw->menuBar()->hide();
+			
 			loadFile(QFileInfo(QString(argv[i])).absoluteFilePath());
 			break;
 		}

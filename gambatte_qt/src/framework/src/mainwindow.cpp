@@ -36,7 +36,7 @@ MainWindow::FrameBuffer::Locked::~Locked() {
 }
 
 MainWindow::MainWindow(MediaSource *const source)
-: w_(new MediaWidget(source, *this)), winSize_(-1, -1)
+: w_(new MediaWidget(source, *this)), winSize_(-1, -1), fullscreen_(false)
 {
 	setFocusPolicy(Qt::StrongFocus);
 	setCentralWidget(w_->widget());
@@ -52,48 +52,27 @@ void MainWindow::stop() { w_->stop(); }
 
 void MainWindow::setWindowSize(const QSize &sz) {
 	winSize_ = sz;
-	doSetWindowSize(sz);
+	
+	if (!fullscreen_ && isVisible())
+		doSetWindowSize(sz);
 }
 
 void MainWindow::toggleFullScreen() {
-	if (isFullScreen()) {
+	if (fullscreen_) {
+		fullscreen_ = false;
 		w_->parentExclusiveEvent(false);
-		w_->setFullScreen(false);
+		w_->setFullMode(false);
 		showNormal();
-		doSetWindowSize(winSize_);
+		
+		if (isVisible())
+			doSetWindowSize(winSize_);
+		
 		activateWindow();
 	} else {
-		const int screen = QApplication::desktop()->screenNumber(this);
-
-		w_->setFullScreen(true);
-		doSetWindowSize(QSize(-1, -1));
-
-		// If the window is outside the screen it will be moved to the primary screen by Qt.
-		{
-			const QRect &rect = QApplication::desktop()->screenGeometry(screen);
-			QPoint p(pos());
-
-			if (p.x() > rect.right())
-				p.setX(rect.right());
-			else if (p.x() < rect.left())
-				p.setX(rect.left());
-
-			if (p.y() > rect.bottom())
-				p.setY(rect.bottom());
-			else if (p.y() < rect.top())
-				p.setY(rect.top());
-
-			if (p != pos())
-				move(p);
-		}
-
-		showFullScreen();
-		correctFullScreenGeometry();
-#ifdef Q_WS_MAC // work around annoying random non-updating OpenGL on Mac OS X after full screen.
-		centralWidget()->hide();
-		centralWidget()->show();
-#endif
-		w_->parentExclusiveEvent(hasFocus());
+		fullscreen_ = true;
+		
+		if (isVisible())
+			doShowFullScreen();
 	}
 }
 
@@ -124,7 +103,7 @@ void MainWindow::setSyncToRefreshRate(bool on) { w_->setSyncToRefreshRate(on); }
 void MainWindow::setFullScreenMode(std::size_t screenNo, std::size_t resIndex, std::size_t rateIndex) {
 	if (screenNo < w_->screens()
 			&& (w_->currentResIndex(screenNo) != resIndex || w_->currentRateIndex(screenNo) != rateIndex)) {
-		if (isFullScreen() && screenNo == w_->currentScreen()) {
+		if (w_->isFullMode() && screenNo == w_->currentScreen()) {
 			w_->parentExclusiveEvent(false);
 			w_->setMode(screenNo, resIndex, rateIndex);
 #ifdef Q_WS_WIN
@@ -172,7 +151,7 @@ bool MainWindow::isDwmCompositionEnabled() { return DwmControl::isCompositingEna
 void MainWindow::closeEvent(QCloseEvent */*e*/) {
 	w_->stop();
 	emit closing();
-// 	w_->setFullScreen(false); // avoid misleading auto-minimize on close focusOut event.
+// 	w_->setFullMode(false); // avoid misleading auto-minimize on close focusOut event.
 }
 
 void MainWindow::hideEvent(QHideEvent *) {
@@ -181,8 +160,10 @@ void MainWindow::hideEvent(QHideEvent *) {
 
 void MainWindow::showEvent(QShowEvent *) {
 	// some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
-	doSetWindowSize(winSize_);
-	w_->showEvent();
+	if (!fullscreen_)
+		doSetWindowSize(winSize_);
+	
+	w_->showEvent(this);
 }
 
 void MainWindow::focusOutEvent(QFocusEvent *) {
@@ -193,6 +174,10 @@ void MainWindow::focusOutEvent(QFocusEvent *) {
 void MainWindow::focusInEvent(QFocusEvent *) {
 	w_->focusInEvent();
 	w_->parentExclusiveEvent(isFullScreen());
+	
+	// urk, delay full screen until getting focus if not visible to avoid WMs screwing up.
+	if (fullscreen_ && !w_->isFullMode())
+		doShowFullScreen();
 }
 
 void MainWindow::moveEvent(QMoveEvent *) { w_->moveEvent(this); }
@@ -211,18 +196,50 @@ bool MainWindow::winEvent(MSG *msg, long *) {
 }
 #endif
 
+void MainWindow::doShowFullScreen() {
+	const int screen = QApplication::desktop()->screenNumber(this);
+
+	w_->setFullMode(true);
+	doSetWindowSize(QSize(-1, -1)); 
+
+	// If the window is outside the screen it will be moved to the primary screen by Qt.
+	{
+		const QRect &rect = QApplication::desktop()->screenGeometry(screen);
+		QPoint p(pos());
+
+		if (p.x() > rect.right())
+			p.setX(rect.right());
+		else if (p.x() < rect.left())
+			p.setX(rect.left());
+
+		if (p.y() > rect.bottom())
+			p.setY(rect.bottom());
+		else if (p.y() < rect.top())
+			p.setY(rect.top());
+
+		if (p != pos())
+			move(p);
+	}
+
+	showFullScreen();
+	correctFullScreenGeometry();
+#ifdef Q_WS_MAC // work around annoying random non-updating OpenGL on Mac OS X after full screen.
+	centralWidget()->hide();
+	centralWidget()->show();
+#endif
+	w_->parentExclusiveEvent(hasFocus());
+}
+
 void MainWindow::doSetWindowSize(const QSize &sz) {
-	if (!isFullScreen() && isVisible()) {
-		if (sz == QSize(-1, -1)) {
-			centralWidget()->setMinimumSize(w_->videoSize());
-			layout()->setSizeConstraint(QLayout::SetMinimumSize);
-			setMinimumSize(1, 1); // needed on macx
-			setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
-			resize(size()); // needed on macx
-		} else {
-			centralWidget()->setMinimumSize(sz);
-			layout()->setSizeConstraint(QLayout::SetFixedSize);
-		}
+	if (sz == QSize(-1, -1)) {
+		centralWidget()->setMinimumSize(w_->videoSize());
+		layout()->setSizeConstraint(QLayout::SetMinimumSize);
+		setMinimumSize(1, 1); // needed on macx
+		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
+		resize(size()); // needed on macx
+	} else {
+		centralWidget()->setMinimumSize(sz);
+		layout()->setSizeConstraint(QLayout::SetFixedSize);
 	}
 }
 
