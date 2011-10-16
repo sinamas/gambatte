@@ -22,7 +22,6 @@
 #include <QActionGroup>
 #include <QFileInfo>
 #include <QSettings>
-#include <QtGlobal> // for Q_WS_WIN define
 #include "palettedialog.h"
 #include "blitterconf.h"
 #include "mainwindow.h"
@@ -569,12 +568,9 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 }
 
 void GambatteMenuHandler::open() {
-#ifdef Q_WS_WIN
 	TmpPauser tmpPauser(mw, 4);
 	mw->waitUntilPaused();
-#else
-	TmpPauser tmpPauser(mw, pauseInc);
-#endif
+	
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Open"), recentFileActs[0]->data().toString(),
 						tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip *.gz);;All Files (*)"));
 
@@ -767,12 +763,9 @@ struct SaveStateAsFun {
 }
 
 void GambatteMenuHandler::saveStateAs() {
-#ifdef Q_WS_WIN
 	TmpPauser tmpPauser(mw, 4);
 	mw->waitUntilPaused();
-#else
-	TmpPauser tmpPauser(mw, pauseInc);
-#endif
+
 	const QString &fileName = QFileDialog::getSaveFileName(mw, tr("Save State"),
 					QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
 
@@ -793,12 +786,9 @@ struct LoadStateFromFun {
 }
 
 void GambatteMenuHandler::loadStateFrom() {
-#ifdef Q_WS_WIN
 	TmpPauser tmpPauser(mw, 4);
 	mw->waitUntilPaused();
-#else
-	TmpPauser tmpPauser(mw, pauseInc);
-#endif
+
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Load State"),
 					QString(), tr("Gambatte Quick Save Files (*.gqs);;All Files (*)"));
 
