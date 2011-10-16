@@ -47,7 +47,7 @@ class GambatteSource : public QObject, public MediaSource {
 	PixelBuffer::PixelFormat pxformat;
 	unsigned gbpitch;
 	unsigned vsrci;
-	bool inputState[8];
+	bool inputState[10];
 	volatile bool dpadUp, dpadDown;
 	volatile bool dpadLeft, dpadRight;
 	volatile bool dpadUpLast, dpadLeftLast;
@@ -68,6 +68,7 @@ class GambatteSource : public QObject, public MediaSource {
 	void emitNextStateSlot() { emit nextStateSlot(); }
 	void emitSaveState() { emit saveStateSignal(); }
 	void emitLoadState() { emit loadStateSignal(); }
+	void emitQuit() { emit quit(); }
 	
 public:
 	GambatteSource();
@@ -107,6 +108,7 @@ signals:
 	void nextStateSlot();
 	void saveStateSignal();
 	void loadStateSignal();
+	void quit();
 };
 
 #endif

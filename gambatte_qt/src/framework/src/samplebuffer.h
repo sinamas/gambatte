@@ -20,7 +20,7 @@
 #define SAMPLEBUFFER_H
 
 class MediaSource;
-class PixelBuffer;
+struct PixelBuffer;
 
 #include <memory>
 #include <QtGlobal>

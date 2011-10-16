@@ -358,7 +358,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 
 		fileMenu->addSeparator();
 
-		fileMenu->addAction(tr("E&xit"), qApp, SLOT(closeAllWindows()), tr("Ctrl+Q"));
+		fileMenu->addAction(tr("&Quit"), qApp, SLOT(closeAllWindows()), tr("Ctrl+Q"));
 		updateRecentFileActions();
 	}
 	
@@ -447,6 +447,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	connect(source, SIGNAL(nextStateSlot()), this, SLOT(nextStateSlot()));
 	connect(source, SIGNAL(saveStateSignal()), this, SLOT(saveState()));
 	connect(source, SIGNAL(loadStateSignal()), this, SLOT(loadState()));
+	connect(source, SIGNAL(quit()), qApp, SLOT(closeAllWindows()));
 	connect(videoDialog, SIGNAL(accepted()), this, SLOT(videoDialogChange()));
 	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundDialogChange()));
 	connect(miscDialog, SIGNAL(accepted()), this, SLOT(miscDialogChange()));

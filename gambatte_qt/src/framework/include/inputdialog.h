@@ -19,11 +19,13 @@
 #ifndef INPUTDIALOG_H
 #define INPUTDIALOG_H
 
+#include "auto_vector.h"
+#include "mutual.h"
+#include "SDL_event.h"
 #include <QDialog>
-#include <QMutex>
+#include <QSpinBox>
 #include <vector>
 #include <map>
-#include "SDL_event.h"
 
 class InputBoxPair;
 
@@ -34,7 +36,7 @@ class InputBoxPair;
   * to the constructor, and call input event methods to invoke Button::Actions
   * configured to activate on the respective input event.
   */
-class InputDialog : public QDialog {
+class InputDialog : public QDialog, private Uncopyable {
 	Q_OBJECT
 public:
 	struct Button {
@@ -56,35 +58,54 @@ public:
 			virtual void buttonReleased() {}
 			virtual ~Action() {}
 		} *action;
+		
+		// Default number of frames per auto-repeat press. 0 for auto-repeat disabled.
+		unsigned char defaultFpp;
 	};
 	
 private:
-	class JoyObserver {
+	struct KeyMapped {
 		Button::Action *const action;
-		const int mask;
-	
-		void notifyObserver(bool press) {
-			if (press)
-				action->buttonPressed();
-			else
-				action->buttonReleased();
-		}
-	
-	public:
-		JoyObserver(Button::Action *const action, const int mask) : action(action), mask(mask) {}
-		void valueChanged(const int value) { notifyObserver((value & mask) == mask); }
+		const unsigned char fpp;
+		KeyMapped(Button::Action *action, int fpp) : action(action), fpp(fpp) {}
 	};
 	
-	typedef std::multimap<unsigned,Button::Action*> keymap_t;
-	typedef std::multimap<unsigned,JoyObserver> joymap_t;
+	struct JoyMapped {
+		Button::Action *const action;
+		const int mask;
+		const unsigned char fpp;
+		JoyMapped(Button::Action *action, int mask, int fpp) : action(action), mask(mask), fpp(fpp) {}
+	};
+	
+	struct AutoPress {
+		Button::Action *action;
+		unsigned char fpp;
+		unsigned char fcnt;
+		AutoPress(Button::Action *action, unsigned char fpp, unsigned char fcnt) : action(action), fpp(fpp), fcnt(fcnt) {}
+	};
+	
+	struct Config {
+		SDL_Event event;
+		unsigned char fpp;
+	};
+	
+	template<class Map>
+	struct Mapping {
+		Map map;
+		std::vector<AutoPress> rapidvec;
+	};
+	
+	typedef std::multimap<unsigned,KeyMapped> keymap_t;
+	typedef std::multimap<unsigned,JoyMapped> joymap_t;
+	typedef Mapping<keymap_t> KeyMapping;
+	typedef Mapping<joymap_t> JoyMapping;
 	
 	const std::vector<Button> buttonInfos;
-	std::vector<InputBoxPair*> inputBoxPairs;
-	std::vector<SDL_Event> eventData;
-	keymap_t keyInputs;
-	joymap_t joyInputs;
-	QMutex keymut;
-	QMutex joymut;
+	auto_vector<InputBoxPair> inputBoxPairs;
+	auto_vector<QSpinBox> fppBoxes;
+	std::vector<Config> config;
+	Mutual<KeyMapping> keymapping;
+	Mutual<JoyMapping> joymapping;
 	const bool deleteButtonActions;
 	
 	void resetMapping();
@@ -101,6 +122,9 @@ public:
 	void keyPressEvent(const QKeyEvent *);
 	void keyReleaseEvent(const QKeyEvent *);
 	void joystickEvent(const SDL_Event&);
+	
+	// Call once every frame to tick auto-repeat pressing.
+	void consumeAutoPress();
 	
 public slots:
 	void accept();

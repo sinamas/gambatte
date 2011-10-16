@@ -19,6 +19,9 @@
 #ifndef MUTUAL_H
 #define MUTUAL_H
 
+#include "uncopyable.h"
+#include <QMutex>
+
 template<class T>
 class Mutual {
 	mutable QMutex mut;
@@ -46,6 +49,16 @@ public:
 		~ConstLocked() { lc.mut.unlock(); }
 		const T* operator->() const { return &lc.t; }
 		const T& get() const { return lc.t; }
+	};
+	
+	class TryLocked : Uncopyable {
+		Mutual *const lc;
+	public:
+		TryLocked(Mutual &lc) : lc(lc.mut.tryLock() ? &lc : 0) {}
+		~TryLocked() { if (lc) lc->mut.unlock(); }
+		T* operator->() const { return &lc->t; }
+		T* get() const { return lc ? &lc->t : 0; }
+		operator bool() const { return lc; }
 	};
 };
 

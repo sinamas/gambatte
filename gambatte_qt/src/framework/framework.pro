@@ -36,6 +36,7 @@ HEADERS += framework/include/audioengineconf.h \
     framework/include/inputdialog.h \
     framework/include/mainwindow.h \
     framework/include/mediasource.h \
+    framework/include/mutual.h \
     framework/include/persistcheckbox.h \
     framework/include/pixelbuffer.h \
     framework/include/resinfo.h \

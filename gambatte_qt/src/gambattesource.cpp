@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,50 +19,50 @@
 #include "gambattesource.h"
 #include "videolink/rgb32conv.h"
 #include "videolink/vfilterinfo.h"
-#include <algorithm>
+#include <cstring>
 
 using namespace gambatte;
 
-GambatteSource::GambatteSource() :
-MediaSource(2064),
-inputDialog_(0),
-gbpixels(0),
-pxformat(PixelBuffer::RGB32),
-gbpitch(160),
-vsrci(0),
-dpadUp(false),
-dpadDown(false),
-dpadLeft(false),
-dpadRight(false),
-dpadUpLast(false),
-dpadLeftLast(false) {
+GambatteSource::GambatteSource()
+: MediaSource(2064),
+  inputDialog_(0),
+  gbpixels(0),
+  pxformat(PixelBuffer::RGB32),
+  gbpitch(160),
+  vsrci(0),
+  dpadUp(false),
+  dpadDown(false),
+  dpadLeft(false),
+  dpadRight(false),
+  dpadUpLast(false),
+  dpadLeftLast(false)
+{
 	inputDialog_ = createInputDialog();
 	gb.setInputGetter(&inputGetter);
-	std::fill(inputState, inputState + 8, false);
+	std::memset(inputState, 0, sizeof inputState);
 }
 
 namespace {
-static const InputDialog::Button constructButtonInfo(InputDialog::Button::Action *action, const char *label,
-		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown) {
-	InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
-			defaultAltKey: defaultAltKey, action: action };
-
+static const InputDialog::Button makeButtonInfo(InputDialog::Button::Action *action, const char *label,
+		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown, int defaultFpp = 0) {
+	const InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
+	                          defaultAltKey: defaultAltKey, action: action, defaultFpp: defaultFpp };
 	return b;
 }
 
 template<void (GambatteSource::*fun)()>
 struct CallAct : InputDialog::Button::Action {
 	GambatteSource *const source;
-	CallAct(GambatteSource *const source) : source(source) {}
-	void buttonPressed() { (source->*fun)(); }
+	explicit CallAct(GambatteSource *const source) : source(source) {}
+	virtual void buttonPressed() { (source->*fun)(); }
 };
 
 template<bool bval>
 struct GbDirAct : InputDialog::Button::Action {
 	volatile bool &a, &b;
-	GbDirAct(volatile bool &a, volatile bool &b) : a(a), b(b) {}
-	void buttonPressed() { a = true; b = bval; }
-	void buttonReleased() { a = false; }
+	explicit GbDirAct(volatile bool &a, volatile bool &b) : a(a), b(b) {}
+	virtual void buttonPressed() { a = true; b = bval; }
+	virtual void buttonReleased() { a = false; }
 };
 
 enum { A_BUT, B_BUT, SELECT_BUT, START_BUT, RIGHT_BUT, LEFT_BUT, UP_BUT, DOWN_BUT };
@@ -73,37 +73,39 @@ InputDialog* GambatteSource::createInputDialog() {
 	
 	struct GbButAct : InputDialog::Button::Action {
 		bool &a;
-		GbButAct(bool &a) : a(a) {}
-		void buttonPressed() { a = true; }
-		void buttonReleased() { a = false; }
+		explicit GbButAct(bool &a) : a(a) {}
+		virtual void buttonPressed() { a = true; }
+		virtual void buttonReleased() { a = false; }
 	};
 	
 	struct FastForwardAct : InputDialog::Button::Action {
 		GambatteSource *const source;
-		FastForwardAct(GambatteSource *const source) : source(source) {}
-		void buttonPressed() { source->emitSetTurbo(true); }
-		void buttonReleased() { source->emitSetTurbo(false); }
+		explicit FastForwardAct(GambatteSource *const source) : source(source) {}
+		virtual void buttonPressed() { source->emitSetTurbo(true); }
+		virtual void buttonReleased() { source->emitSetTurbo(false); }
 	};
 	
-	v.reserve(18);
-	v.push_back(constructButtonInfo(new GbDirAct<true>(dpadUp, dpadUpLast), "Up", "Game", Qt::Key_Up));
-	v.push_back(constructButtonInfo(new GbDirAct<false>(dpadDown, dpadUpLast), "Down", "Game", Qt::Key_Down));
-	v.push_back(constructButtonInfo(new GbDirAct<true>(dpadLeft, dpadLeftLast), "Left", "Game", Qt::Key_Left));
-	v.push_back(constructButtonInfo(new GbDirAct<false>(dpadRight, dpadLeftLast), "Right", "Game", Qt::Key_Right));
-	v.push_back(constructButtonInfo(new GbButAct(inputState[A_BUT]), "A", "Game", Qt::Key_D));
-	v.push_back(constructButtonInfo(new GbButAct(inputState[B_BUT]), "B", "Game", Qt::Key_C));
-	v.push_back(constructButtonInfo(new GbButAct(inputState[START_BUT]), "Start", "Game", Qt::Key_Return));
-	v.push_back(constructButtonInfo(new GbButAct(inputState[SELECT_BUT]), "Select", "Game", Qt::Key_Shift));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitPause>(this), "Pause", "Play", Qt::Key_Pause));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitFrameStep>(this), "Frame step", "Play", Qt::Key_F1));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitDecFrameRate>(this), "Decrease frame rate", "Play", Qt::Key_F2));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitIncFrameRate>(this), "Increase frame rate", "Play", Qt::Key_F3));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitResetFrameRate>(this), "Reset frame rate", "Play", Qt::Key_F4));
-	v.push_back(constructButtonInfo(new FastForwardAct(this), "Fast forward", "Play", Qt::Key_Tab));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitSaveState>(this), "Save state", "State", Qt::Key_F5));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitLoadState>(this), "Load state", "State", Qt::Key_F8));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitPrevStateSlot>(this), "Previous state slot", "State", Qt::Key_F6));
-	v.push_back(constructButtonInfo(new CallAct<&GambatteSource::emitNextStateSlot>(this), "Next state slot", "State", Qt::Key_F7));
+	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadUp, dpadUpLast), "Up", "Game", Qt::Key_Up));
+	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadDown, dpadUpLast), "Down", "Game", Qt::Key_Down));
+	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadLeft, dpadLeftLast), "Left", "Game", Qt::Key_Left));
+	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadRight, dpadLeftLast), "Right", "Game", Qt::Key_Right));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[A_BUT]), "A", "Game", Qt::Key_D));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[B_BUT]), "B", "Game", Qt::Key_C));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[START_BUT]), "Start", "Game", Qt::Key_Return));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[SELECT_BUT]), "Select", "Game", Qt::Key_Shift));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPause>(this), "Pause", "Play", Qt::Key_Pause));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitFrameStep>(this), "Frame step", "Play", Qt::Key_F1));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitDecFrameRate>(this), "Decrease frame rate", "Play", Qt::Key_F2));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitIncFrameRate>(this), "Increase frame rate", "Play", Qt::Key_F3));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitResetFrameRate>(this), "Reset frame rate", "Play", Qt::Key_F4));
+	v.push_back(makeButtonInfo(new FastForwardAct(this), "Fast forward", "Play", Qt::Key_Tab));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitSaveState>(this), "Save state", "State", Qt::Key_F5));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitLoadState>(this), "Load state", "State", Qt::Key_F8));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPrevStateSlot>(this), "Previous state slot", "State", Qt::Key_F6));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitNextStateSlot>(this), "Next state slot", "State", Qt::Key_F7));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + A_BUT]), "Turbo A", "Other", Qt::Key_unknown, Qt::Key_unknown, 1));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + B_BUT]), "Turbo B", "Other", Qt::Key_unknown, Qt::Key_unknown, 1));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitQuit>(this), "Quit", "Other"));
 	
 	return new InputDialog(v);
 }
@@ -111,7 +113,7 @@ InputDialog* GambatteSource::createInputDialog() {
 const std::vector<VideoDialog::VideoSourceInfo> GambatteSource::generateVideoSourceInfos() {
 	std::vector<VideoDialog::VideoSourceInfo> v(VfilterInfo::numVfilters());
 	
-	for (unsigned i = 0; i < v.size(); ++i) {
+	for (std::size_t i = 0; i < v.size(); ++i) {
 		const VideoDialog::VideoSourceInfo vsi = { label: VfilterInfo::get(i).handle,
 				width: VfilterInfo::get(i).outWidth, height: VfilterInfo::get(i).outHeight };
 		
@@ -160,11 +162,11 @@ static void setGbDir(bool &a, bool &b, const bool aPressed, const bool bPressed,
 	}
 }
 
-static unsigned packedInputState(const bool inputState[8]) {
+static unsigned packedInputState(const bool inputState[], const std::size_t len) {
 	unsigned is = 0;
 	
-	for (unsigned i = 0; i < 8; ++i)
-		is |= inputState[i] << i;
+	for (std::size_t i = 0; i < len; ++i)
+		is |= inputState[i] << (i & 7);
 	
 	return is;
 }
@@ -184,11 +186,14 @@ long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long 
 	
 	setGbDir(inputState[UP_BUT], inputState[DOWN_BUT], dpadUp, dpadDown, dpadUpLast);
 	setGbDir(inputState[LEFT_BUT], inputState[RIGHT_BUT], dpadLeft, dpadRight, dpadLeftLast);
-	inputGetter.is = packedInputState(inputState);
+	inputGetter.is = packedInputState(inputState, (sizeof inputState) / (sizeof inputState[0]));
 	
 	unsigned usamples = samples;
 	const long retval = gb.runFor(gbpixels, gbpitch, reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
 	samples = usamples;
+	
+	if (retval >= 0)
+		inputDialog_->consumeAutoPress();
 	
 	return retval;
 }

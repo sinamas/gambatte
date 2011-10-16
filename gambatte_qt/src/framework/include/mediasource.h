@@ -22,7 +22,7 @@
 #include <QtGlobal>
 #include "SDL_event.h"
 
-class PixelBuffer;
+struct PixelBuffer;
 class QKeyEvent;
 
 /**
