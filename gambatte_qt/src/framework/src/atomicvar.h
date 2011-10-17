@@ -24,8 +24,8 @@ class AtomicVar {
 	mutable QMutex mut;
 	T var;
 public:
-	AtomicVar() : mut(QMutex::Recursive) {}
-	explicit AtomicVar(const T var) : mut(QMutex::Recursive), var(var) {}
+	AtomicVar() {}
+	explicit AtomicVar(const T var) : var(var) {}
 
 	class Locked : Uncopyable {
 		AtomicVar &av;

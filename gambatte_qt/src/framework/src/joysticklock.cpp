@@ -20,7 +20,7 @@
 #include "SDL_Joystick/include/SDL_joystick.h"
 #include <map>
 
-QMutex JoystickLock::mut(QMutex::Recursive);
+QMutex JoystickLock::mut;
 
 int pollJsEvent(SDL_Event *const ev, const int insensitivity) {
 	typedef std::map<unsigned, int> map_t;

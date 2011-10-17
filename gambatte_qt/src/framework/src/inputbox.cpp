@@ -369,11 +369,10 @@ void InputBox::contextMenuEvent(QContextMenuEvent *event) {
 }
 
 void InputBox::focusInEvent(QFocusEvent *event) {
-	JoystickLock::lock();
-	SDL_JoystickUpdate();
-	SDL_ClearEvents();
-	
 	if (!timerId) {
+		JoystickLock::lock();
+		SDL_JoystickUpdate();
+		SDL_ClearEvents();
 		ignoreCnt = 1;
 		timerId = startTimer(100);
 	}
@@ -382,9 +381,11 @@ void InputBox::focusInEvent(QFocusEvent *event) {
 }
 
 void InputBox::focusOutEvent(QFocusEvent *event) {
-	JoystickLock::unlock();
-	killTimer(timerId);
-	timerId = 0;
+	if (timerId) {
+		JoystickLock::unlock();
+		killTimer(timerId);
+		timerId = 0;
+	}
 	
 	QLineEdit::focusOutEvent(event);
 }
