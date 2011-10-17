@@ -28,8 +28,8 @@ class Mutual {
 	T t;
 
 public:
-	Mutual() : mut(QMutex::Recursive) {}
-	explicit Mutual(const T &t) : mut(QMutex::Recursive), t(t) {}
+	Mutual() {}
+	explicit Mutual(const T &t) : t(t) {}
 
 	class Locked : Uncopyable {
 		Mutual &lc;
