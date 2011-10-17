@@ -22,6 +22,7 @@
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QKeyEvent>
+#include <memory>
 
 static const char* keyToString(int key) {
 	switch (key) {
@@ -356,16 +357,13 @@ InputBox::InputBox(QWidget *nextFocus)
 }
 
 void InputBox::contextMenuEvent(QContextMenuEvent *event) {
-	QMenu *const menu = new QMenu(this);
-	
+	const std::auto_ptr<QMenu> menu(new QMenu(this));
 	menu->addAction(tr("&Copy"), this, SLOT(copy()))->setEnabled(hasSelectedText());
 	menu->addSeparator();
 	menu->addAction(tr("&Select All"), this, SLOT(selectAll()))->setEnabled(!displayText().isEmpty());
 	menu->addSeparator();
 	menu->addAction(tr("C&lear"), this, SLOT(clearData()))->setEnabled(getData().value != NULL_VALUE);
 	menu->exec(event->globalPos());
-	
-	delete menu;
 }
 
 void InputBox::focusInEvent(QFocusEvent *event) {
