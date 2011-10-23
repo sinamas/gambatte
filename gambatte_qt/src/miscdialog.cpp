@@ -50,7 +50,7 @@ MiscDialog::MiscDialog(const QString &savepath, QWidget *const parent)
   pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false),
   dwmTripleBuf_(new QCheckBox(tr("DWM triple buffering"), this), "misc/dwmTripleBuf", true),
   multicartCompat_(new QCheckBox(tr("Multicart compatibility"), this), "misc/multicartCompat", false),
-  turboSpeed_(4)
+  turboSpeed_(8)
 {
 	setWindowTitle(tr("Miscellaneous Settings"));
 	turboSpeedBox->setRange(2, 16);
