@@ -74,6 +74,7 @@ public:
 	explicit Memory(const Interrupter &interrupter);
 	
 	bool loaded() const { return cart.loaded(); }
+	const char * romTitle() const { return cart.romTitle(); }
 
 	void setStatePtrs(SaveState &state);
 	unsigned long saveState(SaveState &state, unsigned long cc);

@@ -122,6 +122,9 @@ public:
 	/** Current state slot selected with selectState(). Returns a value between 0 and 9 inclusive. */
 	int currentState() const;
 	
+	/** ROM header title of currently loaded ROM image. */
+	const std::string romTitle() const;
+	
 private:
 	struct Priv;
 	Priv *const p_;

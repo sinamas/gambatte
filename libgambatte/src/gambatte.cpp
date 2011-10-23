@@ -23,6 +23,7 @@
 #include "initstate.h"
 #include "state_osd_elements.h"
 #include <sstream>
+#include <cstring>
 
 static const std::string itos(const int i) {
 	std::stringstream ss;
@@ -168,4 +169,16 @@ void GB::selectState(int n) {
 }
 
 int GB::currentState() const { return p_->stateNo; }
+
+const std::string GB::romTitle() const {
+	if (p_->cpu.loaded()) {
+		char title[0x11];
+		std::memcpy(title, p_->cpu.romTitle(), 0x10);
+		title[(title[0xF] & 0x80) ? 0xF : 0x10] = '\0';
+		return std::string(title);
+	}
+	
+	return std::string();
+}
+
 }

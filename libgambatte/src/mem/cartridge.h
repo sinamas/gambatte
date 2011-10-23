@@ -75,6 +75,7 @@ public:
 	const std::string saveBasePath() const;
 	void setSaveDir(const std::string &dir);
 	bool loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
+	const char * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
 };
 
 }

@@ -554,7 +554,9 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	}
 
 	if (!source->isCgb()) {
-		romPaletteDialog->setSettingsFile(QFileInfo(fileName).completeBaseName() + ".pal");
+		romPaletteDialog->setSettingsFile(
+				QFileInfo(fileName).completeBaseName() + ".pal",
+				QString::fromStdString(source->romTitle()).trimmed());
 		setDmgPaletteColors();
 	}
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
+ *   Copyright (C) 2007 by Sindre AamÃ¥s                                    *
  *   aamas@stud.ntnu.no                                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -90,6 +90,7 @@ class PaletteDialog : public QDialog {
 	QPushButton *const rmSchemeButton;
 	ColorQuad *quads[3];
 	QRgb currentColors[3][4];
+	QString defaultScheme;
 	QString schemeString;
 	QString savedir;
 	QString settingsFile;
@@ -107,11 +108,11 @@ private slots:
 	void schemeChanged(const QModelIndex &current, const QModelIndex &previous);
 	
 public:
-	PaletteDialog(const QString &savepath, const PaletteDialog *global = 0, QWidget *parent = 0);
+	explicit PaletteDialog(const QString &savepath, const PaletteDialog *global = 0, QWidget *parent = 0);
 	~PaletteDialog();
 	QRgb getColor(unsigned palnum, unsigned colornum) const { return currentColors[palnum < 3 ? palnum : 2][colornum & 3]; }
 	void externalChange();
-	void setSettingsFile(const QString &filename);
+	void setSettingsFile(const QString &filename, const QString &romTitle);
 
 public slots:
 	void accept();

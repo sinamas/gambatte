@@ -79,6 +79,7 @@ public:
 	}
 	
 	bool loaded() const { return memory.loaded(); }
+	const char * romTitle() const { return memory.romTitle(); }
 	
 	void setSoundBuffer(uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
 	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }
