@@ -146,6 +146,8 @@ public:
 	}
 	
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
+	void setGameGenie(const std::string &codes) { cart.setGameGenie(codes); }
+	void setGameShark(const std::string &codes) { interrupter.setGameShark(codes); }
 };
 
 }

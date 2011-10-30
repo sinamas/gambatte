@@ -181,4 +181,12 @@ const std::string GB::romTitle() const {
 	return std::string();
 }
 
+void GB::setGameGenie(const std::string &codes) {
+	p_->cpu.setGameGenie(codes);
+}
+
+void GB::setGameShark(const std::string &codes) {
+	p_->cpu.setGameShark(codes);
+}
+
 }

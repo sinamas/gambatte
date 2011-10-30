@@ -402,6 +402,7 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 	rombanks = pow2ceil(filesize / 0x4000);
 	std::printf("rombanks: %u\n", filesize / 0x4000);
 	
+	ggUndoList.clear();
 	memptrs.reset(rombanks, rambanks, cgb ? 8 : 2);
 
 	rom->rewind();
@@ -478,8 +479,46 @@ void Cartridge::saveSavedata() {
 
 		file.put(basetime >> 24 & 0xFF);
 		file.put(basetime >> 16 & 0xFF);
-		file.put(basetime >> 8 & 0xFF);
-		file.put(basetime & 0xFF);
+		file.put(basetime >>  8 & 0xFF);
+		file.put(basetime       & 0xFF);
+	}
+}
+
+static int asHex(const char c) {
+	return c >= 'A' ? c - 'A' + 0xA : c - '0';
+}
+
+void Cartridge::applyGameGenie(const std::string &code) {
+	if (code.length() == 11) {
+		const unsigned val = (asHex(code[0]) << 4 | asHex(code[1])) & 0xFF;
+		const unsigned addr = (asHex(code[2]) << 8 | asHex(code[4]) << 4 | asHex(code[5]) | (asHex(code[6]) ^ 0xF) << 12) & 0x7FFF;
+		unsigned cmp = (asHex(code[8]) << 4 | asHex(code[10])) ^ 0xFF;
+		cmp = ((cmp >> 2 | cmp << 6) ^ 0x45) & 0xFF;
+		
+		for (unsigned bank = 0; bank < static_cast<std::size_t>(memptrs.romdataend() - memptrs.romdata()) / 0x4000; ++bank) {
+			if ((addr < 0x4000) == ((bank & (multi64rom ? 0xF : ~0)) == 0)
+					&& memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] == cmp) {
+				ggUndoList.push_back(AddrData(bank * 0x4000ul + (addr & 0x3FFF), cmp));
+				memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] = val;
+			}
+		}
+	}
+}
+
+void Cartridge::setGameGenie(const std::string &codes) {
+	if (loaded()) {
+		for (std::vector<AddrData>::reverse_iterator it = ggUndoList.rbegin(), end = ggUndoList.rend(); it != end; ++it) {
+			if (memptrs.romdata() + it->addr < memptrs.romdataend())
+				memptrs.romdata()[it->addr] = it->data;
+		}
+		
+		ggUndoList.clear();
+		
+		std::string code;
+		for (std::size_t pos = 0; pos < codes.length()
+				&& (code = codes.substr(pos, codes.find(';', pos) - pos), true); pos += code.length() + 1) {
+			applyGameGenie(code);
+		}
 	}
 }
 

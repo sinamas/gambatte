@@ -22,17 +22,25 @@
 #include "memptrs.h"
 #include "rtc.h"
 #include <string>
+#include <vector>
 
 namespace gambatte {
 
 struct SaveState;
 
 class Cartridge {
+	struct AddrData {
+		unsigned long addr;
+		unsigned char data;
+		AddrData(unsigned long addr, unsigned data) : addr(addr), data(data) {}
+	};
+	
 	MemPtrs memptrs;
 	Rtc rtc;
 	
 	std::string defaultSaveBasePath;
 	std::string saveDir;
+	std::vector<AddrData> ggUndoList;
 	
 	unsigned short rombank;
 	unsigned char rambank;
@@ -42,6 +50,7 @@ class Cartridge {
 	
 	unsigned rambanks() const { return (memptrs.rambankdataend() - memptrs.rambankdata()) / 0x2000; }
 	unsigned rombanks() const { return (memptrs.romdataend()     - memptrs.romdata()    ) / 0x4000; }
+	void applyGameGenie(const std::string &code);
 	
 public:
 	Cartridge();
@@ -76,6 +85,7 @@ public:
 	void setSaveDir(const std::string &dir);
 	bool loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
 	const char * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
+	void setGameGenie(const std::string &codes);
 };
 
 }
