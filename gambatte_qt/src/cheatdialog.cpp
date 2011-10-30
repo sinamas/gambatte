@@ -89,7 +89,6 @@ GetCheatInput::GetCheatInput(const QString &desc, const QString &code, QWidget *
   descEdit_(new QLineEdit(desc)),
   okButton_(new QPushButton(tr("OK")))
 {
-	setWindowTitle(tr("Add Cheat"));
 	QVBoxLayout *const l = new QVBoxLayout;
 	setLayout(l);
 	l->addWidget(new QLabel(tr("Description:")));
@@ -230,6 +229,7 @@ void CheatDialog::resetViewModel(const std::vector<CheatListItem> &items, const 
 
 void CheatDialog::addCheat() {
 	const std::auto_ptr<GetCheatInput> getCheatDialog(new GetCheatInput(QString(), QString(), this));
+	getCheatDialog->setWindowTitle(tr("Add Cheat"));
 	
 	if (getCheatDialog->exec()) {
 		std::vector<CheatListItem> items = reinterpret_cast<CheatListModel*>(view_->model())->items();
@@ -247,6 +247,7 @@ void CheatDialog::editCheat() {
 	
 	if (row < items.size()) {
 		const std::auto_ptr<GetCheatInput> getCheatDialog(new GetCheatInput(items[row].label, items[row].code, this));
+		getCheatDialog->setWindowTitle(tr("Edit Cheat"));
 		
 		if (getCheatDialog->exec()) {
 			const CheatListItem item(getCheatDialog->descText(), getCheatDialog->codeText(), items[row].checked);
