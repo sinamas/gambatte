@@ -93,7 +93,7 @@ GetCheatInput::GetCheatInput(const QString &desc, const QString &code, QWidget *
 	setLayout(l);
 	l->addWidget(new QLabel(tr("Description:")));
 	l->addWidget(descEdit_);
-	l->addWidget(new QLabel(tr("Code:")));
+	l->addWidget(new QLabel(tr("GG/GS Code:")));
 	l->addWidget(codeEdit_);
 	
 	const QString cheatre("((01[0-9a-fA-F]{6,6})|([0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}))");
