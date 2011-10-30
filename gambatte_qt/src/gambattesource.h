@@ -76,6 +76,8 @@ public:
 	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
 	
 	bool load(const std::string &romfile, const unsigned flags) { return gb.load(romfile, flags); }
+	void setGameGenie(const std::string &codes) { gb.setGameGenie(codes); }
+	void setGameShark(const std::string &codes) { gb.setGameShark(codes); }
 	void reset() { gb.reset(); }
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
 	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir); }

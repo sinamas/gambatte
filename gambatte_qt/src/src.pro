@@ -2,17 +2,19 @@ COMMONPATH = ../../common
 include(framework/framework.pro)
 
 SOURCES += main.cpp \
+    cheatdialog.cpp \
+    fpsselector.cpp \
     gambattesource.cpp \
     gambattemenuhandler.cpp \
-    palettedialog.cpp \
     miscdialog.cpp \
-    fpsselector.cpp \
+    palettedialog.cpp \
     pathselector.cpp
 HEADERS += gambattesource.h \
     gambattemenuhandler.h \
-    palettedialog.h \
-    miscdialog.h \
+    cheatdialog.h \
     fpsselector.h \
+    miscdialog.h \
+    palettedialog.h \
     pathselector.h
 SOURCES += $$COMMONPATH/videolink/rgb32conv.cpp \
     $$COMMONPATH/videolink/vfilterinfo.cpp \

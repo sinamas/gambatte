@@ -29,6 +29,7 @@
 #include "videodialog.h"
 #include "gambattesource.h"
 #include "miscdialog.h"
+#include "cheatdialog.h"
 #include <iostream>
 
 static const QString strippedName(const QString &fullFileName) {
@@ -238,10 +239,6 @@ static const QString settingsPath() {
 	return path;
 }
 
-static const QString defaultSavePath() {
-	return settingsPath() + "/saves";
-}
-
 static const QString toCmdString(const QAction *const a) {
 	QString text = a->text().toLower();
 	text.replace("&", "");
@@ -289,17 +286,19 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
   source(source),
   soundDialog(new SoundDialog(mw, mw)),
   videoDialog(new VideoDialog(mw, source->generateVideoSourceInfos(), QString("Video filter:"), mw)),
-  miscDialog(new MiscDialog(defaultSavePath(), mw)),
+  miscDialog(new MiscDialog(settingsPath() + "/saves", mw)),
+  cheatDialog(new CheatDialog(settingsPath() + "/cheats.ini", mw)),
   stateSlotGroup(new QActionGroup(mw)),
   windowSizeMenu(mw, videoDialog),
   pauseInc(4)
 {
 	mw->setWindowTitle("Gambatte");
 	source->inputDialog()->setParent(mw, source->inputDialog()->windowFlags());
-	QDir::root().mkpath(defaultSavePath());
 
 	{
-		const QString &palpath = settingsPath() + "/palettes";
+		const QString &settingspath = settingsPath();
+		const QString &palpath = settingspath + "/palettes";
+		QDir::root().mkpath(settingspath + "/saves");
 		QDir::root().mkpath(palpath);
 		globalPaletteDialog = new PaletteDialog(palpath, 0, mw);
 		romPaletteDialog = new PaletteDialog(palpath, globalPaletteDialog, mw);
@@ -415,11 +414,12 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 #endif
 	fsAct = settingsm->addAction(tr("&Full Screen"), this, SLOT(toggleFullScreen()), tr("Ctrl+F"));
 	fsAct->setCheckable(true);
-	
-	romLoadedActions->setEnabled(false);
 
 // 	settingsm->addAction(hideMenuAct);
 	cmdactions += settingsm->actions();
+	
+	romLoadedActions->addAction(mw->menuBar()->addMenu(tr("&Tools"))->addAction(tr("&Cheats..."), cheatDialog, SLOT(exec())));
+	romLoadedActions->setEnabled(false);
 
 	mw->menuBar()->addSeparator();
 
@@ -450,6 +450,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	connect(videoDialog, SIGNAL(accepted()), this, SLOT(videoDialogChange()));
 	connect(soundDialog, SIGNAL(accepted()), this, SLOT(soundDialogChange()));
 	connect(miscDialog, SIGNAL(accepted()), this, SLOT(miscDialogChange()));
+	connect(cheatDialog, SIGNAL(accepted()), this, SLOT(cheatDialogChange()));
 	connect(mw, SIGNAL(videoBlitterFailure()), this, SLOT(videoBlitterFailure()));
 	connect(mw, SIGNAL(audioEngineFailure()), this, SLOT(audioEngineFailure()));
 	connect(mw, SIGNAL(closing()), this, SLOT(saveWindowSizeIfNotFullScreen()));
@@ -553,10 +554,14 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 		return;
 	}
 
+	const QString &romTitle = QString::fromStdString(source->romTitle()).trimmed();
+	cheatDialog->setGameName(romTitle.isEmpty() ? QFileInfo(fileName).completeBaseName() : romTitle);
+	cheatDialogChange();
+
 	if (!source->isCgb()) {
 		romPaletteDialog->setSettingsFile(
 				QFileInfo(fileName).completeBaseName() + ".pal",
-				QString::fromStdString(source->romTitle()).trimmed());
+				romTitle);
 		setDmgPaletteColors();
 	}
 
@@ -661,6 +666,21 @@ void GambatteMenuHandler::miscDialogChange() {
 	mw->setFastForwardSpeed(miscDialog->turboSpeed());
 	mw->setPauseOnFocusOut(miscDialog->pauseOnFocusOut() ? 2 : 0);
 	pauseInc = miscDialog->pauseOnDialogs() ? 4 : 0;
+}
+
+void GambatteMenuHandler::cheatDialogChange() {
+	std::string gameGenieCodes;
+	std::string gameSharkCodes;
+	
+	foreach (const QString &s, cheatDialog->cheats().split(';', QString::SkipEmptyParts)) {
+		if (s.contains('-')) {
+			gameGenieCodes += s.toStdString() + ";";
+		} else
+			gameSharkCodes += s.toStdString() + ";";
+	}
+	
+	source->setGameGenie(gameGenieCodes);
+	source->setGameShark(gameSharkCodes);
 }
 
 void GambatteMenuHandler::reconsiderSyncFrameRateActionEnable() {

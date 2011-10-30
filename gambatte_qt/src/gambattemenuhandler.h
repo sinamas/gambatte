@@ -34,6 +34,7 @@ class QMenu;
 class SoundDialog;
 class VideoDialog;
 class MiscDialog;
+class CheatDialog;
 
 class FrameRateAdjuster : public QObject {
 	Q_OBJECT
@@ -130,6 +131,7 @@ class GambatteMenuHandler : public QObject {
 	SoundDialog *const soundDialog;
 	VideoDialog *const videoDialog;
 	MiscDialog *const miscDialog;
+	CheatDialog *const cheatDialog;
 	QAction *recentFileActs[MaxRecentFiles];
 	QAction *pauseAction;
 	QAction *syncFrameRateAction;
@@ -163,6 +165,7 @@ private slots:
 	void videoDialogChange();
 	void soundDialogChange();
 	void miscDialogChange();
+	void cheatDialogChange();
 	void reconsiderSyncFrameRateActionEnable();
 	void execGlobalPaletteDialog();
 	void execRomPaletteDialog();
