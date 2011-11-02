@@ -489,16 +489,20 @@ static int asHex(const char c) {
 }
 
 void Cartridge::applyGameGenie(const std::string &code) {
-	if (code.length() == 11) {
+	if (6 < code.length()) {
 		const unsigned val = (asHex(code[0]) << 4 | asHex(code[1])) & 0xFF;
 		const unsigned addr = (asHex(code[2]) << 8 | asHex(code[4]) << 4 | asHex(code[5]) | (asHex(code[6]) ^ 0xF) << 12) & 0x7FFF;
-		unsigned cmp = (asHex(code[8]) << 4 | asHex(code[10])) ^ 0xFF;
-		cmp = ((cmp >> 2 | cmp << 6) ^ 0x45) & 0xFF;
+		unsigned cmp = 0xFFFF;
+		
+		if (10 < code.length()) {
+			cmp = (asHex(code[8]) << 4 | asHex(code[10])) ^ 0xFF;
+			cmp = ((cmp >> 2 | cmp << 6) ^ 0x45) & 0xFF;
+		}
 		
 		for (unsigned bank = 0; bank < static_cast<std::size_t>(memptrs.romdataend() - memptrs.romdata()) / 0x4000; ++bank) {
 			if ((addr < 0x4000) == ((bank & (multi64rom ? 0xF : ~0)) == 0)
-					&& memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] == cmp) {
-				ggUndoList.push_back(AddrData(bank * 0x4000ul + (addr & 0x3FFF), cmp));
+					&& (cmp > 0xFF || memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] == cmp)) {
+				ggUndoList.push_back(AddrData(bank * 0x4000ul + (addr & 0x3FFF), memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)]));
 				memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] = val;
 			}
 		}

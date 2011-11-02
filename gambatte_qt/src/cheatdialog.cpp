@@ -96,7 +96,7 @@ GetCheatInput::GetCheatInput(const QString &desc, const QString &code, QWidget *
 	l->addWidget(new QLabel(tr("GG/GS Code:")));
 	l->addWidget(codeEdit_);
 	
-	const QString cheatre("((01[0-9a-fA-F]{6,6})|([0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}))");
+	const QString cheatre("((01[0-9a-fA-F]{6,6})|([0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}(-[0-9a-fA-F]{3,3})?))");
 	codeEdit_->setValidator(new QRegExpValidator(QRegExp(cheatre + "(;" + cheatre + ")*"), codeEdit_));
 	codeEdit_->setToolTip(tr("Game Genie: hhh-hhh-hhh;...\nGame Shark: 01hhhhhh;..."));
 	codeEdit_->setWhatsThis(codeEdit_->toolTip());
