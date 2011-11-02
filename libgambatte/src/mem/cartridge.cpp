@@ -19,7 +19,6 @@
 #include "cartridge.h"
 #include "file/file.h"
 #include "../savestate.h"
-#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -68,6 +67,7 @@ static bool hasRtc(const unsigned headerByte0x147) {
 
 static Cartridgetype cartridgeType(const unsigned headerByte0x147) {
 	static const unsigned char typeLut[] = {
+		/* [0xFF] = */ MBC1,
 		/* [0x00] = */ PLAIN,
 		/* [0x01] = */ MBC1,
 		/* [0x02] = */ MBC1,
@@ -100,10 +100,8 @@ static Cartridgetype cartridgeType(const unsigned headerByte0x147) {
 		/* [0x1D] = */ MBC5,
 		/* [0x1E] = */ MBC5
 	};
-	
-	assert(headerByte0x147 < sizeof(typeLut));
 
-	return static_cast<Cartridgetype>(typeLut[headerByte0x147]);
+	return static_cast<Cartridgetype>(typeLut[(headerByte0x147 + 1) & 0x1F]);
 }
 
 static unsigned toMulti64Rombank(const unsigned rombank) {
@@ -342,13 +340,13 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 		case 0x19: std::puts("MBC5 ROM loaded."); break;
 		case 0x1A: std::puts("MBC5 ROM+RAM loaded."); break;
 		case 0x1B: std::puts("MBC5 ROM+RAM+BATTERY loaded."); break;
-		case 0x1C: std::puts("MBC5+RUMLE ROM not supported."); break;
-		case 0x1D: std::puts("MBC5+RUMLE+RAM ROM not suported."); break;
-		case 0x1E: std::puts("MBC5+RUMLE+RAM+BATTERY ROM not supported."); break;
+		case 0x1C: std::puts("MBC5+RUMBLE ROM not supported."); break;
+		case 0x1D: std::puts("MBC5+RUMBLE+RAM ROM not suported."); break;
+		case 0x1E: std::puts("MBC5+RUMBLE+RAM+BATTERY ROM not supported."); break;
 		case 0xFC: std::puts("Pocket Camera ROM not supported."); return 1;
 		case 0xFD: std::puts("Bandai TAMA5 ROM not supported."); return 1;
 		case 0xFE: std::puts("HuC3 ROM not supported."); return 1;
-		case 0xFF: std::puts("HuC1 ROM not supported."); return 1;
+		case 0xFF: std::puts("HuC1 ROM+RAM+BATTERY loaded."); break;
 		default: std::puts("Wrong data-format, corrupt or unsupported ROM."); return 1;
 		}
 
@@ -423,7 +421,7 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 	return 0;
 }
 
-static bool hasBattery(const char headerByte0x147) {
+static bool hasBattery(const unsigned char headerByte0x147) {
 	switch (headerByte0x147) {
 	case 0x03:
 	case 0x06:
@@ -432,7 +430,8 @@ static bool hasBattery(const char headerByte0x147) {
 	case 0x10:
 	case 0x13:
 	case 0x1B:
-	case 0x1E: return true;
+	case 0x1E:
+	case 0xFF: return true;
 	default: return false;
 	}
 }
@@ -500,7 +499,7 @@ void Cartridge::applyGameGenie(const std::string &code) {
 		}
 		
 		for (unsigned bank = 0; bank < static_cast<std::size_t>(memptrs.romdataend() - memptrs.romdata()) / 0x4000; ++bank) {
-			if ((addr < 0x4000) == ((bank & (multi64rom ? 0xF : ~0)) == 0)
+			if ((addr < 0x4000) == ((bank & (multi64rom ? 0xFu : ~0u)) == 0)
 					&& (cmp > 0xFF || memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] == cmp)) {
 				ggUndoList.push_back(AddrData(bank * 0x4000ul + (addr & 0x3FFF), memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)]));
 				memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] = val;
