@@ -142,7 +142,7 @@ int AlsaEngine::write(void *const buffer, const unsigned samples, const BufferSt
 	
 	prevfur = bstate.fromUnderrun + samples;
 	
-	while (snd_pcm_writei(pcm_handle, buffer, samples) < 0) {
+	for (int n = 4; n-- && snd_pcm_writei(pcm_handle, buffer, samples) < 0;) {
 		snd_pcm_prepare(pcm_handle);
 		underrun = true;
 	}
