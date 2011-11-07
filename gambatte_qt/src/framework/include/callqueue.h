@@ -19,6 +19,7 @@
 #ifndef CALLQUEUE_H
 #define CALLQUEUE_H
 
+#include "uncopyable.h"
 #include <cstddef>
 #include <cstdlib>
 #include <algorithm>
@@ -31,7 +32,7 @@ union DefaultTypeAlignUnion {
 };
 
 template<std::size_t ALIGN = sizeof(DefaultTypeAlignUnion)>
-class ParamQueue/* : Uncopyable*/ {
+class ParamQueue : Uncopyable {
 	char *data;
 	char *dataend;
 	char *start;
@@ -41,7 +42,7 @@ class ParamQueue/* : Uncopyable*/ {
 	template<class T> struct PaddedSize { enum { R = ((sizeof(T) + ALIGN - 1) / ALIGN) * ALIGN }; };
 	
 public:
-	ParamQueue(const std::size_t sz = ALIGN * 2) :
+	explicit ParamQueue(const std::size_t sz = ALIGN * 2) :
 			data((char*) std::malloc(sz)), dataend(data + sz), start(data), end(data), avail(sz) {}
 	~ParamQueue() { free(data); }
 	
