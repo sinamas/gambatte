@@ -32,7 +32,7 @@ class RingBuffer {
 	std::size_t wpos;
 	
 public:
-	RingBuffer(const std::size_t sz_in = 0) : sz(0), rpos(0), wpos(0) { reset(sz_in); }
+	explicit RingBuffer(const std::size_t sz_in = 0) : sz(0), rpos(0), wpos(0) { reset(sz_in); }
 	
 	std::size_t avail() const {
 		return (wpos < rpos ? 0 : sz) + rpos - wpos - 1;
