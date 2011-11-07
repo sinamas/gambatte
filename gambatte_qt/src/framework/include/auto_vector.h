@@ -73,7 +73,9 @@ public:
 	}
 	
 	void pop_back() {
-		delete back();
+		if (!empty())
+			delete back();
+		
 		std::vector<T*, Allocator>::pop_back();
 	}
 	
@@ -84,7 +86,9 @@ public:
 	void insert(iterator position, InputIterator first, InputIterator last) { std::vector<T*, Allocator>::insert(position, first, last); }
 	
 	iterator erase(iterator position) {
-		delete *position;
+		if (position != end())
+			delete *position;
+		
 		return std::vector<T*, Allocator>::erase(position);
 	}
 	
