@@ -27,7 +27,7 @@ struct Rational {
 	float toFloat() const { return static_cast<float>(num) / denom; }
 	double toDouble() const { return static_cast<double>(num) / denom; }
 	
-	Rational reciprocal() const { return Rational(denom, num); }
+	const Rational reciprocal() const { return Rational(denom, num); }
 	
 	// assumes positive num and denom
 	long ceiled() const { return (num - 1) / denom + 1; }

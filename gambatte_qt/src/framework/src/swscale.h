@@ -19,10 +19,12 @@
 #ifndef SWSCALE_H
 #define SWSCALE_H
 
+#include "array.h"
 #include <cstring>
 
 template<typename T>
-void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
+void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth,
+		const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
 	int vppos = inHeight >> 1;
 	unsigned h = inHeight;
 	
@@ -53,9 +55,10 @@ void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const un
 }
 
 template<typename T, T c13mask, T c2mask, unsigned c13distance>
-void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
-	T *const sums = new T[inWidth + 1];
-	unsigned char *const hcoeffs = new unsigned char[outWidth - 1];
+void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight,
+		const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
+	const ScopedArray<T> sums(new T[inWidth + 1]);
+	const ScopedArray<unsigned char> hcoeffs(new unsigned char[outWidth - 1]);
 	
 	{
 		unsigned hppos = (outWidth + inWidth) >> 1;
@@ -141,9 +144,6 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 		srcPitch = 0;
 		vppos += outHeight - ((outHeight + inHeight) >> 1);
 	} while (--hn);
-	
-	delete []sums;
-	delete []hcoeffs;
 }
 
 template<typename T, T c13mask, T c2mask, unsigned c13distance>
@@ -179,9 +179,10 @@ static void semiLinearScale1d(const T *in, T *out, const unsigned inWidth, const
 }
 
 template<typename T, T c13mask, T c2mask, unsigned c13distance>
-void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned outPitch) {
-	T *const sums = new T[inWidth];
-	unsigned char *const hcoeffs = new unsigned char[inWidth];
+void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned inHeight,
+		const unsigned outWidth, const unsigned outHeight, const unsigned outPitch) {
+	const ScopedArray<T> sums(new T[inWidth]);
+	const ScopedArray<unsigned char> hcoeffs(new unsigned char[inWidth]);
 	
 	{
 		unsigned hppos = inWidth;
@@ -235,9 +236,6 @@ void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned
 		} else
 			in += inWidth;
 	} while (--h);
-	
-	delete []sums;
-	delete []hcoeffs;
 }
 
 #endif
