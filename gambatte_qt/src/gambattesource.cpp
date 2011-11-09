@@ -25,7 +25,7 @@ using namespace gambatte;
 
 GambatteSource::GambatteSource()
 : MediaSource(2064),
-  inputDialog_(0),
+  inputDialog_(createInputDialog()),
   gbpixels(0),
   pxformat(PixelBuffer::RGB32),
   gbpitch(160),
@@ -37,7 +37,6 @@ GambatteSource::GambatteSource()
   dpadUpLast(false),
   dpadLeftLast(false)
 {
-	inputDialog_ = createInputDialog();
 	gb.setInputGetter(&inputGetter);
 	std::memset(inputState, 0, sizeof inputState);
 }

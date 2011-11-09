@@ -53,7 +53,7 @@ class RateEst {
 	long samples;
 
 public:
-	RateEst(long srate = 0) { init(srate); }
+	explicit RateEst(long srate = 0) { init(srate); }
 	RateEst(long srate, long reference) { init(srate, reference); }
 	void init(long srate) { init(srate, srate); }
 	void init(long srate, long reference) { init(srate, reference, reference); }

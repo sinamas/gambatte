@@ -40,7 +40,7 @@ class GambatteSource : public QObject, public MediaSource {
 	
 	gambatte::GB gb;
 	GetInput inputGetter;
-	InputDialog *inputDialog_;
+	InputDialog *const inputDialog_;
 	std::auto_ptr<VideoLink> cconvert;
 	std::auto_ptr<VideoLink> vfilter;
 	gambatte::uint_least32_t *gbpixels;
