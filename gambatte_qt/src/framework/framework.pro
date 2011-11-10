@@ -123,8 +123,12 @@ macx {
         framework/src/fullmodetogglers/quartztoggler.h
 #	LIBS += -dead_strip
     LIBS += -framework IOKit \
+            -framework CoreServices \
+            -framework CoreFoundation \
+            -framework Carbon \
+            -framework ApplicationServices \
 #	    -framework OpenAL \
-        -framework AudioUnit
+            -framework AudioUnit
 }
 else:unix { 
     DEFINES += PLATFORM_UNIX

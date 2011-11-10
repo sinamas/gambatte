@@ -17,16 +17,19 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "coreaudioengine.h"
+#include <CoreServices/CoreServices.h>
 #include <cstdio>
 #include <cmath>
 
+namespace {
+
 static int createMutex(pthread_mutex_t* &mutptr) {
 	mutptr = new pthread_mutex_t;
-	const int ret = pthread_mutex_init(mutptr, NULL);
+	const int ret = pthread_mutex_init(mutptr, 0);
 	
 	if (ret) {
 		delete mutptr;
-		mutptr = NULL;
+		mutptr = 0;
 	}
 	
 	return ret;
@@ -37,17 +40,17 @@ static void destroyMutex(pthread_mutex_t* &mutptr) {
 		pthread_mutex_lock(mutptr);
 		pthread_mutex_destroy(mutptr);
 		delete mutptr;
-		mutptr = NULL;
+		mutptr = 0;
 	}
 }
 
 static int createCond(pthread_cond_t* &condptr) {
 	condptr = new pthread_cond_t;
-	const int ret = pthread_cond_init(condptr, NULL);
+	const int ret = pthread_cond_init(condptr, 0);
 	
 	if (ret) {
 		delete condptr;
-		condptr = NULL;
+		condptr = 0;
 	}
 	
 	return ret;
@@ -57,17 +60,17 @@ static void destroyCond(pthread_cond_t* &condptr) {
 	if (condptr) {
 		pthread_cond_destroy(condptr);
 		delete condptr;
-		condptr = NULL;
+		condptr = 0;
 	}
 }
 
-class MutexLocker {
+class MutexLocker : Uncopyable {
 	pthread_mutex_t *const mut;
 	
 public:
 	const int err;
 	
-	MutexLocker(pthread_mutex_t *mut) : mut(mut), err(pthread_mutex_lock(mut)) {
+	explicit MutexLocker(pthread_mutex_t *mut) : mut(mut), err(pthread_mutex_lock(mut)) {
 	}
 	
 	~MutexLocker() {
@@ -76,7 +79,17 @@ public:
 	}
 };
 
-CoreAudioEngine::CoreAudioEngine() : AudioEngine("CoreAudio"), outUnit(0), outUnitState(UNIT_CLOSED), mutex(NULL), availCond(NULL), rateEst(0), running(false) {
+}
+
+CoreAudioEngine::CoreAudioEngine()
+: AudioEngine("CoreAudio"),
+  outUnit(0),
+  outUnitState(UNIT_CLOSED),
+  mutex(0),
+  availCond(0),
+  rateEst(0),
+  running(false)
+{
 }
 
 CoreAudioEngine::~CoreAudioEngine() {
@@ -104,10 +117,11 @@ unsigned CoreAudioEngine::read(void *const stream, unsigned frames, const Float6
 	return frames;
 }
 
-ComponentResult CoreAudioEngine::renderProc(void *inRefCon, AudioUnitRenderActionFlags */*inActionFlags*/, const AudioTimeStamp *inTimeStamp,
-									 UInt32 /*inBusNumber*/, UInt32 inNumFrames, AudioBufferList *ioData)
+OSStatus CoreAudioEngine::renderProc(void *inRefCon, AudioUnitRenderActionFlags */*inActionFlags*/,
+		const AudioTimeStamp *inTimeStamp, UInt32 /*inBusNumber*/, UInt32 inNumFrames, AudioBufferList *ioData)
 {
-	ioData->mBuffers[0].mDataByteSize = reinterpret_cast<CoreAudioEngine*>(inRefCon)->read(ioData->mBuffers[0].mData, inNumFrames, inTimeStamp->mRateScalar) * 4;
+	ioData->mBuffers[0].mDataByteSize = reinterpret_cast<CoreAudioEngine*>(
+			inRefCon)->read(ioData->mBuffers[0].mData, inNumFrames, inTimeStamp->mRateScalar) * 4;
 	
  	return 0;
 }
@@ -124,7 +138,7 @@ int CoreAudioEngine::doInit(const int rate, const unsigned latency) {
 			desc.componentFlags = 0;
 			desc.componentFlagsMask = 0;
 			
-			if ((comp = FindNextComponent(NULL, &desc)) == NULL) {
+			if ((comp = FindNextComponent(0, &desc)) == 0) {
 				std::fprintf(stderr, "Failed to find output unit component\n");
 				goto fail;
 			}
@@ -148,19 +162,19 @@ int CoreAudioEngine::doInit(const int rate, const unsigned latency) {
 	{
 		AudioStreamBasicDescription desc;
 		
-		desc.mSampleRate=rate;
-		desc.mFormatID=kAudioFormatLinearPCM;
-		desc.mChannelsPerFrame=2;
-		desc.mBitsPerChannel=16;
+		desc.mSampleRate = rate;
+		desc.mFormatID = kAudioFormatLinearPCM;
+		desc.mChannelsPerFrame = 2;
+		desc.mBitsPerChannel = 16;
 		desc.mFramesPerPacket = 1;
 		desc.mBytesPerPacket = desc.mBytesPerFrame = 4;
-		desc.mFormatFlags = kAudioFormatFlagIsSignedInteger|kAudioFormatFlagIsPacked;
+		desc.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
 		
 #ifdef WORDS_BIGENDIAN
 		desc.mFormatFlags |= kAudioFormatFlagIsBigEndian;
 #endif
 		
-		if (ComponentResult err = AudioUnitSetProperty(outUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &desc, sizeof(AudioStreamBasicDescription))) {
+		if (ComponentResult err = AudioUnitSetProperty(outUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &desc, sizeof desc)) {
 			std::fprintf(stderr, "Failed to set the input format: %d\n", static_cast<int>(err));
 			goto fail;
 		}
@@ -171,7 +185,8 @@ int CoreAudioEngine::doInit(const int rate, const unsigned latency) {
 		renderCallback.inputProc = renderProc;
 		renderCallback.inputProcRefCon = this;
 		
-		if (ComponentResult err = AudioUnitSetProperty(outUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &renderCallback, sizeof(AURenderCallbackStruct))) {
+		if (ComponentResult err = AudioUnitSetProperty(outUnit,
+				kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &renderCallback, sizeof renderCallback)) {
 			std::fprintf(stderr, "Failed to set render callback: %d\n", static_cast<int>(err));
 			goto fail;
 		}

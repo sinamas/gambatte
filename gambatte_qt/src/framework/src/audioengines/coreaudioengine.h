@@ -20,11 +20,12 @@
 #define CORE_AUDIO_ENGINE_H
 
 #include "../audioengine.h"
+#include "uncopyable.h"
 #include <ringbuffer.h>
 #include <AudioUnit/AudioUnit.h>
 #include <pthread.h>
 
-class CoreAudioEngine : public AudioEngine {
+class CoreAudioEngine : public AudioEngine, private Uncopyable {
 	enum { UNIT_CLOSED = 0, UNIT_OPENED, UNIT_INITED };
 
 	RingBuffer<SInt16> rbuf;
@@ -35,8 +36,8 @@ class CoreAudioEngine : public AudioEngine {
 	Float64 rateEst;
 	bool running;
 	
-	static ComponentResult renderProc(void *inRefCon, AudioUnitRenderActionFlags *inActionFlags, const AudioTimeStamp *inTimeStamp,
-							   UInt32 inBusNumber, UInt32 inNumFrames, AudioBufferList *ioData);
+	static OSStatus renderProc(void *inRefCon, AudioUnitRenderActionFlags *inActionFlags,
+			const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumFrames, AudioBufferList *ioData);
 	unsigned read(void *stream, unsigned frames, Float64 rateScalar);
 	int doInit(int rate, unsigned latency);
 	int doWrite(void *buffer, unsigned frames);
