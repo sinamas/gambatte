@@ -398,7 +398,7 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 
 	const std::size_t filesize = rom->size();
 	rombanks = pow2ceil(filesize / 0x4000);
-	std::printf("rombanks: %u\n", filesize / 0x4000);
+	std::printf("rombanks: %u\n", static_cast<unsigned>(filesize / 0x4000));
 	
 	ggUndoList.clear();
 	memptrs.reset(rombanks, rambanks, cgb ? 8 : 2);
