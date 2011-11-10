@@ -311,24 +311,23 @@ bool QGLBlitter::isUnusable() const {
 }
 
 void QGLBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
-	buffer.reset(width * height);
+	buffer.reset(width * height * 2);
 
 	subWidget->setBufferDimensions(width, height);
 	setPixelBuffer(buffer, PixelBuffer::RGB32, width);
 }
 
 void QGLBlitter::blit() {
-	if (buffer) {
-// 		subWidget->makeCurrent(); // makeCurrent blocks which is undesired here
-		subWidget->updateTexture(buffer);
-	}
+	if (buffer)
+		setPixelBuffer(inBuffer().data == buffer ? buffer + buffer.size() / 2 : buffer, inBuffer().pixelFormat, inBuffer().pitch);
 }
 
 void QGLBlitter::draw() {
-	if (subWidget->doubleBuffer()) {
-// 		subWidget->makeCurrent();
+	if (buffer)
+		subWidget->updateTexture(inBuffer().data == buffer ? buffer + buffer.size() / 2 : buffer);
+	
+	if (subWidget->doubleBuffer())
 		subWidget->blit();
-	}
 }
 
 void QGLBlitter::setCorrectedGeometry(int w, int h, int new_w, int new_h) {
