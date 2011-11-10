@@ -179,7 +179,7 @@ void Direct3DBlitter::getPresentParams(D3DPRESENT_PARAMETERS *const presentParam
 	if (FAILED(d3d->GetAdapterDisplayMode(adapterIndex, &displayMode))) {
 		excl = false;
 		displayMode.Format = D3DFMT_UNKNOWN;
-		std::cout << "d3d->GetAdapterDisplayMode failed" << std::endl;
+		std::cerr << "d3d->GetAdapterDisplayMode failed" << std::endl;
 	}
 
 	presentParams->BackBufferWidth = excl ? displayMode.Width : width();
@@ -265,7 +265,7 @@ void Direct3DBlitter::setVertexBuffer() {
 
 		vertexBuffer->Unlock();
 	} else
-		std::cout << "vertexBuffer->Lock failed" << std::endl;
+		std::cerr << "vertexBuffer->Lock failed" << std::endl;
 }
 
 void Direct3DBlitter::setFilter() {
@@ -315,7 +315,7 @@ void Direct3DBlitter::resetDevice() {
 			device->Release();
 			device = NULL;
 
-			std::cout << "device->Reset failed" << std::endl;
+			std::cerr << "device->Reset failed" << std::endl;
 		} else {
 			backBufferWidth = presentParams.BackBufferWidth;
 			backBufferHeight = presentParams.BackBufferHeight;
@@ -427,9 +427,9 @@ void Direct3DBlitter::init() {
 	}
 
 	if (!device) {
-		std::cout << "d3d->CreateDevice failed" << std::endl;
+		std::cerr << "d3d->CreateDevice failed" << std::endl;
 	} else if (FAILED(device->CreateVertexBuffer(sizeof(Vertex) * 4, 0, D3DFVF_XYZRHW | D3DFVF_TEX1, D3DPOOL_MANAGED, &vertexBuffer, NULL))) {
-		std::cout << "device->CreateVertexBuffer failed" << std::endl;
+		std::cerr << "device->CreateVertexBuffer failed" << std::endl;
 	}
 
 	setDeviceState();
@@ -477,7 +477,7 @@ void Direct3DBlitter::setVideoTexture() {
 		const unsigned textRes = textureSizeFromInBufferSize();
 
 		if (FAILED(device->CreateTexture(textRes, textRes, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &vtexture, NULL)))
-			std::cout << "device->CreateTexture failed" << std::endl;
+			std::cerr << "device->CreateTexture failed" << std::endl;
 
 		device->SetTexture(0, vtexture);
 	}
@@ -494,7 +494,7 @@ void Direct3DBlitter::setBufferDimensions(unsigned w, unsigned h) {
 		const unsigned textRes = textureSizeFromInBufferSize();
 
 		if (FAILED(device->CreateTexture(textRes, textRes, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &stexture, NULL)))
-			std::cout << "device->CreateTexture failed" << std::endl;
+			std::cerr << "device->CreateTexture failed" << std::endl;
 	}
 
 	lockTexture();

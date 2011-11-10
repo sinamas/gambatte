@@ -138,12 +138,12 @@ void DirectSoundEngine::rejectSettings() const {
 int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 	if (DirectSoundCreate(deviceSelector->itemData(deviceIndex).value<GUID*>(), &lpDS, NULL) != DS_OK) {
 		lpDS = NULL;
-		std::cout << "DirectSoundCreate failed" << std::endl;
+		std::cerr << "DirectSoundCreate failed" << std::endl;
 		goto fail;
 	}
 
 	if (lpDS->SetCooperativeLevel(hwnd, primaryBuf ? DSSCL_WRITEPRIMARY : DSSCL_PRIORITY) != DS_OK) {
-		std::cout << "SetCooperativeLevel failed" << std::endl;
+		std::cerr << "SetCooperativeLevel failed" << std::endl;
 		goto fail;
 	}
 
@@ -186,12 +186,12 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 
 		if (lpDS->CreateSoundBuffer(&dsbd, &lpDSB, NULL) != DS_OK) {
 			lpDSB = NULL;
-			std::cout << "CreateSoundBuffer failed" << std::endl;
+			std::cerr << "CreateSoundBuffer failed" << std::endl;
 			goto fail;
 		}
 
 		if (primaryBuf && lpDSB->SetFormat(&wfe) != DS_OK) {
-			std::cout << "lpDSB->SetFormat failed" << std::endl;
+			std::cerr << "lpDSB->SetFormat failed" << std::endl;
 			goto fail;
 		}
 
@@ -355,7 +355,7 @@ int DirectSoundEngine::doWrite(void *buffer, const unsigned frames, const DWORD 
 		const unsigned n = static_cast<unsigned>(fof) < bytes ? static_cast<unsigned>(fof) : bytes;
 
 		if (::write(lpDSB, offset, buffer, n) < 0) {
-			std::cout << "::write fail" << std::endl;
+			std::cerr << "::write fail" << std::endl;
 			return -1;
 		}
 

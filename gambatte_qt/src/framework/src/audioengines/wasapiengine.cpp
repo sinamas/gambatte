@@ -203,7 +203,7 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 		HRESULT hr;
 
 		if (FAILED(CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator))) {
-			std::cout << "CoCreateInstance failed" << std::endl;
+			std::cerr << "CoCreateInstance failed" << std::endl;
 			goto fail;
 		}
 
@@ -215,7 +215,7 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 		pEnumerator->Release();
 
 		if (FAILED(hr)) {
-			std::cout << "pEnumerator->GetDefaultAudioEndpoint failed" << std::endl;
+			std::cerr << "pEnumerator->GetDefaultAudioEndpoint failed" << std::endl;
 			goto fail;
 		}
 
@@ -223,7 +223,7 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 		pDevice->Release();
 
 		if (FAILED(hr)) {
-			std::cout << "pDevice->Activate failed" << std::endl;
+			std::cerr << "pDevice->Activate failed" << std::endl;
 			goto fail;
 		}
 	}
@@ -264,10 +264,10 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 
 				CoTaskMemFree(mwfe);
 			} else
-				std::cout << "pAudioClient->GetMixFormat failed\r\n";
+				std::cerr << "pAudioClient->GetMixFormat failed\r\n";
 
 			if (!(eventHandle_ = CreateEventA(0, false, false, 0)))
-				std::cout << "CreateEvent failed\r\n";
+				std::cerr << "CreateEvent failed\r\n";
 		}
 
 		wfext.Format.nBlockAlign = wfext.Format.nChannels * wfext.Format.wBitsPerSample >> 3;
@@ -282,29 +282,29 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 			if (FAILED(hr = pAudioClient->Initialize(
 					exclusive_.value() ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED,
 					eventHandle_ ? AUDCLNT_STREAMFLAGS_EVENTCALLBACK : 0, latency * 10000, 0, &wfext.Format, NULL))) {
-				std::cout << "pAudioClient->Initialize failed: " << hr << "\r\n";
+				std::cerr << "pAudioClient->Initialize failed: " << hr << "\r\n";
 				goto fail;
 			}
 		}
 	}
 
 	if (eventHandle_ && FAILED(pAudioClient->SetEventHandle(eventHandle_))) {
-		std::cout << "pAudioClient->SetEventHandle failed\r\n";
+		std::cerr << "pAudioClient->SetEventHandle failed\r\n";
 		goto fail;
 	}
 
 	if (FAILED(pAudioClient->GetBufferSize(&bufferFrameCount))) {
-		std::cout << "pAudioClient->GetBufferSize failed" << std::endl;
+		std::cerr << "pAudioClient->GetBufferSize failed" << std::endl;
 		goto fail;
 	}
 
 	if (FAILED(pAudioClient->GetService(IID_IAudioRenderClient, (void**)&pRenderClient))) {
-		std::cout << "pAudioClient->GetService failed" << std::endl;
+		std::cerr << "pAudioClient->GetService failed" << std::endl;
 		goto fail;
 	}
 
 	if (FAILED(pAudioClient->GetService(IID_IAudioClock, (void**)&pAudioClock))) {
-		std::cout << "pAudioClient->GetService failed" << std::endl;
+		std::cerr << "pAudioClient->GetService failed" << std::endl;
 		goto fail;
 	}
 
@@ -330,7 +330,7 @@ void WasapiEngine::uninit() {
 	safeRelease(pAudioClient);
 
 	if (eventHandle_ && !CloseHandle(eventHandle_))
-		std::cout << "CloseHandle failed\r\n";
+		std::cerr << "CloseHandle failed\r\n";
 
 	eventHandle_ = 0;
 	started = false;
@@ -402,7 +402,7 @@ int WasapiEngine::write(void *buffer, unsigned frames, UINT32 numFramesPadding) 
 		const unsigned n = static_cast<unsigned>(fof) < frames ? static_cast<unsigned>(fof) : frames;
 
 		if (::write(pRenderClient, buffer, n, nchannels_) < 0) {
-			std::cout << "::write fail" << std::endl;
+			std::cerr << "::write fail" << std::endl;
 			return -1;
 		}
 

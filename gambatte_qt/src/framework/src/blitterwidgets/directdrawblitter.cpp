@@ -152,7 +152,7 @@ void DirectDrawBlitter::videoSurfaceBlit() {
 	}
 
 	if (ddrval != DD_OK)
-		std::cout << "lpDDSVideo->BltFast(0, 0, lpDDSSystem, NULL, DDBLTFAST_WAIT) failed" << std::endl;
+		std::cerr << "lpDDSVideo->BltFast(0, 0, lpDDSSystem, NULL, DDBLTFAST_WAIT) failed" << std::endl;
 }
 
 void DirectDrawBlitter::systemSurfaceBlit() {
@@ -177,7 +177,7 @@ void DirectDrawBlitter::blit() {
 		ddsd.dwSize = sizeof(ddsd);
 
 		if (lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
-			std::cout << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
+			std::cerr << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
 			ddsd.lpSurface = NULL;
 		}
 
@@ -208,7 +208,7 @@ void DirectDrawBlitter::initPrimarySurface() {
 	}
 
 	if (lpDD->CreateSurface(&ddsd, &lpDDSPrimary, NULL) != DD_OK) {
-		std::cout << "lpDD->CreateSurface(&ddsd, &lpDDSPrimary, NULL) failed" << std::endl;
+		std::cerr << "lpDD->CreateSurface(&ddsd, &lpDDSPrimary, NULL) failed" << std::endl;
 		lpDDSBack = lpDDSPrimary = NULL;
 	} else {
 		lpDDSBack = lpDDSPrimary;
@@ -217,13 +217,13 @@ void DirectDrawBlitter::initPrimarySurface() {
 			ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
 
 			if (lpDDSPrimary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDSBack) != DD_OK) {
-				std::cout << "lpDDSPrimary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDSBack) failed" << std::endl;
+				std::cerr << "lpDDSPrimary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDSBack) failed" << std::endl;
 				lpDDSBack = NULL;
 			}
 		}
 
 		if (lpDDSPrimary->SetClipper(lpClipper) != DD_OK)
-			std::cout << "SetClipper failed" << std::endl;
+			std::cerr << "SetClipper failed" << std::endl;
 	}
 }
 
@@ -247,7 +247,7 @@ static void initSubSurface(IDirectDraw7 *const lpDD, IDirectDrawSurface7 *const 
 
 	if (lpDD->CreateSurface(&ddsd, &lpDDSOut, NULL) != DD_OK) {
 		lpDDSOut = NULL;
-		std::cout << "lpDD->CreateSurface(&ddsd, &lpDDSOut, NULL) failed" << std::endl;
+		std::cerr << "lpDD->CreateSurface(&ddsd, &lpDDSOut, NULL) failed" << std::endl;
 	}
 }
 
@@ -263,7 +263,7 @@ void DirectDrawBlitter::initClearSurface() {
 		ddsd.dwSize = sizeof(ddsd);
 
 		if (lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
-			std::cout << "lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
+			std::cerr << "lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
 			lpDDSClear->Release();
 			lpDDSClear = NULL;
 		} else {
@@ -278,23 +278,23 @@ void DirectDrawBlitter::initClearSurface() {
 void DirectDrawBlitter::init() {
 	if (DirectDrawCreateEx(deviceSelector->itemData(deviceIndex).value<GUID*>(), reinterpret_cast<void**>(&lpDD),
 			IID_IDirectDraw7, NULL) != DD_OK) {
-		std::cout << "DirectDrawCreateEx failed" << std::endl;
+		std::cerr << "DirectDrawCreateEx failed" << std::endl;
 		goto fail;
 	}
 
 	if (lpDD->SetCooperativeLevel(parentWidget()->parentWidget()->winId(),
 			(exclusive & flipping_.value()) ? DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN : DDSCL_NORMAL) != DD_OK) {
-		std::cout << "SetCooperativeLevel failed" << std::endl;
+		std::cerr << "SetCooperativeLevel failed" << std::endl;
 		goto fail;
 	}
 
 	if (lpDD->CreateClipper(0, &lpClipper, NULL) != DD_OK) {
-		std::cout << "CreateClipper failed" << std::endl;
+		std::cerr << "CreateClipper failed" << std::endl;
 		goto fail;
 	}
 
 	if (lpClipper->SetHWnd(0, winId()) != DD_OK) {
-		std::cout << "SetHWnd failed" << std::endl;
+		std::cerr << "SetHWnd failed" << std::endl;
 		goto fail;
 	}
 
@@ -398,7 +398,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	ddsd.ddpfPixelFormat = ddpf;
 
 	if (lpDD->CreateSurface(&ddsd, &lpDDSSystem, NULL) != DD_OK) {
-		std::cout << "lpDD->CreateSurface(&ddsd, &lpDDSSystem, NULL) failed" << std::endl;
+		std::cerr << "lpDD->CreateSurface(&ddsd, &lpDDSSystem, NULL) failed" << std::endl;
 		goto fail;
 	}
 
@@ -409,7 +409,7 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 		goto fail;
 
 	if (lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
-		std::cout << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
+		std::cerr << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
 		goto fail;
 	}
 
@@ -511,7 +511,7 @@ HRESULT DirectDrawBlitter::backBlit(IDirectDrawSurface7 *const lpDDSSrc, RECT *c
 	}
 
 	if (ddrval != DD_OK && ddrval != DDERR_WASSTILLDRAWING)
-		std::cout << "lpDDSBack->Blt(rcRectDest, lpDDSSrc, NULL, flags, NULL) failed" << std::endl;
+		std::cerr << "lpDDSBack->Blt(rcRectDest, lpDDSSrc, NULL, flags, NULL) failed" << std::endl;
 
 	return ddrval;
 }
@@ -599,7 +599,7 @@ long DirectDrawBlitter::sync() {
 	blitted = false;
 
 	if (ddrval != DD_OK && ddrval != DDERR_WASSTILLDRAWING)
-		std::cout << "lpDDSPrimary->Flip failed" << std::endl;
+		std::cerr << "lpDDSPrimary->Flip failed" << std::endl;
 
 	return 0;
 }

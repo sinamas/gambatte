@@ -63,7 +63,7 @@ XvBlitter::ShmBlitter::ShmBlitter(const XvPortID xvport, const int formatid, con
 	xvimage = XvShmCreateImage(QX11Info::display(), xvport, formatid, NULL, width << (formatid != 3), height, &shminfo);
 	
 	if (xvimage == NULL) {
-		std::cout << "failed to create xvimage\n";
+		std::cerr << "failed to create xvimage\n";
 	} else {
 		shminfo.shmid = shmget(IPC_PRIVATE, xvimage->data_size * 2, IPC_CREAT | 0777);
 		shminfo.shmaddr = xvimage->data = static_cast<char*>(shmat(shminfo.shmid, 0, 0));
@@ -88,7 +88,7 @@ XvBlitter::ShmBlitter::~ShmBlitter() {
 void XvBlitter::ShmBlitter::blit(const Drawable drawable, const XvPortID xvport, const unsigned width, const unsigned height) {
 	if (xvimage && shminfo.shmaddr) {
 		if (XvShmPutImage(QX11Info::display(), xvport, drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()), xvimage, 0, 0, xvimage->width, xvimage->height, 0, 0, width, height, False) != Success) {
-			std::cout << "failed to put xvimage\n";
+			std::cerr << "failed to put xvimage\n";
 // 			failed = true;
 		}
 	}
@@ -134,7 +134,7 @@ XvBlitter::PlainBlitter::PlainBlitter(const XvPortID xvport, const int formatid,
 	if (xvimage) {
 		xvimage->data = data = new char[xvimage->data_size * 2];
 	} else
-		std::cout << "failed to create xvimage\n";
+		std::cerr << "failed to create xvimage\n";
 }
 
 XvBlitter::PlainBlitter::~PlainBlitter() {
@@ -148,7 +148,7 @@ XvBlitter::PlainBlitter::~PlainBlitter() {
 void XvBlitter::PlainBlitter::blit(const Drawable drawable, const XvPortID xvport, const unsigned width, const unsigned height) {
 	if (xvimage) {
 		if (XvPutImage(QX11Info::display(), xvport, drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()), xvimage, 0, 0, xvimage->width, xvimage->height, 0, 0, width, height) != Success) {
-			std::cout << "failed to put xvimage\n";
+			std::cerr << "failed to put xvimage\n";
 // 			failed = true;
 		}
 	}
@@ -180,7 +180,7 @@ class XvAdaptorInfos : Uncopyable {
 public:
 	XvAdaptorInfos() : num_(0), infos_(0) {
 		if (XvQueryAdaptors(QX11Info::display(), QX11Info::appRootWindow(), &num_, &infos_) != Success) {
-			std::cout << "failed to query xv adaptors\n";
+			std::cerr << "failed to query xv adaptors\n";
 			num_ = 0;
 		}
 	}

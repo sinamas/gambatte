@@ -59,7 +59,7 @@ X11Blitter::ShmBlitter::ShmBlitter(const unsigned width, const unsigned height, 
 	ximage = XShmCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(visInfo.visual), visInfo.depth, ZPixmap, NULL, &shminfo, width, height);
 	
 	if (ximage == NULL) {
-		std::cout << "failed to create shm ximage\n";
+		std::cerr << "failed to create shm ximage\n";
 	} else {
 		shminfo.shmid = shmget(IPC_PRIVATE, ximage->bytes_per_line * ximage->height << db, IPC_CREAT | 0777);
 		shminfo.shmaddr = ximage->data = static_cast<char*>(shmat(shminfo.shmid, 0, 0));
@@ -135,7 +135,7 @@ X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned 
 		if (db)
 			data = ximage->data;
 	} else {
-		std::cout << "failed to create ximage\n";
+		std::cerr << "failed to create ximage\n";
 	}
 }
 
