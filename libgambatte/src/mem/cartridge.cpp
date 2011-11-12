@@ -115,7 +115,7 @@ void Cartridge::loadState(const SaveState &state) {
 	rambank = state.mem.rambank;
 	enableRam = state.mem.enableRam;
 	rambankMode = state.mem.rambankMode;
-	memptrs.setRambank(enableRam, rtc.getActive(), rambank);
+	memptrs.setRambank(enableRam, rtc.getActive(), rambank & (rambanks() - 1));
 	
 	if (rambankMode && multi64rom) {
 		const unsigned rb = toMulti64Rombank(rombank);
@@ -140,7 +140,7 @@ void Cartridge::mbcWrite(const unsigned P, const unsigned data) {
 		if (hasRtc(memptrs.romdata()[0x147]))
 			rtc.setEnabled(enableRam);
 
-		memptrs.setRambank(enableRam, rtc.getActive(), rambank);
+		memptrs.setRambank(enableRam, rtc.getActive(), rambank & (rambanks() - 1));
 		break;
 		//MBC1 writes ???n nnnn to address area 0x2000-0x3FFF, ???n nnnn makes up the lower digits to determine which rombank to load.
 		//MBC3 writes ?nnn nnnn to address area 0x2000-0x3FFF, ?nnn nnnn makes up the lower digits to determine which rombank to load.
