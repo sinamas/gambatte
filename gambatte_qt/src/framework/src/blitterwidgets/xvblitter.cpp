@@ -222,7 +222,7 @@ static int findId(const XvPortImageFormats &formats, const int id) {
 	return i;
 }
 
-static void addPorts(QComboBox *portSelector) {
+static void addPorts(QComboBox &portSelector) {
 	XvAdaptorInfos adaptors;
 	
 	for (unsigned i = 0; i < adaptors.len(); ++i) {
@@ -242,8 +242,9 @@ static void addPorts(QComboBox *portSelector) {
 		if (j < formats.len()) {
 			QList<QVariant> l;
 			l.append(static_cast<uint>(adaptors[i].base_id));
+			l.append(static_cast<uint>(std::min<unsigned long>(adaptors[i].num_ports, 0x100)));
 			l.append(formats[j].id);
-			portSelector->addItem(adaptors[i].name, l);
+			portSelector.addItem(adaptors[i].name, l);
 		}
 	}
 }
@@ -253,7 +254,7 @@ static void addPorts(QComboBox *portSelector) {
 XvBlitter::ConfWidget::ConfWidget()
 : widget_(new QWidget), portSelector_(new QComboBox(widget_.get())), portIndex_(0)
 {
-	addPorts(portSelector_);
+	addPorts(*portSelector_);
 	
 	if ((portIndex_ = QSettings().value("xvblitter/portIndex", 0).toUInt()) >= static_cast<unsigned>(portSelector_->count()))
 		portIndex_ = 0;
@@ -279,15 +280,19 @@ void XvBlitter::ConfWidget::restore() const {
 	portSelector_->setCurrentIndex(portIndex_);
 }
 
-XvPortID XvBlitter::ConfWidget::portId() const {
+XvPortID XvBlitter::ConfWidget::basePortId() const {
 	return static_cast<XvPortID>(portSelector_->itemData(portIndex_).toList().front().toUInt());
+}
+
+unsigned XvBlitter::ConfWidget::numPortIds() const {
+	return portSelector_->itemData(portIndex_).toList().at(1).toUInt();
 }
 
 int XvBlitter::ConfWidget::formatId() const {
 	return portSelector_->itemData(portIndex_).toList().back().toInt();
 }
 
-int XvBlitter::ConfWidget::numPorts() const {
+int XvBlitter::ConfWidget::numAdapters() const {
 	return portSelector_->count();
 }
 
@@ -297,10 +302,17 @@ XvBlitter::PortGrabber::~PortGrabber() {
 	ungrab();
 }
 
-bool XvBlitter::PortGrabber::grab(const XvPortID port) {
+bool XvBlitter::PortGrabber::grab(const XvPortID basePort, const unsigned numPorts) {
 	ungrab();
-	port_ = port;
-	return grabbed_ = XvGrabPort(QX11Info::display(), port, CurrentTime) == Success;
+	
+	for (XvPortID port = basePort; port < basePort + numPorts; ++port) {
+		port_ = port;
+		
+		if ((grabbed_ = XvGrabPort(QX11Info::display(), port, CurrentTime) == Success))
+			return true;
+	}
+	
+	return false;
 }
 
 void XvBlitter::PortGrabber::ungrab() {
@@ -332,7 +344,7 @@ XvBlitter::XvBlitter(VideoBufferLocker vbl, QWidget *parent) :
 }
 
 bool XvBlitter::isUnusable() const {
-	return confWidget.numPorts() == 0;
+	return confWidget.numAdapters() == 0;
 }
 
 /*static bool getBestPort(const unsigned int num_adaptors, const XvAdaptorInfo *const adaptor_info, XvPortID *const port_out) {
@@ -407,9 +419,8 @@ void XvBlitter::paintEvent(QPaintEvent *event) {
 	const QRect &rect = event->rect();
 	XFillRectangle(QX11Info::display(), winId(), gc, rect.x(), rect.y(), rect.width(), rect.height());
 	
-	if (isPaused() && portGrabber.grabbed()) {
+	if (isPaused() && portGrabber.grabbed())
 		subBlitter->blit(winId(), portGrabber.port(), width(), height());
-	}
 }
 
 void XvBlitter::setBufferDimensions(const unsigned width, const unsigned height) {
@@ -480,7 +491,7 @@ public:
 }
 
 void XvBlitter::initPort() {
-	if (portGrabber.grab(confWidget.portId())) {
+	if (portGrabber.grab(confWidget.basePortId(), confWidget.numPortIds())) {
 		XvAttributes attribs(portGrabber.port());
 		attribs.set("XV_AUTOPAINT_COLORKEY", 0);
 		attribs.set("XV_COLORKEY", 2110);
@@ -490,7 +501,8 @@ void XvBlitter::initPort() {
 void XvBlitter::acceptSettings() {
 	confWidget.store();
 	
-	if (initialized && confWidget.portId() != portGrabber.port()) {
+	if (initialized && !(portGrabber.port() >= confWidget.basePortId()
+				&& portGrabber.port() < confWidget.basePortId() + confWidget.numPortIds())) {
 		initPort();
 		lockPixelBuffer();
 		setBufferDimensions(inBuffer().width, inBuffer().height);

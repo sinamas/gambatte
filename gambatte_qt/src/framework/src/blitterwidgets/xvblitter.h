@@ -44,9 +44,10 @@ class XvBlitter : public BlitterWidget {
 		~ConfWidget();
 		void store();
 		void restore() const;
-		XvPortID portId() const;
+		XvPortID basePortId() const;
+		unsigned numPortIds() const;
 		int formatId() const;
-		int numPorts() const;
+		int numAdapters() const;
 		QWidget * qwidget() const { return widget_.get(); }
 	};
 	
@@ -56,7 +57,7 @@ class XvBlitter : public BlitterWidget {
 	public:
 		PortGrabber();
 		~PortGrabber();
-		bool grab(XvPortID port);
+		bool grab(XvPortID port, unsigned numPorts);
 		void ungrab();
 		bool grabbed() const { return grabbed_; }
 		XvPortID port() const { return port_; }
