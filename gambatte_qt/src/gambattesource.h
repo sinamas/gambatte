@@ -32,6 +32,7 @@
 class GambatteSource : public QObject, public MediaSource {
 	Q_OBJECT
 	
+	struct GbVidBuf;
 	struct GetInput : public gambatte::InputGetter {
 		unsigned is;
 		GetInput() : is(0) {}
@@ -43,9 +44,7 @@ class GambatteSource : public QObject, public MediaSource {
 	InputDialog *const inputDialog_;
 	std::auto_ptr<VideoLink> cconvert;
 	std::auto_ptr<VideoLink> vfilter;
-	gambatte::uint_least32_t *gbpixels;
 	PixelBuffer::PixelFormat pxformat;
-	unsigned gbpitch;
 	unsigned vsrci;
 	bool inputState[10];
 	volatile bool dpadUp, dpadDown;
@@ -53,7 +52,7 @@ class GambatteSource : public QObject, public MediaSource {
 	volatile bool dpadUpLast, dpadLeftLast;
 	
 	InputDialog* createInputDialog();
-	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch);
+	const GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch);
 	void keyPressEvent(const QKeyEvent *);
 	void keyReleaseEvent(const QKeyEvent *);
 	void joystickEvent(const SDL_Event&);

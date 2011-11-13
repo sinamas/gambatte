@@ -26,9 +26,7 @@ using namespace gambatte;
 GambatteSource::GambatteSource()
 : MediaSource(2064),
   inputDialog_(createInputDialog()),
-  gbpixels(0),
   pxformat(PixelBuffer::RGB32),
-  gbpitch(160),
   vsrci(0),
   dpadUp(false),
   dpadDown(false),
@@ -134,21 +132,23 @@ void GambatteSource::joystickEvent(const SDL_Event &e) {
 	inputDialog_->joystickEvent(e);
 }
 
-void GambatteSource::setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch) {
-	if (pxformat != format) {
+struct GambatteSource::GbVidBuf {
+	uint_least32_t *pixels; long pitch;
+	GbVidBuf(uint_least32_t *pixels, long pitch) : pixels(pixels), pitch(pitch) {}
+};
+
+const GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch) {
+	if (pxformat != format && pixels) {
 		pxformat = format;
 		cconvert.reset();
 		cconvert.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(pxformat),
 				VfilterInfo::get(vsrci).outWidth, VfilterInfo::get(vsrci).outHeight));
 	}
 	
-	if (VideoLink *const gblink = vfilter.get() ? vfilter.get() : cconvert.get()) {
-		gbpixels = static_cast<uint_least32_t*>(gblink->inBuf());
-		gbpitch  = gblink->inPitch();
-	} else {
-		gbpixels = static_cast<uint_least32_t*>(pixels);
-		gbpitch = pitch;
-	}
+	if (VideoLink *const gblink = vfilter.get() ? vfilter.get() : cconvert.get())
+		return GbVidBuf(static_cast<uint_least32_t*>(gblink->inBuf()), gblink->inPitch());
+	
+	return GbVidBuf(static_cast<uint_least32_t*>(pixels), pitch);
 }
 
 static void setGbDir(bool &a, bool &b, const bool aPressed, const bool bPressed, const bool preferA) {
@@ -175,7 +175,7 @@ static void* getpbdata(const PixelBuffer &pb, const unsigned vsrci) {
 }
 
 long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long &samples) {
-	setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
+	const GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
 	samples -= overupdate;
 	
 	if (samples < 0) {
@@ -188,7 +188,7 @@ long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long 
 	inputGetter.is = packedInputState(inputState, (sizeof inputState) / (sizeof inputState[0]));
 	
 	unsigned usamples = samples;
-	const long retval = gb.runFor(gbpixels, gbpitch, reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
+	const long retval = gb.runFor(gbvidbuf.pixels, gbvidbuf.pitch, reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
 	samples = usamples;
 	
 	if (retval >= 0)
@@ -224,11 +224,11 @@ void GambatteSource::setVideoSource(unsigned videoSourceIndex) {
 }
 
 void GambatteSource::saveState(const PixelBuffer &pb) {
-	setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
-	gb.saveState(gbpixels, gbpitch);
+	const GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
+	gb.saveState(gbvidbuf.pixels, gbvidbuf.pitch);
 }
 
 void GambatteSource::saveState(const PixelBuffer &pb, const std::string &filepath) {
-	setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
-	gb.saveState(gbpixels, gbpitch, filepath);
+	const GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
+	gb.saveState(gbvidbuf.pixels, gbvidbuf.pitch, filepath);
 }
