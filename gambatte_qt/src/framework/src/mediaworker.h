@@ -40,9 +40,8 @@ public:
 		virtual bool cancelBlit() = 0;
 // 		virtual void sync() = 0;
 		virtual void audioEngineFailure() = 0;
-		virtual bool tryLockVideoBuffer() = 0;
+		virtual bool tryLockVideoBuffer(PixelBuffer &pb) = 0;
 		virtual void unlockVideoBuffer() = 0;
-		virtual const PixelBuffer& videoBuffer() = 0;
 		virtual ~Callback() {}
 	};
 

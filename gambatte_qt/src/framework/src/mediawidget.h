@@ -120,9 +120,16 @@ public:
 	void keyPressEvent(QKeyEvent*);
 	void keyReleaseEvent(QKeyEvent*);
 	
-	bool tryLockFrameBuf() { return vbmut.tryLock(); }
+	bool tryLockFrameBuf(PixelBuffer &pb) {
+		if (vbmut.tryLock()) {
+			pb = running ? blitterContainer->blitter()->inBuffer() : PixelBuffer();
+			return true;
+		}
+		
+		return false;
+	}
+	
 	void unlockFrameBuf() { vbmut.unlock(); }
-	const PixelBuffer frameBuf() const { return running ? blitterContainer->blitter()->inBuffer() : PixelBuffer(); }
 	
 	const QSize& videoSize() const { return blitterContainer->sourceSize(); }
 	

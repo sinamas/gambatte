@@ -311,11 +311,9 @@ long MediaWorker::sourceUpdate() {
 		Callback *cb;
 		PixelBuffer pb;
 	public:
-		VidBuf(Callback *cb) : cb(cb), pb(cb->videoBuffer()) {
-			if (!cb->tryLockVideoBuffer()) {
-				pb.data = 0;
+		explicit VidBuf(Callback *cb) : cb(cb), pb() {
+			if (!cb->tryLockVideoBuffer(pb))
 				this->cb = 0;
-			}
 		}
 
 		~VidBuf() { if (cb) cb->unlockVideoBuffer(); }
@@ -335,23 +333,29 @@ void MediaWorker::adjustResamplerRate(const long outRate) {
 		sndOutBuffer.reset(sz);
 }
 
-static usec_t frameWait(const usec_t base, const usec_t syncft, const usec_t usecsFromUnderrun, SyncVar &waitingForSync) {
-	const usec_t now = getusecs();
+namespace {
+struct NowDelta { usec_t now, inc;
+                  NowDelta(usec_t now, usec_t inc) : now(now), inc(inc) {} };
+}
 
-	if (base + syncft - now < syncft * 2) {
-		if (base + syncft - now >= usecsFromUnderrun - (usecsFromUnderrun >> 2))
-			return base;
+static const NowDelta frameWait(const NowDelta basetime,
+		const usec_t syncft, const usec_t usecsFromUnderrun, SyncVar &waitingForSync) {
+	const usec_t now = getusecs();
+	const usec_t target = basetime.now + basetime.inc + syncft;
+	
+	if (target - now < basetime.inc + syncft) {
+		if (target - now >= usecsFromUnderrun - (usecsFromUnderrun >> 2))
+			return basetime;
 		
 		SyncVar::Locked wfs(waitingForSync);
-
-		/*while*/if (!wfs.get() && /*wfs.wait(now, base + syncft - now)*/ wfs.wait((base + syncft - now) / 1000)) {
-			;
-		}
-
-		return base + syncft;
+		
+		if (!wfs.get())
+			wfs.wait((target - now) / 1000);
+		
+		return NowDelta(now, target - now);
 	}
-
-	return now;
+	
+	return NowDelta(now, 0);
 }
 
 static void blitWait(MediaWorker::Callback *const cb, SyncVar &waitingForSync) {
@@ -410,7 +414,7 @@ void MediaWorker::run() {
 
 	SkipSched skipSched;
 	bool audioBufLow = false;
-	usec_t base = 0;
+	NowDelta basetime(0, 0);
 
 	for (;;) {
 		pauseVar.waitWhilePaused(callback.get(), *ao_);
@@ -428,7 +432,7 @@ void MediaWorker::run() {
 			const bool blit   = blitSamples >= 0 && !skipSched.skipNext(audioBufLow);
 
 			if (blit)
-				callback->blit(base, syncft);
+				callback->blit(basetime.now, basetime.inc + syncft);
 
 			const long outsamples = sampleBuffer.read(
 					blit ? blitSamples : sampleBuffer.samplesBuffered(),
@@ -446,7 +450,8 @@ void MediaWorker::run() {
 			audioBufLow = audioBufIsLow(bstate, outsamples);
 
 			if (blit) {
-				base = frameWait(base, syncft, usecsFromUnderrun(bstate, outsamples, ao_->estimatedRate()), waitingForSync_);
+				basetime = frameWait(basetime, syncft, usecsFromUnderrun(
+						bstate, outsamples, ao_->estimatedRate()), waitingForSync_);
 				blitWait(callback.get(), waitingForSync_);
 			}
 		}

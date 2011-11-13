@@ -24,10 +24,8 @@
 #include <QtGlobal> // for Q_WS_WIN define
 
 MainWindow::FrameBuffer::Locked::Locked(FrameBuffer fb) : mw(0), pb() {
-	if (fb.mw->tryLockFrameBuf()) {
+	if (fb.mw->tryLockFrameBuf(pb))
 		mw = fb.mw;
-		pb = fb.mw->frameBuf();
-	}
 }
 
 MainWindow::FrameBuffer::Locked::~Locked() {

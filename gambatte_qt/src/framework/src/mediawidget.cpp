@@ -19,6 +19,7 @@
 #include "mediawidget.h"
 #include <QEvent>
 #include <QKeyEvent>
+#include <QMutexLocker>
 #include <QCoreApplication>
 #include <QtGlobal> // for Q_WS_WIN define
 #include "adaptivesleep.h"
@@ -130,11 +131,17 @@ public:
 	bool cancelBlit();
 	void paused();
 	void audioEngineFailure();
-	bool tryLockVideoBuffer() { return mw.vbmut.tryLock(); }
-	void unlockVideoBuffer() { mw.vbmut.unlock(); }
-	const PixelBuffer& videoBuffer() {
-		return mw.blitterContainer->blitter()->inBuffer();
+	
+	bool tryLockVideoBuffer(PixelBuffer &pb) {
+		if (mw.vbmut.tryLock()) {
+			pb = mw.blitterContainer->blitter()->inBuffer();
+			return true;
+		}
+		
+		return false;
 	}
+	
+	void unlockVideoBuffer() { mw.vbmut.unlock(); }
 
 	void consumeBlitRequest();
 };
@@ -364,13 +371,13 @@ void MediaWidget::setBlitter(BlitterWidget *const blitter) {
 
 void MediaWidget::setVideo(const unsigned w, const unsigned h, BlitterWidget *const blitter) {
 	if (QSize(w, h) != blitterContainer->sourceSize() || blitter != blitterContainer->blitter()) {
-		vbmut.lock();
-		setBlitter(blitter);
+		{
+			const QMutexLocker vblock(&vbmut);
+			setBlitter(blitter);
 
-		if (running)
-			blitterContainer->blitter()->setVideoFormat(w, h);
-
-		vbmut.unlock();
+			if (running)
+				blitterContainer->blitter()->setVideoFormat(w, h);
+		}
 		
 		blitterContainer->setSourceSize(QSize(w, h));
 	}
