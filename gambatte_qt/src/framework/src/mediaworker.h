@@ -57,6 +57,7 @@ private:
 
 		friend class PushMediaWorkerCall;
 	public:
+		enum { PAUSE_BIT = 1, QPAUSE_BIT = 2, FAIL_BIT = 4 };
 		PauseVar() : var(0), waiting(true) {}
 		void localPause(unsigned bits) { if (waiting) var |= bits; else pause(bits); }
 		void pause(unsigned bits) { mut.lock(); var |= bits; mut.unlock(); }
@@ -145,12 +146,10 @@ public:
 	void start();
 	void stop();
 	void pause();
-	void unpause() { pauseVar.unpause(1); }
-	void qPause() { pauseVar.pause(2); }
-	void qUnpause() { pauseVar.unpause(2); }
-	void deactivate() { pauseVar.pause(4); }
-	void reactivate() { pauseVar.unpause(4); }
-	void recover() { pauseVar.unpause(8); }
+	void unpause() { pauseVar.unpause(PauseVar::PAUSE_BIT); }
+	void qPause() { pauseVar.pause(PauseVar::QPAUSE_BIT); }
+	void qUnpause() { pauseVar.unpause(PauseVar::QPAUSE_BIT); }
+	void recover() { pauseVar.unpause(PauseVar::FAIL_BIT); }
 	bool paused() const { return pauseVar.waitingForUnpause(); }
 
 	void resetAudio();

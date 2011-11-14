@@ -161,7 +161,7 @@ void MediaWorker::stop() {
 }
 
 void MediaWorker::pause() {
-	pauseVar.pause(1);
+	pauseVar.pause(PauseVar::PAUSE_BIT);
 
 	if (pauseVar.waitingForUnpause())
 		ao_->pause();
@@ -174,7 +174,7 @@ void MediaWorker::initAudioEngine() {
 	meanQueue.reset(ao_->rate(), ao_->rate() >> 12);
 
 	if (!ao_->successfullyInitialized()) {
-		pauseVar.localPause(8);
+		pauseVar.localPause(PauseVar::FAIL_BIT);
 		callback->audioEngineFailure();
 	}
 }
@@ -443,7 +443,7 @@ void MediaWorker::run() {
 
 			if (ao_->successfullyInitialized() && ao_->write(sndOutBuffer, outsamples, bstate) < 0) {
 				ao_->pause();
-				pauseVar.pause(8);
+				pauseVar.pause(PauseVar::FAIL_BIT);
 				callback->audioEngineFailure();
 			}
 
@@ -467,7 +467,7 @@ bool MediaWorker::frameStep() {
 	if (ao_->successfullyInitialized()) {
 		if (ao_->write(sndOutBuffer, outsamples) < 0) {
 			ao_->pause();
-			pauseVar.pause(8);
+			pauseVar.pause(PauseVar::FAIL_BIT);
 			callback->audioEngineFailure();
 		} else
 			ao_->pause();
