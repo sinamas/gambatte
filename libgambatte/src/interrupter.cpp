@@ -36,7 +36,7 @@ unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycle
 	PC = address;
 	cycleCounter += 8;
 	
-	if (!gsCodes.empty() && address == 0x40)
+	if (address == 0x40 && !gsCodes.empty())
 		applyVblankCheats(cycleCounter, memory);
 	
 	return cycleCounter;
@@ -53,7 +53,7 @@ void Interrupter::setGameShark(const std::string &codes) {
 	for (std::size_t pos = 0; pos < codes.length() && (code = codes.substr(pos, codes.find(';', pos) - pos), true); pos += code.length() + 1) {
 		if (code.length() >= 8) {
 			GsCode gs;
-			gs.type  = asHex(code[0]) << 4 | asHex(code[1]);
+			gs.type  =  asHex(code[0]) << 4 | asHex(code[1]);
 			gs.value = (asHex(code[2]) << 4 | asHex(code[3])) & 0xFF;
 			gs.address = (asHex(code[4]) << 4 | asHex(code[5]) | asHex(code[6]) << 12 | asHex(code[7]) << 8) & 0xFFFF;
 			gsCodes.push_back(gs);
@@ -63,9 +63,8 @@ void Interrupter::setGameShark(const std::string &codes) {
 
 void Interrupter::applyVblankCheats(const unsigned long cycleCounter, Memory &memory) {
 	for (std::size_t i = 0, size = gsCodes.size(); i < size; ++i) {
-		if (gsCodes[i].type == 0x01) {
+		if (gsCodes[i].type == 0x01)
 			memory.write(gsCodes[i].address, gsCodes[i].value, cycleCounter);
-		}
 	}
 }
 
