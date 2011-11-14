@@ -298,7 +298,7 @@ static bool fileExists(const std::string &filename) {
 	return false;
 }
 
-const std::string extensionStripped(const std::string &s) {
+static const std::string extensionStripped(const std::string &s) {
 	const std::size_t pos = s.rfind('.');
 	return pos != std::string::npos ? s.substr(0, pos) : s;
 }
