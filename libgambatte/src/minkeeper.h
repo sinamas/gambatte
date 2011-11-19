@@ -82,7 +82,7 @@ class MinKeeper {
 	template<int id> static void updateValue(MinKeeper<ids> *s);
 	
 public:
-	MinKeeper(unsigned long initValue = 0xFFFFFFFF);
+	explicit MinKeeper(unsigned long initValue = 0xFFFFFFFF);
 	
 	int min() const { return a[0]; }
 	unsigned long minValue() const { return minValue_; }

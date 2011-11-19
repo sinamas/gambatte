@@ -42,7 +42,7 @@ class ScopedArray : Uncopyable {
 	
 public:
 	explicit ScopedArray(T *a = 0) : a_(a) {}
-	~ScopedArray() { delete a_; }
+	~ScopedArray() { delete []a_; }
 	void reset(T *a = 0) { delete []a_; a_ = a; }
 	T * release() { T *a = a_; a_ = 0; return a; }
 	T * get() const { return a_; }
