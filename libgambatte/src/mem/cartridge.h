@@ -21,12 +21,21 @@
 
 #include "memptrs.h"
 #include "rtc.h"
+#include "savestate.h"
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace gambatte {
 
-struct SaveState;
+class Mbc {
+public:
+	virtual ~Mbc() {}
+	virtual void romWrite(unsigned P, unsigned data) = 0;
+	virtual void saveState(SaveState::Mem &ss) const = 0;
+	virtual void loadState(const SaveState::Mem &ss) = 0;
+	virtual bool isAddressWithinAreaRombankCanBeMappedTo(unsigned address, unsigned rombank) const = 0;
+};
 
 class Cartridge {
 	struct AddrData {
@@ -37,28 +46,19 @@ class Cartridge {
 	
 	MemPtrs memptrs;
 	Rtc rtc;
-	
+	std::auto_ptr<Mbc> mbc;
 	std::string defaultSaveBasePath;
 	std::string saveDir;
 	std::vector<AddrData> ggUndoList;
 	
-	unsigned short rombank;
-	unsigned char rambank;
-	bool enableRam;
-	bool rambankMode;
-	bool multi64rom;
-	
-	unsigned rambanks() const { return (memptrs.rambankdataend() - memptrs.rambankdata()) / 0x2000; }
-	unsigned rombanks() const { return (memptrs.romdataend()     - memptrs.romdata()    ) / 0x4000; }
 	void applyGameGenie(const std::string &code);
 	
 public:
-	Cartridge();
 	void setStatePtrs(SaveState &);
 	void saveState(SaveState &) const;
 	void loadState(const SaveState &);
 	
-	bool loaded() const { return !defaultSaveBasePath.empty(); }
+	bool loaded() const { return mbc.get(); }
 	
 	const unsigned char * rmem(unsigned area) const { return memptrs.rmem(area); }
 	unsigned char * wmem(unsigned area) const { return memptrs.wmem(area); }
@@ -72,8 +72,8 @@ public:
 	void setWrambank(unsigned bank) { memptrs.setWrambank(bank); }
 	void setOamDmaSrc(OamDmaSrc oamDmaSrc) { memptrs.setOamDmaSrc(oamDmaSrc); }
 	
-	void mbcWrite(unsigned addr, unsigned data);
-	
+	void mbcWrite(unsigned addr, unsigned data) { mbc->romWrite(addr, data); }
+
 	bool isCgb() const { return gambatte::isCgb(memptrs); }
 	
 	void rtcWrite(unsigned data) { rtc.write(data); }
