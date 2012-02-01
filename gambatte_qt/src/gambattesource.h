@@ -74,7 +74,7 @@ public:
 	
 	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
 	
-	bool load(const std::string &romfile, const unsigned flags) { return gb.load(romfile, flags); }
+	int load(const std::string &romfile, const unsigned flags) { return gb.load(romfile, flags); }
 	void setGameGenie(const std::string &codes) { gb.setGameGenie(codes); }
 	void setGameShark(const std::string &codes) { gb.setGameShark(codes); }
 	void reset() { gb.reset(); }

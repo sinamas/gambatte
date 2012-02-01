@@ -383,7 +383,7 @@ class Mbc5 : public DefaultMbc {
 	unsigned char rambank;
 	bool enableRam;
 
-	static unsigned adjustedRombank(const unsigned bank) { return bank ? bank : bank | 1; }
+	static unsigned adjustedRombank(const unsigned bank) { return bank ? bank : 1; }
 	void setRambank() const { memptrs.setRambank(enableRam ? MemPtrs::READ_EN | MemPtrs::WRITE_EN : 0, rambank & (rambanks(memptrs) - 1)); }
 	void setRombank() const { memptrs.setRombank(adjustedRombank(rombank & (rombanks(memptrs) - 1))); }
 
@@ -503,11 +503,11 @@ static unsigned pow2ceil(unsigned n) {
 	return n;
 }
 
-bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
+int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
 	const std::auto_ptr<File> rom(newFileInstance(romfile));
 
 	if (rom->fail())
-		return 1;
+		return -1;
 	
 	unsigned rambanks = 1;
 	unsigned rombanks = 2;
@@ -527,28 +527,28 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 		case 0x06: std::puts("MBC2 ROM+BATTERY loaded."); type = MBC2; break;
 		case 0x08: std::puts("Plain ROM with additional RAM loaded."); type = PLAIN; break;
 		case 0x09: std::puts("Plain ROM with additional RAM and Battery loaded."); type = PLAIN; break;
-		case 0x0B: std::puts("MM01 ROM not supported."); return 1;
-		case 0x0C: std::puts("MM01 ROM not supported."); return 1;
-		case 0x0D: std::puts("MM01 ROM not supported."); return 1;
+		case 0x0B: std::puts("MM01 ROM not supported."); return -1;
+		case 0x0C: std::puts("MM01 ROM not supported."); return -1;
+		case 0x0D: std::puts("MM01 ROM not supported."); return -1;
 		case 0x0F: std::puts("MBC3 ROM+TIMER+BATTERY loaded."); type = MBC3; break;
 		case 0x10: std::puts("MBC3 ROM+TIMER+RAM+BATTERY loaded."); type = MBC3; break;
 		case 0x11: std::puts("MBC3 ROM loaded."); type = MBC3; break;
 		case 0x12: std::puts("MBC3 ROM+RAM loaded."); type = MBC3; break;
 		case 0x13: std::puts("MBC3 ROM+RAM+BATTERY loaded."); type = MBC3; break;
-		case 0x15: std::puts("MBC4 ROM not supported."); return 1;
-		case 0x16: std::puts("MBC4 ROM not supported."); return 1;
-		case 0x17: std::puts("MBC4 ROM not supported."); return 1;
+		case 0x15: std::puts("MBC4 ROM not supported."); return -1;
+		case 0x16: std::puts("MBC4 ROM not supported."); return -1;
+		case 0x17: std::puts("MBC4 ROM not supported."); return -1;
 		case 0x19: std::puts("MBC5 ROM loaded."); type = MBC5; break;
 		case 0x1A: std::puts("MBC5 ROM+RAM loaded."); type = MBC5; break;
 		case 0x1B: std::puts("MBC5 ROM+RAM+BATTERY loaded."); type = MBC5; break;
 		case 0x1C: std::puts("MBC5+RUMBLE ROM not supported."); type = MBC5; break;
 		case 0x1D: std::puts("MBC5+RUMBLE+RAM ROM not suported."); type = MBC5; break;
 		case 0x1E: std::puts("MBC5+RUMBLE+RAM+BATTERY ROM not supported."); type = MBC5; break;
-		case 0xFC: std::puts("Pocket Camera ROM not supported."); return 1;
-		case 0xFD: std::puts("Bandai TAMA5 ROM not supported."); return 1;
-		case 0xFE: std::puts("HuC3 ROM not supported."); return 1;
+		case 0xFC: std::puts("Pocket Camera ROM not supported."); return -1;
+		case 0xFD: std::puts("Bandai TAMA5 ROM not supported."); return -1;
+		case 0xFE: std::puts("HuC3 ROM not supported."); return -1;
 		case 0xFF: std::puts("HuC1 ROM+RAM+BATTERY loaded."); type = HUC1; break;
-		default: std::puts("Wrong data-format, corrupt or unsupported ROM."); return 1;
+		default: std::puts("Wrong data-format, corrupt or unsupported ROM."); return -1;
 		}
 
 		/*switch (header[0x0148]) {
@@ -564,7 +564,7 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 		case 0x52: rombanks = 72; break;
 		case 0x53: rombanks = 80; break;
 		case 0x54: rombanks = 96; break;
-		default: return 1;
+		default: return -1;
 		}
 
 		std::printf("rombanks: %u\n", rombanks);*/
@@ -611,7 +611,7 @@ bool Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const b
 	enforce8bit(memptrs.romdata(), rombanks * 0x4000ul);
 	
 	if (rom->fail())
-		return 1;
+		return -1;
 	
 	defaultSaveBasePath = stripExtension(romfile);
 	

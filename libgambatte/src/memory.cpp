@@ -964,15 +964,15 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 		ioamhram[P - 0xFE00] = data;
 }
 
-bool Memory::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
-	if (cart.loadROM(romfile, forceDmg, multicartCompat))
-		return true;
+int Memory::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
+	if (const int fail = cart.loadROM(romfile, forceDmg, multicartCompat))
+		return fail;
 
 	sound.init(cart.isCgb());
 	display.reset(ioamhram, cart.isCgb());
 	interrupter.setGameShark(std::string());
 
-	return false;
+	return 0;
 }
 
 unsigned Memory::fillSoundBuffer(const unsigned long cycleCounter) {

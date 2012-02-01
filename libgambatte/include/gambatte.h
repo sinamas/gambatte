@@ -41,15 +41,15 @@ public:
 	  *
 	  * @param romfile  Path to rom image file. Typically a .gbc, .gb, or .zip-file (if zip-support is compiled in).
 	  * @param flags    ORed combination of LoadFlags.
-	  * @return true if failed to load ROM image.
+	  * @return 0 on success, negative value on failure.
 	  */
-	bool load(const std::string &romfile, unsigned flags = 0);
+	int load(const std::string &romfile, unsigned flags = 0);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
 	  * or until a video frame has been drawn.
 	  *
 	  * There are 35112 stereo sound samples in a video frame.
-	  * May run for uptil 2064 stereo samples too long.
+	  * May run for up to 2064 stereo samples too long.
 	  * A stereo sample consists of two native endian 2s complement 16-bit PCM samples,
 	  * with the left sample preceding the right one. Usually casting soundBuf to/from
 	  * short* is OK and recommended. The reason for not using a short* in the interface
