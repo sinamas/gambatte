@@ -48,6 +48,7 @@ class Memory {
 	unsigned short dmaSource;
 	unsigned short dmaDestination;
 	unsigned char oamDmaPos;
+	unsigned char serialCnt;
 	bool blanklcd;
 
 	void updateInput();
@@ -64,7 +65,7 @@ class Memory {
 	void nontrivial_ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	
-	void updateSerialIrq(unsigned long cc);
+	void updateSerial(unsigned long cc);
 	void updateTimaIrq(unsigned long cc);
 	void updateIrqs(unsigned long cc);
 	
