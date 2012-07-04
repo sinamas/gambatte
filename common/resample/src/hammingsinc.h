@@ -24,8 +24,9 @@
 #include "makesinckernel.h"
 #include "cic3.h"
 #include "array.h"
+#include <algorithm>
 #include <cmath>
-#include <cstdlib>
+#include <cstddef>
 
 template<unsigned channels, unsigned phases>
 class HammingSinc : public SubResampler {
@@ -37,7 +38,7 @@ class HammingSinc : public SubResampler {
 		return 0.53836 - 0.46164 * std::cos(2 * PI * i / M);
 	}
 	
-	void init(unsigned div, unsigned phaseLen, double fc);
+	void init(unsigned div, unsigned phaseLen, double fc, double gain);
 	
 public:
 	enum { MUL = phases };
@@ -48,7 +49,7 @@ public:
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
 			static const float widthTimesTaps = 3.0f;
-			return static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth));
+			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {
@@ -63,8 +64,8 @@ public:
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
-	HammingSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc); }
-	HammingSinc(unsigned div, RollOff ro) { init(div, ro.taps, ro.fc); }
+	HammingSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
+	HammingSinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	void adjustDiv(unsigned div);
 	unsigned mul() const { return MUL; }
@@ -72,10 +73,9 @@ public:
 };
 
 template<unsigned channels, unsigned phases>
-void HammingSinc<channels, phases>::init(const unsigned div, const unsigned phaseLen, const double fc) {
+void HammingSinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
 	kernel.reset(phaseLen * phases);
-	
-	makeSincKernel(kernel, phases, phaseLen, fc, hammingWin);
+	makeSincKernel(kernel, phases, phaseLen, fc, hammingWin, gain);
 	
 	for (unsigned i = 0; i < channels; ++i)
 		convoluters[i].reset(kernel, phaseLen, div);

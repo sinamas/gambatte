@@ -36,14 +36,15 @@ class Cic3Core {
 	unsigned nextdivn;
 // 	unsigned bufpos;
 	
-public:
-	explicit Cic3Core(const unsigned div = 1) {
-		reset(div);
-	}
+	// trouble if div is too large, may be better to only support power of 2 div
+	static long mulForDiv(unsigned div) { return 0x10000 / (div * div * div); }
 	
+public:
+	explicit Cic3Core(const unsigned div = 1) { reset(div); }
 	unsigned div() const { return div_; }
 	std::size_t filter(short *out, const short *in, std::size_t inlen);
 	void reset(unsigned div);
+	static double gain(unsigned div) { return rshift16_round(-32768l * (div * div * div) * mulForDiv(div)) / -32768.0; }
 };
 
 template<unsigned channels> 
@@ -59,7 +60,7 @@ template<unsigned channels>
 std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::size_t inlen) {
 // 	const std::size_t produced = (inlen + div_ - (bufpos + 1)) / div_;
 	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
-	const long mul = 0x10000 / (div_ * div_ * div_); // trouble if div is too large, may be better to only support power of 2 div
+	const long mul = mulForDiv(div_);
 	const short *s = in;
 	
 	/*unsigned long sm1 = sum1;
@@ -361,6 +362,7 @@ public:
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	unsigned mul() const { return 1; }
 	unsigned div() const { return cics[0].div(); }
+	static double gain(unsigned div) { return Cic3Core<channels>::gain(div); }
 };
 
 template<unsigned channels>

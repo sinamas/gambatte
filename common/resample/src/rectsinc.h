@@ -24,8 +24,9 @@
 #include "makesinckernel.h"
 #include "cic2.h"
 #include "array.h"
+#include <algorithm>
 #include <cmath>
-#include <cstdlib>
+#include <cstddef>
 
 template<unsigned channels, unsigned phases>
 class RectSinc : public SubResampler {
@@ -36,7 +37,7 @@ class RectSinc : public SubResampler {
 		return 1;
 	}
 	
-	void init(unsigned div, unsigned phaseLen, double fc);
+	void init(unsigned div, unsigned phaseLen, double fc, double gain);
 	
 public:
 	enum { MUL = phases };
@@ -47,7 +48,7 @@ public:
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
 			static const float widthTimesTaps = 0.9f;
-			return static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth));
+			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {
@@ -62,8 +63,8 @@ public:
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
-	RectSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc); }
-	RectSinc(unsigned div, RollOff ro) { init(div, ro.taps, ro.fc); }
+	RectSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
+	RectSinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	void adjustDiv(unsigned div);
 	unsigned mul() const { return MUL; }
@@ -71,10 +72,9 @@ public:
 };
 
 template<unsigned channels, unsigned phases>
-void RectSinc<channels, phases>::init(const unsigned div, const unsigned phaseLen, const double fc) {
+void RectSinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
 	kernel.reset(phaseLen * phases);
-	
-	makeSincKernel(kernel, phases, phaseLen, fc, rectWin);
+	makeSincKernel(kernel, phases, phaseLen, fc, rectWin, gain);
 	
 	for (unsigned i = 0; i < channels; ++i)
 		convoluters[i].reset(kernel, phaseLen, div);

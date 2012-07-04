@@ -87,18 +87,19 @@ std::size_t ChainResampler::init(const long inRate, const long outRate, const st
 template<template<unsigned,unsigned> class Sinc>
 std::size_t ChainResampler::downinit(const long inRate, const long outRate, const std::size_t periodSize) {
 	typedef Sinc<channels,2048> BigSinc;
-	typedef Sinc<channels,32> SmallSinc;
+	typedef Sinc<channels,  32> SmallSinc;
 	
 	uninit();
 	this->periodSize = periodSize;
 	
 	double ratio = static_cast<double>(inRate) / outRate;
+	double gain = 1.0;
 	
 	while (ratio >= BigSinc::cicLimit() * 2) {
 		const int div = std::min<int>(static_cast<int>(ratio / BigSinc::cicLimit()), BigSinc::Cic::MAX_DIV);
-		
 		list.push_back(new typename BigSinc::Cic(div));
 		ratio /= div;
+		gain *= 1.0 / BigSinc::Cic::gain(div);
 	}
 	
 	// For high outRate: Start roll-off at 36000 Hz continue until outRate Hz, then wrap around back down to 40000 Hz.
@@ -124,20 +125,22 @@ std::size_t ChainResampler::downinit(const long inRate, const long outRate, cons
 			
 			if (get3ChainCost(ratio, finalRollOffLen, ratio1_3c, ratio2_3c, midRollOffStartPlusEnd) < cost_2c) {
 				list.push_back(new SmallSinc(div1_3c, typename SmallSinc::RollOff(
-						0.5f * midRollOffStart / ratio, (ratio1_3c - 0.5f * midRollOffStartPlusEnd) / ratio)));
+						0.5f * midRollOffStart / ratio, (ratio1_3c - 0.5f * midRollOffStartPlusEnd) / ratio), gain));
 				ratio = ratio1_3c;
 				div_2c = div2_3c;
 				ratio_2c = ratio2_3c;
+				gain = 1.0;
 			}
 			
 			list.push_back(new SmallSinc(div_2c, typename SmallSinc::RollOff(
-					0.5f * midRollOffStart / ratio, (ratio_2c - 0.5f * midRollOffStartPlusEnd) / ratio)));
+					0.5f * midRollOffStart / ratio, (ratio_2c - 0.5f * midRollOffStartPlusEnd) / ratio), gain));
 			ratio = ratio_2c;
+			gain = 1.0;
 		}
 	}
 	
 	list.push_back(bigSinc = new BigSinc(static_cast<int>(BigSinc::MUL * ratio + 0.5), typename BigSinc::RollOff(
-			0.5f * (1.0f + std::max((outRate - 40000.0f) * outPeriod, 0.0f) - finalRollOffLen) / ratio, 0.5f * finalRollOffLen / ratio)));
+			0.5f * (1.0f + std::max((outRate - 40000.0f) * outPeriod, 0.0f) - finalRollOffLen) / ratio, 0.5f * finalRollOffLen / ratio), gain));
 	
 	return reallocateBuffer();
 }
@@ -176,19 +179,19 @@ std::size_t ChainResampler::upinit(const long inRate, const long outRate, const 
 			const double ratio2_3c = ratio1_3c * div2_3c / SmallSinc::MUL;
 			
 			if (get3ChainCost(ratio, rollOff, ratio1_3c, ratio2_3c) < cost_2c) {
-				list.push_front(new SmallSinc(div1_3c, typename SmallSinc::RollOff(0.5f / ratio1_3c, (ratio1_3c - 1) / ratio1_3c)));
+				list.push_front(new SmallSinc(div1_3c, typename SmallSinc::RollOff(0.5f / ratio1_3c, (ratio1_3c - 1) / ratio1_3c), 1.0));
 				ratio = ratio1_3c;
 				div_2c = div2_3c;
 				ratio_2c = ratio2_3c;
 			}
 			
-			list.push_front(new SmallSinc(div_2c, typename SmallSinc::RollOff(0.5f / ratio_2c, (ratio_2c - 1) / ratio_2c)));
+			list.push_front(new SmallSinc(div_2c, typename SmallSinc::RollOff(0.5f / ratio_2c, (ratio_2c - 1) / ratio_2c), 1.0));
 			ratio = ratio_2c;
 		}
 	}*/
 	
-	list.push_front(bigSinc = new BigSinc(
-			static_cast<int>(BigSinc::MUL / ratio + 0.5), typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff)));
+	list.push_front(bigSinc = new BigSinc(static_cast<int>(BigSinc::MUL / ratio + 0.5),
+			typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff), 1.0));
 	
 	return reallocateBuffer();
 }

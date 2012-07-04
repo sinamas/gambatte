@@ -25,8 +25,9 @@
 #include "i0.h"
 #include "cic3.h"
 #include "array.h"
+#include <algorithm>
 #include <cmath>
-#include <cstdlib>
+#include <cstddef>
 
 template<unsigned channels, unsigned phases>
 class Kaiser50Sinc : public SubResampler {
@@ -44,7 +45,7 @@ class Kaiser50Sinc : public SubResampler {
 		return i0(x) * i0beta_rec;
 	}
 	
-	void init(unsigned div, unsigned phaseLen, double fc);
+	void init(unsigned div, unsigned phaseLen, double fc, double gain);
 	
 public:
 	enum { MUL = phases };
@@ -55,7 +56,7 @@ public:
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
 			static const float widthTimesTaps = 2.715f;
-			return static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth));
+			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {
@@ -70,8 +71,8 @@ public:
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
-	Kaiser50Sinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc); }
-	Kaiser50Sinc(unsigned div, RollOff ro) { init(div, ro.taps, ro.fc); }
+	Kaiser50Sinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
+	Kaiser50Sinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
 	void adjustDiv(unsigned div);
 	unsigned mul() const { return MUL; }
@@ -79,10 +80,9 @@ public:
 };
 
 template<unsigned channels, unsigned phases>
-void Kaiser50Sinc<channels, phases>::init(const unsigned div, const unsigned phaseLen, const double fc) {
+void Kaiser50Sinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
 	kernel.reset(phaseLen * phases);
-	
-	makeSincKernel(kernel, phases, phaseLen, fc, kaiserWin);
+	makeSincKernel(kernel, phases, phaseLen, fc, kaiserWin, gain);
 	
 	for (unsigned i = 0; i < channels; ++i)
 		convoluters[i].reset(kernel, phaseLen, div);
