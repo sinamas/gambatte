@@ -112,7 +112,6 @@ private:
 	
 	struct ResetAudio;
 	struct SetAudioOut;
-	struct SetResampler;
 	struct SetFrameTime;
 	struct SetSamplesPerFrame;
 	struct SetFastForward;
@@ -139,8 +138,8 @@ protected:
 	void run();
 
 public:
-	MediaWorker(MediaSource *source, class AudioEngine *ae, int aerate,
-			int aelatency, std::auto_ptr<Callback> callback, QObject *parent = 0);
+	MediaWorker(MediaSource *source, class AudioEngine *ae, int aerate, int aelatency,
+			unsigned resamplerNo, std::auto_ptr<Callback> callback, QObject *parent = 0);
 	MediaSource* source() /*const */{ return sampleBuffer.source(); }
 	SyncVar& waitingForSync() /*const */{ return waitingForSync_; }
 	void start();
@@ -153,8 +152,7 @@ public:
 	bool paused() const { return pauseVar.waitingForUnpause(); }
 
 	void resetAudio();
-	void setAudioOut(class AudioEngine *newAe, int rate, int latency);
-	void setResampler(unsigned resamplerNum);
+	void setAudioOut(class AudioEngine *newAe, int rate, int latency, unsigned resamplerNo);
 	void setFrameTime(Rational ft);
 	void setSamplesPerFrame(Rational spf);
 

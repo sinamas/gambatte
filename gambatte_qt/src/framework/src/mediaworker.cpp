@@ -52,13 +52,14 @@ class MediaWorker::AudioOut : Uncopyable {
 	AudioEngine &ae_;
 	const long rate_;
 	const unsigned latency_;
+	const unsigned resamplerNo_;
 	
 	long estrate_;
 	bool inited_;
 	
 public:
-	AudioOut(AudioEngine &ae, long rate, unsigned latency)
-	: ae_(ae), rate_(rate), latency_(latency), estrate_(rate), inited_(false)
+	AudioOut(AudioEngine &ae, long rate, unsigned latency, unsigned resamplerNo)
+	: ae_(ae), rate_(rate), latency_(latency), resamplerNo_(resamplerNo), estrate_(rate), inited_(false)
 	{
 	}
 	
@@ -87,6 +88,7 @@ public:
 	bool flushPausedBuffers() const { return ae_.flushPausedBuffers(); }
 	long rate() const { return ae_.rate() > 0 ? ae_.rate() : rate_; }
 	long estimatedRate() const { return estrate_; }
+	unsigned resamplerNo() const { return resamplerNo_; }
 	bool initialized() const { return inited_; }
 	bool successfullyInitialized() const { return inited_ && ae_.rate() > 0; }
 	
@@ -130,14 +132,14 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, Aud
 }
 
 MediaWorker::MediaWorker(MediaSource *source, AudioEngine *ae, int aerate,
-		int aelatency, std::auto_ptr<Callback> callback, QObject *parent)
+		int aelatency, unsigned resamplerNo, std::auto_ptr<Callback> callback, QObject *parent)
 : QThread(parent),
   callback(callback),
   meanQueue(0, 0),
   frameTimeEst(0),
   doneVar(true),
   sampleBuffer(source),
-  ao_(new AudioOut(*ae, aerate, aelatency)),
+  ao_(new AudioOut(*ae, aerate, aelatency, resamplerNo)),
   usecft(0)
 {
 }
@@ -169,7 +171,7 @@ void MediaWorker::pause() {
 
 void MediaWorker::initAudioEngine() {
 	ao_->init();
-	sampleBuffer.setOutSampleRate(ao_->rate());
+	sampleBuffer.setOutSampleRate(ao_->rate(), ao_->resamplerNo());
 	sndOutBuffer.reset(sampleBuffer.maxOut() * 2);
 	meanQueue.reset(ao_->rate(), ao_->rate() >> 12);
 
@@ -196,37 +198,21 @@ void MediaWorker::resetAudio() {
 }
 
 struct MediaWorker::SetAudioOut {
-	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency;
+	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency; const unsigned resamplerNo;
 
-	void operator()() {
+	void operator()() const {
 		const bool inited = w.ao_->initialized();
 		w.ao_.reset();
-		w.ao_.reset(new AudioOut(*ae, rate, latency));
+		w.ao_.reset(new AudioOut(*ae, rate, latency, resamplerNo));
 
 		if (inited)
 			w.initAudioEngine();
 	}
 };
 
-void MediaWorker::setAudioOut(AudioEngine *const newAe, const int rate, const int latency) {
-	const SetAudioOut setAudioOutStruct = { *this, newAe, rate, latency };
+void MediaWorker::setAudioOut(AudioEngine *newAe, int rate, int latency, unsigned resamplerNo) {
+	const SetAudioOut setAudioOutStruct = { *this, newAe, rate, latency, resamplerNo };
 	pushCall(setAudioOutStruct);
-}
-
-struct MediaWorker::SetResampler {
-	MediaWorker &w; const unsigned resamplerNum;
-
-	void operator()() {
-		if (w.sampleBuffer.resamplerNo() != resamplerNum) {
-			w.sampleBuffer.setResampler(resamplerNum);
-			w.sndOutBuffer.reset(w.sampleBuffer.maxOut() * 2);
-		}
-	}
-};
-
-void MediaWorker::setResampler(const unsigned resamplerNum) {
-	const SetResampler setResamplerStruct = { *this, resamplerNum };
-	pushCall(setResamplerStruct);
 }
 
 struct MediaWorker::SetFrameTime {

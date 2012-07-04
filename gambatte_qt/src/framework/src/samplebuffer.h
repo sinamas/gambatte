@@ -49,8 +49,8 @@ public:
 	long samplesBuffered() const { return samplesBuffered_; }
 	void setSpf(const Rational &spf) { spf_ = spf; reset(); }
 	void setFt(const Rational &ft) { ft_ = ft; reset(); }
-	void setResampler(const unsigned resamplerNo) { this->resamplerNo_ = resamplerNo; reset(); }
-	void setOutSampleRate(const int outsrate) { this->outsrate = outsrate; reset(); }
+	void setOutSampleRate(int outsrate, unsigned resamplerNo) { this->outsrate = outsrate; resamplerNo_ = resamplerNo; reset(); }
+	void setOutSampleRate(int outsrate) { setOutSampleRate(outsrate, resamplerNo_); }
 	long maxOut() const { return resampler.get() ? resampler->maxOut(size()) : 0; }
 	MediaSource* source() { return source_; }
 	const MediaSource* source() const { return source_; }
@@ -58,7 +58,6 @@ public:
 	const Rational& ft() const { return ft_; }
 	long resamplerOutRate() const { return resampler->outRate(); }
 	void adjustResamplerOutRate(long outRate) { resampler->adjustRate(resampler->inRate(), outRate); }
-	unsigned resamplerNo() const { return resamplerNo_; }
 };
 
 #endif

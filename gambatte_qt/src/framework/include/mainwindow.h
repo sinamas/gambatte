@@ -176,17 +176,16 @@ public:
 	const ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const;
 	std::size_t numAudioEngines() const;
 	
-	/** Sets the AudioEngine (DirectSound, ALSA, etc.) to be used for audio output,
-	  * as well as which output sampling rate and buffer size in milliseconds to use.
-	  * This does not need to match the sampling rate of the audio content produced
-	  * by the source, as it will be converted to match the output rate.
-	  */
-	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency);
-	
-	/** A few different audio resamplers of different performance can be selected between. */
+	/** Audio resamplers of different performance can be selected. */
 	std::size_t numResamplers() const;
 	const char* resamplerDesc(std::size_t resamplerNo) const;
-	void setResampler(std::size_t resamplerNo);
+	
+	/** Sets the AudioEngine (DirectSound, ALSA, etc.) to be used for audio output,
+	  * as well as which output sampling rate, buffer size in milliseconds, and resampler to use.
+	  * The sampling rate does not need to match the sampling rate of the audio content produced
+	  * by the source, as the input will be converted to match the output rate.
+	  */
+	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo);
 	
 	/** Pause doesn't take effect immediately. Call this to wait until the worker thread is paused.
 	  * Meant as a tool to simplify thread safety.

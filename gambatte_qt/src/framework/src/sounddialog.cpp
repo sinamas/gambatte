@@ -277,9 +277,6 @@ void SoundDialog::reject() {
 void SoundDialog::applySettings(MainWindow *const mw, const SoundDialog *const sd) {
 	for (std::size_t i = 0; i < mw->numAudioEngines(); ++i)
 		mw->audioEngineConf(i).acceptSettings();
-	
-	mw->setAudioOut(sd->engineIndex(),
-			sd->rate(),
-			sd->latency());
-	mw->setResampler(sd->resamplerNo());
+
+	mw->setAudioOut(sd->engineIndex(), sd->rate(), sd->latency(), sd->resamplerNo());
 }

@@ -264,7 +264,7 @@ MediaWidget::MediaWidget(MediaSource *const source, QWidget &parent)
   blitters(makeBlitterWidgets(VideoBufferLocker(vbmut), DwmControlHwndChange(dwmControl_))),
   fullModeToggler(getFullModeToggler(parent.winId())),
   workerCallback_(new WorkerCallback(*this)),
-  worker(new MediaWorker(source, audioEngines.back(), 48000, 100,
+  worker(new MediaWorker(source, audioEngines.back(), 48000, 100, 1,
 		std::auto_ptr<MediaWorker::Callback>(workerCallback_), this)),
   frameRateControl(*worker, blitters.back()),
   cursorTimer(new QTimer(this)),

@@ -187,13 +187,12 @@ public:
 	const ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const { return ConstAudioEngineConf(audioEngines[aeNo]); }
 	std::size_t numAudioEngines() const { return audioEngines.size(); }
 	
-	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency) {
-		worker->setAudioOut(audioEngines[engineNo], srateHz, msecLatency);
+	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, unsigned resamplerNo) {
+		worker->setAudioOut(audioEngines[engineNo], srateHz, msecLatency, resamplerNo);
 	}
 	
 	std::size_t numResamplers() const { return ResamplerInfo::num(); }
 	const char* resamplerDesc(std::size_t resamplerNo) const { return ResamplerInfo::get(resamplerNo).desc; }
-	void setResampler(std::size_t resamplerNo) { worker->setResampler(resamplerNo); }
 	
 	void waitUntilPaused();
 	

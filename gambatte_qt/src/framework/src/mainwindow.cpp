@@ -92,7 +92,10 @@ void MainWindow::setVideoBlitter(std::size_t blitterNo) { w_->setVideoBlitter(bl
 void MainWindow::setAspectRatio(const QSize &ar) { w_->setAspectRatio(ar); }
 void MainWindow::setScalingMethod(ScalingMethod smet) { w_->setScalingMethod(smet); }
 
-void MainWindow::setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency) { w_->setAudioOut(engineNo, srateHz, msecLatency); }
+void MainWindow::setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo) {
+	w_->setAudioOut(engineNo, srateHz, msecLatency, resamplerNo);
+}
+
 void MainWindow::setFrameTime(long num, long denom) { w_->setFrameTime(num, denom); }
 void MainWindow::waitUntilPaused() { w_->waitUntilPaused(); }
 void MainWindow::setSamplesPerFrame(long num, long denom) { w_->setSamplesPerFrame(num, denom); }
@@ -140,7 +143,6 @@ const ConstAudioEngineConf MainWindow::audioEngineConf(std::size_t aeNo) const {
 std::size_t MainWindow::numAudioEngines() const { return w_->numAudioEngines(); }
 std::size_t MainWindow::numResamplers() const { return w_->numResamplers(); }
 const char* MainWindow::resamplerDesc(std::size_t resamplerNo) const { return w_->resamplerDesc(resamplerNo); }
-void MainWindow::setResampler(std::size_t resamplerNo) { w_->setResampler(resamplerNo); }
 void MainWindow::resetAudio() { w_->resetAudio(); }
 void MainWindow::setDwmTripleBuffer(bool enable) { w_->setDwmTripleBuffer(enable); }
 bool MainWindow::hasDwmCapability() { return DwmControl::hasDwmCapability(); }
