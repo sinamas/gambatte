@@ -31,7 +31,6 @@ class Cic3Core {
 	unsigned long sum3;
 	unsigned long prev1;
 	unsigned long prev2;
-	unsigned long prev3;
 	unsigned div_;
 	unsigned nextdivn;
 // 	unsigned bufpos;
@@ -50,7 +49,7 @@ public:
 template<unsigned channels> 
 void Cic3Core<channels>::reset(const unsigned div) {
 	sum3 = sum2 = sum1 = 0;
-	prev3 = prev2 = prev1 = 0;
+	prev2 = prev1 = 0;
 	this->div_ = div;
 	nextdivn = div;
 // 	bufpos = div - 1;
@@ -60,7 +59,6 @@ template<unsigned channels>
 std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::size_t inlen) {
 // 	const std::size_t produced = (inlen + div_ - (bufpos + 1)) / div_;
 	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
-	const long mul = mulForDiv(div_);
 	const short *s = in;
 	
 	/*unsigned long sm1 = sum1;
@@ -137,6 +135,7 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 	unsigned long sm3 = sum3;
 	
 	if (inlen >= nextdivn) {
+		const long mul = mulForDiv(div_);
 		unsigned divn = nextdivn;
 		std::size_t n = produced;
 		
@@ -148,17 +147,13 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 				s += channels;
 			} while (--divn);
 			
-			const unsigned long out3 = sm3 - prev3;
-			prev3 = sm3;
-				
-			const unsigned long out2 = out3 - prev2;
-			prev2 = out3;
-				
+			const unsigned long out2 = sm3 - prev2;
+			prev2 = sm3;
 			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
-			
 			divn = div_;
+			sm3 = 0;
 		} while (--n);
 		
 		nextdivn = div_;
