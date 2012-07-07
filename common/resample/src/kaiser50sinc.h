@@ -31,7 +31,7 @@
 
 template<unsigned channels, unsigned phases>
 class Kaiser50Sinc : public SubResampler {
-	PolyPhaseConvoluter<channels, phases> convoluters[channels];
+	PolyPhaseConvoluter<channels, phases> convoluter_;
 	Array<short> kernel;
 	
 	static double kaiserWin(const long n, const long M) {
@@ -73,35 +73,17 @@ public:
 
 	Kaiser50Sinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
 	Kaiser50Sinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
-	std::size_t resample(short *out, const short *in, std::size_t inlen);
-	void adjustDiv(unsigned div);
+	std::size_t resample(short *out, const short *in, std::size_t inlen) { return convoluter_.filter(out, in, inlen); }
+	void adjustDiv(unsigned div) { convoluter_.adjustDiv(div); }
 	unsigned mul() const { return MUL; }
-	unsigned div() const { return convoluters[0].div(); }
+	unsigned div() const { return convoluter_.div(); }
 };
 
 template<unsigned channels, unsigned phases>
 void Kaiser50Sinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
 	kernel.reset(phaseLen * phases);
 	makeSincKernel(kernel, phases, phaseLen, fc, kaiserWin, gain);
-	
-	for (unsigned i = 0; i < channels; ++i)
-		convoluters[i].reset(kernel, phaseLen, div);
-}
-
-template<unsigned channels, unsigned phases>
-std::size_t Kaiser50Sinc<channels, phases>::resample(short *const out, const short *const in, const std::size_t inlen) {
-	std::size_t samplesOut;
-	
-	for (unsigned i = 0; i < channels; ++i)
-		samplesOut = convoluters[i].filter(out + i, in + i, inlen);
-	
-	return samplesOut;
-}
-
-template<unsigned channels, unsigned phases>
-void Kaiser50Sinc<channels, phases>::adjustDiv(const unsigned div) {
-	for (unsigned i = 0; i < channels; ++i)
-		convoluters[i].adjustDiv(div);
+	convoluter_.reset(kernel, phaseLen, div);
 }
 
 #endif
