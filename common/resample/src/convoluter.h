@@ -26,26 +26,23 @@
 
 template<int channels, unsigned phases>
 class PolyPhaseConvoluter {
-	const short *kernel;
-	Array<short> prevbuf;
+	const short *const kernel;
+	Array<short> const prevbuf;
 	unsigned div_;
 	unsigned x_;
 	
 public:
-	PolyPhaseConvoluter() : kernel(0), div_(0), x_(0) {}
-	PolyPhaseConvoluter(const short *kernel, unsigned phaseLen, unsigned div) { reset(kernel, phaseLen, div); }
-	void reset(const short *kernel, unsigned phaseLen, unsigned div);
+	PolyPhaseConvoluter(const short *kernel, unsigned phaseLen, unsigned div);
 	std::size_t filter(short *out, const short *in, std::size_t inlen);
 	void adjustDiv(const unsigned div) { div_ = div; }
 	unsigned div() const { return div_; }
 };
 
 template<int channels, unsigned phases>
-void PolyPhaseConvoluter<channels, phases>::reset(const short *const kernel, const unsigned phaseLen, const unsigned div) {
-	this->kernel = kernel;
-	div_ = div;
-	x_ = 0;
-	prevbuf.reset(phaseLen * channels);
+PolyPhaseConvoluter<channels, phases>::PolyPhaseConvoluter(
+		const short *const kernel, const unsigned phaseLen, const unsigned div)
+: kernel(kernel), prevbuf(phaseLen * channels), div_(div), x_(0)
+{
 	std::fill(prevbuf.get(), prevbuf.get() + prevbuf.size(), 0);
 }
 

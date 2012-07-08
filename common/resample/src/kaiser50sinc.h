@@ -22,45 +22,32 @@
 #include "convoluter.h"
 #include "subresampler.h"
 #include "makesinckernel.h"
-#include "i0.h"
 #include "cic3.h"
 #include "array.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 
+double kaiser50SincWin(long n, long M);
+
 template<unsigned channels, unsigned phases>
 class Kaiser50Sinc : public SubResampler {
+	Array<short> const kernel;
 	PolyPhaseConvoluter<channels, phases> convoluter_;
-	Array<short> kernel;
-	
-	static double kaiserWin(const long n, const long M) {
-		static const double beta = 4.62;
-		static const double i0beta_rec = 1.0 / i0(beta);
-		
-		double x = static_cast<double>(n * 2) / M - 1.0;
-		x = x * x;
-		x = beta * std::sqrt(1.0 - x);
-		
-		return i0(x) * i0beta_rec;
-	}
-	
-	void init(unsigned div, unsigned phaseLen, double fc, double gain);
-	
+
 public:
 	enum { MUL = phases };
-	
 	typedef Cic3<channels> Cic;
 	static float cicLimit() { return 4.2f; }
 
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
-			static const float widthTimesTaps = 2.715f;
+			const float widthTimesTaps = 2.715f;
 			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {
-			static const float startToFcDeltaTimesTaps = 1.2f;
+			const float startToFcDeltaTimesTaps = 1.2f;
 			return startToFcDeltaTimesTaps / taps + rollOffStart;
 		}
 		
@@ -71,19 +58,18 @@ public:
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
-	Kaiser50Sinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
-	Kaiser50Sinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
+	Kaiser50Sinc(unsigned div, unsigned phaseLen, double fc)
+	: kernel(phaseLen * phases), convoluter_(kernel, phaseLen, div)
+	{ makeSincKernel(kernel, phases, phaseLen, fc, kaiser50SincWin, 1.0); }
+	
+	Kaiser50Sinc(unsigned div, RollOff ro, double gain)
+	: kernel(ro.taps * phases), convoluter_(kernel, ro.taps, div)
+	{ makeSincKernel(kernel, phases, ro.taps, ro.fc, kaiser50SincWin, gain);}
+	
 	std::size_t resample(short *out, const short *in, std::size_t inlen) { return convoluter_.filter(out, in, inlen); }
 	void adjustDiv(unsigned div) { convoluter_.adjustDiv(div); }
 	unsigned mul() const { return MUL; }
 	unsigned div() const { return convoluter_.div(); }
 };
-
-template<unsigned channels, unsigned phases>
-void Kaiser50Sinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
-	kernel.reset(phaseLen * phases);
-	makeSincKernel(kernel, phases, phaseLen, fc, kaiserWin, gain);
-	convoluter_.reset(kernel, phaseLen, div);
-}
 
 #endif

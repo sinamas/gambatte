@@ -24,6 +24,8 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/inputbox.cpp
 SOURCES += $$COMMONPATH/resample/src/chainresampler.cpp \
 	$$COMMONPATH/resample/src/i0.cpp \
+	$$COMMONPATH/resample/src/kaiser50sinc.cpp \
+	$$COMMONPATH/resample/src/kaiser70sinc.cpp \
 	$$COMMONPATH/resample/src/makesinckernel.cpp \
 	$$COMMONPATH/resample/src/u48div.cpp \
 	$$COMMONPATH/resample/src/resamplerinfo.cpp \

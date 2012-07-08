@@ -30,29 +30,24 @@
 
 template<unsigned channels, unsigned phases>
 class RectSinc : public SubResampler {
+	Array<short> const kernel;
 	PolyPhaseConvoluter<channels, phases> convoluter_;
-	Array<short> kernel;
-	
-	static double rectWin(const long /*i*/, const long /*M*/) {
-		return 1;
-	}
-	
-	void init(unsigned div, unsigned phaseLen, double fc, double gain);
-	
+
+	static double rectWin(const long /*i*/, const long /*M*/) { return 1; }
+
 public:
 	enum { MUL = phases };
-	
 	typedef Cic2<channels> Cic;
 	static float cicLimit() { return 2.0f; }
 
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
-			static const float widthTimesTaps = 0.9f;
+			const float widthTimesTaps = 0.9f;
 			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {
-			static const float startToFcDeltaTimesTaps = 0.43f;
+			const float startToFcDeltaTimesTaps = 0.43f;
 			return startToFcDeltaTimesTaps / taps + rollOffStart;
 		}
 		
@@ -63,19 +58,18 @@ public:
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
-	RectSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
-	RectSinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
+	RectSinc(unsigned div, unsigned phaseLen, double fc)
+	: kernel(phaseLen * phases), convoluter_(kernel, phaseLen, div)
+	{ makeSincKernel(kernel, phases, phaseLen, fc, rectWin, 1.0); }
+	
+	RectSinc(unsigned div, RollOff ro, double gain)
+	: kernel(ro.taps * phases), convoluter_(kernel, ro.taps, div)
+	{ makeSincKernel(kernel, phases, ro.taps, ro.fc, rectWin, gain);}
+	
 	std::size_t resample(short *out, const short *in, std::size_t inlen) { return convoluter_.filter(out, in, inlen); }
 	void adjustDiv(unsigned div) { convoluter_.adjustDiv(div); }
 	unsigned mul() const { return MUL; }
 	unsigned div() const { return convoluter_.div(); }
 };
-
-template<unsigned channels, unsigned phases>
-void RectSinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
-	kernel.reset(phaseLen * phases);
-	makeSincKernel(kernel, phases, phaseLen, fc, rectWin, gain);
-	convoluter_.reset(kernel, phaseLen, div);
-}
 
 #endif

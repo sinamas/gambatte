@@ -30,30 +30,27 @@
 
 template<unsigned channels, unsigned phases>
 class BlackmanSinc : public SubResampler {
+	Array<short> const kernel;
 	PolyPhaseConvoluter<channels, phases> convoluter_;
-	Array<short> kernel;
-	
+
 	static double blackmanWin(const long i, const long M) {
-		static const double PI = 3.14159265358979323846;
+		const double PI = 3.14159265358979323846;
 		return 0.42 - 0.5 * std::cos(2 * PI * i / M) + 0.08 * std::cos(4 * PI * i / M);
 	}
-	
-	void init(unsigned div, unsigned phaseLen, double fc, double gain);
-	
+
 public:
 	enum { MUL = phases };
-	
 	typedef Cic4<channels> Cic;
 	static float cicLimit() { return 4.7f; }
 
 	class RollOff {
 		static unsigned toTaps(const float rollOffWidth) {
-			static const float widthTimesTaps = 4.5f;
+			const float widthTimesTaps = 4.5f;
 			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
 		
 		static float toFc(const float rollOffStart, const int taps) {
-			static const float startToFcDeltaTimesTaps = 1.69f;
+			const float startToFcDeltaTimesTaps = 1.69f;
 			return startToFcDeltaTimesTaps / taps + rollOffStart;
 		}
 		
@@ -64,19 +61,18 @@ public:
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
-	BlackmanSinc(unsigned div, unsigned phaseLen, double fc) { init(div, phaseLen, fc, 1.0); }
-	BlackmanSinc(unsigned div, RollOff ro, double gain) { init(div, ro.taps, ro.fc, gain); }
+	BlackmanSinc(unsigned div, unsigned phaseLen, double fc)
+	: kernel(phaseLen * phases), convoluter_(kernel, phaseLen, div)
+	{ makeSincKernel(kernel, phases, phaseLen, fc, blackmanWin, 1.0); }
+	
+	BlackmanSinc(unsigned div, RollOff ro, double gain)
+	: kernel(ro.taps * phases), convoluter_(kernel, ro.taps, div)
+	{ makeSincKernel(kernel, phases, ro.taps, ro.fc, blackmanWin, gain);}
+	
 	std::size_t resample(short *out, const short *in, std::size_t inlen) { return convoluter_.filter(out, in, inlen); }
 	void adjustDiv(unsigned div) { convoluters_.adjustDiv(div); }
 	unsigned mul() const { return MUL; }
 	unsigned div() const { return convoluter_.div(); }
 };
-
-template<unsigned channels, unsigned phases>
-void BlackmanSinc<channels, phases>::init(unsigned div, unsigned phaseLen, double fc, double gain) {
-	kernel.reset(phaseLen * phases);
-	makeSincKernel(kernel, phases, phaseLen, fc, blackmanWin, gain);
-	convoluter_.reset(kernel, phaseLen, div);
-}
 
 #endif
