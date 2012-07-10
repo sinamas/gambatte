@@ -139,7 +139,7 @@ protected:
 
 public:
 	MediaWorker(MediaSource *source, class AudioEngine *ae, int aerate, int aelatency,
-			unsigned resamplerNo, std::auto_ptr<Callback> callback, QObject *parent = 0);
+			std::size_t resamplerNo, std::auto_ptr<Callback> callback, QObject *parent = 0);
 	MediaSource* source() /*const */{ return sampleBuffer.source(); }
 	SyncVar& waitingForSync() /*const */{ return waitingForSync_; }
 	void start();
@@ -152,7 +152,7 @@ public:
 	bool paused() const { return pauseVar.waitingForUnpause(); }
 
 	void resetAudio();
-	void setAudioOut(class AudioEngine *newAe, int rate, int latency, unsigned resamplerNo);
+	void setAudioOut(class AudioEngine *newAe, int rate, int latency, std::size_t resamplerNo);
 	void setFrameTime(Rational ft);
 	void setSamplesPerFrame(Rational spf);
 

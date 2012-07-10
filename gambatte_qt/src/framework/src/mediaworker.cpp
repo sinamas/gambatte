@@ -50,16 +50,16 @@ void MediaWorker::MeanQueue::push(const long i) {
 
 class MediaWorker::AudioOut : Uncopyable {
 	AudioEngine &ae_;
+	const std::size_t resamplerNo_;
 	const long rate_;
 	const unsigned latency_;
-	const unsigned resamplerNo_;
 	
 	long estrate_;
 	bool inited_;
 	
 public:
-	AudioOut(AudioEngine &ae, long rate, unsigned latency, unsigned resamplerNo)
-	: ae_(ae), rate_(rate), latency_(latency), resamplerNo_(resamplerNo), estrate_(rate), inited_(false)
+	AudioOut(AudioEngine &ae, long rate, unsigned latency, std::size_t resamplerNo)
+	: ae_(ae), resamplerNo_(resamplerNo), rate_(rate), latency_(latency), estrate_(rate), inited_(false)
 	{
 	}
 	
@@ -88,7 +88,7 @@ public:
 	bool flushPausedBuffers() const { return ae_.flushPausedBuffers(); }
 	long rate() const { return ae_.rate() > 0 ? ae_.rate() : rate_; }
 	long estimatedRate() const { return estrate_; }
-	unsigned resamplerNo() const { return resamplerNo_; }
+	std::size_t resamplerNo() const { return resamplerNo_; }
 	bool initialized() const { return inited_; }
 	bool successfullyInitialized() const { return inited_ && ae_.rate() > 0; }
 	
@@ -132,7 +132,7 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, Aud
 }
 
 MediaWorker::MediaWorker(MediaSource *source, AudioEngine *ae, int aerate,
-		int aelatency, unsigned resamplerNo, std::auto_ptr<Callback> callback, QObject *parent)
+		int aelatency, std::size_t resamplerNo, std::auto_ptr<Callback> callback, QObject *parent)
 : QThread(parent),
   callback(callback),
   meanQueue(0, 0),
@@ -198,7 +198,7 @@ void MediaWorker::resetAudio() {
 }
 
 struct MediaWorker::SetAudioOut {
-	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency; const unsigned resamplerNo;
+	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency; const std::size_t resamplerNo;
 
 	void operator()() const {
 		const bool inited = w.ao_->initialized();
@@ -210,7 +210,7 @@ struct MediaWorker::SetAudioOut {
 	}
 };
 
-void MediaWorker::setAudioOut(AudioEngine *newAe, int rate, int latency, unsigned resamplerNo) {
+void MediaWorker::setAudioOut(AudioEngine *newAe, int rate, int latency, std::size_t resamplerNo) {
 	const SetAudioOut setAudioOutStruct = { *this, newAe, rate, latency, resamplerNo };
 	pushCall(setAudioOutStruct);
 }

@@ -187,7 +187,7 @@ public:
 	const ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const { return ConstAudioEngineConf(audioEngines[aeNo]); }
 	std::size_t numAudioEngines() const { return audioEngines.size(); }
 	
-	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, unsigned resamplerNo) {
+	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo) {
 		worker->setAudioOut(audioEngines[engineNo], srateHz, msecLatency, resamplerNo);
 	}
 	
