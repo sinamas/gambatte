@@ -297,7 +297,6 @@ namespace M3Loop {
 			const unsigned char *const tileMapLine, const unsigned tileline, unsigned tileMapXpos) {
 		const unsigned tileIndexSign = ~p.lcdc << 3 & 0x80;
 		const unsigned char *const tileDataLine = p.vram + tileIndexSign * 32 + tileline * 2;
-		const unsigned twmask = (p.lcdc & 1) * 3;
 		int xpos = p.xpos;
 		
 		do {
@@ -346,40 +345,42 @@ namespace M3Loop {
 				
 				p.nextSprite = nextSprite;
 			} else if (nextSprite-1 < 0 || static_cast<int>(p.spriteList[nextSprite-1].spx) <= xpos - 8) {
-				if (!(static_cast<unsigned>(p.cycles) >> 3))
+				if (!(p.cycles & ~7))
 					break;
 				
-				unsigned n = ((xend + 7 < static_cast<int>(p.spriteList[nextSprite].spx)
-						? xend + 7 : static_cast<int>(p.spriteList[nextSprite].spx)) - xpos) >> 3;
-				n = static_cast<unsigned>(p.cycles) >> 3 < n ? static_cast<unsigned>(p.cycles) >> 3 : n;
+				int n = ((  xend + 7 < static_cast<int>(p.spriteList[nextSprite].spx)
+				          ? xend + 7 : static_cast<int>(p.spriteList[nextSprite].spx)) - xpos) & ~7;
+				n = (p.cycles & ~7) < n ? p.cycles & ~7 : n;
+				p.cycles -= n;
 				
 				unsigned ntileword = p.ntileword;
-				uint_least32_t *dst = dbufline + xpos - 8;
-				p.cycles -= n * 8;
-				xpos += n * 8;
+				uint_least32_t *      dst    = dbufline + xpos - 8;
+				uint_least32_t *const dstend = dst + n;
+				xpos += n;
 				
-				do {
-					dst[0] = p.bgPalette[ntileword       & twmask];
-					dst[1] = p.bgPalette[ntileword >>  2 & twmask];
-					dst[2] = p.bgPalette[ntileword >>  4 & twmask];
-					dst[3] = p.bgPalette[ntileword >>  6 & twmask];
-					dst[4] = p.bgPalette[ntileword >>  8 & twmask];
-					dst[5] = p.bgPalette[ntileword >> 10 & twmask];
-					dst[6] = p.bgPalette[ntileword >> 12 & twmask];
-					dst[7] = p.bgPalette[ntileword >> 14 & twmask];
-					
-					{
-						unsigned r0, r1;
-						
-						r1 = tileMapLine[tileMapXpos++ & 0x1F];
-						r0 = (tileDataLine + r1 * 16 - (r1 & tileIndexSign) * 32)[0];
-						r1 = (tileDataLine + r1 * 16 - (r1 & tileIndexSign) * 32)[1];
-						
-						ntileword = expand_lut[r0] + expand_lut[r1] * 2;
-					}
-					
+				if (!(p.lcdc & 1)) {
+					do { *dst++ = p.bgPalette[0]; } while (dst != dstend);
+					tileMapXpos += n >> 3;
+
+					unsigned const tno = tileMapLine[(tileMapXpos - 1) & 0x1F];
+					ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
+					          + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
+				} else do {
+					dst[0] = p.bgPalette[ntileword       & 3];
+					dst[1] = p.bgPalette[ntileword >>  2 & 3];
+					dst[2] = p.bgPalette[ntileword >>  4 & 3];
+					dst[3] = p.bgPalette[ntileword >>  6 & 3];
+					dst[4] = p.bgPalette[ntileword >>  8 & 3];
+					dst[5] = p.bgPalette[ntileword >> 10 & 3];
+					dst[6] = p.bgPalette[ntileword >> 12 & 3];
+					dst[7] = p.bgPalette[ntileword >> 14    ];
 					dst += 8;
-				} while (--n);
+					
+					unsigned const tno = tileMapLine[tileMapXpos & 0x1F];
+					tileMapXpos = (tileMapXpos & 0x1F) + 1;
+					ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
+					          + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
+				} while (dst != dstend);
 				
 				p.ntileword = ntileword;
 				continue;
@@ -394,16 +395,16 @@ namespace M3Loop {
 			
 			{
 				uint_least32_t *const dst = dbufline + (xpos - 8);
-				const unsigned tileword = p.ntileword;
+				const unsigned tileword = -(p.lcdc & 1U) & p.ntileword;
 				
-				dst[0] = p.bgPalette[tileword       & twmask];
-				dst[1] = p.bgPalette[tileword >>  2 & twmask];
-				dst[2] = p.bgPalette[tileword >>  4 & twmask];
-				dst[3] = p.bgPalette[tileword >>  6 & twmask];
-				dst[4] = p.bgPalette[tileword >>  8 & twmask];
-				dst[5] = p.bgPalette[tileword >> 10 & twmask];
-				dst[6] = p.bgPalette[tileword >> 12 & twmask];
-				dst[7] = p.bgPalette[tileword >> 14 & twmask];
+				dst[0] = p.bgPalette[tileword       & 3];
+				dst[1] = p.bgPalette[tileword >>  2 & 3];
+				dst[2] = p.bgPalette[tileword >>  4 & 3];
+				dst[3] = p.bgPalette[tileword >>  6 & 3];
+				dst[4] = p.bgPalette[tileword >>  8 & 3];
+				dst[5] = p.bgPalette[tileword >> 10 & 3];
+				dst[6] = p.bgPalette[tileword >> 12 & 3];
+				dst[7] = p.bgPalette[tileword >> 14    ];
 				
 				int i = nextSprite - 1;
 			
@@ -454,9 +455,9 @@ namespace M3Loop {
 							
 							do {
 								if (spword & 3) {
-									dst[pos] = !(tw & twmask)
+									dst[pos] = !(tw & 3)
 											? spPalette[spword & 3]
-											: p.bgPalette[tw & twmask];
+											: p.bgPalette[tw & 3];
 								}
 								
 								spword >>= 2;
@@ -472,13 +473,10 @@ namespace M3Loop {
 			}
 			
 			{
-				unsigned r0, r1;
-				
-				r1 = tileMapLine[tileMapXpos++ & 0x1F];
-				r0 = (tileDataLine + r1 * 16 - (r1 & tileIndexSign) * 32)[0];
-				r1 = (tileDataLine + r1 * 16 - (r1 & tileIndexSign) * 32)[1];
-				
-				p.ntileword = expand_lut[r0] + expand_lut[r1] * 2;
+				unsigned const tno = tileMapLine[tileMapXpos & 0x1F];
+				tileMapXpos = (tileMapXpos & 0x1F) + 1;
+				p.ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
+				            + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
 			}
 			
 			xpos = xpos + 8;
@@ -490,8 +488,8 @@ namespace M3Loop {
 	static void doFullTilesUnrolledCgb(PPUPriv &p, const int xend, uint_least32_t *const dbufline,
 			const unsigned char *const tileMapLine, const unsigned tileline, unsigned tileMapXpos) {
 		int xpos = p.xpos;
-		const unsigned tileIndexSign = ~p.lcdc << 3 & 0x80;
-		const unsigned char *const tileData = p.vram + tileIndexSign * 32;
+		const unsigned char *const vram = p.vram;
+		const unsigned tdoffset = tileline * 2 + (~p.lcdc & 0x10) * 0x100;
 		
 		do {
 			int nextSprite = p.nextSprite;
@@ -515,9 +513,9 @@ namespace M3Loop {
 					{
 						const unsigned spline = ((attrib & 0x40) ?
 								p.spriteList[nextSprite].line ^ 15 : p.spriteList[nextSprite].line) * 2;
-						reg0 = p.vram[(attrib << 10 & 0x2000) +
+						reg0 = vram[(attrib << 10 & 0x2000) +
 								((p.lcdc & 4) ? (reg1 & ~16) | spline : reg1 | (spline & ~16))    ];
-						reg1 = p.vram[(attrib << 10 & 0x2000) +
+						reg1 = vram[(attrib << 10 & 0x2000) +
 								((p.lcdc & 4) ? (reg1 & ~16) | spline : reg1 | (spline & ~16)) + 1];
 					}
 					
@@ -529,18 +527,19 @@ namespace M3Loop {
 				
 				p.nextSprite = nextSprite;
 			} else if (nextSprite-1 < 0 || static_cast<int>(p.spriteList[nextSprite-1].spx) <= xpos - 8) {
-				if (!(static_cast<unsigned>(p.cycles) >> 3))
+				if (!(p.cycles & ~7))
 					break;
 				
-				unsigned n = ((xend + 7 < static_cast<int>(p.spriteList[nextSprite].spx)
-						? xend + 7 : static_cast<int>(p.spriteList[nextSprite].spx)) - xpos) >> 3;
-				n = static_cast<unsigned>(p.cycles) >> 3 < n ? static_cast<unsigned>(p.cycles) >> 3 : n;
+				int n = ((  xend + 7 < static_cast<int>(p.spriteList[nextSprite].spx)
+				          ? xend + 7 : static_cast<int>(p.spriteList[nextSprite].spx)) - xpos) & ~7;
+				n = (p.cycles & ~7) < n ? p.cycles & ~7 : n;
+				p.cycles -= n;
 				
 				unsigned ntileword = p.ntileword;
 				unsigned nattrib   = p.nattrib;
-				uint_least32_t *dst = dbufline + xpos - 8;
-				p.cycles -= n * 8;
-				xpos += n * 8;
+				uint_least32_t *      dst    = dbufline + xpos - 8;
+				uint_least32_t *const dstend = dst + n;
+				xpos += n;
 				
 				do {
 					dst[0] = (p.bgPalette + (nattrib & 7) * 4)[ntileword       & 3];
@@ -551,26 +550,17 @@ namespace M3Loop {
 					dst[5] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >> 10 & 3];
 					dst[6] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >> 12 & 3];
 					dst[7] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >> 14    ];
-					
-					{
-						unsigned r0, r1;
-						
-						{
-							const unsigned tmxpos = tileMapXpos++ & 0x1F;
-							r1      = tileMapLine[tmxpos         ];
-							nattrib = tileMapLine[tmxpos + 0x2000];
-						}
-						
-						r0 = (tileData + (nattrib << 10 & 0x2000) + r1 * 16 -
-								(r1 & tileIndexSign) * 32 + ((nattrib & 0x40) ? tileline ^ 7 : tileline) * 2)[0];
-						r1 = (tileData + (nattrib << 10 & 0x2000) + r1 * 16 -
-								(r1 & tileIndexSign) * 32 + ((nattrib & 0x40) ? tileline ^ 7 : tileline) * 2)[1];
-						
-						ntileword = (expand_lut + (nattrib << 3 & 0x100))[r0] + (expand_lut + (nattrib << 3 & 0x100))[r1] * 2;
-					}
-					
 					dst += 8;
-				} while (--n);
+					
+					unsigned const tno = tileMapLine[ tileMapXpos & 0x1F          ];
+					nattrib            = tileMapLine[(tileMapXpos & 0x1F) + 0x2000];
+					tileMapXpos = (tileMapXpos & 0x1F) + 1;
+					
+					unsigned const tdo = tdoffset & ~(tno << 5);
+					unsigned char  const *const td = vram + tno * 16 + (nattrib & 0x40 ? tdo ^ 14 : tdo) + (nattrib << 10 & 0x2000);
+					unsigned short const *const explut = expand_lut + (nattrib << 3 & 0x100);
+					ntileword = explut[td[0]] + explut[td[1]] * 2;
+				} while (dst != dstend);
 				
 				p.ntileword = ntileword;
 				p.nattrib   = nattrib;
@@ -695,20 +685,14 @@ namespace M3Loop {
 			}
 			
 			{
-				unsigned r0, r1, nattrib;
+				unsigned const tno     = tileMapLine[ tileMapXpos & 0x1F          ];
+				unsigned const nattrib = tileMapLine[(tileMapXpos & 0x1F) + 0x2000];
+				tileMapXpos = (tileMapXpos & 0x1F) + 1;
 				
-				{
-					const unsigned tmxpos = tileMapXpos++ & 0x1F;
-					r1      = tileMapLine[tmxpos         ];
-					nattrib = tileMapLine[tmxpos + 0x2000];
-				}
-				
-				r0 = (tileData + (nattrib << 10 & 0x2000) + r1 * 16 -
-						(r1 & tileIndexSign) * 32 + ((nattrib & 0x40) ? tileline ^ 7 : tileline) * 2)[0];
-				r1 = (tileData + (nattrib << 10 & 0x2000) + r1 * 16 -
-						(r1 & tileIndexSign) * 32 + ((nattrib & 0x40) ? tileline ^ 7 : tileline) * 2)[1];
-				
-				p.ntileword = (expand_lut + (nattrib << 3 & 0x100))[r0] + (expand_lut + (nattrib << 3 & 0x100))[r1] * 2;
+				unsigned const tdo = tdoffset & ~(tno << 5);
+				unsigned char  const *const td = vram + tno * 16 + (nattrib & 0x40 ? tdo ^ 14 : tdo) + (nattrib << 10 & 0x2000);
+				unsigned short const *const explut = expand_lut + (nattrib << 3 & 0x100);
+				p.ntileword = explut[td[0]] + explut[td[1]] * 2;
 				p.nattrib   = nattrib;
 			}
 			
