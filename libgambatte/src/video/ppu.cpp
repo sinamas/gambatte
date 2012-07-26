@@ -321,10 +321,10 @@ namespace M3Loop {
 						const unsigned attrib = p.spriteMapper.oamram()[p.spriteList[nextSprite].oampos + 3];
 		
 						{
-							const unsigned spline = ((attrib & 0x40) ?
-									p.spriteList[nextSprite].line ^ 15 : p.spriteList[nextSprite].line) * 2;
-							reg0 = p.vram[((p.lcdc & 4) ? (reg1 & ~16) | spline : reg1 | (spline & ~16))    ];
-							reg1 = p.vram[((p.lcdc & 4) ? (reg1 & ~16) | spline : reg1 | (spline & ~16)) + 1];
+							const unsigned spline = (attrib & 0x40 ?
+								p.spriteList[nextSprite].line ^ 15 : p.spriteList[nextSprite].line) * 2;
+							reg0 = p.vram[(p.lcdc & 4 ? (reg1 & ~16) | spline : reg1 | (spline & ~16))    ];
+							reg1 = p.vram[(p.lcdc & 4 ? (reg1 & ~16) | spline : reg1 | (spline & ~16)) + 1];
 						}
 						
 						p.spwordList[nextSprite] = expand_lut[reg0 + (attrib << 3 & 0x100)]
@@ -411,12 +411,12 @@ namespace M3Loop {
 				if (!(p.lcdc & 2)) {
 					do {
 						const int pos = static_cast<int>(p.spriteList[i].spx) - xpos;
-						p.spwordList[i] >>= (pos >= 0 ? (8 - pos) : (pos + 8)) * 2;
+						p.spwordList[i] >>= pos * 2 >= 0 ? 16 - pos * 2 : 16 + pos * 2;
 						--i;
 					} while (i >= 0 && static_cast<int>(p.spriteList[i].spx) > xpos - 8);
 				} else {
 					do {
-						unsigned n;
+						int n;
 						int pos = static_cast<int>(p.spriteList[i].spx) - xpos;
 						
 						if (pos < 0) {
@@ -428,17 +428,18 @@ namespace M3Loop {
 						const unsigned attrib = p.spriteList[i].attrib;
 						unsigned spword       = p.spwordList[i];
 						const unsigned long *const spPalette = p.spPalette + (attrib >> 2 & 4);
+						uint_least32_t *d = dst + pos;
 						
 						if (!(attrib & 0x80)) {
 							switch (n) {
-							case 8: if (spword >> 14    ) { dst[pos+7] = spPalette[spword >> 14    ]; }
-							case 7: if (spword >> 12 & 3) { dst[pos+6] = spPalette[spword >> 12 & 3]; }
-							case 6: if (spword >> 10 & 3) { dst[pos+5] = spPalette[spword >> 10 & 3]; }
-							case 5: if (spword >>  8 & 3) { dst[pos+4] = spPalette[spword >>  8 & 3]; }
-							case 4: if (spword >>  6 & 3) { dst[pos+3] = spPalette[spword >>  6 & 3]; }
-							case 3: if (spword >>  4 & 3) { dst[pos+2] = spPalette[spword >>  4 & 3]; }
-							case 2: if (spword >>  2 & 3) { dst[pos+1] = spPalette[spword >>  2 & 3]; }
-							case 1: if (spword       & 3) { dst[pos  ] = spPalette[spword       & 3]; }
+							case 8: if (spword >> 14    ) { d[7] = spPalette[spword >> 14    ]; }
+							case 7: if (spword >> 12 & 3) { d[6] = spPalette[spword >> 12 & 3]; }
+							case 6: if (spword >> 10 & 3) { d[5] = spPalette[spword >> 10 & 3]; }
+							case 5: if (spword >>  8 & 3) { d[4] = spPalette[spword >>  8 & 3]; }
+							case 4: if (spword >>  6 & 3) { d[3] = spPalette[spword >>  6 & 3]; }
+							case 3: if (spword >>  4 & 3) { d[2] = spPalette[spword >>  4 & 3]; }
+							case 2: if (spword >>  2 & 3) { d[1] = spPalette[spword >>  2 & 3]; }
+							case 1: if (spword       & 3) { d[0] = spPalette[spword       & 3]; }
 							}
 							
 							spword >>= n * 2;
@@ -452,18 +453,18 @@ namespace M3Loop {
 							} while (--n);*/
 						} else {
 							unsigned tw = tileword >> pos * 2;
+							d += n;
+							n = -n;
 							
 							do {
 								if (spword & 3) {
-									dst[pos] = !(tw & 3)
-											? spPalette[spword & 3]
-											: p.bgPalette[tw & 3];
+									d[n] = tw & 3 ? p.bgPalette[tw     & 3]
+									              :   spPalette[spword & 3];
 								}
 								
 								spword >>= 2;
 								tw     >>= 2;
-								++pos;
-							} while (--n);
+							} while (++n);
 						}
 						
 						p.spwordList[i] = spword;
@@ -511,12 +512,12 @@ namespace M3Loop {
 					const unsigned attrib = p.spriteMapper.oamram()[p.spriteList[nextSprite].oampos + 3];
 	
 					{
-						const unsigned spline = ((attrib & 0x40) ?
-								p.spriteList[nextSprite].line ^ 15 : p.spriteList[nextSprite].line) * 2;
+						const unsigned spline = (attrib & 0x40 ?
+							p.spriteList[nextSprite].line ^ 15 : p.spriteList[nextSprite].line) * 2;
 						reg0 = vram[(attrib << 10 & 0x2000) +
-								((p.lcdc & 4) ? (reg1 & ~16) | spline : reg1 | (spline & ~16))    ];
+								(p.lcdc & 4 ? (reg1 & ~16) | spline : reg1 | (spline & ~16))    ];
 						reg1 = vram[(attrib << 10 & 0x2000) +
-								((p.lcdc & 4) ? (reg1 & ~16) | spline : reg1 | (spline & ~16)) + 1];
+								(p.lcdc & 4 ? (reg1 & ~16) | spline : reg1 | (spline & ~16)) + 1];
 					}
 					
 					p.spwordList[nextSprite] = expand_lut[reg0 + (attrib << 3 & 0x100)]
@@ -542,14 +543,15 @@ namespace M3Loop {
 				xpos += n;
 				
 				do {
-					dst[0] = (p.bgPalette + (nattrib & 7) * 4)[ntileword       & 3];
-					dst[1] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >>  2 & 3];
-					dst[2] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >>  4 & 3];
-					dst[3] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >>  6 & 3];
-					dst[4] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >>  8 & 3];
-					dst[5] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >> 10 & 3];
-					dst[6] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >> 12 & 3];
-					dst[7] = (p.bgPalette + (nattrib & 7) * 4)[ntileword >> 14    ];
+					const unsigned long *const bgPalette = p.bgPalette + (nattrib & 7) * 4;
+					dst[0] = bgPalette[ntileword       & 3];
+					dst[1] = bgPalette[ntileword >>  2 & 3];
+					dst[2] = bgPalette[ntileword >>  4 & 3];
+					dst[3] = bgPalette[ntileword >>  6 & 3];
+					dst[4] = bgPalette[ntileword >>  8 & 3];
+					dst[5] = bgPalette[ntileword >> 10 & 3];
+					dst[6] = bgPalette[ntileword >> 12 & 3];
+					dst[7] = bgPalette[ntileword >> 14    ];
 					dst += 8;
 					
 					unsigned const tno = tileMapLine[ tileMapXpos & 0x1F          ];
@@ -557,7 +559,8 @@ namespace M3Loop {
 					tileMapXpos = (tileMapXpos & 0x1F) + 1;
 					
 					unsigned const tdo = tdoffset & ~(tno << 5);
-					unsigned char  const *const td = vram + tno * 16 + (nattrib & 0x40 ? tdo ^ 14 : tdo) + (nattrib << 10 & 0x2000);
+					unsigned char const *const td = vram + tno * 16
+						+ (nattrib & 0x40 ? tdo ^ 14 : tdo) + (nattrib << 10 & 0x2000);
 					unsigned short const *const explut = expand_lut + (nattrib << 3 & 0x100);
 					ntileword = explut[td[0]] + explut[td[1]] * 2;
 				} while (dst != dstend);
@@ -594,7 +597,7 @@ namespace M3Loop {
 				if (!(p.lcdc & 2)) {
 					do {
 						const int pos = static_cast<int>(p.spriteList[i].spx) - xpos;
-						p.spwordList[i] >>= (pos >= 0 ? (8 - pos) : (pos + 8)) * 2;
+						p.spwordList[i] >>= pos * 2 >= 0 ? 16 - pos * 2 : 16 + pos * 2;
 						--i;
 					} while (i >= 0 && static_cast<int>(p.spriteList[i].spx) > xpos - 8);
 				} else {
@@ -602,7 +605,7 @@ namespace M3Loop {
 					const unsigned bgenmask = p.lcdc << 7 & 0x80;
 					
 					do {
-						unsigned n;
+						int n;
 						int pos = static_cast<int>(p.spriteList[i].spx) - xpos;
 						
 						if (pos < 0) {
@@ -611,45 +614,48 @@ namespace M3Loop {
 						} else
 							n = 8 - pos;
 						
-						const unsigned id      = p.spriteList[i].oampos;
+						const unsigned char id = p.spriteList[i].oampos;
 						const unsigned sattrib = p.spriteList[i].attrib;
 						unsigned spword        = p.spwordList[i];
 						const unsigned long *const spPalette = p.spPalette + (sattrib & 7) * 4;
 						
 						if (!((attrib | sattrib) & bgenmask)) {
+							unsigned char  *const idt = idtab + pos;
+							uint_least32_t *const   d =   dst + pos;
+							
 							switch (n) {
-							case 8: if ((spword >> 14    ) && id < idtab[pos+7]) {
-									idtab[pos+7] = id;
-									  dst[pos+7] = spPalette[spword >> 14    ];
-								}
-							case 7: if ((spword >> 12 & 3) && id < idtab[pos+6]) {
-									idtab[pos+6] = id;
-									  dst[pos+6] = spPalette[spword >> 12 & 3];
-								}
-							case 6: if ((spword >> 10 & 3) && id < idtab[pos+5]) {
-									idtab[pos+5] = id;
-									  dst[pos+5] = spPalette[spword >> 10 & 3];
-								}
-							case 5: if ((spword >>  8 & 3) && id < idtab[pos+4]) {
-									idtab[pos+4] = id;
-									  dst[pos+4] = spPalette[spword >>  8 & 3];
-								}
-							case 4: if ((spword >>  6 & 3) && id < idtab[pos+3]) {
-									idtab[pos+3] = id;
-									  dst[pos+3] = spPalette[spword >>  6 & 3];
-								}
-							case 3: if ((spword >>  4 & 3) && id < idtab[pos+2]) {
-									idtab[pos+2] = id;
-									  dst[pos+2] = spPalette[spword >>  4 & 3];
-								}
-							case 2: if ((spword >>  2 & 3) && id < idtab[pos+1]) {
-									idtab[pos+1] = id;
-									  dst[pos+1] = spPalette[spword >>  2 & 3];
-								}
-							case 1: if ((spword       & 3) && id < idtab[pos  ]) {
-									idtab[pos  ] = id;
-									  dst[pos  ] = spPalette[spword       & 3];
-								}
+							case 8: if ((spword >> 14    ) && id < idt[7]) {
+							        	idt[7] = id;
+							        	  d[7] = spPalette[spword >> 14    ];
+							        }
+							case 7: if ((spword >> 12 & 3) && id < idt[6]) {
+							        	idt[6] = id;
+							        	  d[6] = spPalette[spword >> 12 & 3];
+							        }
+							case 6: if ((spword >> 10 & 3) && id < idt[5]) {
+							        	idt[5] = id;
+							        	  d[5] = spPalette[spword >> 10 & 3];
+							        }
+							case 5: if ((spword >>  8 & 3) && id < idt[4]) {
+							        	idt[4] = id;
+							        	  d[4] = spPalette[spword >>  8 & 3];
+							        }
+							case 4: if ((spword >>  6 & 3) && id < idt[3]) {
+							        	idt[3] = id;
+							        	  d[3] = spPalette[spword >>  6 & 3];
+							        }
+							case 3: if ((spword >>  4 & 3) && id < idt[2]) {
+							        	idt[2] = id;
+							        	  d[2] = spPalette[spword >>  4 & 3];
+							        }
+							case 2: if ((spword >>  2 & 3) && id < idt[1]) {
+							        	idt[1] = id;
+							        	  d[1] = spPalette[spword >>  2 & 3];
+							        }
+							case 1: if ((spword       & 3) && id < idt[0]) {
+							        	idt[0] = id;
+							        	  d[0] = spPalette[spword       & 3];
+							        }
 							}
 							
 							spword >>= n * 2;
@@ -663,13 +669,13 @@ namespace M3Loop {
 								spword >>= 2;
 								++pos;
 							} while (--n);*/
-						} else {							
+						} else {
 							unsigned tw = tileword >> pos * 2;
 							
 							do {
 								if ((spword & 3) && id < idtab[pos]) {
 									idtab[pos] = id;
-									  dst[pos] = !(tw & 3) ? spPalette[spword & 3] : bgPalette[tw & 3];
+									  dst[pos] = tw & 3 ? bgPalette[tw & 3] : spPalette[spword & 3];
 								}
 								
 								spword >>= 2;
@@ -690,7 +696,8 @@ namespace M3Loop {
 				tileMapXpos = (tileMapXpos & 0x1F) + 1;
 				
 				unsigned const tdo = tdoffset & ~(tno << 5);
-				unsigned char  const *const td = vram + tno * 16 + (nattrib & 0x40 ? tdo ^ 14 : tdo) + (nattrib << 10 & 0x2000);
+				unsigned char const *const td = vram + tno * 16
+					+ (nattrib & 0x40 ? tdo ^ 14 : tdo) + (nattrib << 10 & 0x2000);
 				unsigned short const *const explut = expand_lut + (nattrib << 3 & 0x100);
 				p.ntileword = explut[td[0]] + explut[td[1]] * 2;
 				p.nattrib   = nattrib;
@@ -735,7 +742,7 @@ namespace M3Loop {
 			const int newxpos = p.xpos;
 			
 			if (newxpos > 8) {
-				std::memcpy(dbufline, prebuf + (8 - xpos), (newxpos - 8) * sizeof(uint_least32_t));
+				std::memcpy(dbufline, prebuf + (8 - xpos), (newxpos - 8) * sizeof *dbufline);
 			} else if (newxpos < 8)
 				return;
 			
