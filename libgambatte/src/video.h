@@ -152,7 +152,7 @@ class LCD {
 
 public:
 	LCD(const unsigned char *oamram, const unsigned char *vram_in, VideoInterruptRequester memEventRequester);
-	void reset(const unsigned char *oamram, bool cgb);
+	void reset(const unsigned char *oamram, const unsigned char *vram, bool cgb);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state) const;
 	void loadState(const SaveState &state, const unsigned char *oamram);

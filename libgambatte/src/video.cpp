@@ -79,12 +79,12 @@ LCD::LCD(const unsigned char *const oamram, const unsigned char *const vram, con
 	for (std::size_t i = 0; i < sizeof(dmgColorsRgb32) / sizeof(dmgColorsRgb32[0]); ++i)
 		setDmgPaletteColor(i, (3 - (i & 3)) * 85 * 0x010101);
 
-	reset(oamram, false);
+	reset(oamram, vram, false);
 	setVideoBuffer(0, 160);
 }
 
-void LCD::reset(const unsigned char *const oamram, const bool cgb) {
-	ppu.reset(oamram, cgb);
+void LCD::reset(const unsigned char *const oamram, const unsigned char *vram, const bool cgb) {
+	ppu.reset(oamram, vram, cgb);
 	lycIrq.setCgb(cgb);
 	refreshPalettes();
 }

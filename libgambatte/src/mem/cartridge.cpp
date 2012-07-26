@@ -442,6 +442,7 @@ static bool hasRtc(const unsigned headerByte0x147) {
 }
 
 void Cartridge::setStatePtrs(SaveState &state) {
+	state.mem.vram.set(memptrs.vramdata(), memptrs.vramdataend() - memptrs.vramdata());
 	state.mem.sram.set(memptrs.rambankdata(), memptrs.rambankdataend() - memptrs.rambankdata());
 	state.mem.wram.set(memptrs.wramdata(0), memptrs.wramdataend() - memptrs.wramdata(0));
 }
@@ -596,7 +597,7 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 	std::printf("rambanks: %u\n", rambanks);
 
 	const std::size_t filesize = rom->size();
-	rombanks = pow2ceil(filesize / 0x4000);
+	rombanks = std::max(pow2ceil(filesize / 0x4000), 2u);
 	std::printf("rombanks: %u\n", static_cast<unsigned>(filesize / 0x4000));
 	
 	defaultSaveBasePath.clear();

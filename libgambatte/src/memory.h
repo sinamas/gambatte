@@ -31,8 +31,6 @@ class FilterInfo;
 
 class Memory {
 	unsigned char ioamhram[0x200];
-	unsigned char vram[0x2000 * 2];
-	unsigned char *vrambank;
 	
 	InputGetter *getInput;
 	unsigned long divLastUpdate;

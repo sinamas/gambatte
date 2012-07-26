@@ -52,7 +52,7 @@ struct PPUPriv {
 	unsigned long bgPalette[8 * 4];
 	unsigned long spPalette[8 * 4];
 
-	const unsigned char *const vram;
+	const unsigned char *vram;
 	const PPUState *nextCallPtr;
 
 	unsigned long now;
@@ -115,7 +115,7 @@ public:
 	void oamChange(unsigned long cc) { p_.spriteMapper.oamChange(cc); }
 	void oamChange(const unsigned char *oamram, unsigned long cc) { p_.spriteMapper.oamChange(oamram, cc); }
 	unsigned long predictedNextXposTime(unsigned xpos) const;
-	void reset(const unsigned char *oamram, bool cgb);
+	void reset(const unsigned char *oamram, const unsigned char *vram, bool cgb);
 	void resetCc(unsigned long oldCc, unsigned long newCc);
 	void saveState(SaveState &ss) const;
 	void setFrameBuf(uint_least32_t *buf, unsigned pitch) { p_.framebuf.setBuf(buf, pitch); }
