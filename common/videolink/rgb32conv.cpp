@@ -92,12 +92,13 @@ static void rgb32ToRgb16(const gambatte::uint_least32_t *s, gambatte::uint_least
 			const unsigned w, unsigned h, const int srcPitch, const int dstPitch)
 {
 	do {
-		unsigned n = w;
+		int i = -static_cast<int>(w);
+		s += w;
+		d += w;
 
 		do {
-			*d++ = (*s >> 8 & 0xF800) | (*s >> 5 & 0x07E0) | (*s >> 3 & 0x001F);
-			++s;
-		} while (--n);
+			d[i] = (s[i] >> 8 & 0xF800) | (s[i] >> 5 & 0x07E0) | (s[i] >> 3 & 0x001F);
+		} while (++i);
 
 		s += srcPitch - static_cast<int>(w);
 		d += dstPitch - static_cast<int>(w);
