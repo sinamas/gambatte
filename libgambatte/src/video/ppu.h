@@ -51,6 +51,10 @@ struct PPUState {
 struct PPUPriv {
 	unsigned long bgPalette[8 * 4];
 	unsigned long spPalette[8 * 4];
+	struct Sprite { unsigned char spx, oampos, line, attrib; } spriteList[11];
+	unsigned short spwordList[11];
+	unsigned char nextSprite;
+	unsigned char currentSprite;
 
 	const unsigned char *vram;
 	const PPUState *nextCallPtr;
@@ -62,12 +66,9 @@ struct PPUPriv {
 	unsigned tileword;
 	unsigned ntileword;
 
-	LyCounter lyCounter;
 	SpriteMapper spriteMapper;
+	LyCounter lyCounter;
 	PPUFrameBuf framebuf;
-	
-	struct Sprite { unsigned char spx, oampos, line, attrib; } spriteList[11];
-	unsigned short spwordList[11];
 
 	unsigned char lcdc;
 	unsigned char scy;
@@ -82,8 +83,6 @@ struct PPUPriv {
 	unsigned char reg1;
 	unsigned char attrib;
 	unsigned char nattrib;
-	unsigned char nextSprite;
-	unsigned char currentSprite;
 	unsigned char xpos;
 	unsigned char endx;
 

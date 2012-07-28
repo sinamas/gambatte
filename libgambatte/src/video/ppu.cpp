@@ -1443,6 +1443,8 @@ namespace M2 {
 namespace gambatte {
 
 PPUPriv::PPUPriv(NextM0Time &nextM0Time, const unsigned char *const oamram, const unsigned char *const vram) :
+	nextSprite(0),
+	currentSprite(0xFF),
 	vram(vram),
 	nextCallPtr(&M2::Ly0::f0_),
 	now(0),
@@ -1464,8 +1466,6 @@ PPUPriv::PPUPriv(NextM0Time &nextM0Time, const unsigned char *const oamram, cons
 	reg1(0),
 	attrib(0),
 	nattrib(0),
-	nextSprite(0),
-	currentSprite(0xFF),
 	xpos(0),
 	endx(0),
 	cgb(false),

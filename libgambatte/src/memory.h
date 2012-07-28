@@ -30,6 +30,7 @@ class InputGetter;
 class FilterInfo;
 
 class Memory {
+	Cartridge cart;
 	unsigned char ioamhram[0x200];
 	
 	InputGetter *getInput;
@@ -37,7 +38,6 @@ class Memory {
 	unsigned long lastOamDmaUpdate;
 	
 	InterruptRequester intreq;
-	Cartridge cart;
 	Tima tima;
 	LCD display;
 	PSG sound;
