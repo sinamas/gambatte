@@ -366,14 +366,14 @@ namespace M3Loop {
 					ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
 					          + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
 				} else do {
-					dst[0] = p.bgPalette[ntileword       & 3];
-					dst[1] = p.bgPalette[ntileword >>  2 & 3];
-					dst[2] = p.bgPalette[ntileword >>  4 & 3];
-					dst[3] = p.bgPalette[ntileword >>  6 & 3];
-					dst[4] = p.bgPalette[ntileword >>  8 & 3];
-					dst[5] = p.bgPalette[ntileword >> 10 & 3];
-					dst[6] = p.bgPalette[ntileword >> 12 & 3];
-					dst[7] = p.bgPalette[ntileword >> 14    ];
+					dst[0] = p.bgPalette[ ntileword & 0x0003       ];
+					dst[1] = p.bgPalette[(ntileword & 0x000C) >>  2];
+					dst[2] = p.bgPalette[(ntileword & 0x0030) >>  4];
+					dst[3] = p.bgPalette[(ntileword & 0x00C0) >>  6];
+					dst[4] = p.bgPalette[(ntileword & 0x0300) >>  8];
+					dst[5] = p.bgPalette[(ntileword & 0x0C00) >> 10];
+					dst[6] = p.bgPalette[(ntileword & 0x3000) >> 12];
+					dst[7] = p.bgPalette[ ntileword           >> 14];
 					dst += 8;
 					
 					unsigned const tno = tileMapLine[tileMapXpos & 0x1F];
@@ -397,14 +397,14 @@ namespace M3Loop {
 				uint_least32_t *const dst = dbufline + (xpos - 8);
 				const unsigned tileword = -(p.lcdc & 1U) & p.ntileword;
 				
-				dst[0] = p.bgPalette[tileword       & 3];
-				dst[1] = p.bgPalette[tileword >>  2 & 3];
-				dst[2] = p.bgPalette[tileword >>  4 & 3];
-				dst[3] = p.bgPalette[tileword >>  6 & 3];
-				dst[4] = p.bgPalette[tileword >>  8 & 3];
-				dst[5] = p.bgPalette[tileword >> 10 & 3];
-				dst[6] = p.bgPalette[tileword >> 12 & 3];
-				dst[7] = p.bgPalette[tileword >> 14    ];
+				dst[0] = p.bgPalette[ tileword & 0x0003       ];
+				dst[1] = p.bgPalette[(tileword & 0x000C) >>  2];
+				dst[2] = p.bgPalette[(tileword & 0x0030) >>  4];
+				dst[3] = p.bgPalette[(tileword & 0x00C0) >>  6];
+				dst[4] = p.bgPalette[(tileword & 0x0300) >>  8];
+				dst[5] = p.bgPalette[(tileword & 0x0C00) >> 10];
+				dst[6] = p.bgPalette[(tileword & 0x3000) >> 12];
+				dst[7] = p.bgPalette[ tileword           >> 14];
 				
 				int i = nextSprite - 1;
 			
@@ -544,14 +544,14 @@ namespace M3Loop {
 				
 				do {
 					const unsigned long *const bgPalette = p.bgPalette + (nattrib & 7) * 4;
-					dst[0] = bgPalette[ntileword       & 3];
-					dst[1] = bgPalette[ntileword >>  2 & 3];
-					dst[2] = bgPalette[ntileword >>  4 & 3];
-					dst[3] = bgPalette[ntileword >>  6 & 3];
-					dst[4] = bgPalette[ntileword >>  8 & 3];
-					dst[5] = bgPalette[ntileword >> 10 & 3];
-					dst[6] = bgPalette[ntileword >> 12 & 3];
-					dst[7] = bgPalette[ntileword >> 14    ];
+					dst[0] = bgPalette[ ntileword & 0x0003       ];
+					dst[1] = bgPalette[(ntileword & 0x000C) >>  2];
+					dst[2] = bgPalette[(ntileword & 0x0030) >>  4];
+					dst[3] = bgPalette[(ntileword & 0x00C0) >>  6];
+					dst[4] = bgPalette[(ntileword & 0x0300) >>  8];
+					dst[5] = bgPalette[(ntileword & 0x0C00) >> 10];
+					dst[6] = bgPalette[(ntileword & 0x3000) >> 12];
+					dst[7] = bgPalette[ ntileword           >> 14];
 					dst += 8;
 					
 					unsigned const tno = tileMapLine[ tileMapXpos & 0x1F          ];
@@ -583,14 +583,14 @@ namespace M3Loop {
 				const unsigned attrib   = p.nattrib;
 				const unsigned long *const bgPalette = p.bgPalette + (attrib & 7) * 4;
 				
-				dst[0] = bgPalette[tileword       & 3];
-				dst[1] = bgPalette[tileword >>  2 & 3];
-				dst[2] = bgPalette[tileword >>  4 & 3];
-				dst[3] = bgPalette[tileword >>  6 & 3];
-				dst[4] = bgPalette[tileword >>  8 & 3];
-				dst[5] = bgPalette[tileword >> 10 & 3];
-				dst[6] = bgPalette[tileword >> 12 & 3];
-				dst[7] = bgPalette[tileword >> 14    ];
+				dst[0] = bgPalette[ tileword & 0x0003       ];
+				dst[1] = bgPalette[(tileword & 0x000C) >>  2];
+				dst[2] = bgPalette[(tileword & 0x0030) >>  4];
+				dst[3] = bgPalette[(tileword & 0x00C0) >>  6];
+				dst[4] = bgPalette[(tileword & 0x0300) >>  8];
+				dst[5] = bgPalette[(tileword & 0x0C00) >> 10];
+				dst[6] = bgPalette[(tileword & 0x3000) >> 12];
+				dst[7] = bgPalette[ tileword           >> 14];
 				
 				int i = nextSprite - 1;
 			
