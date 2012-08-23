@@ -534,35 +534,46 @@ void LCD::lcdstatChange(const unsigned data, const unsigned long cycleCounter) {
 		if (!ppu.cgb()) {
 			const unsigned timeToNextLy = ppu.lyCounter().time() - cycleCounter;
 			const unsigned lycCmpLy = ppu.lyCounter().ly() == 153 && timeToNextLy <= 444U + 8 ? 0 : ppu.lyCounter().ly();
-
-			if (lycCmpLy == lycIrq.lycReg()) {
-				if (!(old & 0x40) && (ppu.lyCounter().ly() < 144 || !(old & 0x10)))
-					eventTimes_.flagIrq(2);
-			} else if (ppu.lyCounter().ly() >= 144) {
-				if (!(old & 0x10))
-					eventTimes_.flagIrq(2);
-			} else if (cycleCounter + 1 >= m0TimeOfCurrentLine(cycleCounter)) {
-				if (!(old & 0x08))
+			
+			if (ppu.lyCounter().ly() < 144) {
+				if (cycleCounter + 1 < m0TimeOfCurrentLine(cycleCounter)) {
+					if (lycCmpLy == lycIrq.lycReg() && !(old & 0x40))
+						eventTimes_.flagIrq(2);
+				} else {
+					if (!(old & 0x08) && !(lycCmpLy == lycIrq.lycReg() && (old & 0x40)))
+						eventTimes_.flagIrq(2);
+				}
+			} else {
+				if (!(old & 0x10) && !(lycCmpLy == lycIrq.lycReg() && (old & 0x40)))
 					eventTimes_.flagIrq(2);
 			}
-		} else {
+		} else if (data & ~old & 0x78) {
 			const unsigned timeToNextLy = ppu.lyCounter().time() - cycleCounter;
-			const unsigned lycCmpLy = ppu.lyCounter().ly() == 153 && timeToNextLy <= (444U << isDoubleSpeed()) + 8
-													? 0 : ppu.lyCounter().ly();
+			const unsigned lycCmpLy = ppu.lyCounter().ly() == 153
+					&& timeToNextLy <= (444U << isDoubleSpeed()) + 8 ? 0 : ppu.lyCounter().ly();
 			const bool lycperiod = lycCmpLy == lycIrq.lycReg() && timeToNextLy > 4U - isDoubleSpeed() * 4U;
-			const bool lycperiodActive = lycperiod && (old & 0x40);
-			
-			if (lycperiod && (data & 0x40) - (old & 0x40) == 0x40 && (ppu.lyCounter().ly() < 144 || !(old & 0x10))) {
-				eventTimes_.flagIrq(2);
-			} else if (ppu.lyCounter().ly() >= 144 && (data & 0x10) - (old & 0x10) == 0x10 &&
-					(ppu.lyCounter().ly() < 153 || timeToNextLy > 4U - isDoubleSpeed() * 4U) && !lycperiodActive) {
-				eventTimes_.flagIrq(2);
-			} else if ((data & 0x08) - (old & 0x08) == 0x08 && ppu.lyCounter().ly() < 144 && !lycperiodActive &&
-					timeToNextLy > 4 && cycleCounter + isDoubleSpeed() * 2 >= m0TimeOfCurrentLine(cycleCounter)) {
-				eventTimes_.flagIrq(2);
-			} else if ((data & 0x28) == 0x20 && !(old & 0x20)
+
+			if (!(lycperiod && (old & 0x40))) {
+				if (ppu.lyCounter().ly() < 144) {
+					if (cycleCounter + isDoubleSpeed() * 2 < m0TimeOfCurrentLine(cycleCounter) || timeToNextLy <= 4) {
+						if (lycperiod && (data & 0x40))
+							eventTimes_.flagIrq(2);
+					} else if (!(old & 0x08)) {
+						if ((data & 0x08) || (lycperiod && (data & 0x40)))
+							eventTimes_.flagIrq(2);
+					}
+				} else if (!(old & 0x10)) {
+					if ((data & 0x10) && (ppu.lyCounter().ly() < 153 || timeToNextLy > 4U - isDoubleSpeed() * 4U)) {
+						eventTimes_.flagIrq(2);
+					} else if (lycperiod && (data & 0x40)) {
+						eventTimes_.flagIrq(2);
+					}
+				}
+			}
+
+			if ((data & 0x28) == 0x20 && !(old & 0x20)
 					&& ((timeToNextLy <= 4 && ppu.lyCounter().ly() < 143)
-						|| (timeToNextLy == 456*2 && ppu.lyCounter().ly() < 144))) {
+					    || (timeToNextLy == 456*2 && ppu.lyCounter().ly() < 144))) {
 				eventTimes_.flagIrq(2);
 			}
 		}
@@ -577,9 +588,9 @@ void LCD::lcdstatChange(const unsigned data, const unsigned long cycleCounter) {
 	}
 	
 	m2IrqStatReg_ = eventTimes_(MODE2_IRQ) - cycleCounter > (ppu.cgb() - isDoubleSpeed()) * 4U
-							? data : (m2IrqStatReg_ & 0x10) | (statReg & ~0x10);
+			? data : (m2IrqStatReg_ & 0x10) | (statReg & ~0x10);
 	m1IrqStatReg_ = eventTimes_(MODE1_IRQ) - cycleCounter > (ppu.cgb() - isDoubleSpeed()) * 4U
-							? data : (m1IrqStatReg_ & 0x08) | (statReg & ~0x08);
+			? data : (m1IrqStatReg_ & 0x08) | (statReg & ~0x08);
 	
 	m0Irq_.statRegChange(data, eventTimes_(MODE0_IRQ), cycleCounter, ppu.cgb());
 }
@@ -601,12 +612,14 @@ void LCD::lycRegChange(const unsigned data, const unsigned long cycleCounter) {
 
 	const unsigned timeToNextLy = ppu.lyCounter().time() - cycleCounter;
 	
-	if ((statReg & 0x40) && data < 154 &&
-			(ppu.lyCounter().ly() < 144 || !(statReg & 0x10) || (ppu.lyCounter().ly() == 153 && timeToNextLy <= 4U))) {
+	if ((statReg & 0x40) && data < 154
+			&& (ppu.lyCounter().ly() < 144
+			    ? !(statReg & 0x08) || cycleCounter < m0TimeOfCurrentLine(cycleCounter) || timeToNextLy <= 4U
+			    : !(statReg & 0x10) || (ppu.lyCounter().ly() == 153 && timeToNextLy <= 4U))) {
 		unsigned lycCmpLy = ppu.lyCounter().ly();
 		
 		if (ppu.cgb()) {
-			if (timeToNextLy <= 4U >> isDoubleSpeed()) {
+			if (timeToNextLy <= 4U && !isDoubleSpeed()) {
 				lycCmpLy = lycCmpLy < 153 ? lycCmpLy + 1 : 0;
 			} else if (timeToNextLy <= 8) {
 				lycCmpLy = 0xFF;
