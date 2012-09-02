@@ -522,6 +522,29 @@ void LCD::lcdcChange(const unsigned data, const unsigned long cycleCounter) {
 		ppu.setLcdc(data, cycleCounter);
 }
 
+namespace {
+struct LyCnt {
+	unsigned ly; int timeToNextLy;
+	LyCnt(unsigned ly, int timeToNextLy) : ly(ly), timeToNextLy(timeToNextLy) {}
+};
+
+static LyCnt const getLycCmpLy(LyCounter const &lyCounter, unsigned long cc) {
+	unsigned ly = lyCounter.ly();
+	int timeToNextLy = lyCounter.time() - cc;
+
+	if (ly == 153) {
+		if (timeToNextLy -  (448 << lyCounter.isDoubleSpeed()) > 0) {
+			timeToNextLy -= (448 << lyCounter.isDoubleSpeed());
+		} else {
+			ly = 0;
+			timeToNextLy += lyCounter.lineTime();
+		}
+	}
+
+	return LyCnt(ly, timeToNextLy);
+}
+}
+
 void LCD::lcdstatChange(const unsigned data, const unsigned long cycleCounter) {
 	if (cycleCounter >= eventTimes_.nextEventTime())
 		update(cycleCounter);
@@ -641,20 +664,20 @@ void LCD::lycRegChange(const unsigned data, const unsigned long cycleCounter) {
 	}
 }
 
-unsigned LCD::getStat(const unsigned lycReg, const unsigned long cycleCounter) {
+unsigned LCD::getStat(unsigned const lycReg, unsigned long const cycleCounter) {
 	unsigned stat = 0;
 
 	if (ppu.lcdc() & 0x80) {
 		if (cycleCounter >= eventTimes_.nextEventTime())
 			update(cycleCounter);
 
-		const unsigned timeToNextLy = ppu.lyCounter().time() - cycleCounter;
+		int const timeToNextLy = ppu.lyCounter().time() - cycleCounter;
 
 		if (ppu.lyCounter().ly() > 143) {
-			if (ppu.lyCounter().ly() < 153 || timeToNextLy > 4 - isDoubleSpeed() * 4U)
+			if (ppu.lyCounter().ly() < 153 || timeToNextLy > 4 - isDoubleSpeed() * 4)
 				stat = 1;
 		} else {
-			const unsigned lineCycles = 456 - (timeToNextLy >> isDoubleSpeed());
+			unsigned const lineCycles = 456 - (timeToNextLy >> isDoubleSpeed());
 
 			if (lineCycles < 80) {
 				if (!ppu.inactivePeriodAfterDisplayEnable(cycleCounter))
@@ -663,10 +686,10 @@ unsigned LCD::getStat(const unsigned lycReg, const unsigned long cycleCounter) {
 				stat = 3;
 		}
 
-		if ((ppu.lyCounter().ly() == lycReg && timeToNextLy > 4 - isDoubleSpeed() * 4U) ||
-				(lycReg == 0 && ppu.lyCounter().ly() == 153 && timeToNextLy >> isDoubleSpeed() <= 456 - 8)) {
+		LyCnt const lycCmp = getLycCmpLy(ppu.lyCounter(), cycleCounter);
+
+		if (lycReg == lycCmp.ly && lycCmp.timeToNextLy > 4 - isDoubleSpeed() * 4)
 			stat |= 4;
-		}
 	}
 
 	return stat;
