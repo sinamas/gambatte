@@ -641,8 +641,8 @@ void LCD::lycRegChange(unsigned const data, unsigned long const cycleCounter) {
 
 		if (lycCmp.timeToNextLy <= 4 << ppu.cgb()) {
 			lycCmp.ly = old != lycCmp.ly || (lycCmp.timeToNextLy <= 4 && ppu.cgb() && !isDoubleSpeed())
-			         ? (lycCmp.ly == 153 ? 0 : lycCmp.ly + 1)
-			         : 0xFF; // simultaneous ly/lyc inc. lyc flag never goes low -> no trigger.
+			          ? (lycCmp.ly == 153 ? 0 : lycCmp.ly + 1)
+			          : 0xFF; // simultaneous ly/lyc inc. lyc flag never goes low -> no trigger.
 		}
 
 		if (data == lycCmp.ly) {
