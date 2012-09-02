@@ -224,7 +224,11 @@ public:
 			lyReg = ppu.lyCounter().ly();
 			
 			if (lyReg == 153) {
-				lyReg = 0;
+				if (isDoubleSpeed()) {
+					if (ppu.lyCounter().time() - cycleCounter <= 456 * 2 - 8)
+						lyReg = 0;
+				} else
+					lyReg = 0;
 			} else if (ppu.lyCounter().time() - cycleCounter <= 4)
 				++lyReg;
 		}
