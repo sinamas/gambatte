@@ -6,6 +6,9 @@
 .code@100
 	jp l150
 
+.data@143
+	80 
+
 .code@150
 l150:
 	xor a, a
