@@ -141,24 +141,28 @@ void GB::loadState(const std::string &filepath, const bool osdMessage) {
 	}
 }
 
-void GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch) {
-	if (p_->cpu.loaded()) {
-		saveState(videoBuf, pitch, statePath(p_->cpu.saveBasePath(), p_->stateNo));
+bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch) {
+	if (saveState(videoBuf, pitch, statePath(p_->cpu.saveBasePath(), p_->stateNo))) {
 		p_->cpu.setOsdElement(newStateSavedOsdElement(p_->stateNo));
+		return true;
 	}
+
+	return false;
 }
 
 void GB::loadState() {
 	loadState(statePath(p_->cpu.saveBasePath(), p_->stateNo), true);
 }
 
-void GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch, const std::string &filepath) {
+bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch, const std::string &filepath) {
 	if (p_->cpu.loaded()) {
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
 		p_->cpu.saveState(state);
-		StateSaver::saveState(state, videoBuf, pitch, filepath);
+		return StateSaver::saveState(state, videoBuf, pitch, filepath);
 	}
+
+	return false;
 }
 
 void GB::loadState(const std::string &filepath) {

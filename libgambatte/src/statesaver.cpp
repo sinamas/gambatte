@@ -409,13 +409,13 @@ static SaverList list;
 
 namespace gambatte {
 
-void StateSaver::saveState(const SaveState &state,
+bool StateSaver::saveState(const SaveState &state,
 		const uint_least32_t *const videoBuf,
 		const int pitch, const std::string &filename) {
 	std::ofstream file(filename.c_str(), std::ios_base::binary);
 	
 	if (file.fail())
-		return;
+		return false;
 	
 	{ static const char ver[] = { 0, 1 }; file.write(ver, sizeof(ver)); }
 	
@@ -425,6 +425,8 @@ void StateSaver::saveState(const SaveState &state,
 		file.write(it->label, it->labelsize);
 		(*it->save)(file, state);
 	}
+
+	return !file.fail();
 }
 
 bool StateSaver::loadState(SaveState &state, const std::string &filename) {

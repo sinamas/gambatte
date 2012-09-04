@@ -97,10 +97,11 @@ public:
 	/** Saves emulator state to the state slot selected with selectState().
 	  * The data will be stored in the directory given by setSaveDir().
 	  *
-	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
-	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
+	  * @param  videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for saving a thumbnail.
+	  * @param  pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
+	  * @return success
 	  */
-	void saveState(const gambatte::uint_least32_t *videoBuf, int pitch);
+	bool saveState(const gambatte::uint_least32_t *videoBuf, int pitch);
 	
 	/** Loads emulator state from the state slot selected with selectState().
 	  */
@@ -108,10 +109,11 @@ public:
 	
 	/** Saves emulator state to the file given by 'filepath'.
 	  *
-	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for storing a thumbnail.
-	  * @param pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
+	  * @param  videoBuf 160x144 RGB32 (native endian) video frame buffer or 0. Used for saving a thumbnail.
+	  * @param  pitch distance in number of pixels (not bytes) from the start of one line to the next in videoBuf.
+	  * @return success
 	  */
-	void saveState(const gambatte::uint_least32_t *videoBuf, int pitch, const std::string &filepath);
+	bool saveState(const gambatte::uint_least32_t *videoBuf, int pitch, const std::string &filepath);
 	
 	/** Loads emulator state from the file given by 'filepath'.
 	  */
