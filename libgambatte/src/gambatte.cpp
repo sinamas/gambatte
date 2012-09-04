@@ -116,6 +116,11 @@ bool GB::isLoaded() const {
 	return p_->cpu.loaded();
 }
 
+void GB::saveSavedata() {
+	if (p_->cpu.loaded())
+		p_->cpu.saveSavedata();
+}
+
 void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
 	p_->cpu.setDmgPaletteColor(palNum, colorNum, rgb32);
 }
