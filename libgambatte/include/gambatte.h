@@ -104,8 +104,9 @@ public:
 	bool saveState(const gambatte::uint_least32_t *videoBuf, int pitch);
 	
 	/** Loads emulator state from the state slot selected with selectState().
+	  * @return success
 	  */
-	void loadState();
+	bool loadState();
 	
 	/** Saves emulator state to the file given by 'filepath'.
 	  *
@@ -116,8 +117,9 @@ public:
 	bool saveState(const gambatte::uint_least32_t *videoBuf, int pitch, const std::string &filepath);
 	
 	/** Loads emulator state from the file given by 'filepath'.
+	  * @return success
 	  */
-	void loadState(const std::string &filepath);
+	bool loadState(const std::string &filepath);
 	
 	/** Selects which state slot to save state to or load state from.
 	  * There are 10 such slots, numbered from 0 to 9 (periodically extended for all n).
@@ -144,7 +146,6 @@ private:
 	struct Priv;
 	Priv *const p_;
 
-	void loadState(const std::string &filepath, bool osdMessage);
 	GB(const GB &);
 	GB & operator=(const GB &);
 };

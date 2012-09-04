@@ -125,7 +125,7 @@ void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) 
 	p_->cpu.setDmgPaletteColor(palNum, colorNum, rgb32);
 }
 
-void GB::loadState(const std::string &filepath, const bool osdMessage) {
+bool GB::loadState(const std::string &filepath) {
 	if (p_->cpu.loaded()) {
 		p_->cpu.saveSavedata();
 		
@@ -134,11 +134,11 @@ void GB::loadState(const std::string &filepath, const bool osdMessage) {
 		
 		if (StateSaver::loadState(state, filepath)) {
 			p_->cpu.loadState(state);
-			
-			if (osdMessage)
-				p_->cpu.setOsdElement(newStateLoadedOsdElement(p_->stateNo));
+			return true;
 		}
 	}
+
+	return false;
 }
 
 bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch) {
@@ -150,8 +150,13 @@ bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pit
 	return false;
 }
 
-void GB::loadState() {
-	loadState(statePath(p_->cpu.saveBasePath(), p_->stateNo), true);
+bool GB::loadState() {
+	if (loadState(statePath(p_->cpu.saveBasePath(), p_->stateNo))) {
+		p_->cpu.setOsdElement(newStateLoadedOsdElement(p_->stateNo));
+		return true;
+	}
+
+	return false;
 }
 
 bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch, const std::string &filepath) {
@@ -163,10 +168,6 @@ bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pit
 	}
 
 	return false;
-}
-
-void GB::loadState(const std::string &filepath) {
-	loadState(filepath, false);
 }
 
 void GB::selectState(int n) {
