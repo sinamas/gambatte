@@ -19,6 +19,7 @@
 #ifndef CARTRIDGE_H
 #define CARTRIDGE_H
 
+#include "loadres.h"
 #include "memptrs.h"
 #include "rtc.h"
 #include "savestate.h"
@@ -86,7 +87,7 @@ public:
 	void saveSavedata();
 	const std::string saveBasePath() const;
 	void setSaveDir(const std::string &dir);
-	int loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
+	LoadRes loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
 	const char * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
 	void setGameGenie(const std::string &codes);
 };

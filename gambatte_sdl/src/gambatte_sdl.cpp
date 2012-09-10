@@ -526,11 +526,13 @@ bool GambatteSdl::init(int argc, char **argv) {
 			return 1;
 		}
 		
-		if (gambatte.load(argv[loadIndex],   gbaCgbOption.gbaCgb()           * GB::GBA_CGB
-		                                   + forceDmgOption.forceDmg()       * GB::FORCE_DMG
-		                                   + multicartCompatOption.enabled() * GB::MULTICART_COMPAT)) {
-			std::printf("failed to load ROM %s\n", argv[loadIndex]);
-			return 1;
+		if (LoadRes const error =
+				gambatte.load(argv[loadIndex],
+				                gbaCgbOption.gbaCgb()           * GB::GBA_CGB
+				              + forceDmgOption.forceDmg()       * GB::FORCE_DMG
+				              + multicartCompatOption.enabled() * GB::MULTICART_COMPAT)) {
+			std::printf("failed to load ROM %s: %s\n", argv[loadIndex], to_string(error).c_str());
+			return error;
 		}
 		
 		if (fsOption.startFull())

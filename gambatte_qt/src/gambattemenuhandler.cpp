@@ -538,19 +538,19 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 	pauseChange();
 	mw->waitUntilPaused();
 
-	if (source->load(fileName.toLocal8Bit().constData(),
-			  gbaCgbAction->isChecked()     * gambatte::GB::GBA_CGB
-			+ forceDmgAction->isChecked()   * gambatte::GB::FORCE_DMG
-			+ miscDialog->multicartCompat() * gambatte::GB::MULTICART_COMPAT)) {
+	if (gambatte::LoadRes const error =
+			source->load(fileName.toLocal8Bit().constData(),
+			               gbaCgbAction->isChecked()     * gambatte::GB::GBA_CGB
+			             + forceDmgAction->isChecked()   * gambatte::GB::FORCE_DMG
+			             + miscDialog->multicartCompat() * gambatte::GB::MULTICART_COMPAT)) {
 		mw->stop();
 		emit dmgRomLoaded(false);
 		emit romLoaded(false);
 		QMessageBox::critical(
-		                       mw,
-		                       tr("Error"),
-		                       tr("Failed to load file ") + fileName + "."
-		                     );
-
+			mw,
+			tr("File Load Error"),
+			tr("Failed to load file\n") + fileName + ".\n\n"
+		                                    + gambatte::to_string(error).c_str() + ".");
 		return;
 	}
 

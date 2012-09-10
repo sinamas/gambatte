@@ -20,6 +20,7 @@
 #define GAMBATTE_H
 
 #include "inputgetter.h"
+#include "loadres.h"
 #include "gbint.h"
 #include <string>
 
@@ -30,7 +31,7 @@ class GB {
 public:
 	GB();
 	~GB();
-	
+
 	enum LoadFlag {
 		FORCE_DMG        = 1, /**< Treat the ROM as not having CGB support regardless of what its header advertises. */
 		GBA_CGB          = 2, /**< Use GBA intial CPU register values when in CGB mode. */
@@ -43,7 +44,7 @@ public:
 	  * @param flags    ORed combination of LoadFlags.
 	  * @return 0 on success, negative value on failure.
 	  */
-	int load(const std::string &romfile, unsigned flags = 0);
+	LoadRes load(const std::string &romfile, unsigned flags = 0);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
 	  * or until a video frame has been drawn.

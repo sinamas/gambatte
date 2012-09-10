@@ -504,11 +504,11 @@ static unsigned pow2ceil(unsigned n) {
 	return n;
 }
 
-int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
+LoadRes Cartridge::loadROM(std::string const &romfile, bool const forceDmg, bool const multicartCompat) {
 	const std::auto_ptr<File> rom(newFileInstance(romfile));
 
 	if (rom->fail())
-		return -1;
+		return LOADRES_IO_ERROR;
 	
 	unsigned rambanks = 1;
 	unsigned rombanks = 2;
@@ -528,28 +528,28 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 		case 0x06: std::puts("MBC2 ROM+BATTERY loaded."); type = MBC2; break;
 		case 0x08: std::puts("Plain ROM with additional RAM loaded."); type = PLAIN; break;
 		case 0x09: std::puts("Plain ROM with additional RAM and Battery loaded."); type = PLAIN; break;
-		case 0x0B: std::puts("MM01 ROM not supported."); return -1;
-		case 0x0C: std::puts("MM01 ROM not supported."); return -1;
-		case 0x0D: std::puts("MM01 ROM not supported."); return -1;
+		case 0x0B: 
+		case 0x0C:
+		case 0x0D: return LOADRES_UNSUPPORTED_MBC_MMM01;
 		case 0x0F: std::puts("MBC3 ROM+TIMER+BATTERY loaded."); type = MBC3; break;
 		case 0x10: std::puts("MBC3 ROM+TIMER+RAM+BATTERY loaded."); type = MBC3; break;
 		case 0x11: std::puts("MBC3 ROM loaded."); type = MBC3; break;
 		case 0x12: std::puts("MBC3 ROM+RAM loaded."); type = MBC3; break;
 		case 0x13: std::puts("MBC3 ROM+RAM+BATTERY loaded."); type = MBC3; break;
-		case 0x15: std::puts("MBC4 ROM not supported."); return -1;
-		case 0x16: std::puts("MBC4 ROM not supported."); return -1;
-		case 0x17: std::puts("MBC4 ROM not supported."); return -1;
+		case 0x15: 
+		case 0x16:
+		case 0x17: return LOADRES_UNSUPPORTED_MBC_MBC4;
 		case 0x19: std::puts("MBC5 ROM loaded."); type = MBC5; break;
 		case 0x1A: std::puts("MBC5 ROM+RAM loaded."); type = MBC5; break;
 		case 0x1B: std::puts("MBC5 ROM+RAM+BATTERY loaded."); type = MBC5; break;
 		case 0x1C: std::puts("MBC5+RUMBLE ROM not supported."); type = MBC5; break;
 		case 0x1D: std::puts("MBC5+RUMBLE+RAM ROM not suported."); type = MBC5; break;
 		case 0x1E: std::puts("MBC5+RUMBLE+RAM+BATTERY ROM not supported."); type = MBC5; break;
-		case 0xFC: std::puts("Pocket Camera ROM not supported."); return -1;
-		case 0xFD: std::puts("Bandai TAMA5 ROM not supported."); return -1;
-		case 0xFE: std::puts("HuC3 ROM not supported."); return -1;
+		case 0xFC: return LOADRES_UNSUPPORTED_MBC_POCKET_CAMERA;
+		case 0xFD: return LOADRES_UNSUPPORTED_MBC_TAMA5;
+		case 0xFE: return LOADRES_UNSUPPORTED_MBC_HUC3;
 		case 0xFF: std::puts("HuC1 ROM+RAM+BATTERY loaded."); type = HUC1; break;
-		default: std::puts("Wrong data-format, corrupt or unsupported ROM."); return -1;
+		default:   return LOADRES_BAD_FILE_OR_UNKNOWN_MBC;
 		}
 
 		/*switch (header[0x0148]) {
@@ -612,7 +612,7 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 	enforce8bit(memptrs.romdata(), rombanks * 0x4000ul);
 	
 	if (rom->fail())
-		return -1;
+		return LOADRES_IO_ERROR;
 	
 	defaultSaveBasePath = stripExtension(romfile);
 	
@@ -632,7 +632,7 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 	case HUC1: mbc.reset(new HuC1(memptrs)); break;
 	}
 
-	return 0;
+	return LOADRES_OK;
 }
 
 static bool hasBattery(const unsigned char headerByte0x147) {

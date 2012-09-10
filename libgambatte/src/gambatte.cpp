@@ -88,13 +88,13 @@ void GB::setSaveDir(const std::string &sdir) {
 	p_->cpu.setSaveDir(sdir);
 }
 
-int GB::load(const std::string &romfile, const unsigned flags) {
+LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
 	
-	const int failed = p_->cpu.load(romfile, flags & FORCE_DMG, flags & MULTICART_COMPAT);
+	LoadRes const loadres = p_->cpu.load(romfile, flags & FORCE_DMG, flags & MULTICART_COMPAT);
 	
-	if (!failed) {
+	if (loadres == LOADRES_OK) {
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
 		setInitState(state, p_->cpu.isCgb(), p_->gbaCgbMode = flags & GBA_CGB);
@@ -105,7 +105,7 @@ int GB::load(const std::string &romfile, const unsigned flags) {
 		p_->cpu.setOsdElement(std::auto_ptr<OsdElement>());
 	}
 	
-	return failed;
+	return loadres;
 }
 
 bool GB::isCgb() const {

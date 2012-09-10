@@ -128,7 +128,7 @@ public:
 	unsigned long event(unsigned long cycleCounter);
 	unsigned long resetCounters(unsigned long cycleCounter);
 
-	int loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
+	LoadRes loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
 	void setSaveDir(const std::string &dir) { cart.setSaveDir(dir); }
 
 	void setInputGetter(InputGetter *getInput) {
