@@ -131,7 +131,10 @@ public:
 	int currentState() const;
 	
 	/** ROM header title of currently loaded ROM image. */
-	const std::string romTitle() const;
+	std::string const romTitle() const;
+
+	/** GamePak/Cartridge info. */
+	class PakInfo const pakInfo() const;
 	
 	/** Set Game Genie codes to apply to currently loaded ROM image. Cleared on ROM load.
 	  * @param codes Game Genie codes in format HHH-HHH-HHH;HHH-HHH-HHH;... where H is [0-9]|[A-F]

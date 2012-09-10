@@ -88,7 +88,8 @@ public:
 	const std::string saveBasePath() const;
 	void setSaveDir(const std::string &dir);
 	LoadRes loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
-	const char * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
+	char const * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
+	class PakInfo const pakInfo(bool multicartCompat) const;
 	void setGameGenie(const std::string &codes);
 };
 

@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include <gambatte.h>
+#include <pakinfo.h>
 #include "array.h"
 #include "resample/resamplerinfo.h"
 #include "rateest.h"
@@ -448,7 +449,7 @@ static void printUsage(std::vector<DescOption*> &v) {
 }
 
 bool GambatteSdl::init(int argc, char **argv) {
-	std::printf("Gambatte SDL svn\n");
+	std::printf("Gambatte SDL SVN\n");
 	
 	if (sdlIniter.isFailed())
 		return 1;
@@ -533,6 +534,15 @@ bool GambatteSdl::init(int argc, char **argv) {
 				              + multicartCompatOption.enabled() * GB::MULTICART_COMPAT)) {
 			std::printf("failed to load ROM %s: %s\n", argv[loadIndex], to_string(error).c_str());
 			return error;
+		}
+
+		{
+			PakInfo const &pak = gambatte.pakInfo();
+			std::puts(gambatte.romTitle().c_str());
+			std::printf("GamePak type: %s rambanks: %u rombanks: %u\n",
+			            pak.mbc().c_str(), pak.rambanks(), pak.rombanks());
+			std::printf("header checksum: %s\n", pak.headerChecksumOk() ? "ok" : "bad");
+			std::printf("cgb: %d\n", gambatte.isCgb());
 		}
 		
 		if (fsOption.startFull())

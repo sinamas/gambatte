@@ -39,9 +39,9 @@ namespace gambatte {
 struct GB::Priv {
 	CPU cpu;
 	int stateNo;
-	bool gbaCgbMode;
+	unsigned loadflags;
 	
-	Priv() : stateNo(1), gbaCgbMode(false) {}
+	Priv() : stateNo(1), loadflags(0) {}
 };
 	
 GB::GB() : p_(new Priv) {}
@@ -74,7 +74,7 @@ void GB::reset() {
 		
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
-		setInitState(state, p_->cpu.isCgb(), p_->gbaCgbMode);
+		setInitState(state, p_->cpu.isCgb(), p_->loadflags & GBA_CGB);
 		p_->cpu.loadState(state);
 		p_->cpu.loadSavedata();
 	}
@@ -97,7 +97,8 @@ LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 	if (loadres == LOADRES_OK) {
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
-		setInitState(state, p_->cpu.isCgb(), p_->gbaCgbMode = flags & GBA_CGB);
+		p_->loadflags = flags;
+		setInitState(state, p_->cpu.isCgb(), flags & GBA_CGB);
 		p_->cpu.loadState(state);
 		p_->cpu.loadSavedata();
 		
@@ -180,7 +181,7 @@ void GB::selectState(int n) {
 
 int GB::currentState() const { return p_->stateNo; }
 
-const std::string GB::romTitle() const {
+std::string const GB::romTitle() const {
 	if (p_->cpu.loaded()) {
 		char title[0x11];
 		std::memcpy(title, p_->cpu.romTitle(), 0x10);
@@ -190,6 +191,8 @@ const std::string GB::romTitle() const {
 	
 	return std::string();
 }
+
+PakInfo const GB::pakInfo() const { return p_->cpu.pakInfo(p_->loadflags & MULTICART_COMPAT); }
 
 void GB::setGameGenie(const std::string &codes) {
 	p_->cpu.setGameGenie(codes);

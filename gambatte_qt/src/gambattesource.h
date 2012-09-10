@@ -24,6 +24,7 @@
 #include "videodialog.h"
 #include "pixelbuffer.h"
 #include <gambatte.h>
+#include <pakinfo.h>
 #include <cstring>
 #include <memory>
 #include <QObject>
@@ -82,6 +83,7 @@ public:
 	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir); }
 	bool isCgb() const { return gb.isCgb(); }
 	const std::string romTitle() const { return gb.romTitle(); }
+	gambatte::PakInfo const pakInfo() const { return gb.pakInfo(); }
 	void selectState(int n) { gb.selectState(n); }
 	int currentState() const { return gb.currentState(); }
 	void saveState(const PixelBuffer &fb, const std::string &filepath);

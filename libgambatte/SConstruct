@@ -26,6 +26,7 @@ sourceFiles = Split('''
 			src/video.cpp
 			src/mem/cartridge.cpp
 			src/mem/memptrs.cpp
+			src/mem/pakinfo.cpp
 			src/mem/rtc.cpp
 			src/sound/channel1.cpp
 			src/sound/channel2.cpp

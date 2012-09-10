@@ -20,10 +20,11 @@
 #define MEMORY_H
 
 #include "mem/cartridge.h"
-#include "video.h"
-#include "sound.h"
 #include "interrupter.h"
+#include "pakinfo.h"
+#include "sound.h"
 #include "tima.h"
+#include "video.h"
 
 namespace gambatte {
 class InputGetter;
@@ -73,7 +74,8 @@ public:
 	explicit Memory(const Interrupter &interrupter);
 	
 	bool loaded() const { return cart.loaded(); }
-	const char * romTitle() const { return cart.romTitle(); }
+	char const * romTitle() const { return cart.romTitle(); }
+	PakInfo const pakInfo(bool multicartCompat) const { return cart.pakInfo(multicartCompat); }
 
 	void setStatePtrs(SaveState &state);
 	unsigned long saveState(SaveState &state, unsigned long cc);

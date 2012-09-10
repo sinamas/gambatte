@@ -518,8 +518,6 @@ void GambatteMenuHandler::updateRecentFileActions() {
 }
 
 void GambatteMenuHandler::setCurrentFile(const QString &fileName) {
-	mw->setWindowTitle(fileName.isEmpty() ? tr("Gambatte") : tr("%1 - %2").arg(strippedName(fileName)).arg(tr("Gambatte")));
-
 	QSettings settings;
 	QStringList files = settings.value("recentFileList").toStringList();
 	files.removeAll(fileName);
@@ -565,6 +563,15 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 		setDmgPaletteColors();
 	}
 
+	gambatte::PakInfo const &pak = source->pakInfo();
+	std::cout << romTitle.toStdString() << '\n'
+	          << "GamePak type: " << pak.mbc()
+	          << " rambanks: " << pak.rambanks()
+	          << " rombanks: " << pak.rombanks() << '\n'
+	          << "header checksum: " << (pak.headerChecksumOk() ? "ok" : "bad") << '\n'
+	          << "cgb: " << source->isCgb() << std::endl;
+
+	mw->setWindowTitle(strippedName(fileName) + (pak.headerChecksumOk() ? "" : " [bad]") + " - Gambatte");
 	setCurrentFile(fileName);
 	
 	emit romLoaded(true);
