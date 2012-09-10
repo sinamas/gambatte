@@ -255,10 +255,12 @@ static void runTestRom(gambatte::uint_least32_t framebuf[], const char *const fi
 	gambatte::GB gb;
 	
 	if (gb.load(file, forceDmg)) {
-		std::printf("Failed to load ROM file %s\n", file);
+		std::printf("\nFailed to load ROM file %s\n", file);
 		std::abort();
 	}
 	
+	std::printf("%c", gb.isCgb() ? 'c' : 'd');
+
 	long samplesLeft = 35112 * 15;
 	
 	while (samplesLeft >= 0) {
@@ -357,6 +359,6 @@ int main(const int argc, char **const argv) {
 		}
 	}
 	
-	std::printf("\nRan %d tests.\n", numTestsRun);
+	std::printf("\n\nRan %d tests.\n", numTestsRun);
 	std::printf("%d failures.\n", numTestsRun - numTestsSucceeded);
 }
