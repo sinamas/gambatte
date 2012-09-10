@@ -20,7 +20,6 @@
 #include "file/file.h"
 #include "../savestate.h"
 #include "pakinfo_internal.h"
-#include <cstdio>
 #include <cstring>
 #include <fstream>
 
