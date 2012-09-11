@@ -429,8 +429,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		BoolOption forceDmgOption("\t\tForce DMG mode\n", "force-dmg");
 		v.push_back(&forceDmgOption);
 		BoolOption multicartCompatOption(
-			"\tSupport certain multicart ROM images by"
-			" not strictly respecting ROM header MBC type\n", "multicart-compat");
+			"\tSupport certain multicart ROM images by\n"
+			"\t\t\t\tnot strictly respecting ROM header MBC type\n", "multicart-compat");
 		v.push_back(&multicartCompatOption);
 		BoolOption fsOption("\t\tStart in full screen mode\n", "full-screen", 'f');
 		v.push_back(&fsOption);
