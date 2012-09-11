@@ -44,54 +44,27 @@ namespace {
 using namespace gambatte;
 
 struct DescOption : Parser::Option {
-	DescOption(const char *s, char c = 0, int nArgs = 0) : Option(s, c, nArgs) {}
+	explicit DescOption(const char *s, char c = 0, int nArgs = 0)
+	: Option(s, c, nArgs)
+	{
+	}
+
 	virtual ~DescOption() {}
 	virtual const char* getDesc() const = 0;
 };
 
-class FsOption : public DescOption {
-	bool full;
+class BoolOption : public DescOption {
+	char const *const desc_;
+	bool isSet_;
 public:
-	FsOption() : DescOption("full-screen", 'f'), full(false) {}
-	void exec(const char *const */*argv*/, int /*index*/) { full = true; }
-	const char* getDesc() const { return "\t\tStart in full screen mode\n"; }
-	bool startFull() const { return full; }
-};
+	BoolOption(char const *desc, char const *s, char c = 0)
+	: DescOption(s, c), desc_(desc), isSet_(false)
+	{
+	}
 
-class ListKeysOption : public DescOption {
-	bool execed;
-public:
-	ListKeysOption() : DescOption("list-keys"), execed(false) {}
-	void exec(const char *const */*argv*/, int /*index*/) { execed = true; }
-	const char* getDesc() const { return "\t\tList valid input KEYS\n"; }
-	bool isExeced() const { return execed; }
-};
-
-class GbaCgbOption : public DescOption {
-	bool gbaCgb_;
-public:
-	GbaCgbOption() : DescOption("gba-cgb"), gbaCgb_(false) {}
-	void exec(const char *const */*argv*/, int /*index*/) { gbaCgb_ = true; }
-	const char* getDesc() const { return "\t\t\tGBA CGB mode\n"; }
-	bool gbaCgb() const { return gbaCgb_; }
-};
-
-class ForceDmgOption : public DescOption {
-	bool forceDmg_;
-public:
-	ForceDmgOption() : DescOption("force-dmg"), forceDmg_(false) {}
-	void exec(const char *const */*argv*/, int /*index*/) { forceDmg_ = true; }
-	const char* getDesc() const { return "\t\tForce DMG mode\n"; }
-	bool forceDmg() const { return forceDmg_; }
-};
-
-class MulticartCompatOption : public DescOption {
-	bool enabled_;
-public:
-	MulticartCompatOption() : DescOption("multicart-compat"), enabled_(false) {}
-	void exec(const char *const */*argv*/, int /*index*/) { enabled_ = true; }
-	const char* getDesc() const { return "\tSupport certain multicart ROM images by not strictly respecting ROM header MBC type\n"; }
-	bool enabled() const { return enabled_; }
+	virtual void exec(char const *const *, int) { isSet_ = true; }
+	virtual char const * getDesc() const { return desc_; }
+	bool isSet() const { return isSet_; }
 };
 
 class RateOption : public DescOption {
@@ -188,15 +161,6 @@ VfOption::VfOption() : DescOption("video-filter", 'v', 1), filterNr(0) {
 	
 	s = ss.str();
 }
-
-class YuvOption : public DescOption {
-	bool yuv;
-public:
-	YuvOption() : DescOption("yuv-overlay", 'y'), yuv(false) {}
-	void exec(const char *const */*argv*/, int /*index*/) { yuv = true; }
-	const char* getDesc() const { return "\t\tUse YUV overlay for (usually faster) scaling\n"; }
-	bool useYuv() const { return yuv; }
-};
 
 class ResamplerOption : public DescOption {
 	std::string s;
@@ -460,19 +424,21 @@ bool GambatteSdl::init(int argc, char **argv) {
 		Parser parser;
 		
 		std::vector<DescOption*> v;
-		GbaCgbOption gbaCgbOption;
+		BoolOption gbaCgbOption("\t\t\tGBA CGB mode\n", "gba-cgb");
 		v.push_back(&gbaCgbOption);
-		ForceDmgOption forceDmgOption;
+		BoolOption forceDmgOption("\t\tForce DMG mode\n", "force-dmg");
 		v.push_back(&forceDmgOption);
-		MulticartCompatOption multicartCompatOption;
+		BoolOption multicartCompatOption(
+			"\tSupport certain multicart ROM images by"
+			" not strictly respecting ROM header MBC type\n", "multicart-compat");
 		v.push_back(&multicartCompatOption);
-		FsOption fsOption;
+		BoolOption fsOption("\t\tStart in full screen mode\n", "full-screen", 'f');
 		v.push_back(&fsOption);
 		InputOption inputOption;
 		v.push_back(&inputOption);
 		LatencyOption latencyOption;
 		v.push_back(&latencyOption);
-		ListKeysOption lkOption;
+		BoolOption lkOption("\t\tList valid input KEYS\n", "list-keys");
 		v.push_back(&lkOption);
 		PeriodsOption periodsOption;
 		v.push_back(&periodsOption);
@@ -484,7 +450,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&scaleOption);
 		VfOption vfOption;
 		v.push_back(&vfOption);
-		YuvOption yuvOption;
+		BoolOption yuvOption("\t\tUse YUV overlay for (usually faster) scaling\n",
+		                     "yuv-overlay", 'y');
 		v.push_back(&yuvOption);
 		
 		for (std::size_t i = 0; i < v.size(); ++i) {
@@ -504,7 +471,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 			}
 		}
 		
-		if (lkOption.isExeced()) {
+		if (lkOption.isSet()) {
 			std::printf("Valid input KEYS:\n");
 			printStrSdlkeys();
 			static const char *const jsnam = "jsNaM";
@@ -529,9 +496,9 @@ bool GambatteSdl::init(int argc, char **argv) {
 		
 		if (LoadRes const error =
 				gambatte.load(argv[loadIndex],
-				                gbaCgbOption.gbaCgb()           * GB::GBA_CGB
-				              + forceDmgOption.forceDmg()       * GB::FORCE_DMG
-				              + multicartCompatOption.enabled() * GB::MULTICART_COMPAT)) {
+				                gbaCgbOption.isSet()          * GB::GBA_CGB
+				              + forceDmgOption.isSet()        * GB::FORCE_DMG
+				              + multicartCompatOption.isSet() * GB::MULTICART_COMPAT)) {
 			std::printf("failed to load ROM %s: %s\n", argv[loadIndex], to_string(error).c_str());
 			return error;
 		}
@@ -545,14 +512,14 @@ bool GambatteSdl::init(int argc, char **argv) {
 			std::printf("cgb: %d\n", gambatte.isCgb());
 		}
 		
-		if (fsOption.startFull())
+		if (fsOption.isSet())
 			blitter.setStartFull();
 		
 		sampleRate = rateOption.getRate();
 		latency = latencyOption.getLatency();
 		periods = periodsOption.getPeriods();
 		blitter.setScale(scaleOption.getScale());
-		blitter.setYuv(yuvOption.useYuv());
+		blitter.setYuv(yuvOption.isSet());
 		blitter.setVideoFilter(vfOption.filterNumber());
 		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, inBuf.size() / 2));
 		

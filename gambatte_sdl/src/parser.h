@@ -30,12 +30,12 @@ public:
 		const char c;
 		
 	public:
-		Option(const char *s, char c = 0, int nArgs = 0);
+		explicit Option(const char *s, char c = 0, int nArgs = 0);
 		virtual ~Option() {}
 		char getChar() const { return c; }
 		const char* getStr() const { return s; }
 		int neededArgs() const { return nArgs; }
-		virtual void exec(const char *const */*argv*/, int /*index*/) {}
+		virtual void exec(const char *const */*argv*/, int /*index*/) = 0;
 	};
 	
 private:
