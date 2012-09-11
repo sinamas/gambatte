@@ -239,13 +239,13 @@ public:
 
 InputOption::InputOption() : DescOption("input", 'i', 8) {
 	keys[0].key = SDLK_RETURN;
-	keys[1].key  = SDLK_RSHIFT;
-	keys[2].key  = SDLK_d;
-	keys[3].key  = SDLK_c;
-	keys[4].key  = SDLK_UP;
-	keys[5].key  = SDLK_DOWN;
-	keys[6].key  = SDLK_LEFT;
-	keys[7].key  = SDLK_RIGHT;
+	keys[1].key = SDLK_RSHIFT;
+	keys[2].key = SDLK_d;
+	keys[3].key = SDLK_c;
+	keys[4].key = SDLK_UP;
+	keys[5].key = SDLK_DOWN;
+	keys[6].key = SDLK_LEFT;
+	keys[7].key = SDLK_RIGHT;
 }
 
 void InputOption::exec(const char *const *argv, int index) {
@@ -424,6 +424,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 		Parser parser;
 		
 		std::vector<DescOption*> v;
+		BoolOption controlsOption("\t\tShow keyboard controls\n", "controls");
+		v.push_back(&controlsOption);
 		BoolOption gbaCgbOption("\t\t\tGBA CGB mode\n", "gba-cgb");
 		v.push_back(&gbaCgbOption);
 		BoolOption forceDmgOption("\t\tForce DMG mode\n", "force-dmg");
@@ -486,12 +488,35 @@ bool GambatteSdl::init(int argc, char **argv) {
 			std::printf("%sl\t(%s %s left)\n", jsnhm, joystick_n, hat_m);
 			std::printf("%sr\t(%s %s right)\n", jsnhm, joystick_n, hat_m);
 			std::printf("%su\t(%s %s up)\n", jsnhm, joystick_n, hat_m);
-			return 1;
+		}
+
+		if (controlsOption.isSet()) {
+			std::puts("Controls:");
+			std::puts("TAB\t- fast-forward");
+			std::puts("Ctrl-f\t- toggle full screen");
+			std::puts("Ctrl-r\t- reset");
+			std::puts("F5\t- save state");
+			std::puts("F6\t- previous state slot");
+			std::puts("F7\t- next state slot");
+			std::puts("F8\t- load state");
+			std::puts("0 to 9\t- select state slot 0 to 9");
+			std::puts("");
+			std::puts("Default key mapping:");
+			std::puts("Up:\tup");
+			std::puts("Down:\tdown");
+			std::puts("Left:\tleft");
+			std::puts("Right:\tright");
+			std::puts("A:\td");
+			std::puts("B:\tc");
+			std::puts("Start:\treturn");
+			std::puts("Select:\trshift");
 		}
 		
 		if (!loadIndex) {
-			printUsage(v);
-			return 1;
+			if (!lkOption.isSet() && !controlsOption.isSet())
+				printUsage(v);
+
+			return 0;
 		}
 		
 		if (LoadRes const error =
