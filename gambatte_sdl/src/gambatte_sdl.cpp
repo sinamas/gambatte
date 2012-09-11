@@ -50,7 +50,7 @@ struct DescOption : Parser::Option {
 	}
 
 	virtual ~DescOption() {}
-	virtual const char* getDesc() const = 0;
+	virtual const char* desc() const = 0;
 };
 
 class BoolOption : public DescOption {
@@ -63,7 +63,7 @@ public:
 	}
 
 	virtual void exec(char const *const *, int) { isSet_ = true; }
-	virtual char const * getDesc() const { return desc_; }
+	virtual char const * desc() const { return desc_; }
 	bool isSet() const { return isSet_; }
 };
 
@@ -81,7 +81,7 @@ public:
 		rate = tmp;
 	}
 	
-	const char* getDesc() const { return " N\t\tUse audio sample rate of N Hz\n\t\t\t\t    4000 <= N <= 192000, default: 48000\n"; }
+	const char* desc() const { return " N\t\tUse audio sample rate of N Hz\n\t\t\t\t    4000 <= N <= 192000, default: 48000\n"; }
 	unsigned getRate() const { return rate; }
 };
 
@@ -99,7 +99,7 @@ public:
 		latency = tmp;
 	}
 	
-	const char* getDesc() const { return " N\t\tUse audio buffer latency of N ms\n\t\t\t\t    16 <= N <= 5000, default: 133\n"; }
+	const char* desc() const { return " N\t\tUse audio buffer latency of N ms\n\t\t\t\t    16 <= N <= 5000, default: 133\n"; }
 	unsigned getLatency() const { return latency; }
 };
 
@@ -117,7 +117,7 @@ public:
 		periods = tmp;
 	}
 	
-	const char* getDesc() const { return " N\t\tUse N audio buffer periods\n\t\t\t\t    1 <= N <= 32, default: 4\n"; }
+	const char* desc() const { return " N\t\tUse N audio buffer periods\n\t\t\t\t    1 <= N <= 32, default: 4\n"; }
 	unsigned getPeriods() const { return periods; }
 };
 
@@ -135,7 +135,7 @@ public:
 		scale = tmp;
 	}
 	
-	const char* getDesc() const { return " N\t\t\tScale video output by an integer factor of N\n"; }
+	const char* desc() const { return " N\t\t\tScale video output by an integer factor of N\n"; }
 	Uint8 getScale() const { return scale; }
 };
 
@@ -147,7 +147,7 @@ public:
 	void exec(const char *const *argv, int index) {
 		filterNr = std::min<unsigned>(std::max(std::atoi(argv[index + 1]), 0), VfilterInfo::numVfilters() - 1);
 	}
-	const char* getDesc() const { return s.c_str(); }
+	const char* desc() const { return s.c_str(); }
 	unsigned filterNumber() const { return filterNr; }
 };
 
@@ -175,7 +175,7 @@ public:
 			resamplerNo = tmp;
 	}
 	
-	const char* getDesc() const { return s.c_str(); }
+	const char* desc() const { return s.c_str(); }
 	unsigned resamplerNumber() const { return resamplerNo; }
 };
 
@@ -233,7 +233,7 @@ private:
 public:
 	InputOption();
 	void exec(const char *const *argv, int index);
-	const char* getDesc() const { return " KEYS\t\tUse the 8 given input KEYS for respectively\n\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n"; }
+	const char* desc() const { return " KEYS\t\tUse the 8 given input KEYS for respectively\n\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n"; }
 	const InputId* getKeys() const { return keys; }
 };
 
@@ -408,7 +408,7 @@ static void printUsage(std::vector<DescOption*> &v) {
 		else
 			std::printf("    ");
 		
-		std::printf("--%s%s\n", v[i]->getStr(), v[i]->getDesc());
+		std::printf("--%s%s\n", v[i]->getStr(), v[i]->desc());
 	}
 }
 
