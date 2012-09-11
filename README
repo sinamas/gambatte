@@ -22,27 +22,26 @@ Free Software Foundation, Inc.,
 About
 --------------------------------------------------------------------------------
 Gambatte is an accuracy-focused, open-source, cross-platform
-Game Boy Color emulator written in C++. It is based on hundreds of
-corner case hardware tests, as well as previous documentation and reverse
+Game Boy Color emulator written in C++. It is based on a few thousand
+corner-case hardware tests, as well as previous documentation and reverse
 engineering efforts.
 
-The core emulation code is contained in a separate library back-end
-(libgambatte) written in platform-independent C++. There is currently a GUI
-front-end (gambatte_qt) using Trolltech's Qt4 toolkit, and a simple command-line
-SDL front-end (gambatte_sdl).
+The core emulation code is contained in a separate library backend
+(libgambatte) written in platform-independent C++. There is currently a Qt GUI
+frontend (gambatte_qt), and a simple command line SDL frontend (gambatte_sdl).
 
-The GUI front-end contains platform-specific extensions for video, sound and
-timers. It should work on MS Windows, Linux/BSD/UNIX-like OSes, and Mac OS X.
+The Qt frontend has been ported to Windows, Mac OS X, and Linux/BSD/Unix-like
+OSes with audio/video engines utilizing native APIs on these platforms.
 
-The SDL front-end should be usable on all platforms with a working SDL port. It
-should also be quite trivial to create new (simple) front-ends (note that the
+The SDL frontend should be usable on all platforms with a working SDL port. It
+should also be quite trivial to create new (simple) frontends (note that the
 library API should in no way be considered stable).
 
 Usage
 --------------------------------------------------------------------------------
 You will have to supply Gambatte with a ROM image file of the GB/GBC
-program/game you'd like to run/play, either as a command-line argument to
-gambatte_sdl, or through the File->Open... menu in gambatte_qt.
+program/game you would like to run/play, either as a command line argument, or
+through the File->Open... menu in gambatte_qt.
 
 gambatte_sdl keyboard commands:
 TAB    - fast-forward
@@ -67,7 +66,7 @@ Select: Shift
 Compiling
 --------------------------------------------------------------------------------
 Building Gambatte from source code can be done by executing the
-build_<qt/sdl>.sh scripts for the qt/sdl front-ends respectively, or by issueing
+build_<qt/sdl>.sh scripts for the qt/sdl frontends respectively, or by issueing
 the correct build command (either 'scons' or 'qmake && make') in the top-level
 subdirectories (libgambatte will have to be built first). The clean.sh script
 can be executed to remove all generated files after a compile (including
