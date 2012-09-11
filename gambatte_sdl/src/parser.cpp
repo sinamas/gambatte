@@ -21,7 +21,7 @@
 Parser::Option::Option(const char *const s, const char c, const int nArgs) : s(s), nArgs(nArgs), c(c) {}
 
 void Parser::addLong(Option *const o) {
-	lMap.insert(std::pair<const char*,Option*>(o->getStr(), o));
+	lMap.insert(std::pair<const char*,Option*>(o->str(), o));
 }
 
 int Parser::parseLong(const int argc, const char *const *const argv, const int index) {
@@ -41,7 +41,7 @@ int Parser::parseLong(const int argc, const char *const *const argv, const int i
 }
 
 void Parser::addShort(Option *const o) {
-	sMap.insert(std::pair<char,Option*>(o->getChar(), o));
+	sMap.insert(std::pair<char,Option*>(o->character(), o));
 }
 
 int Parser::parseShort(const int argc, const char *const *const argv, const int index) {
@@ -76,7 +76,7 @@ int Parser::parseShort(const int argc, const char *const *const argv, const int 
 void Parser::add(Option *const o) {
 	addLong(o);
 	
-	if (o->getChar())
+	if (o->character())
 		addShort(o);
 }
 

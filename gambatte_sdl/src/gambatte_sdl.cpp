@@ -403,12 +403,12 @@ static void printUsage(std::vector<DescOption*> &v) {
 	for (std::size_t i = 0; i < v.size(); ++i) {
 		std::printf("  ");
 		
-		if (v[i]->getChar())
-			std::printf("-%c, ", v[i]->getChar());
+		if (v[i]->character())
+			std::printf("-%c, ", v[i]->character());
 		else
 			std::printf("    ");
 		
-		std::printf("--%s%s\n", v[i]->getStr(), v[i]->desc());
+		std::printf("--%s%s\n", v[i]->str(), v[i]->desc());
 	}
 }
 

@@ -32,8 +32,8 @@ public:
 	public:
 		explicit Option(const char *s, char c = 0, int nArgs = 0);
 		virtual ~Option() {}
-		char getChar() const { return c; }
-		const char* getStr() const { return s; }
+		char character() const { return c; }
+		const char* str() const { return s; }
 		int neededArgs() const { return nArgs; }
 		virtual void exec(const char *const */*argv*/, int /*index*/) = 0;
 	};
