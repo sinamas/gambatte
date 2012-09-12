@@ -320,13 +320,9 @@ void InputOption::exec(const char *const *argv, int index) {
 			}
 			
 			keys[i] = id;
-		} else {
-			const SDLKey *const k = strToSdlkey(s);
-			
-			if (k) {
-				keys[i].type = InputId::KEY;
-				keys[i].key = *k;
-			}
+		} else if (SDLKey const *const k = strToSdlkey(s)) {
+			keys[i].type = InputId::KEY;
+			keys[i].key = *k;
 		}
 	}
 }
@@ -558,9 +554,9 @@ bool GambatteSdl::init(int argc, char **argv) {
 		for (unsigned i = 0; i < 8; ++i) {
 			const InputOption::InputId &id = inputOption.getKeys()[i];
 			
-			if (id.type == InputOption::InputId::KEY)
+			if (id.type == InputOption::InputId::KEY) {
 				keyMap.insert(std::pair<SDLKey,unsigned>(id.key, gbbuts[i]));
-			else {
+			} else {
 				std::pair<JoyData,unsigned> pair(id.jdata, gbbuts[i]);
 				jdevnums.push_back(id.jdata.dev_num);
 				
@@ -584,9 +580,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 	}
 	
 	for (std::size_t i = 0; i < jdevnums.size(); ++i) {
-		SDL_Joystick *const j = SDL_JoystickOpen(i);
-		
-		if (j)
+		if (SDL_Joystick *const j = SDL_JoystickOpen(i))
 			joysticks.push_back(j);
 	}
 	
