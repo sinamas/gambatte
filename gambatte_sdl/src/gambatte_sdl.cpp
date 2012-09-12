@@ -705,7 +705,7 @@ int GambatteSdl::exec() {
 		const BlitterWrapper::Buf &vbuf = blitter.inBuf();
 		unsigned emusamples = 35112 - samples;
 		const int ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
-				reinterpret_cast<gambatte::uint_least32_t*>(static_cast<Sint16*>(inBuf)) + samples, emusamples);
+				reinterpret_cast<gambatte::uint_least32_t*>(inBuf.get()) + samples, emusamples);
 		const unsigned insamples = ret < 0 ? samples + emusamples : samples + ret;
 		samples += emusamples;
 		samples -= insamples;
@@ -729,7 +729,7 @@ int GambatteSdl::exec() {
 			blitter.present();
 		}
 		
-		std::memmove(inBuf, inBuf + insamples * 2, samples * sizeof(Sint16) * 2);
+		std::memmove(inBuf, inBuf + insamples * 2, samples * 2 * sizeof *inBuf);
 	}
 	
 	return 0;
