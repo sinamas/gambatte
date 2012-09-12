@@ -397,7 +397,7 @@ GambatteSdl::~GambatteSdl() {
 		SDL_JoystickClose(joysticks[i]);
 }
 
-static void printUsage(std::vector<DescOption*> &v) {
+static void printUsage(std::vector<DescOption*> const &v) {
 	std::printf("Usage: gambatte_sdl [OPTION]... romfile\n\n");
 	
 	for (std::size_t i = 0; i < v.size(); ++i) {
@@ -548,7 +548,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 		blitter.setVideoFilter(vfOption.filterNumber());
 		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, inBuf.size() / 2));
 		
-		unsigned gbbuts[8] = {
+		unsigned const gbbuts[8] = {
 			InputGetter::START, InputGetter::SELECT,
 			InputGetter::A, InputGetter::B,
 			InputGetter::UP, InputGetter::DOWN,
@@ -606,7 +606,7 @@ int GambatteSdl::exec() {
 	AudioData adata(sampleRate, latency, periods);
 	tmpBuf.reset(resampler->maxOut(inBuf.size() / 2) * 2);
 	
-	Uint8 *keys = SDL_GetKeyState(NULL);
+	Uint8 const *const keys = SDL_GetKeyState(NULL);
 	unsigned samples = 0;
 	bool audioBufLow = false;
 	
