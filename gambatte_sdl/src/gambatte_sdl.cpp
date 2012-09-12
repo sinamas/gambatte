@@ -476,11 +476,11 @@ bool GambatteSdl::init(int argc, char **argv) {
 		if (lkOption.isSet()) {
 			std::printf("Valid input KEYS:\n");
 			printStrSdlkeys();
-			static const char *const jsnam = "jsNaM";
-			static const char *const jsnhm = "jsNhM";
-			static const char *const joystick_n = "Joystick N";
-			static const char *const axis_m = "axis M";
-			static const char *const hat_m = "hat M";
+			static char const      jsnam[] = "jsNaM";
+			static char const      jsnhm[] = "jsNhM";
+			static char const joystick_n[] = "Joystick N";
+			static char const     axis_m[] = "axis M";
+			static char const      hat_m[] = "hat M";
 			std::printf("%s+\t(%s %s +)\n", jsnam, joystick_n, axis_m);
 			std::printf("%s-\t(%s %s -)\n", jsnam, joystick_n, axis_m);
 			std::printf("jsNbM\t(%s button M)\n", joystick_n);
