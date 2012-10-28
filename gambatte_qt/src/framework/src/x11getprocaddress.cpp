@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007 by Sindre Aamås <aamas@stud.ntnu.no>
+** Copyright (C) 2007 by Sindre Aamås <sinamas@users.sourceforge.net>
 **
 ** Based on The OpenGL Extension Wrangler Library
 ** Copyright (C) 2002-2007, Milan Ikits <milan ikits[]ieee org>
