@@ -17,11 +17,16 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "ossengine.h"
-
+#include <QtGlobal>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+
+#ifdef Q_OS_OPENBSD
+#include <soundcard.h>
+#else
 #include <sys/soundcard.h>
+#endif
 
 #include <algorithm>
 #include <cstdio>
