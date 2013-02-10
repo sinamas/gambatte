@@ -17,14 +17,12 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "qglblitter.h"
-
 #include <QSizePolicy>
 #include <QVBoxLayout>
 #include <QCheckBox>
 #include <QResizeEvent>
 #include <QSettings>
 #include <QGLWidget>
-
 #include <algorithm>
 #include <cstring>
 
@@ -96,6 +94,8 @@ static const QGLFormat getQGLFormat(const unsigned swapInterval) {
 
 #ifndef PLATFORM_UNIX
 	f.setSwapInterval(swapInterval);
+#else
+	(void) swapInterval;
 #endif
 
 	return f;
