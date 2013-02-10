@@ -96,8 +96,8 @@ private:
 	};
 
 	class MeanQueue {
-		enum { sz = 16 };
-		struct Elem { long sumpart, dsumpart; Elem() {} Elem(long sp, long dp) : sumpart(sp), dsumpart(dp) {} };
+		enum { size = 16 };
+		struct Elem { long sumpart, dsumpart; Elem(long sp, long dp) : sumpart(sp), dsumpart(dp) {} };
 		typedef std::deque<Elem> q_type;
 		q_type q;
 		long sum;
@@ -106,8 +106,8 @@ private:
 	public:
 		MeanQueue(long mean, long var);
 		void reset(long mean, long var);
-		long mean() const { return sum / sz; }
-		long var() const { return dsum / sz; }
+		long mean() const { return sum / size; }
+		long var() const { return dsum / size; }
 		void push(long i);
 	};
 	
