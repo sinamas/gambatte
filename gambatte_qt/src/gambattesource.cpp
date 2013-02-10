@@ -41,7 +41,8 @@ GambatteSource::GambatteSource()
 
 namespace {
 static const InputDialog::Button makeButtonInfo(InputDialog::Button::Action *action, const char *label,
-		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown, int defaultFpp = 0) {
+		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown,
+		unsigned char defaultFpp = 0) {
 	const InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
 	                          defaultAltKey: defaultAltKey, action: action, defaultFpp: defaultFpp };
 	return b;

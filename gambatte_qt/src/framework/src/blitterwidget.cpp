@@ -105,7 +105,7 @@ usec_t getusecs() {
 
 void usecsleep(const usec_t usecs) {
 	timespec tspec = { tv_sec: 0,
-	                   tv_nsec: usecs * 1000 };
+	                   tv_nsec: long(usecs) * 1000 };
 
 	nanosleep(&tspec, NULL);
 }
