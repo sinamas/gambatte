@@ -19,8 +19,9 @@
 #ifndef AUDIOENGINE_H
 #define AUDIOENGINE_H
 
-#include <QString>
 #include <QMutex>
+#include <QMutexLocker>
+#include <QString>
 
 class QWidget;
 
@@ -44,7 +45,7 @@ public:
 	
 	AudioEngine(const QString &name) : nameString_(name), rate_(0) {}
 	virtual ~AudioEngine() {}
-	int init(int rate, unsigned msLatency) { mut.lock(); rate_ = doInit(rate, msLatency); mut.unlock(); return rate_; }
+	int init(int rate, unsigned msLatency) { QMutexLocker l(&mut); return rate_ = doInit(rate, msLatency); }
 	virtual void uninit() {}
 	virtual int write(void *buffer, unsigned samples) = 0;
 	virtual long rateEstimate() const { return rate_; }
@@ -62,7 +63,7 @@ public:
 	}
 	
 	virtual QWidget* settingsWidget() const { return 0; }
-	void acceptSettings() { mut.lock(); doAcceptSettings(); mut.unlock(); }
+	void acceptSettings() { QMutexLocker l(&mut); doAcceptSettings(); }
 	virtual void rejectSettings() const {}
 };
 
