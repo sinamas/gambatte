@@ -17,21 +17,20 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "getfullmodetoggler.h"
-
 #include "fullmodetogglers/nulltoggler.h"
 // #include "fullmodetogglers/xf86vidmodetoggler.h"
 #include "fullmodetogglers/xrandrtoggler.h"
 #include "fullmodetogglers/xrandr12toggler.h"
 
-std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
+transfer_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
 	if (XRandR12Toggler::isUsable())
-		return std::auto_ptr<FullModeToggler>(new XRandR12Toggler);
+		return transfer_ptr<FullModeToggler>(new XRandR12Toggler);
 	
 	if (XRandRToggler::isUsable())
-		return std::auto_ptr<FullModeToggler>(new XRandRToggler);
+		return transfer_ptr<FullModeToggler>(new XRandRToggler);
 	
 // 	if (Xf86VidModeToggler::isUsable())
-// 		return std::auto_ptr<FullModeToggler>(new Xf86VidModeToggler(winId));
+// 		return transfer_ptr<FullModeToggler>(new Xf86VidModeToggler(winId));
 	
-	return std::auto_ptr<FullModeToggler>(new NullToggler);
+	return transfer_ptr<FullModeToggler>(new NullToggler);
 }

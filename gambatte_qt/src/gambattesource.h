@@ -21,14 +21,14 @@
 
 #include "mediasource.h"
 #include "inputdialog.h"
-#include "videodialog.h"
 #include "pixelbuffer.h"
+#include "scoped_ptr.h"
+#include "videodialog.h"
+#include "videolink/videolink.h"
 #include <gambatte.h>
 #include <pakinfo.h>
-#include <cstring>
-#include <memory>
 #include <QObject>
-#include "videolink/videolink.h"
+#include <cstring>
 
 class GambatteSource : public QObject, public MediaSource {
 	Q_OBJECT
@@ -43,8 +43,8 @@ class GambatteSource : public QObject, public MediaSource {
 	gambatte::GB gb;
 	GetInput inputGetter;
 	InputDialog *const inputDialog_;
-	std::auto_ptr<VideoLink> cconvert;
-	std::auto_ptr<VideoLink> vfilter;
+	scoped_ptr<VideoLink> cconvert;
+	scoped_ptr<VideoLink> vfilter;
 	PixelBuffer::PixelFormat pxformat;
 	unsigned vsrci;
 	bool inputState[10];

@@ -21,16 +21,16 @@
 
 #include "../blitterwidget.h"
 #include "persistcheckbox.h"
+#include "scoped_ptr.h"
 #include <QList>
 #include <ddraw.h>
-#include <memory>
 
 class QCheckBox;
 class QComboBox;
 
 class DirectDrawBlitter : public BlitterWidget {
 	FtEst ftEst;
-	const std::auto_ptr<QWidget> confWidget;
+	const scoped_ptr<QWidget> confWidget;
 	PersistCheckBox vblank_;
 	PersistCheckBox flipping_;
 	PersistCheckBox vblankflip_;

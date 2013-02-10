@@ -20,9 +20,9 @@
 #define X11BLITTER_H
 
 #include "../blitterwidget.h"
-#include "persistcheckbox.h"
 #include "array.h"
-#include <memory>
+#include "persistcheckbox.h"
+#include "scoped_ptr.h"
 
 class X11Blitter : public BlitterWidget {
 	class SubBlitter;
@@ -34,8 +34,8 @@ class X11Blitter : public BlitterWidget {
 		unsigned depth;
 	};
 	
-	const std::auto_ptr<QWidget> confWidget;
-	std::auto_ptr<SubBlitter> subBlitter;
+	const scoped_ptr<QWidget> confWidget;
+	scoped_ptr<SubBlitter> subBlitter;
 	PersistCheckBox bf_;
 	Array<char> buffer;
 	VisInfo visInfo;

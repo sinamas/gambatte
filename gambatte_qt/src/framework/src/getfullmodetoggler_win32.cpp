@@ -17,9 +17,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "getfullmodetoggler.h"
-
 #include "fullmodetogglers/gditoggler.h"
 
-std::auto_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
-	return std::auto_ptr<FullModeToggler>(new GdiToggler);
+transfer_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
+	return transfer_ptr<FullModeToggler>(new GdiToggler);
 }

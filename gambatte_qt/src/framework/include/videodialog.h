@@ -25,7 +25,6 @@
 #include <QDialog>
 #include <QSize>
 #include <vector>
-#include <memory>
 
 class MainWindow;
 class QVBoxLayout;

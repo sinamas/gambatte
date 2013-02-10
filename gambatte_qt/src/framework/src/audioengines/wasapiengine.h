@@ -21,9 +21,9 @@
 
 #include "../audioengine.h"
 #include "persistcheckbox.h"
-#include <BaseTsd.h>
-#include <memory>
 #include "rateest.h"
+#include "scoped_ptr.h"
+#include <BaseTsd.h>
 
 class QComboBox;
 class QCheckBox;
@@ -32,7 +32,7 @@ class IAudioRenderClient;
 class IAudioClock;
 
 class WasapiEngine: public AudioEngine {
-	const std::auto_ptr<QWidget> confWidget;
+	const scoped_ptr<QWidget> confWidget;
 	QComboBox *const deviceSelector;
 	PersistCheckBox exclusive_;
 	IAudioClient *pAudioClient;

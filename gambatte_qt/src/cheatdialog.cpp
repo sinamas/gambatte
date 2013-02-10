@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "cheatdialog.h"
+#include "scoped_ptr.h"
 #include <QAbstractListModel>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -32,7 +33,6 @@
 #include <QVariant>
 #include <QVBoxLayout>
 #include <algorithm>
-#include <memory>
 
 namespace {
 
@@ -219,7 +219,7 @@ void CheatDialog::resetViewModel(const std::vector<CheatListItem> &items) {
 }
 
 void CheatDialog::resetViewModel(const std::vector<CheatListItem> &items, const int newCurRow) {
-	const std::auto_ptr<QAbstractItemModel> oldModel(view_->model());
+	const scoped_ptr<QAbstractItemModel> oldModel(view_->model());
 	view_->setModel(new CheatListModel(items, this));
 	view_->setCurrentIndex(view_->model()->index(newCurRow, 0, QModelIndex()));
 	selectionChanged(view_->selectionModel()->currentIndex(), QModelIndex());
@@ -228,7 +228,7 @@ void CheatDialog::resetViewModel(const std::vector<CheatListItem> &items, const 
 }
 
 void CheatDialog::addCheat() {
-	const std::auto_ptr<GetCheatInput> getCheatDialog(new GetCheatInput(QString(), QString(), this));
+	const scoped_ptr<GetCheatInput> getCheatDialog(new GetCheatInput(QString(), QString(), this));
 	getCheatDialog->setWindowTitle(tr("Add Cheat"));
 	
 	if (getCheatDialog->exec()) {
@@ -246,7 +246,8 @@ void CheatDialog::editCheat() {
 	std::vector<CheatListItem> items = reinterpret_cast<CheatListModel*>(view_->model())->items();
 	
 	if (row < items.size()) {
-		const std::auto_ptr<GetCheatInput> getCheatDialog(new GetCheatInput(items[row].label, items[row].code, this));
+		const scoped_ptr<GetCheatInput> getCheatDialog(
+			new GetCheatInput(items[row].label, items[row].code, this));
 		getCheatDialog->setWindowTitle(tr("Edit Cheat"));
 		
 		if (getCheatDialog->exec()) {

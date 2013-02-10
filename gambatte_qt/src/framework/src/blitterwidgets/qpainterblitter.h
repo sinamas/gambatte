@@ -21,16 +21,16 @@
 
 #include "../blitterwidget.h"
 #include "persistcheckbox.h"
-#include <memory>
+#include "scoped_ptr.h"
 #include <QImage>
 
 class QPainter;
 class QCheckBox;
 
 class QPainterBlitter : public BlitterWidget {
-	const std::auto_ptr<QWidget> confWidget;
-	std::auto_ptr<QImage> image;
-	std::auto_ptr<QImage> image2;
+	const scoped_ptr<QWidget> confWidget;
+	scoped_ptr<QImage> image;
+	scoped_ptr<QImage> image2;
 	PersistCheckBox bf_;
 	union { quint32 *buffer; QImage *backImage; };
 	

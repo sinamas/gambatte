@@ -19,27 +19,26 @@
 #ifndef MEDIAWIDGET_H
 #define MEDIAWIDGET_H
 
-#include <memory>
-#include <vector>
-#include <QMutex>
-#include <QSize>
-#include <QTimer>
-#include "uncopyable.h"
-#include "SDL_joystick.h"
-#include "resample/resamplerinfo.h"
+#include "audioengineconf.h"
+#include "auto_vector.h"
+#include "blitterconf.h"
 #include "blittercontainer.h"
 #include "blitterwidget.h"
+#include "callqueue.h"
+#include "dwmcontrol.h"
 #include "frameratecontrol.h"
 #include "fullmodetoggler.h"
 #include "mediaworker.h"
-#include "audioengineconf.h"
-#include "blitterconf.h"
+#include "pixelbuffer.h"
+#include "resample/resamplerinfo.h"
 #include "resinfo.h"
 #include "scalingmethod.h"
-#include "auto_vector.h"
-#include "callqueue.h"
-#include "pixelbuffer.h"
-#include "dwmcontrol.h"
+#include "scoped_ptr.h"
+#include "SDL_joystick.h"
+#include <QMutex>
+#include <QSize>
+#include <QTimer>
+#include <vector>
 
 class QMainWindow;
 
@@ -76,8 +75,8 @@ class MediaWidget : public QObject {
 	BlitterContainer *const blitterContainer;
 	const auto_vector<AudioEngine> audioEngines;
 	const auto_vector<BlitterWidget> blitters;
-	const std::auto_ptr<FullModeToggler> fullModeToggler;
-	WorkerCallback *const workerCallback_;
+	const scoped_ptr<FullModeToggler> fullModeToggler;
+	const scoped_ptr<WorkerCallback> workerCallback_;
 	MediaWorker *const worker;
 	FrameRateControl frameRateControl;
 	QTimer *const cursorTimer;

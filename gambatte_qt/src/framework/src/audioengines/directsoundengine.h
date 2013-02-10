@@ -23,15 +23,15 @@ class QCheckBox;
 class QComboBox;
 
 #include "../audioengine.h"
-#include <QList>
-#include <memory>
-#include <dsound.h>
-#include "usec.h"
 #include "rateest.h"
+#include "scoped_ptr.h"
+#include "usec.h"
+#include <dsound.h>
+#include <QList>
 
 class DirectSoundEngine : public AudioEngine {
 	RateEst est;
-	const std::auto_ptr<QWidget> confWidget;
+	const scoped_ptr<QWidget> confWidget;
 	QCheckBox *const primaryBufBox;
 	QCheckBox *const globalBufBox;
 	QComboBox *const deviceSelector;

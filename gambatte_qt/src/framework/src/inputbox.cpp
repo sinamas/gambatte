@@ -17,12 +17,12 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "inputbox.h"
-#include "SDL_joystick.h"
 #include "joysticklock.h"
+#include "scoped_ptr.h"
+#include "SDL_joystick.h"
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QKeyEvent>
-#include <memory>
 
 static const char* keyToString(int key) {
 	switch (key) {
@@ -357,7 +357,7 @@ InputBox::InputBox(QWidget *nextFocus)
 }
 
 void InputBox::contextMenuEvent(QContextMenuEvent *event) {
-	const std::auto_ptr<QMenu> menu(new QMenu(this));
+	const scoped_ptr<QMenu> menu(new QMenu(this));
 	menu->addAction(tr("&Copy"), this, SLOT(copy()))->setEnabled(hasSelectedText());
 	menu->addSeparator();
 	menu->addAction(tr("&Select All"), this, SLOT(selectAll()))->setEnabled(!displayText().isEmpty());

@@ -17,12 +17,12 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "mediaworker.h"
-#include "joysticklock.h"
-#include "SDL_joystick.h"
-#include "mediasource.h"
 #include "audioengine.h"
-#include "skipsched.h"
+#include "joysticklock.h"
+#include "mediasource.h"
 #include "mmpriority.h"
+#include "SDL_joystick.h"
+#include "skipsched.h"
 #include <QtGlobal> // for Q_WS_WIN define
 
 #ifdef Q_WS_WIN
@@ -110,7 +110,7 @@ void MediaWorker::PauseVar::unpause(const unsigned bits) {
 	mut.unlock();
 }
 
-void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, AudioOut &ao) {
+void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback &cb, AudioOut &ao) {
 	mut.lock();
 	waiting = true;
 	callq.pop_all();
@@ -119,7 +119,7 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, Aud
 		if (var & 1)
 			ao.pause();
 
-		cb->paused();
+		cb.paused();
 
 		do {
 			cond.wait(&mut);
@@ -132,7 +132,7 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback *const cb, Aud
 }
 
 MediaWorker::MediaWorker(MediaSource *source, AudioEngine *ae, int aerate,
-		int aelatency, std::size_t resamplerNo, std::auto_ptr<Callback> callback, QObject *parent)
+		int aelatency, std::size_t resamplerNo, Callback &callback, QObject *parent)
 : QThread(parent),
   callback(callback),
   meanQueue(0, 0),
@@ -177,7 +177,7 @@ void MediaWorker::initAudioEngine() {
 
 	if (!ao_->successfullyInitialized()) {
 		pauseVar.localPause(PauseVar::FAIL_BIT);
-		callback->audioEngineFailure();
+		callback.audioEngineFailure();
 	}
 }
 
@@ -304,7 +304,7 @@ long MediaWorker::sourceUpdate() {
 
 		~VidBuf() { if (cb) cb->unlockVideoBuffer(); }
 		const PixelBuffer& get() const { return pb; }
-	} vidbuf(callback.get());
+	} vidbuf(&callback);
 
 	updateJoysticks();
 	return sampleBuffer.update(vidbuf.get());
@@ -344,8 +344,8 @@ static const NowDelta frameWait(const NowDelta basetime,
 	return NowDelta(now, 0);
 }
 
-static void blitWait(MediaWorker::Callback *const cb, SyncVar &waitingForSync) {
-	if (!cb->cancelBlit()) {
+static void blitWait(MediaWorker::Callback &cb, SyncVar &waitingForSync) {
+	if (!cb.cancelBlit()) {
 		SyncVar::Locked wfs(waitingForSync);
 
 		if (!wfs.get())
@@ -403,7 +403,7 @@ void MediaWorker::run() {
 	NowDelta basetime(0, 0);
 
 	for (;;) {
-		pauseVar.waitWhilePaused(callback.get(), *ao_);
+		pauseVar.waitWhilePaused(callback, *ao_);
 
 		if (AtomicVar<bool>::ConstLocked(doneVar).get())
 			break;
@@ -418,7 +418,7 @@ void MediaWorker::run() {
 			const bool blit   = blitSamples >= 0 && !skipSched.skipNext(audioBufLow);
 
 			if (blit)
-				callback->blit(basetime.now, basetime.inc + syncft);
+				callback.blit(basetime.now, basetime.inc + syncft);
 
 			const long outsamples = sampleBuffer.read(
 					blit ? blitSamples : sampleBuffer.samplesBuffered(),
@@ -430,7 +430,7 @@ void MediaWorker::run() {
 			if (ao_->successfullyInitialized() && ao_->write(sndOutBuffer, outsamples, bstate) < 0) {
 				ao_->pause();
 				pauseVar.pause(PauseVar::FAIL_BIT);
-				callback->audioEngineFailure();
+				callback.audioEngineFailure();
 			}
 
 			audioBufLow = audioBufIsLow(bstate, outsamples);
@@ -438,7 +438,7 @@ void MediaWorker::run() {
 			if (blit) {
 				basetime = frameWait(basetime, syncft, usecsFromUnderrun(
 						bstate, outsamples, ao_->estimatedRate()), waitingForSync_);
-				blitWait(callback.get(), waitingForSync_);
+				blitWait(callback, waitingForSync_);
 			}
 		}
 	}
@@ -454,7 +454,7 @@ bool MediaWorker::frameStep() {
 		if (ao_->write(sndOutBuffer, outsamples) < 0) {
 			ao_->pause();
 			pauseVar.pause(PauseVar::FAIL_BIT);
-			callback->audioEngineFailure();
+			callback.audioEngineFailure();
 		} else
 			ao_->pause();
 	}

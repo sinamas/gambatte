@@ -19,12 +19,10 @@
 #ifndef XVBLITTER_H
 #define XVBLITTER_H
 
-#include <QComboBox>
-#include <memory>
 
 #include "../blitterwidget.h"
-#include "uncopyable.h"
-
+#include "scoped_ptr.h"
+#include <QComboBox>
 #include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xvlib.h>
@@ -35,7 +33,7 @@ class XvBlitter : public BlitterWidget {
 	class PlainBlitter;
 	
 	class ConfWidget {
-		const std::auto_ptr<QWidget> widget_;
+		const scoped_ptr<QWidget> widget_;
 		QComboBox *const portSelector_;
 		unsigned portIndex_;
 		
@@ -65,7 +63,7 @@ class XvBlitter : public BlitterWidget {
 	
 	ConfWidget confWidget;
 	PortGrabber portGrabber;
-	std::auto_ptr<SubBlitter> subBlitter;
+	scoped_ptr<SubBlitter> subBlitter;
 	GC gc;
 	bool initialized;
 	

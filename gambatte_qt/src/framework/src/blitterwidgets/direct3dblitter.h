@@ -21,7 +21,7 @@
 
 #include "../blitterwidget.h"
 #include "persistcheckbox.h"
-#include <memory>
+#include "scoped_ptr.h"
 #include <d3d9.h>
 
 class QCheckBox;
@@ -29,7 +29,7 @@ class QComboBox;
 
 class Direct3DBlitter : public BlitterWidget {
 	FtEst ftEst;
-	const std::auto_ptr<QWidget> confWidget;
+	const scoped_ptr<QWidget> confWidget;
 	QComboBox *const adapterSelector;
 	PersistCheckBox vblankblit_;
 	PersistCheckBox flipping_;

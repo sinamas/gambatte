@@ -18,6 +18,7 @@
  ***************************************************************************/
 #include "inputdialog.h"
 #include "inputbox.h"
+#include "transfer_ptr.h"
 #include <QKeyEvent>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -26,10 +27,9 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QTabWidget>
-#include <memory>
 
-static std::auto_ptr<QSpinBox> makeFppBox(const int val) {
-	std::auto_ptr<QSpinBox> box(new QSpinBox);
+static transfer_ptr<QSpinBox> makeFppBox(const int val) {
+	transfer_ptr<QSpinBox> box(new QSpinBox);
 	box->setValue(val);
 	box->setMinimum(1);
 	box->setMaximum(9);

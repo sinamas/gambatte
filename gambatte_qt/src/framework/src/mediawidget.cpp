@@ -17,19 +17,19 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "mediawidget.h"
-#include <QEvent>
-#include <QKeyEvent>
-#include <QMutexLocker>
-#include <QCoreApplication>
-#include <QtGlobal> // for Q_WS_WIN define
 #include "adaptivesleep.h"
+#include "addaudioengines.h"
+#include "addblitterwidgets.h"
 #include "audioengines/nullaudioengine.h"
 #include "blitterwidgets/qpainterblitter.h"
 #include "blitterwidgets/qglblitter.h"
 #include "getfullmodetoggler.h"
 #include "SDL_event.h"
-#include "addaudioengines.h"
-#include "addblitterwidgets.h"
+#include <QEvent>
+#include <QKeyEvent>
+#include <QMutexLocker>
+#include <QCoreApplication>
+#include <QtGlobal> // for Q_WS_WIN define
 
 #ifdef Q_WS_WIN
 #include <windows.h> // for timeBeginPeriod, timeEndPeriod
@@ -265,7 +265,7 @@ MediaWidget::MediaWidget(MediaSource *const source, QWidget &parent)
   fullModeToggler(getFullModeToggler(parent.winId())),
   workerCallback_(new WorkerCallback(*this)),
   worker(new MediaWorker(source, audioEngines.back(), 48000, 100, 1,
-		std::auto_ptr<MediaWorker::Callback>(workerCallback_), this)),
+                         *workerCallback_, this)),
   frameRateControl(*worker, blitters.back()),
   cursorTimer(new QTimer(this)),
   jsTimer(new QTimer(this)),

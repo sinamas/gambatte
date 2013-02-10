@@ -19,17 +19,17 @@
 #ifndef MEDIAWORKER_H
 #define MEDIAWORKER_H
 
-#include <QThread>
-#include <QMutex>
-#include <QWaitCondition>
-#include <deque>
+#include "atomicvar.h"
 #include "callqueue.h"
 #include "pixelbuffer.h"
 #include "samplebuffer.h"
 #include "syncvar.h"
-#include "atomicvar.h"
 #include "uncopyable.h"
 #include "usec.h"
+#include <QMutex>
+#include <QThread>
+#include <QWaitCondition>
+#include <deque>
 
 class MediaWorker : private QThread {
 public:
@@ -62,7 +62,7 @@ private:
 		void localPause(unsigned bits) { if (waiting) var |= bits; else pause(bits); }
 		void pause(unsigned bits) { mut.lock(); var |= bits; mut.unlock(); }
 		void unpause(unsigned bits);
-		void waitWhilePaused(Callback *cb, AudioOut &ao);
+		void waitWhilePaused(Callback &cb, AudioOut &ao);
 		bool waitingForUnpause() const { bool ret; mut.lock(); ret = waiting; mut.unlock(); return ret; }
 		void unwait() { waiting = false; }
 		void rewait() { waiting = true; }
@@ -116,7 +116,7 @@ private:
 	struct SetSamplesPerFrame;
 	struct SetFastForward;
 
-	const std::auto_ptr<Callback> callback;
+	Callback &callback;
 	SyncVar waitingForSync_;
 	MeanQueue meanQueue;
 	PauseVar pauseVar;
@@ -125,7 +125,7 @@ private:
 	TurboSkip turboSkip;
 	SampleBuffer sampleBuffer;
 	Array<qint16> sndOutBuffer;
-	std::auto_ptr<AudioOut> ao_;
+	scoped_ptr<AudioOut> ao_;
 	long usecft;
 
 	friend class PushMediaWorkerCall;
@@ -139,7 +139,7 @@ protected:
 
 public:
 	MediaWorker(MediaSource *source, class AudioEngine *ae, int aerate, int aelatency,
-			std::size_t resamplerNo, std::auto_ptr<Callback> callback, QObject *parent = 0);
+			std::size_t resamplerNo, Callback &callback, QObject *parent = 0);
 	MediaSource* source() /*const */{ return sampleBuffer.source(); }
 	SyncVar& waitingForSync() /*const */{ return waitingForSync_; }
 	void start();

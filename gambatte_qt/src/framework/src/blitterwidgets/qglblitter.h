@@ -21,22 +21,22 @@
 
 #include "../blitterwidget.h"
 #include "../dwmcontrol.h"
-#include "persistcheckbox.h"
 #include "array.h"
-#include <memory>
+#include "persistcheckbox.h"
+#include "scoped_ptr.h"
 
 class QGLBlitter : public BlitterWidget {
 	class SubWidget;
 	
 	const DwmControlHwndChange hwndChange_;
 	FtEst ftEst;
-	const std::auto_ptr<QWidget> confWidget;
+	const scoped_ptr<QWidget> confWidget;
 	PersistCheckBox vsync_;
 	PersistCheckBox bf_;
 	Array<quint32> buffer;
 	unsigned swapInterval_;
 	int dhz;
-	std::auto_ptr<SubWidget> subWidget;
+	scoped_ptr<SubWidget> subWidget;
 	
 	void resetSubWidget();
 	void privSetPaused(const bool /*paused*/) {}

@@ -23,16 +23,16 @@ class QCheckBox;
 class QLineEdit;
 class QWidget;
 
+#include "scoped_ptr.h"
 #include <QObject>
 #include <QByteArray>
-#include <memory>
 
 class CustomDevConf : public QObject {
 	Q_OBJECT
 	
 	const char *const defaultstr;
 	const char *const confgroup;
-	const std::auto_ptr<QWidget> confWidget;
+	const scoped_ptr<QWidget> confWidget;
 	QCheckBox *const customDevBox;
 	QLineEdit *const customDevEdit;
 	QByteArray customDevStr;

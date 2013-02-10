@@ -22,16 +22,15 @@
 class MediaSource;
 struct PixelBuffer;
 
-#include <memory>
-#include <QtGlobal>
-#include <array.h>
-#include <resample/resampler.h>
+#include "array.h"
 #include "rational.h"
-#include "uncopyable.h"
+#include "resample/resampler.h"
+#include "scoped_ptr.h"
+#include <QtGlobal>
 
 class SampleBuffer : Uncopyable {
 	MediaSource *const source_;
-	std::auto_ptr<Resampler> resampler;
+	scoped_ptr<Resampler> resampler;
 	Array<qint16> sndInBuffer;
 	long samplesBuffered_;
 	Rational spf_;

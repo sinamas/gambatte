@@ -19,11 +19,11 @@
 #ifndef GET_FULL_MODE_TOGGLER_H
 #define GET_FULL_MODE_TOGGLER_H
 
-#include <memory>
+#include "transfer_ptr.h"
 #include <QWidget>
 
 class FullModeToggler;
 
-std::auto_ptr<FullModeToggler> getFullModeToggler(WId winId);
+transfer_ptr<FullModeToggler> getFullModeToggler(WId winId);
 
 #endif

@@ -19,13 +19,12 @@
 #ifndef BLITTERWIDGET_H
 #define BLITTERWIDGET_H
 
-#include <QWidget>
-#include <QString>
-#include <memory>
-#include <usec.h>
 #include "mediasource.h"
 #include "pixelbuffer.h"
+#include "usec.h"
 #include "videobufferlocker.h"
+#include <QString>
+#include <QWidget>
 
 class QHBoxLayout;
 
