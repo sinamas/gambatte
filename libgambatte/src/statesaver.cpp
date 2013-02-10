@@ -43,7 +43,7 @@ struct Saver {
 	const char *label;
 	void (*save)(std::ofstream &file, const SaveState &state);
 	void (*load)(std::ifstream &file, SaveState &state);
-	unsigned char labelsize;
+	std::size_t labelsize;
 };
 
 static inline bool operator<(const Saver &l, const Saver &r) {
@@ -183,18 +183,19 @@ public:
 	
 private:
 	list_t list;
-	unsigned char maxLabelsize_;
+	std::size_t maxLabelsize_;
 	
 public:
 	SaverList();
 	const_iterator begin() const { return list.begin(); }
 	const_iterator end() const { return list.end(); }
-	unsigned maxLabelsize() const { return maxLabelsize_; }
+	std::size_t maxLabelsize() const { return maxLabelsize_; }
 };
 
 static void pushSaver(SaverList::list_t &list, const char *label,
 		void (*save)(std::ofstream &file, const SaveState &state),
-		void (*load)(std::ifstream &file, SaveState &state), unsigned labelsize) {
+		void (*load)(std::ifstream &file, SaveState &state),
+		std::size_t labelsize) {
 	const Saver saver = { label, save, load, labelsize };
 	list.push_back(saver);
 }
