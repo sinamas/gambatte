@@ -102,19 +102,15 @@ public:
 };
 
 void MediaWorker::PauseVar::unpause(const unsigned bits) {
-	mut.lock();
-
+	QMutexLocker l(&mut);
 	if (var && !(var &= ~bits))
 		cond.wakeAll();
-
-	mut.unlock();
 }
 
 void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback &cb, AudioOut &ao) {
-	mut.lock();
+	QMutexLocker locker(&mut);
 	waiting = true;
 	callq.pop_all();
-
 	if (var) {
 		if (var & 1)
 			ao.pause();
@@ -122,13 +118,12 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback &cb, AudioOut 
 		cb.paused();
 
 		do {
-			cond.wait(&mut);
+			cond.wait(locker.mutex());
 			callq.pop_all();
 		} while (var);
 	}
 
 	waiting = false;
-	mut.unlock();
 }
 
 MediaWorker::MediaWorker(MediaSource *source, AudioEngine *ae, int aerate,

@@ -27,6 +27,7 @@
 #include "uncopyable.h"
 #include "usec.h"
 #include <QMutex>
+#include <QMutexLocker>
 #include <QThread>
 #include <QWaitCondition>
 #include <deque>
@@ -60,10 +61,10 @@ private:
 		enum { PAUSE_BIT = 1, QPAUSE_BIT = 2, FAIL_BIT = 4 };
 		PauseVar() : var(0), waiting(true) {}
 		void localPause(unsigned bits) { if (waiting) var |= bits; else pause(bits); }
-		void pause(unsigned bits) { mut.lock(); var |= bits; mut.unlock(); }
+		void pause(unsigned bits) { QMutexLocker l(&mut); var |= bits; }
 		void unpause(unsigned bits);
 		void waitWhilePaused(Callback &cb, AudioOut &ao);
-		bool waitingForUnpause() const { bool ret; mut.lock(); ret = waiting; mut.unlock(); return ret; }
+		bool waitingForUnpause() const { QMutexLocker l(&mut); return waiting; }
 		void unwait() { waiting = false; }
 		void rewait() { waiting = true; }
 		template<class T> void pushCall(const T &t, bool stopped);
@@ -172,14 +173,11 @@ public:
 
 template<class T>
 void MediaWorker::PauseVar::pushCall(const T &t, const bool stopped) {
-	mut.lock();
+	QMutexLocker l(&mut);
 	callq.push(t);
 	cond.wakeAll();
-
 	if (stopped)
 		callq.pop_all();
-
-	mut.unlock();
 }
 
 #endif
