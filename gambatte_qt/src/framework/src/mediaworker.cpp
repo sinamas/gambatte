@@ -37,9 +37,7 @@ MediaWorker::MeanQueue::MeanQueue(const long mean, const long var)
 }
 
 void MediaWorker::MeanQueue::reset(const long mean, const long var) {
-	for (q_type::iterator it = q.begin(); it != q.end(); ++it)
-		*it = Elem(mean, var);
-
+	q.assign(size, Elem(mean, var));
 	sum = mean * size;
 	dsum = var * size;
 }
