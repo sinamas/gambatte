@@ -103,7 +103,7 @@ LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 		p_->cpu.loadSavedata();
 		
 		p_->stateNo = 1;
-		p_->cpu.setOsdElement(std::auto_ptr<OsdElement>());
+		p_->cpu.setOsdElement(transfer_ptr<OsdElement>());
 	}
 	
 	return loadres;

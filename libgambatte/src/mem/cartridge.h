@@ -23,7 +23,7 @@
 #include "memptrs.h"
 #include "rtc.h"
 #include "savestate.h"
-#include <memory>
+#include "scoped_ptr.h"
 #include <string>
 #include <vector>
 
@@ -47,7 +47,7 @@ class Cartridge {
 	
 	MemPtrs memptrs;
 	Rtc rtc;
-	std::auto_ptr<Mbc> mbc;
+	scoped_ptr<Mbc> mbc;
 	std::string defaultSaveBasePath;
 	std::string saveDir;
 	std::vector<AddrData> ggUndoList;

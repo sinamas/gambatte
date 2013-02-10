@@ -25,7 +25,7 @@
 #include "interruptrequester.h"
 #include "osd_element.h"
 #include "minkeeper.h"
-#include <memory>
+#include "scoped_ptr.h"
 
 namespace gambatte {
 
@@ -128,7 +128,7 @@ class LCD {
 	LycIrq lycIrq;
 	NextM0Time nextM0Time_;
 
-	std::auto_ptr<OsdElement> osdElement;
+	scoped_ptr<OsdElement> osdElement;
 
 	unsigned char statReg;
 	unsigned char m2IrqStatReg_;
@@ -159,7 +159,7 @@ public:
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
 	void setVideoBuffer(uint_least32_t *videoBuf, int pitch);
 
-	void setOsdElement(std::auto_ptr<OsdElement> osdElement) { this->osdElement = osdElement; }
+	void setOsdElement(transfer_ptr<OsdElement> osdElement) { this->osdElement = osdElement; }
 
 	void dmgBgPaletteChange(const unsigned data, const unsigned long cycleCounter) {
 		update(cycleCounter);

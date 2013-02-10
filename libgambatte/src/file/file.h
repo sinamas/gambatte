@@ -22,7 +22,7 @@ Free Software Foundation, Inc.,
 #ifndef GAMBATTE_FILE_H
 #define GAMBATTE_FILE_H
 
-#include <memory>
+#include "transfer_ptr.h"
 #include <string>
 
 namespace gambatte {
@@ -36,7 +36,7 @@ public:
 	virtual bool fail() const = 0;
 };
 
-std::auto_ptr<File> newFileInstance(const std::string &filepath);
+transfer_ptr<File> newFileInstance(const std::string &filepath);
 
 }
 

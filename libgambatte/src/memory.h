@@ -84,7 +84,7 @@ public:
 	void saveSavedata() { cart.saveSavedata(); }
 	const std::string saveBasePath() const { return cart.saveBasePath(); }
 	
-	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
+	void setOsdElement(transfer_ptr<OsdElement> osdElement) {
 		display.setOsdElement(osdElement);
 	}
 

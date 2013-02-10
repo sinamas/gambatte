@@ -509,7 +509,7 @@ static bool presumedMulti64Mbc1(unsigned char const header[], unsigned const rom
 }
 
 LoadRes Cartridge::loadROM(std::string const &romfile, bool const forceDmg, bool const multicartCompat) {
-	const std::auto_ptr<File> rom(newFileInstance(romfile));
+	const scoped_ptr<File> rom(newFileInstance(romfile));
 
 	if (rom->fail())
 		return LOADRES_IO_ERROR;

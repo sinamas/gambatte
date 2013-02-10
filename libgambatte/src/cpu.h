@@ -70,7 +70,7 @@ public:
 		return memory.saveBasePath();
 	}
 	
-	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
+	void setOsdElement(transfer_ptr<OsdElement> osdElement) {
 		memory.setOsdElement(osdElement);
 	}
 	

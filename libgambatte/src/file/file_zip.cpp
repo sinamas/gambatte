@@ -200,18 +200,18 @@ void GzFile::close() {
 }
 
 // Avoid checking magic header values, because there are no values that cannot occur in a GB ROM.
-std::auto_ptr<gambatte::File> gambatte::newFileInstance(const std::string &filepath) {
+transfer_ptr<gambatte::File> gambatte::newFileInstance(const std::string &filepath) {
 	const std::size_t extpos = filepath.rfind(".");
 	
 	if (extpos != std::string::npos) {
 		const std::string &ext = filepath.substr(extpos + 1);
 		
 		if (ext.length() == 3 && std::tolower(ext[0]) == 'z' && std::tolower(ext[1]) == 'i'&& std::tolower(ext[2]) == 'p')
-			return std::auto_ptr<File>(new ZipFile(filepath.c_str()));
+			return transfer_ptr<File>(new ZipFile(filepath.c_str()));
 		
 		if (!ext.empty() && std::tolower(ext[ext.length() - 1]) == 'z')
-			return std::auto_ptr<File>(new GzFile(filepath.c_str()));
+			return transfer_ptr<File>(new GzFile(filepath.c_str()));
 	}
 	
-	return std::auto_ptr<File>(new StdFile(filepath.c_str()));
+	return transfer_ptr<File>(new StdFile(filepath.c_str()));
 }
