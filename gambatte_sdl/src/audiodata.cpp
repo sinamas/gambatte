@@ -78,13 +78,11 @@ AudioData::~AudioData() {
 }
 
 const AudioData::Status AudioData::write(const Sint16 *inBuf, unsigned samples) {
-	if (failed) {
-		const Status status = { rbuf.size() >> 1, 0, rateEst.result() };
-		return status;
-	}
+	if (failed)
+		return Status(rbuf.size() >> 1, 0, rateEst.result());
 	
 	SDL_mutexP(mut);
-	const Status status = { rbuf.used() / 2, rbuf.avail() / 2, rateEst.result() };
+	const Status status(rbuf.used() / 2, rbuf.avail() / 2, rateEst.result());
 	
 	{
 		std::size_t avail;

@@ -89,7 +89,7 @@ void SdlBlitter::present() {
 		return;
 		
 	if (overlay) {
-		SDL_Rect dstr = { 0, 0, screen->w, screen->h };
+		SDL_Rect dstr = { 0, 0, Uint16(screen->w), Uint16(screen->h) };
 		SDL_UnlockYUVOverlay(overlay);
 		SDL_DisplayYUVOverlay(overlay, &dstr);
 		SDL_LockYUVOverlay(overlay);

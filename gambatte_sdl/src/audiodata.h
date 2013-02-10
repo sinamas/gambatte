@@ -28,6 +28,11 @@ struct AudioData {
 		long fromUnderrun;
 		long fromOverflow;
 		long rate;
+
+		Status(long fromUnderrun, long fromOverflow, long rate)
+		: fromUnderrun(fromUnderrun), fromOverflow(fromOverflow), rate(rate)
+		{
+		}
 	};
 	
 	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);
