@@ -16,28 +16,26 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "array.h"
+#include "audiodata.h"
+#include "blitterwrapper.h"
+#include "parser.h"
+#include "rateest.h"
+#include "resample/resamplerinfo.h"
+#include "skipsched.h"
+#include "str_to_sdlkey.h"
+#include "syncfunc.h"
+#include "videolink/vfilterinfo.h"
 #include <gambatte.h>
 #include <pakinfo.h>
-#include "array.h"
-#include "resample/resamplerinfo.h"
-#include "rateest.h"
 #include <SDL.h>
+#include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
-#include <string>
 #include <sstream>
-#include <algorithm>
-#include <memory>
+#include <string>
 #include <vector>
-
-#include "audiodata.h"
-#include "syncfunc.h"
-#include "parser.h"
-#include "str_to_sdlkey.h"
-#include "skipsched.h"
-#include "blitterwrapper.h"
-#include "videolink/vfilterinfo.h"
 
 namespace {
 
@@ -360,7 +358,7 @@ class GambatteSdl {
 	
 	Array<Sint16> inBuf;
 	Array<Sint16> tmpBuf;
-	std::auto_ptr<Resampler> resampler;
+	scoped_ptr<Resampler> resampler;
 	GB gambatte;
 	SdlIniter sdlIniter;
 	BlitterWrapper blitter;

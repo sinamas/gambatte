@@ -21,13 +21,13 @@
 
 #include "sdlblitter.h"
 #include "gbint.h"
+#include "scoped_ptr.h"
 #include "videolink/videolink.h"
-#include <memory>
 
 class BlitterWrapper {
 	SdlBlitter blitter;
-	std::auto_ptr<VideoLink> cconvert;
-	std::auto_ptr<VideoLink> vfilter;
+	scoped_ptr<VideoLink> cconvert;
+	scoped_ptr<VideoLink> vfilter;
 	unsigned vsrci;
 	
 public:
