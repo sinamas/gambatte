@@ -19,6 +19,9 @@
 #ifndef ATOMICVAR_H
 #define ATOMICVAR_H
 
+#include "uncopyable.h"
+#include <QMutex>
+
 template<typename T>
 class AtomicVar {
 	mutable QMutex mut;
