@@ -16,16 +16,19 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef AUTO_VECTOR
-#define AUTO_VECTOR
+#ifndef AUTO_VECTOR_H
+#define AUTO_VECTOR_H
 
+#include "defined_ptr.h"
+#include <algorithm>
 #include <vector>
 
 template<class T, class Allocator = std::allocator<T*> >
 class auto_vector : private std::vector<T*, Allocator> {
-	struct auto_vector_temporary {
+private:
+	struct released {
 		std::vector<T*, Allocator> v;
-		explicit auto_vector_temporary(const std::vector<T*, Allocator> &v): v(v) {}
+		explicit released(const std::vector<T*, Allocator> &v): v(v) {}
 	};
 	
 public:
@@ -36,13 +39,15 @@ public:
 	explicit auto_vector(const Allocator &a = Allocator()) : std::vector<T*, Allocator>(a) {}
 	explicit auto_vector(size_type n, const Allocator &a = Allocator()) : std::vector<T*, Allocator>(n, 0, a) {}
 	auto_vector(auto_vector &v) : std::vector<T*, Allocator>() { swap(v); }
-	auto_vector(const auto_vector_temporary &v) : std::vector<T*, Allocator>(v.v) {}
+	auto_vector(const released &v) : std::vector<T*, Allocator>(v.v) {}
 	
 	template<class InputIterator>
-	auto_vector(InputIterator first, InputIterator last, const Allocator& a = Allocator()) : std::vector<T*, Allocator>(first, last, a) {}
-	~auto_vector() { clear(); }
+	auto_vector(InputIterator first, InputIterator last, const Allocator& a = Allocator())
+	: std::vector<T*, Allocator>(first, last, a)
+	{
+	}
 
-	auto_vector& operator=(auto_vector &v) { clear(); swap(v); }
+	~auto_vector() { clear(); }
 	
 	using std::vector<T*, Allocator>::begin;
 	using std::vector<T*, Allocator>::end;
@@ -59,8 +64,6 @@ public:
 	using std::vector<T*, Allocator>::back;
 	using std::vector<T*, Allocator>::push_back;
 	
-	void resize(size_type sz) { std::vector<T*, Allocator>::resize(sz, 0); }
-	
 	template<class InputIterator>
 	void assign(InputIterator first, InputIterator last) {
 		clear();
@@ -74,43 +77,37 @@ public:
 	
 	void pop_back() {
 		if (!empty())
-			delete back();
+			defined_delete(back());
 		
 		std::vector<T*, Allocator>::pop_back();
 	}
 	
-	iterator insert(iterator position, T *x) { std::vector<T*, Allocator>::insert(position, x); }
-	void insert(iterator position, size_type n) { std::vector<T*, Allocator>::insert(position, n, 0); }
+	iterator insert(iterator position, T *x) { return std::vector<T*, Allocator>::insert(position, x); }
 	
 	template<class InputIterator>
-	void insert(iterator position, InputIterator first, InputIterator last) { std::vector<T*, Allocator>::insert(position, first, last); }
+	void insert(iterator position, InputIterator first, InputIterator last) {
+		std::vector<T*, Allocator>::insert(position, first, last);
+	}
 	
 	iterator erase(iterator position) {
 		if (position != end())
-			delete *position;
+			defined_delete(*position);
 		
 		return std::vector<T*, Allocator>::erase(position);
 	}
 	
 	iterator erase(iterator first, iterator last) {
-		for (iterator it = first; it != last; ++it)
-			delete *it;
-		
+		std::for_each(first, last, defined_delete<T>);
 		return std::vector<T*, Allocator>::erase(first, last);
 	}
 	
 	void swap(auto_vector &vec) { std::vector<T*, Allocator>::swap(vec); }
-	
-	void clear() {
-		for (iterator it = begin(); it != end(); ++it)
-			delete *it;
-		
-		std::vector<T*, Allocator>::clear();
-	}
-	
+	void clear() { erase(begin(), end()); }
 	const std::vector<T*,Allocator> get() const { return *this; }
+	operator const released() { std::vector<T*, Allocator> v; v.swap(*this); return released(v); }
 
-	operator const auto_vector_temporary() { std::vector<T*, Allocator> v; v.swap(*this); return auto_vector_temporary(v); }
+private:
+	auto_vector& operator=(auto_vector const &v);
 };
 
 #endif

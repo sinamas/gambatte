@@ -19,8 +19,9 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-#include <cstddef>
+#include "defined_ptr.h"
 #include "uncopyable.h"
+#include <cstddef>
 
 template<typename T>
 class Array : Uncopyable {
@@ -28,9 +29,9 @@ class Array : Uncopyable {
 	std::size_t sz;
 	
 public:
-	explicit Array(const std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}
-	~Array() { delete []a; }
-	void reset(const std::size_t size = 0) { delete []a; a = size ? new T[size] : 0; sz = size; }
+	explicit Array(std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}
+	~Array() { delete[] defined_ptr(a); }
+	void reset(std::size_t size = 0) { delete[] defined_ptr(a); a = size ? new T[size] : 0; sz = size; }
 	std::size_t size() const { return sz; }
 	T * get() const { return a; }
 	operator T*() const { return a; }
@@ -42,8 +43,8 @@ class ScopedArray : Uncopyable {
 	
 public:
 	explicit ScopedArray(T *a = 0) : a_(a) {}
-	~ScopedArray() { delete []a_; }
-	void reset(T *a = 0) { delete []a_; a_ = a; }
+	~ScopedArray() { delete[] defined_ptr(a_); }
+	void reset(T *a = 0) { delete[] defined_ptr(a_); a_ = a; }
 	T * release() { T *a = a_; a_ = 0; return a; }
 	T * get() const { return a_; }
 	operator T*() const { return a_; }
