@@ -26,66 +26,6 @@
 #include <time.h>
 #endif
 
-/*template<typename T>
-class RingBuffer {
-	T *const buf;
-	const std::size_t sz;
-	std::size_t rpos;
-	std::size_t wpos;
-	
-public:
-	RingBuffer(const std::size_t sz_in) : buf(new T[sz_in + 1]), sz(sz_in + 1), rpos(0), wpos(0) {}
-	~RingBuffer() { delete []buf; }
-	
-	void clear() {
-		wpos = rpos = 0;
-	}
-	
-	void read(T *out, std::size_t num);
-	
-	std::size_t space() const {
-		return (wpos < rpos ? 0 : sz) + rpos - wpos - 1;
-	}
-	
-	void write(const T *in, std::size_t num);
-};
-
-template<typename T>
-void RingBuffer<T>::read(T *out, std::size_t num) {
-	if (rpos + num > sz) {
-		const std::size_t n = sz - rpos;
-		
-		std::memcpy(out, buf + rpos, n * sizeof(T));
-		
-		rpos = 0;
-		num -= n;
-		out += n;
-	}
-	
-	std::memcpy(out, buf + rpos, num * sizeof(T));
-	
-	if ((rpos += num) == sz)
-		rpos = 0;
-}
-
-template<typename T>
-void RingBuffer<T>::write(const T *in, std::size_t num) {
-	if (wpos + num > sz) {
-		const std::size_t n = sz - wpos;
-		
-		std::memcpy(buf + wpos, in, n * sizeof(T));
-		
-		wpos = 0;
-		num -= n;
-		in += n;
-	}
-	
-	std::memcpy(buf + wpos, in, num * sizeof(T));
-	
-	if ((wpos += num) == sz)
-		wpos = 0;
-}*/
-
 static const char* errorToString(ALenum error) {
 	switch (error) {
 	case AL_NO_ERROR: return "no error";
