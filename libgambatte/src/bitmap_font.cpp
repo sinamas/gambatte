@@ -69,6 +69,7 @@
 */
 
 #include "bitmap_font.h"
+#include <algorithm>
 
 static const unsigned char n0_bits[] = { 0x68,
    0x00, 0x1c, 0x22, 0x22, 0x22, 0x22, 0x22, 0x1c };
@@ -263,6 +264,7 @@ static const unsigned char SPC_bits[] = { 0x38,
    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 namespace bitmapfont {
+
 const unsigned char *const font[] = {
 	0,
 	n0_bits, n1_bits, n2_bits, n3_bits, n4_bits, n5_bits, n6_bits, n7_bits, n8_bits, n9_bits,
@@ -300,31 +302,18 @@ void print(gambatte::uint_least32_t *dest, const unsigned pitch, const unsigned 
 	print(dest, pitch, Rgb32Fill(color), chars);
 }
 
-static void reverse(char *first, char *last) {
-	while (first < last) {
-		const int tmp = *first;
-		
-		*first = *last;
-		*last = tmp;
-		
-		++first;
-		--last;
-	}
-}
+void utoa(unsigned u, char *const a) {
+	char *at = a;
 
-void utoa(unsigned u, char *a) {
-	char *aa = a;
-	
 	while (u > 9) {
 		const unsigned div = u / 10;
 		const unsigned rem = u % 10;
-		
 		u = div;
-		*aa++ = rem + N0;
+		*at++ = rem + N0;
 	}
-	
-	*aa = u + N0;
-	
-	reverse(a, aa);
+
+	*at++ = u + N0;
+	std::reverse(a, at);
 }
-}
+
+} // namespace bitmapfont
