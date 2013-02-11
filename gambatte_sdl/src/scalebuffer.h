@@ -36,7 +36,7 @@ static inline void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const u
 		s += dstPitch - dstW;
 	
 		for (unsigned n = scale; --n; d += dstPitch)
-			std::memcpy(d, d - dstPitch, dstW * sizeof(T));
+			std::memcpy(d, d - dstPitch, dstW * sizeof *d);
 	}
 }
 
