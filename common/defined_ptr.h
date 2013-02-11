@@ -3,7 +3,7 @@
 
 template<class T>
 inline T * defined_ptr(T *t) {
-	typedef char type_is_defined[sizeof(T) ? 1 : -1];
+	typedef char type_is_defined[sizeof *t ? 1 : -1];
 	(void) sizeof(type_is_defined);
 	return t;
 }

@@ -40,7 +40,7 @@ static const VfilterInfo vfinfos[] = {
 };
 
 std::size_t VfilterInfo::numVfilters() {
-	return sizeof(vfinfos) / sizeof(vfinfos[0]);
+	return sizeof vfinfos / sizeof vfinfos[0];
 }
 
 const VfilterInfo& VfilterInfo::get(std::size_t n) {

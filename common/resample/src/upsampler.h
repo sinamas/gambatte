@@ -36,10 +36,10 @@ public:
 template<unsigned channels>
 std::size_t Upsampler<channels>::resample(short *out, const short *in, std::size_t inlen) {
 	if (inlen) {
-		std::memset(out, 0, inlen * mul_ * sizeof(short) * channels);
+		std::memset(out, 0, inlen * mul_ * channels * sizeof *out);
 		
 		do {
-			std::memcpy(out, in, sizeof(short) * channels);
+			std::memcpy(out, in, channels * sizeof *out);
 			in += channels;
 			out += mul_ * channels;
 		} while (--inlen);
