@@ -58,7 +58,7 @@ ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt) :
 OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT, width + 2, HEIGHT + 2, THREE_FOURTHS),
 pixels(new uint_least32_t[w() * h()]),
 life(4 * 60) {
-	std::memset(pixels, 0xFF, w() * h() * sizeof(uint_least32_t));
+	std::memset(pixels, 0xFF, w() * h() * sizeof *pixels);
 	
 	/*print(pixels + 0 * w() + 0, w(), 0x000000ul, txt);
 	print(pixels + 0 * w() + 1, w(), 0x000000ul, txt);
@@ -101,7 +101,7 @@ FramedTextOsdElment::FramedTextOsdElment(unsigned width, const char *txt) :
 OsdElement(NUMBER_WIDTH, 144 - HEIGHT * 2 - HEIGHT / 2, width + NUMBER_WIDTH * 2, HEIGHT * 2),
 pixels(new uint_least32_t[w() * h()]),
 life(4 * 60) {
-	std::memset(pixels, 0x00, w() * h() * sizeof(uint_least32_t));
+	std::memset(pixels, 0x00, w() * h() * sizeof *pixels);
 	print(pixels + (w() - width) / 2 + ((h() - HEIGHT) / 2) * w(), w(), 0xA0A0A0ul, txt);
 }
 

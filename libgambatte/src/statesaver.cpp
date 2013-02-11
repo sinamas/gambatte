@@ -388,7 +388,7 @@ static void writeSnapShot(std::ofstream &file, const uint_least32_t *pixels, con
 				buf[x] = ((pxlsum[0].rb & 0xFF00FF00U) | (pxlsum[0].g & 0x00FF0000U)) >> 8;
 			}
 			
-			file.write(reinterpret_cast<const char*>(buf), sizeof(buf));
+			file.write(reinterpret_cast<const char*>(buf), sizeof buf);
 			pixels += pitch * StateSaver::SS_DIV;
 		}
 	}
