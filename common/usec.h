@@ -21,10 +21,7 @@
 
 typedef unsigned long usec_t;
 
-static inline usec_t negate(usec_t t) {
-	return usec_t(0) - t;
-}
-
+inline usec_t negate(usec_t t) { return -t; }
 usec_t getusecs();
 void usecsleep(usec_t usecs);
 
