@@ -27,8 +27,6 @@ namespace gambatte {
 struct SaveState;
 
 class StateSaver {
-	StateSaver();
-	
 public:
 	enum { SS_SHIFT = 2 };
 	enum { SS_DIV = 1 << 2 };
@@ -36,8 +34,12 @@ public:
 	enum { SS_HEIGHT = 144 >> SS_SHIFT };
 	
 	static bool saveState(const SaveState &state,
-			const uint_least32_t *videoBuf, int pitch, const std::string &filename);
+			const uint_least32_t *videoBuf, int pitch,
+			const std::string &filename);
 	static bool loadState(SaveState &state, const std::string &filename);
+
+private:
+	StateSaver();
 };
 
 }
