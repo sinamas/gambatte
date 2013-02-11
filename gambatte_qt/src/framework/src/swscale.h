@@ -48,7 +48,7 @@ void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth,
 		vppos -= static_cast<int>(outHeight);
 		
 		while ((vppos += static_cast<int>(inHeight)) < 0) {
-			std::memcpy(dst, dst - dstPitch, outWidth * sizeof(T));
+			std::memcpy(dst, dst - dstPitch, outWidth * sizeof *dst);
 			dst += dstPitch;
 		}
 	} while (--h);
@@ -207,7 +207,7 @@ void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned
 			out += outPitch;
 			
 			while ((vppos += inHeight) <= outHeight) {
-				std::memcpy(out, out - outPitch, outWidth * sizeof(T));
+				std::memcpy(out, out - outPitch, outWidth * sizeof *out);
 				out += outPitch;
 			}
 		}

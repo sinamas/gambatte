@@ -39,7 +39,7 @@ GdiSettings::~GdiSettings() {
 
 TCHAR* GdiSettings::getMonitorName(HMONITOR monitor, GdiSettings::MonInfo *minfo) const {
 	if (getMonitorInfo && monitor) {
-		minfo->cbSize = sizeof(MonInfo);
+		minfo->cbSize = sizeof *minfo;
 		getMonitorInfo(monitor, minfo);
 		
 		return minfo->szDevice;

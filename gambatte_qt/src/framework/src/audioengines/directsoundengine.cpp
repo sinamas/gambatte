@@ -149,12 +149,12 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 
 	{
 		DSBUFFERDESC dsbd;
-		std::memset(&dsbd, 0, sizeof(dsbd));
-		dsbd.dwSize = sizeof(dsbd);
+		std::memset(&dsbd, 0, sizeof dsbd);
+		dsbd.dwSize = sizeof dsbd;
 		dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | (primaryBuf ? DSBCAPS_PRIMARYBUFFER : (useGlobalBuf ? DSBCAPS_GLOBALFOCUS : 0));
 
 		WAVEFORMATEX wfe;
-		std::memset(&wfe, 0, sizeof(wfe));
+		std::memset(&wfe, 0, sizeof wfe);
 		wfe.wFormatTag = WAVE_FORMAT_PCM;
 		wfe.nChannels = 2;
 		wfe.nSamplesPerSec = rate;
@@ -180,7 +180,7 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 
 		{
 			GUID guidNULL;
-			std::memset(&guidNULL,0,sizeof(GUID));
+			std::memset(&guidNULL, 0, sizeof guidNULL);
 			dsbd.guid3DAlgorithm = guidNULL;
 		}
 
@@ -196,8 +196,8 @@ int DirectSoundEngine::doInit(const int rate, const unsigned latency) {
 		}
 
 		DSBCAPS dsbcaps;
-		std::memset(&dsbcaps, 0, sizeof(dsbcaps));
-		dsbcaps.dwSize = sizeof(dsbcaps);
+		std::memset(&dsbcaps, 0, sizeof dsbcaps);
+		dsbcaps.dwSize = sizeof dsbcaps;
 
 		if (lpDSB->GetCaps(&dsbcaps) != DS_OK)
 			goto fail;

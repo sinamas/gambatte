@@ -174,7 +174,7 @@ void DirectDrawBlitter::blit() {
 
 	{
 		DDSURFACEDESC2 ddsd;
-		ddsd.dwSize = sizeof(ddsd);
+		ddsd.dwSize = sizeof ddsd;
 
 		if (lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
 			std::cerr << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
@@ -196,8 +196,8 @@ void DirectDrawBlitter::initPrimarySurface() {
 		return;
 
 	DDSURFACEDESC2 ddsd;
-	std::memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
+	std::memset(&ddsd, 0, sizeof ddsd);
+	ddsd.dwSize = sizeof ddsd;
 	ddsd.dwFlags = DDSD_CAPS;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
@@ -233,8 +233,8 @@ static void initSubSurface(IDirectDraw7 *const lpDD, IDirectDrawSurface7 *const 
 		return;
 
 	DDSURFACEDESC2 ddsd;
-	std::memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
+	std::memset(&ddsd, 0, sizeof ddsd);
+	ddsd.dwSize = sizeof ddsd;
 	lpDDSSystem->GetSurfaceDesc(&ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | dwCaps;
@@ -260,7 +260,7 @@ void DirectDrawBlitter::initClearSurface() {
 
 	if (lpDDSClear) {
 		DDSURFACEDESC2 ddsd;
-		ddsd.dwSize = sizeof(ddsd);
+		ddsd.dwSize = sizeof ddsd;
 
 		if (lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
 			std::cerr << "lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
@@ -332,7 +332,7 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const p
 		LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
 	bool alpha = false;
 
-	ddpf->dwSize = sizeof(DDPIXELFORMAT);
+	ddpf->dwSize = sizeof *ddpf;
 
 	if (lpDDSPrimary && lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK && (ddpf->dwFlags & DDPF_RGB) &&
 			ddpf->dwRGBBitCount == 16) {
@@ -342,7 +342,7 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const p
 		alpha = ddpf->dwFlags & DDPF_ALPHAPIXELS;
 	}
 
-	std::memset(ddpf, 0, sizeof(DDPIXELFORMAT));
+	std::memset(ddpf, 0, sizeof *ddpf);
 	ddpf->dwFlags = DDPF_RGB;
 
 	if (*pixelFormat == PixelBuffer::RGB16) {
@@ -389,8 +389,8 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	setDdPf(&ddpf, &pixelFormat, lpDDSPrimary);
 
 	DDSURFACEDESC2 ddsd;
-	std::memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
+	std::memset(&ddsd, 0, sizeof ddsd);
+	ddsd.dwSize = sizeof ddsd;
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = w;

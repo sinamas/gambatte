@@ -180,7 +180,7 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 				alDeleteBuffers(1, &bid);
 			}
 			
-			std::memcpy(buf + bufPos * 2, src, (BUF_SZ - bufPos) * sizeof(qint16) * 2);
+			std::memcpy(buf + bufPos * 2, src, (BUF_SZ - bufPos) * 2 * sizeof *buf);
 			src += (BUF_SZ - bufPos) * 2;
 			total -= BUF_SZ;
 			bufPos = 0;
@@ -188,12 +188,12 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 			{
 				ALuint bufid = 0;
 				alGenBuffers(1, &bufid);
-				alBufferData(bufid, AL_FORMAT_STEREO16, buf, BUF_SZ * sizeof(qint16) * 2, rate());
+				alBufferData(bufid, AL_FORMAT_STEREO16, buf, BUF_SZ * 2 * sizeof *buf, rate());
 				alSourceQueueBuffers(source, 1, &bufid);
 			}
 		}
 		
-		std::memcpy(buf + bufPos * 2, src, (total - bufPos) * sizeof(qint16) * 2);
+		std::memcpy(buf + bufPos * 2, src, (total - bufPos) * 2 * sizeof *buf);
 		
 		bufPos = total;
 	}

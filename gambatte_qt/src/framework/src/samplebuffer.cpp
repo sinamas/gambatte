@@ -49,12 +49,12 @@ long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwa
 	
 	if (out) {
 		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
-			std::memcpy(out, sndInBuffer, insamples * sizeof(qint16) * 2);
+			std::memcpy(out, sndInBuffer, insamples * 2 * sizeof *out);
 			outsamples = insamples;
 		} else
 			outsamples = resampler->resample(out, sndInBuffer, insamples);
 	}
 	
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * sizeof(qint16) * 2);
+	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * 2 * sizeof *sndInBuffer);
 	return outsamples;
 }

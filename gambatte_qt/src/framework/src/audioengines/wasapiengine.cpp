@@ -81,7 +81,7 @@ static void addDeviceSelectorItem(QComboBox *const deviceSelector, IMMDevice *co
 
 	if (pwszID && pProps) {
 		PROPVARIANT varName;
-		std::memset(&varName, 0, sizeof(PROPVARIANT));
+		std::memset(&varName, 0, sizeof varName);
 
 		if (SUCCEEDED(pProps->GetValue(PKEY_Device_FriendlyName, &varName))) {
 			deviceSelector->addItem(QString::fromWCharArray(varName.pwszVal), QVariant::fromValue(std::wstring(pwszID)));

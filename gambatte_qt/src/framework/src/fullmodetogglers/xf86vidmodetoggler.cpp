@@ -154,9 +154,9 @@ void Xf86VidModeToggler::setFullMode(const bool enable) {
 		curModeValid = XF86VidModeGetModeLine(QX11Info::display(), QX11Info::appScreen(), &dotclock, &modeline);
 		curMode.dotclock = dotclock;
 		
-		std::memcpy(reinterpret_cast<char*>(&curMode) + sizeof(curMode.dotclock),
+		std::memcpy(reinterpret_cast<char*>(&curMode) + sizeof curMode.dotclock,
 		            reinterpret_cast<char*>(&modeline),
-		            std::min(sizeof(XF86VidModeModeLine), sizeof(XF86VidModeModeInfo) - sizeof(curMode.dotclock)));
+		            std::min(sizeof modeline, sizeof curMode - sizeof curMode.dotclock));
 	}
 	
 	XF86VidModeModeInfo *newMode = NULL;

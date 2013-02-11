@@ -256,7 +256,7 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 
 	{
 		const Array<quint32> nulltexture(textureRes * textureRes); // avoids bilinear filter border garbage
-		std::memset(nulltexture, 0, nulltexture.size() * sizeof(quint32));
+		std::memset(nulltexture, 0, nulltexture.size() * sizeof *nulltexture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
 	}
 
