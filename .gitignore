@@ -1,0 +1,15 @@
+*.*.swp
+*.o
+.scon*
+*.a
+config.log
+*.gb
+*.gbc
+*.exe
+Makefile*
+*.Debug
+*.Release
+gambatte_sdl/gambatte_sdl
+gambatte_qt/src/moc_*.cpp
+gambatte_qt/src/release/
+gambatte_qt/bin/
