@@ -480,9 +480,9 @@ static const GbcPaletteEntry gbcTitlePalettes[] = {
 	{ "ZELDA", p511 },
 };
 
-static inline std::size_t gbcDirPalettesSize() { return (sizeof gbcDirPalettes) / (sizeof gbcDirPalettes[0]); }
+static inline std::size_t gbcDirPalettesSize() { return sizeof gbcDirPalettes / sizeof gbcDirPalettes[0]; }
 static inline const struct GbcPaletteEntry * gbcDirPalettesEnd() { return gbcDirPalettes + gbcDirPalettesSize(); }
-static inline std::size_t gbcTitlePalettesSize() { return (sizeof gbcTitlePalettes) / (sizeof gbcTitlePalettes[0]); }
+static inline std::size_t gbcTitlePalettesSize() { return sizeof gbcTitlePalettes / sizeof gbcTitlePalettes[0]; }
 static inline const struct GbcPaletteEntry * gbcTitlePalettesEnd() { return gbcTitlePalettes + gbcTitlePalettesSize(); }
 
 struct GbcPaletteEntryLess {

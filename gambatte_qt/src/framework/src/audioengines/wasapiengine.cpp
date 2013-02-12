@@ -243,7 +243,7 @@ int WasapiEngine::doInit(int rate, const unsigned latency) {
 
 		WAVEFORMATEXTENSIBLE wfext;
 		std::memset(&wfext, 0, sizeof wfext);
-		wfext.Format.cbSize = (sizeof wfext) - (sizeof wfext.Format);
+		wfext.Format.cbSize = sizeof wfext - sizeof wfext.Format;
 		wfext.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
 		wfext.Format.nChannels = 2;
 		wfext.Format.nSamplesPerSec = rate;

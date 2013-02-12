@@ -186,7 +186,7 @@ long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long 
 	
 	setGbDir(inputState[UP_BUT], inputState[DOWN_BUT], dpadUp, dpadDown, dpadUpLast);
 	setGbDir(inputState[LEFT_BUT], inputState[RIGHT_BUT], dpadLeft, dpadRight, dpadLeftLast);
-	inputGetter.is = packedInputState(inputState, (sizeof inputState) / (sizeof inputState[0]));
+	inputGetter.is = packedInputState(inputState, sizeof inputState / sizeof inputState[0]);
 	
 	unsigned usamples = samples;
 	const long retval = gb.runFor(gbvidbuf.pixels, gbvidbuf.pitch, reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
