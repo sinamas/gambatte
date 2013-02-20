@@ -19,10 +19,10 @@
 #ifndef CONVOLUTER_H
 #define CONVOLUTER_H
 
-#include <algorithm>
-#include <cstring>
 #include "array.h"
 #include "rshift16_round.h"
+#include <algorithm>
+#include <cstring>
 
 template<int channels, unsigned phases>
 class PolyPhaseConvoluter {
