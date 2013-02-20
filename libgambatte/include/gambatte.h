@@ -68,7 +68,7 @@ public:
 	  * @return sample number at which the video frame was produced. -1 means no frame was produced.
 	  */
 	long runFor(gambatte::uint_least32_t *videoBuf, int pitch,
-			gambatte::uint_least32_t *soundBuf, unsigned &samples);
+	            gambatte::uint_least32_t *soundBuf, unsigned &samples);
 	
 	/** Reset to initial state.
 	  * Equivalent to reloading a ROM image, or turning a Game Boy Color off and on again.

@@ -54,7 +54,7 @@ GB::~GB() {
 }
 
 long GB::runFor(gambatte::uint_least32_t *const videoBuf, const int pitch,
-			gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
+                gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
 		return -1;
@@ -62,10 +62,13 @@ long GB::runFor(gambatte::uint_least32_t *const videoBuf, const int pitch,
 	
 	p_->cpu.setVideoBuffer(videoBuf, pitch);
 	p_->cpu.setSoundBuffer(soundBuf);
+
 	const long cyclesSinceBlit = p_->cpu.runFor(samples * 2);
 	samples = p_->cpu.fillSoundBuffer();
-	
-	return cyclesSinceBlit < 0 ? cyclesSinceBlit : static_cast<long>(samples) - (cyclesSinceBlit >> 1);
+
+	return cyclesSinceBlit >= 0
+	     ? static_cast<long>(samples) - (cyclesSinceBlit >> 1)
+	     : cyclesSinceBlit;
 }
 
 void GB::reset() {
@@ -92,7 +95,9 @@ LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
 	
-	LoadRes const loadres = p_->cpu.load(romfile, flags & FORCE_DMG, flags & MULTICART_COMPAT);
+	LoadRes const loadres = p_->cpu.load(romfile,
+	                                     flags & FORCE_DMG,
+	                                     flags & MULTICART_COMPAT);
 	
 	if (loadres == LOADRES_OK) {
 		SaveState state;
@@ -160,7 +165,8 @@ bool GB::loadState() {
 	return false;
 }
 
-bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch, const std::string &filepath) {
+bool GB::saveState(const gambatte::uint_least32_t *videoBuf, int pitch,
+                   const std::string &filepath) {
 	if (p_->cpu.loaded()) {
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
@@ -175,8 +181,10 @@ void GB::selectState(int n) {
 	n -= (n / 10) * 10;
 	p_->stateNo = n < 0 ? n + 10 : n;
 	
-	if (p_->cpu.loaded())
-		p_->cpu.setOsdElement(newSaveStateOsdElement(statePath(p_->cpu.saveBasePath(), p_->stateNo), p_->stateNo));
+	if (p_->cpu.loaded()) {
+		std::string const &path = statePath(p_->cpu.saveBasePath(), p_->stateNo);
+		p_->cpu.setOsdElement(newSaveStateOsdElement(path, p_->stateNo));
+	}
 }
 
 int GB::currentState() const { return p_->stateNo; }
@@ -185,7 +193,7 @@ std::string const GB::romTitle() const {
 	if (p_->cpu.loaded()) {
 		char title[0x11];
 		std::memcpy(title, p_->cpu.romTitle(), 0x10);
-		title[(title[0xF] & 0x80) ? 0xF : 0x10] = '\0';
+		title[title[0xF] & 0x80 ? 0xF : 0x10] = '\0';
 		return std::string(title);
 	}
 	
