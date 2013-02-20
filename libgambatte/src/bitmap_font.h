@@ -39,11 +39,11 @@ enum { NUMBER_WIDTH = 6 };
 
 std::size_t getWidth(const char *chars);
 
-// struct Fill { void operator()(RandomAccessIterator dest, unsigned pitch) { fill pixels at dest } }
+// struct Fill { void operator()(RandomAccessIterator dest, std::ptrdiff_t pitch) { fill pixels at dest } }
 template<class RandomAccessIterator, class Fill>
-void print(RandomAccessIterator dest, unsigned pitch, Fill fill, const char *chars);
+void print(RandomAccessIterator dest, std::ptrdiff_t pitch, Fill fill, const char *chars);
 
-void print(gambatte::uint_least32_t *dest, unsigned pitch, unsigned long color, const char *chars);
+void print(gambatte::uint_least32_t *dest, std::ptrdiff_t pitch, unsigned long color, const char *chars);
 void utoa(unsigned u, char *a);
 
 // --- INTERFACE END ---
@@ -53,17 +53,15 @@ void utoa(unsigned u, char *a);
 extern const unsigned char *const font[];
 
 template<class RandomAccessIterator, class Fill>
-void print(RandomAccessIterator dest, const unsigned pitch, Fill fill, const char *chars) {
+void print(RandomAccessIterator dest, const std::ptrdiff_t pitch, Fill fill, const char *chars) {
 	while (const int character = *chars++) {
 		RandomAccessIterator dst = dest;
 		const unsigned char *s = font[character];
-
 		const unsigned width = *s >> 4;
 		unsigned h = *s++ & 0xF;
 
 		while (h--) {
 			RandomAccessIterator d = dst;
-
 			unsigned line = *s++;
 
 			if (width > 8)

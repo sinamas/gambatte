@@ -291,13 +291,13 @@ class Rgb32Fill {
 public:
 	explicit Rgb32Fill(unsigned long color) : color(color) {}
 
-	void operator()(gambatte::uint_least32_t *dest, unsigned /*pitch*/) const {
+	void operator()(gambatte::uint_least32_t *dest, std::ptrdiff_t /*pitch*/) const {
 		*dest = color;
 	}
 };
 }
 
-void print(gambatte::uint_least32_t *dest, const unsigned pitch, const unsigned long color, const char *chars) {
+void print(gambatte::uint_least32_t *dest, std::ptrdiff_t pitch, unsigned long color, const char *chars) {
 	print(dest, pitch, Rgb32Fill(color), chars);
 }
 

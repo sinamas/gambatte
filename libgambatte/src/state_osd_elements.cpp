@@ -36,7 +36,7 @@ static const std::size_t stateSavedWidth  = getWidth(stateSaved);
 
 class ShadedTextOsdElment : public OsdElement {
 	struct ShadeFill {
-		void operator()(uint_least32_t *dest, const unsigned pitch) const {
+		void operator()(uint_least32_t *dest, const std::ptrdiff_t pitch) const {
 			dest[2] = dest[1] = dest[0] = 0x000000ul;
 			dest += pitch;
 			dest[2] = dest[0] = 0x000000ul;
