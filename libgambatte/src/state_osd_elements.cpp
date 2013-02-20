@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "state_osd_elements.h"
+#include "array.h"
 #include "bitmap_font.h"
 #include "statesaver.h"
 #include <fstream>
@@ -45,24 +46,20 @@ class ShadedTextOsdElment : public OsdElement {
 		}
 	};
 
-	uint_least32_t *const pixels;
+	Array<uint_least32_t> const pixels;
 	unsigned life;
-
-	ShadedTextOsdElment(const ShadedTextOsdElment&);
-	ShadedTextOsdElment& operator=(const ShadedTextOsdElment&);
 public:
 	ShadedTextOsdElment(unsigned w, const char *txt);
-	~ShadedTextOsdElment();
 	const uint_least32_t* update();
 };
 
 ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
 : OsdElement(bitmapfont::MAX_WIDTH, 144 - bitmapfont::HEIGHT * 2,
              width + 2, bitmapfont::HEIGHT + 2, THREE_FOURTHS)
-, pixels(new uint_least32_t[w() * h()])
+, pixels(std::size_t(w()) * h())
 , life(4 * 60)
 {
-	std::memset(pixels, 0xFF, w() * h() * sizeof *pixels);
+	std::memset(pixels, 0xFF, pixels.size() * sizeof *pixels);
 
 	/*print(pixels + 0 * w() + 0, w(), 0x000000ul, txt);
 	print(pixels + 0 * w() + 1, w(), 0x000000ul, txt);
@@ -74,12 +71,8 @@ ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
 	print(pixels + 2 * w() + 2, w(), 0x000000ul, txt);
 	print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul, txt);*/
 
-	bitmapfont::print(pixels              , w(), ShadeFill(), txt);
-	bitmapfont::print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul , txt);
-}
-
-ShadedTextOsdElment::~ShadedTextOsdElment() {
-	delete []pixels;
+	bitmapfont::print(pixels.get()              , w(), ShadeFill(), txt);
+	bitmapfont::print(pixels.get() + 1 * w() + 1, w(), 0xE0E0E0ul , txt);
 }
 
 const uint_least32_t* ShadedTextOsdElment::update() {
@@ -90,27 +83,20 @@ const uint_least32_t* ShadedTextOsdElment::update() {
 }
 
 /*class FramedTextOsdElment : public OsdElement {
-	uint_least32_t *const pixels;
+	Array<uint_least32_t> const pixels;
 	unsigned life;
 
-	FramedTextOsdElment(const FramedTextOsdElment&);
-	FramedTextOsdElment& operator=(const FramedTextOsdElment&);
 public:
 	FramedTextOsdElment(unsigned w, const char *txt);
-	~FramedTextOsdElment();
 	const uint_least32_t* update();
 };
 
 FramedTextOsdElment::FramedTextOsdElment(unsigned width, const char *txt) :
 OsdElement(NUMBER_WIDTH, 144 - HEIGHT * 2 - HEIGHT / 2, width + NUMBER_WIDTH * 2, HEIGHT * 2),
-pixels(new uint_least32_t[w() * h()]),
+pixels(std::size_t(w()) * h()),
 life(4 * 60) {
-	std::memset(pixels, 0x00, w() * h() * sizeof *pixels);
-	print(pixels + (w() - width) / 2 + ((h() - HEIGHT) / 2) * w(), w(), 0xA0A0A0ul, txt);
-}
-
-FramedTextOsdElment::~FramedTextOsdElment() {
-	delete []pixels;
+	std::memset(pixels, 0x00, pixels.size() * sizeof *pixels);
+	print(pixels + (w() - width) / 2 + std::size_t(h() - HEIGHT) / 2 * w(), w(), 0xA0A0A0ul, txt);
 }
 
 const uint_least32_t* FramedTextOsdElment::update() {
@@ -163,8 +149,7 @@ namespace gambatte {
 
 transfer_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo) {
 	char txt[sizeof text::stateLoaded];
-
-	std::memcpy(txt, text::stateLoaded, sizeof text::stateLoaded);
+	std::memcpy(txt, text::stateLoaded, sizeof txt);
 	bitmapfont::utoa(stateNo, txt + 6);
 
 	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(text::stateLoadedWidth, txt));
@@ -172,8 +157,7 @@ transfer_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo) {
 
 transfer_ptr<OsdElement> newStateSavedOsdElement(unsigned stateNo) {
 	char txt[sizeof text::stateSaved];
-
-	std::memcpy(txt, text::stateSaved, sizeof text::stateSaved);
+	std::memcpy(txt, text::stateSaved, sizeof txt);
 	bitmapfont::utoa(stateNo, txt + 6);
 
 	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(text::stateSavedWidth, txt));
