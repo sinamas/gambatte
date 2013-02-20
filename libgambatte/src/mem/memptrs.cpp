@@ -34,7 +34,13 @@ MemPtrs::~MemPtrs() {
 
 void MemPtrs::reset(const unsigned rombanks, const unsigned rambanks, const unsigned wrambanks) {
 	delete []memchunk_;
-	memchunk_ = new unsigned char[0x4000 + rombanks * 0x4000ul + 0x4000 + rambanks * 0x2000ul + wrambanks * 0x1000ul + 0x4000];
+	memchunk_ = new unsigned char[
+		  0x4000
+		+ rombanks * 0x4000ul
+		+ 0x4000
+		+ rambanks * 0x2000ul
+		+ wrambanks * 0x1000ul
+		+ 0x4000];
 
 	romdata_[0] = romdata();
 	rambankdata_ = romdata_[0] + rombanks * 0x4000ul + 0x4000;
@@ -66,12 +72,16 @@ void MemPtrs::setRombank(const unsigned bank) {
 }
 
 void MemPtrs::setRambank(const unsigned flags, const unsigned rambank) {
-	unsigned char *const srambankptr = flags & RTC_EN
-			? 0
-			: (rambankdata() != rambankdataend()
-					? rambankdata_ + rambank * 0x2000ul - 0xA000 : wdisabledRam() - 0xA000);
+	unsigned char *srambankptr = 0;
+	if (!(flags & RTC_EN)) {
+		srambankptr = rambankdata() != rambankdataend()
+		            ? rambankdata_ + rambank * 0x2000ul - 0xA000
+		            : wdisabledRam() - 0xA000;
+	}
 
-	rsrambankptr_ = (flags & READ_EN) && srambankptr != wdisabledRam() - 0xA000 ? srambankptr : rdisabledRamw() - 0xA000;
+	rsrambankptr_ = (flags & READ_EN) && srambankptr != wdisabledRam() - 0xA000
+	              ? srambankptr
+	              : rdisabledRamw() - 0xA000;
 	wsrambankptr_ = flags & WRITE_EN ? srambankptr : wdisabledRam() - 0xA000;
 	rmem_[0xB] = rmem_[0xA] = rsrambankptr_;
 	wmem_[0xB] = wmem_[0xA] = wsrambankptr_;
@@ -79,7 +89,7 @@ void MemPtrs::setRambank(const unsigned flags, const unsigned rambank) {
 }
 
 void MemPtrs::setWrambank(const unsigned bank) {
-	wramdata_[1] = wramdata_[0] + ((bank & 0x07) ? (bank & 0x07) : 1) * 0x1000;
+	wramdata_[1] = wramdata_[0] + (bank & 0x07 ? bank & 0x07 : 1) * 0x1000;
 	rmem_[0xD] = wmem_[0xD] = wramdata_[1] - 0xD000;
 	disconnectOamDmaAreas();
 }

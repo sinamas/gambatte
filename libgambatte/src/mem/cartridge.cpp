@@ -67,11 +67,11 @@ public:
 };
 
 static inline unsigned rambanks(const MemPtrs &memptrs) {
-	return static_cast<std::size_t>(memptrs.rambankdataend() - memptrs.rambankdata()) / 0x2000;
+	return std::size_t(memptrs.rambankdataend() - memptrs.rambankdata()) / 0x2000;
 }
 
 static inline unsigned rombanks(const MemPtrs &memptrs) {
-	return static_cast<std::size_t>(memptrs.romdataend()     - memptrs.romdata()    ) / 0x4000;
+	return std::size_t(memptrs.romdataend()     - memptrs.romdata()    ) / 0x4000;
 }
 
 class Mbc1 : public DefaultMbc {
@@ -82,7 +82,12 @@ class Mbc1 : public DefaultMbc {
 	bool rambankMode;
 
 	static unsigned adjustedRombank(unsigned bank) { return bank & 0x1F ? bank : bank | 1; }
-	void setRambank() const { memptrs.setRambank(enableRam ? MemPtrs::READ_EN | MemPtrs::WRITE_EN : 0, rambank & (rambanks(memptrs) - 1)); }
+
+	void setRambank() const {
+		memptrs.setRambank(enableRam ? MemPtrs::READ_EN | MemPtrs::WRITE_EN : 0,
+		                   rambank & (rambanks(memptrs) - 1));
+	}
+
 	void setRombank() const { memptrs.setRombank(adjustedRombank(rombank & (rombanks(memptrs) - 1))); }
 
 public:
@@ -176,7 +181,10 @@ public:
 			break;
 		case 1:
 			rombank = (rombank   & 0x60) | (data    & 0x1F);
-			memptrs.setRombank(adjustedRombank(rombank0Mode ? toMulti64Rombank(rombank) : rombank & (rombanks(memptrs) - 1)));
+			memptrs.setRombank(adjustedRombank(
+				  rombank0Mode
+				? toMulti64Rombank(rombank)
+				: rombank & (rombanks(memptrs) - 1)));
 			break;
 		case 2:
 			rombank = (data << 5 & 0x60) | (rombank & 0x1F);
@@ -326,7 +334,10 @@ class HuC1 : public DefaultMbc {
 		                   rambankMode ? rambank & (rambanks(memptrs) - 1) : 0);
 	}
 
-	void setRombank() const { memptrs.setRombank((rambankMode ? rombank : rambank << 6 | rombank) & (rombanks(memptrs) - 1)); }
+	void setRombank() const {
+		memptrs.setRombank((rambankMode ? rombank : rambank << 6 | rombank)
+		                 & (rombanks(memptrs) - 1));
+	}
 
 public:
 	explicit HuC1(MemPtrs &memptrs)
@@ -508,9 +519,11 @@ static bool presumedMulti64Mbc1(unsigned char const header[], unsigned const rom
 	return header[0x147] == 1 && header[0x149] == 0 && rombanks == 64;
 }
 
-LoadRes Cartridge::loadROM(std::string const &romfile, bool const forceDmg, bool const multicartCompat) {
+LoadRes Cartridge::loadROM(std::string const &romfile,
+                           bool const forceDmg,
+                           bool const multicartCompat)
+{
 	const scoped_ptr<File> rom(newFileInstance(romfile));
-
 	if (rom->fail())
 		return LOADRES_IO_ERROR;
 	
@@ -586,8 +599,10 @@ LoadRes Cartridge::loadROM(std::string const &romfile, bool const forceDmg, bool
 	rtc.set(false, 0);
 
 	rom->rewind();
-	rom->read(reinterpret_cast<char*>(memptrs.romdata()), (filesize / 0x4000) * 0x4000ul);
-	std::memset(memptrs.romdata() + (filesize / 0x4000) * 0x4000ul, 0xFF, (rombanks - filesize / 0x4000) * 0x4000ul);
+	rom->read(reinterpret_cast<char*>(memptrs.romdata()), filesize / 0x4000 * 0x4000ul);
+	std::memset(memptrs.romdata() + filesize / 0x4000 * 0x4000ul,
+	            0xFF,
+	            (rombanks - filesize / 0x4000) * 0x4000ul);
 	enforce8bit(memptrs.romdata(), rombanks * 0x4000ul);
 	
 	if (rom->fail())
@@ -635,21 +650,19 @@ void Cartridge::loadSavedata() {
 		std::ifstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::in);
 
 		if (file.is_open()) {
-			file.read(reinterpret_cast<char*>(memptrs.rambankdata()), memptrs.rambankdataend() - memptrs.rambankdata());
+			file.read(reinterpret_cast<char*>(memptrs.rambankdata()),
+			          memptrs.rambankdataend() - memptrs.rambankdata());
 			enforce8bit(memptrs.rambankdata(), memptrs.rambankdataend() - memptrs.rambankdata());
 		}
 	}
 
 	if (hasRtc(memptrs.romdata()[0x147])) {
 		std::ifstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::in);
-
-		if (file.is_open()) {
-			unsigned long basetime = file.get() & 0xFF;
-
+		if (file) {
+			unsigned long basetime =    file.get() & 0xFF;
 			basetime = basetime << 8 | (file.get() & 0xFF);
 			basetime = basetime << 8 | (file.get() & 0xFF);
 			basetime = basetime << 8 | (file.get() & 0xFF);
-
 			rtc.setBaseTime(basetime);
 		}
 	}
@@ -660,13 +673,13 @@ void Cartridge::saveSavedata() {
 
 	if (hasBattery(memptrs.romdata()[0x147])) {
 		std::ofstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::out);
-		file.write(reinterpret_cast<const char*>(memptrs.rambankdata()), memptrs.rambankdataend() - memptrs.rambankdata());
+		file.write(reinterpret_cast<const char*>(memptrs.rambankdata()),
+		           memptrs.rambankdataend() - memptrs.rambankdata());
 	}
 
 	if (hasRtc(memptrs.romdata()[0x147])) {
 		std::ofstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::out);
 		const unsigned long basetime = rtc.getBaseTime();
-
 		file.put(basetime >> 24 & 0xFF);
 		file.put(basetime >> 16 & 0xFF);
 		file.put(basetime >>  8 & 0xFF);
@@ -681,7 +694,10 @@ static int asHex(const char c) {
 void Cartridge::applyGameGenie(const std::string &code) {
 	if (6 < code.length()) {
 		const unsigned val = (asHex(code[0]) << 4 | asHex(code[1])) & 0xFF;
-		const unsigned addr = (asHex(code[2]) << 8 | asHex(code[4]) << 4 | asHex(code[5]) | (asHex(code[6]) ^ 0xF) << 12) & 0x7FFF;
+		const unsigned addr = (    asHex(code[2])        <<  8
+		                        |  asHex(code[4])        <<  4
+		                        |  asHex(code[5])
+		                        | (asHex(code[6]) ^ 0xF) << 12) & 0x7FFF;
 		unsigned cmp = 0xFFFF;
 
 		if (10 < code.length()) {
@@ -689,10 +705,11 @@ void Cartridge::applyGameGenie(const std::string &code) {
 			cmp = ((cmp >> 2 | cmp << 6) ^ 0x45) & 0xFF;
 		}
 
-		for (unsigned bank = 0; bank < static_cast<std::size_t>(memptrs.romdataend() - memptrs.romdata()) / 0x4000; ++bank) {
+		for (unsigned bank = 0; bank < std::size_t(memptrs.romdataend() - memptrs.romdata()) / 0x4000; ++bank) {
 			if (mbc->isAddressWithinAreaRombankCanBeMappedTo(addr, bank)
 					&& (cmp > 0xFF || memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] == cmp)) {
-				ggUndoList.push_back(AddrData(bank * 0x4000ul + (addr & 0x3FFF), memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)]));
+				ggUndoList.push_back(AddrData(bank * 0x4000ul + (addr & 0x3FFF),
+				                     memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)]));
 				memptrs.romdata()[bank * 0x4000ul + (addr & 0x3FFF)] = val;
 			}
 		}
@@ -701,7 +718,8 @@ void Cartridge::applyGameGenie(const std::string &code) {
 
 void Cartridge::setGameGenie(const std::string &codes) {
 	if (loaded()) {
-		for (std::vector<AddrData>::reverse_iterator it = ggUndoList.rbegin(), end = ggUndoList.rend(); it != end; ++it) {
+		for (std::vector<AddrData>::reverse_iterator it =
+				ggUndoList.rbegin(), end = ggUndoList.rend(); it != end; ++it) {
 			if (memptrs.romdata() + it->addr < memptrs.romdataend())
 				memptrs.romdata()[it->addr] = it->data;
 		}
@@ -709,8 +727,8 @@ void Cartridge::setGameGenie(const std::string &codes) {
 		ggUndoList.clear();
 		
 		std::string code;
-		for (std::size_t pos = 0; pos < codes.length()
-				&& (code = codes.substr(pos, codes.find(';', pos) - pos), true); pos += code.length() + 1) {
+		for (std::size_t pos = 0; pos < codes.length(); pos += code.length() + 1) {
+			code = codes.substr(pos, codes.find(';', pos) - pos);
 			applyGameGenie(code);
 		}
 	}
