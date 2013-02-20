@@ -84,15 +84,18 @@ void Memory::loadState(const SaveState &state) {
 	intreq.loadState(state);
 
 	divLastUpdate = state.mem.divLastUpdate;
-	intreq.setEventTime<SERIAL>(state.mem.nextSerialtime > state.cpu.cycleCounter ? state.mem.nextSerialtime : state.cpu.cycleCounter);
+	intreq.setEventTime<SERIAL>(state.mem.nextSerialtime > state.cpu.cycleCounter
+		? state.mem.nextSerialtime
+		: state.cpu.cycleCounter);
 	intreq.setEventTime<UNHALT>(state.mem.unhaltTime);
 	lastOamDmaUpdate = state.mem.lastOamDmaUpdate;
 	dmaSource = state.mem.dmaSource;
 	dmaDestination = state.mem.dmaDestination;
 	oamDmaPos = state.mem.oamDmaPos;
 	serialCnt = intreq.eventTime(SERIAL) != DISABLED_TIME
-			? serialCntFrom(intreq.eventTime(SERIAL) - state.cpu.cycleCounter, ioamhram[0x102] & isCgb() * 2)
-			: 8;
+	          ? serialCntFrom(intreq.eventTime(SERIAL) - state.cpu.cycleCounter,
+	                          ioamhram[0x102] & isCgb() * 2)
+	          : 8;
 
 	cart.setVrambank(ioamhram[0x14F] & isCgb());
 	cart.setOamDmaSrc(OAM_DMA_SRC_OFF);
@@ -106,7 +109,9 @@ void Memory::loadState(const SaveState &state) {
 		intreq.setEventTime<OAM>(lastOamDmaUpdate + (oamEventPos - oamDmaPos) * 4);
 	}
 
-	intreq.setEventTime<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : state.cpu.cycleCounter);
+	intreq.setEventTime<BLIT>(ioamhram[0x140] & 0x80
+	                        ? display.nextMode1IrqTime()
+	                        : state.cpu.cycleCounter);
 	blanklcd = false;
 	
 	if (!isCgb())
@@ -128,7 +133,8 @@ void Memory::updateSerial(const unsigned long cc) {
 			intreq.setEventTime<SERIAL>(DISABLED_TIME);
 			intreq.flagIrq(8);
 		} else {
-			const int targetCnt = serialCntFrom(intreq.eventTime(SERIAL) - cc, ioamhram[0x102] & isCgb() * 2);
+			const int targetCnt = serialCntFrom(intreq.eventTime(SERIAL) - cc,
+			                                    ioamhram[0x102] & isCgb() * 2);
 			ioamhram[0x101] = (((ioamhram[0x101] + 1) << (serialCnt - targetCnt)) - 1) & 0xFF;
 			serialCnt = targetCnt;
 		}
@@ -187,8 +193,9 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		updateSerial(cycleCounter);
 		break;
 	case OAM:
-		intreq.setEventTime<OAM>(lastOamDmaUpdate == DISABLED_TIME ?
-				static_cast<unsigned long>(DISABLED_TIME) : intreq.eventTime(OAM) + 0xA0 * 4);
+		intreq.setEventTime<OAM>(lastOamDmaUpdate == DISABLED_TIME
+			? static_cast<unsigned long>(DISABLED_TIME)
+			: intreq.eventTime(OAM) + 0xA0 * 4);
 		break;
 	case DMA:
 		{
@@ -216,7 +223,9 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 
 				while (length--) {
 					const unsigned src = dmaSrc++ & 0xFFFF;
-					const unsigned data = ((src & 0xE000) == 0x8000 || src > 0xFDFF) ? 0xFF : read(src, cycleCounter);
+					const unsigned data = (src & 0xE000) == 0x8000 || src > 0xFDFF
+					                    ? 0xFF
+					                    : read(src, cycleCounter);
 
 					cycleCounter += 2 << doubleSpeed;
 
@@ -276,7 +285,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			const unsigned pendingIrqs = intreq.pendingIrqs();
 			const unsigned n = pendingIrqs & -pendingIrqs;
 			
-			if (n < 8) {
+			if (n <= 4) {
 				static const unsigned char lut[] = { 0x40, 0x48, 0x48, 0x50 };
 				address = lut[n-1];
 			} else
@@ -301,11 +310,15 @@ unsigned long Memory::stop(unsigned long cycleCounter) {
 		display.speedChange(cycleCounter);
 		ioamhram[0x14D] = ~ioamhram[0x14D] & 0x80;
 
-		intreq.setEventTime<BLIT>((ioamhram[0x140] & 0x80) ? display.nextMode1IrqTime() : cycleCounter + (70224 << isDoubleSpeed()));
+		intreq.setEventTime<BLIT>(ioamhram[0x140] & 0x80
+			? display.nextMode1IrqTime()
+			: cycleCounter + (70224 << isDoubleSpeed()));
 		
 		if (intreq.eventTime(END) > cycleCounter) {
-			intreq.setEventTime<END>(cycleCounter + (isDoubleSpeed() ?
-					(intreq.eventTime(END) - cycleCounter) << 1 : (intreq.eventTime(END) - cycleCounter) >> 1));
+			intreq.setEventTime<END>(cycleCounter
+				+ (  isDoubleSpeed()
+				   ? (intreq.eventTime(END) - cycleCounter) << 1
+				   : (intreq.eventTime(END) - cycleCounter) >> 1));
 		}
 	}
 	
@@ -339,7 +352,9 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 		divLastUpdate += divinc << 8;
 	}
 
-	const unsigned long dec = cycleCounter < 0x10000 ? 0 : (cycleCounter & ~0x7FFFul) - 0x8000;
+	const unsigned long dec = cycleCounter < 0x10000
+	                        ? 0
+	                        : (cycleCounter & ~0x7FFFul) - 0x8000;
 
 	decCycles(divLastUpdate, dec);
 	decCycles(lastOamDmaUpdate, dec);
@@ -526,7 +541,8 @@ static bool isInOamDmaConflictArea(const OamDmaSrc oamDmaSrc, const unsigned add
 	
 	const Area *const a = cgb ? cgbAreas : dmgAreas;
 
-	return addr < a[oamDmaSrc].areaUpper && addr - a[oamDmaSrc].exceptAreaLower >= a[oamDmaSrc].exceptAreaWidth;
+	return addr < a[oamDmaSrc].areaUpper
+	    && addr - a[oamDmaSrc].exceptAreaLower >= a[oamDmaSrc].exceptAreaWidth;
 }
 
 unsigned Memory::nontrivial_read(const unsigned P, const unsigned long cycleCounter) {
@@ -581,11 +597,14 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		break;
 	case 0x02:
 		updateSerial(cycleCounter);
-
 		serialCnt = 8;
-		intreq.setEventTime<SERIAL>((data & 0x81) == 0x81
-				? (data & isCgb() * 2 ? (cycleCounter & ~0x7ul) + 0x10 * 8 : (cycleCounter & ~0xFFul) + 0x200 * 8)
-				: static_cast<unsigned long>(DISABLED_TIME));
+
+		if ((data & 0x81) == 0x81) {
+			intreq.setEventTime<SERIAL>(data & isCgb() * 2
+				? (cycleCounter & ~0x07ul) + 0x010 * 8
+				: (cycleCounter & ~0xFFul) + 0x200 * 8);
+		} else
+			intreq.setEventTime<SERIAL>(DISABLED_TIME);
 
 		data |= 0x7E - isCgb() * 2;
 		break;
@@ -775,7 +794,9 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 				ioamhram[0x141] &= 0xF8;
 
 				if (data & 0x80) {
-					intreq.setEventTime<BLIT>(display.nextMode1IrqTime() + (blanklcd ? 0 : 70224 << isDoubleSpeed()));
+					intreq.setEventTime<BLIT>(blanklcd
+						? display.nextMode1IrqTime()
+						: display.nextMode1IrqTime() + (70224 << isDoubleSpeed()));
 				} else {
 					ioamhram[0x141] |= lyc;
 					intreq.setEventTime<BLIT>(cycleCounter + (456 * 4 << isDoubleSpeed()));
