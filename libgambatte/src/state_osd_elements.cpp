@@ -30,8 +30,8 @@ namespace text {
 using namespace bitmapfont;
 static const char stateLoaded[] = { S,t,a,t,e,SPC,N0,SPC,l,o,a,d,e,d,0 };
 static const char stateSaved[]  = { S,t,a,t,e,SPC,N0,SPC,s,a,v,e,d,0 };
-static const unsigned stateLoadedWidth = getWidth(stateLoaded);
-static const unsigned stateSavedWidth  = getWidth(stateSaved);
+static const std::size_t stateLoadedWidth = getWidth(stateLoaded);
+static const std::size_t stateSavedWidth  = getWidth(stateSaved);
 }
 
 class ShadedTextOsdElment : public OsdElement {

@@ -275,12 +275,11 @@ const unsigned char *const font[] = {
 	SPC_bits
 };
 
-unsigned getWidth(const char *chars) {
-	unsigned w = 0;
+std::size_t getWidth(const char *chars) {
+	std::size_t w = 0;
 
-	while (const int character = *chars++) {
+	while (const int character = *chars++)
 		w += *font[character] >> 4;
-	}
 
 	return w;
 }

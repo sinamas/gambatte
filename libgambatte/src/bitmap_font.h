@@ -20,6 +20,7 @@
 #define BITMAP_FONT_H
 
 #include "gbint.h"
+#include <cstddef>
 
 namespace bitmapfont {
 enum Char {
@@ -36,7 +37,7 @@ enum { HEIGHT = 10 };
 enum { MAX_WIDTH = 9 };
 enum { NUMBER_WIDTH = 6 };
 
-unsigned getWidth(const char *chars);
+std::size_t getWidth(const char *chars);
 
 // struct Fill { void operator()(RandomAccessIterator dest, unsigned pitch) { fill pixels at dest } }
 template<class RandomAccessIterator, class Fill>
