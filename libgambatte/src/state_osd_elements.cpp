@@ -25,12 +25,14 @@
 namespace {
 
 using namespace gambatte;
-using namespace bitmapfont;
 
-static const char stateLoadedTxt[] = { S,t,a,t,e,SPC,N0,SPC,l,o,a,d,e,d,0 };
-static const char stateSavedTxt[]  = { S,t,a,t,e,SPC,N0,SPC,s,a,v,e,d,0 };
-static const unsigned stateLoadedTxtWidth = getWidth(stateLoadedTxt);
-static const unsigned stateSavedTxtWidth  = getWidth(stateSavedTxt);
+namespace text {
+using namespace bitmapfont;
+static const char stateLoaded[] = { S,t,a,t,e,SPC,N0,SPC,l,o,a,d,e,d,0 };
+static const char stateSaved[]  = { S,t,a,t,e,SPC,N0,SPC,s,a,v,e,d,0 };
+static const unsigned stateLoadedWidth = getWidth(stateLoaded);
+static const unsigned stateSavedWidth  = getWidth(stateSaved);
+}
 
 class ShadedTextOsdElment : public OsdElement {
 	struct ShadeFill {
@@ -54,10 +56,12 @@ public:
 	const uint_least32_t* update();
 };
 
-ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt) :
-OsdElement(MAX_WIDTH, 144 - HEIGHT - HEIGHT, width + 2, HEIGHT + 2, THREE_FOURTHS),
-pixels(new uint_least32_t[w() * h()]),
-life(4 * 60) {
+ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
+: OsdElement(bitmapfont::MAX_WIDTH, 144 - bitmapfont::HEIGHT * 2,
+             width + 2, bitmapfont::HEIGHT + 2, THREE_FOURTHS)
+, pixels(new uint_least32_t[w() * h()])
+, life(4 * 60)
+{
 	std::memset(pixels, 0xFF, w() * h() * sizeof *pixels);
 	
 	/*print(pixels + 0 * w() + 0, w(), 0x000000ul, txt);
@@ -70,8 +74,8 @@ life(4 * 60) {
 	print(pixels + 2 * w() + 2, w(), 0x000000ul, txt);
 	print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul, txt);*/
 	
-	print(pixels, w(), ShadeFill(), txt);
-	print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul, txt);
+	bitmapfont::print(pixels              , w(), ShadeFill(), txt);
+	bitmapfont::print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul , txt);
 }
 
 ShadedTextOsdElment::~ShadedTextOsdElment() {
@@ -125,25 +129,24 @@ public:
 	const uint_least32_t* update();
 };
 
-SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned stateNo) :
-OsdElement((stateNo ? stateNo - 1 : 9) * ((160 - StateSaver::SS_WIDTH) / 10)
-		+ ((160 - StateSaver::SS_WIDTH) / 10) / 2, 4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT),
-life(4 * 60) {
+SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned stateNo)
+: OsdElement(  (stateNo ? stateNo - 1 : 9) * ((160 - StateSaver::SS_WIDTH) / 10)
+               + (160 - StateSaver::SS_WIDTH) / 10 / 2,
+             4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT)
+, life(4 * 60)
+{
 	std::ifstream file(fileName.c_str(), std::ios_base::binary);
 	
-	if (file.is_open()) {
+	if (file) {
 		file.ignore(5);
 		file.read(reinterpret_cast<char*>(pixels), sizeof pixels);
 	} else {
 		std::memset(pixels, 0, sizeof pixels);
 		
-		{
-			using namespace bitmapfont;
-			
-			static const char txt[] = { E,m,p,t,bitmapfont::y,0 };
-			
-			print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - bitmapfont::HEIGHT / 2) * StateSaver::SS_WIDTH, StateSaver::SS_WIDTH, 0x808080ul, txt);
-		}
+		using namespace bitmapfont;
+		static const char txt[] = { E,m,p,t,bitmapfont::y,0 };
+		print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - bitmapfont::HEIGHT / 2) * StateSaver::SS_WIDTH,
+		      StateSaver::SS_WIDTH, 0x808080ul, txt);
 	}
 }
 
@@ -159,21 +162,21 @@ const uint_least32_t* SaveStateOsdElement::update() {
 namespace gambatte {
 
 transfer_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo) {
-	char txt[sizeof stateLoadedTxt];
+	char txt[sizeof text::stateLoaded];
 	
-	std::memcpy(txt, stateLoadedTxt, sizeof stateLoadedTxt);
-	utoa(stateNo, txt + 6);
+	std::memcpy(txt, text::stateLoaded, sizeof text::stateLoaded);
+	bitmapfont::utoa(stateNo, txt + 6);
 	
-	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(stateLoadedTxtWidth, txt));
+	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(text::stateLoadedWidth, txt));
 }
 
 transfer_ptr<OsdElement> newStateSavedOsdElement(unsigned stateNo) {
-	char txt[sizeof stateSavedTxt];
+	char txt[sizeof text::stateSaved];
 	
-	std::memcpy(txt, stateSavedTxt, sizeof stateSavedTxt);
-	utoa(stateNo, txt + 6);
+	std::memcpy(txt, text::stateSaved, sizeof text::stateSaved);
+	bitmapfont::utoa(stateNo, txt + 6);
 	
-	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(stateSavedTxtWidth, txt));
+	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(text::stateSavedWidth, txt));
 }
 
 transfer_ptr<OsdElement> newSaveStateOsdElement(const std::string &fileName, unsigned stateNo) {
