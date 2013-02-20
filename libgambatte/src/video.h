@@ -134,7 +134,7 @@ class LCD {
 	unsigned char m2IrqStatReg_;
 	unsigned char m1IrqStatReg_;
 
-	static void setDmgPalette(unsigned long *palette, const unsigned long *dmgColors, unsigned data);
+	static void setDmgPalette(unsigned long palette[], const unsigned long dmgColors[], unsigned data);
 	void setDmgPaletteColor(unsigned index, unsigned long rgb32);
 
 	void refreshPalettes();
