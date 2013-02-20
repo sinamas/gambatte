@@ -18,6 +18,8 @@
  ***************************************************************************/
 #include "adaptivesleep.h"
 
+static usec_t absdiff(usec_t a, usec_t b) { return a < b ? b - a : a - b; }
+
 usec_t AdaptiveSleep::sleepUntil(usec_t base, usec_t inc) {
 	usec_t now = getusecs();
 	usec_t diff = now - base;
@@ -35,11 +37,10 @@ usec_t AdaptiveSleep::sleepUntil(usec_t base, usec_t inc) {
 
 		{
 			usec_t curOversleep = now - ideal;
-
 			if (negate(curOversleep) < curOversleep)
 				curOversleep = 0;
 
-			oversleepVar = (oversleepVar * 15 + (curOversleep < oversleep ? oversleep - curOversleep : curOversleep - oversleep) + 8) >> 4;
+			oversleepVar = (oversleepVar * 15 + absdiff(curOversleep, oversleep) + 8) >> 4;
 			oversleep = (oversleep * 15 + curOversleep + 8) >> 4;
 		}
 
