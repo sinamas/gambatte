@@ -17,29 +17,39 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "chainresampler.h"
+#include "defined_ptr.h"
+#include <algorithm>
 
-float ChainResampler::get2ChainMidRatio(const float ratio, const float finalRollOffLen, const float midRollOffStartPlusEnd) {
-	return 0.5f * (std::sqrt(ratio * midRollOffStartPlusEnd * finalRollOffLen) + midRollOffStartPlusEnd);
+float ChainResampler::get2ChainMidRatio(float ratio, float finalRollOffLen, float midRollOffStartPlusEnd) {
+	return 0.5f * (   std::sqrt(ratio * midRollOffStartPlusEnd * finalRollOffLen)
+	                + midRollOffStartPlusEnd);
 }
 
-float ChainResampler::get2ChainCost(const float ratio, const float finalRollOffLen, const float midRatio, const float midRollOffStartPlusEnd) {
-	const float midRollOffLen = midRatio * 2 - midRollOffStartPlusEnd;
-	return midRatio * ratio / midRollOffLen + get1ChainCost(midRatio, finalRollOffLen);
+float ChainResampler::get2ChainCost(float ratio, float finalRollOffLen, float midRatio,
+                                    float midRollOffStartPlusEnd)
+{
+	float midRollOffLen = midRatio * 2 - midRollOffStartPlusEnd;
+	return midRatio * ratio / midRollOffLen
+	     + get1ChainCost(midRatio, finalRollOffLen);
 }
 
-float ChainResampler::get3ChainRatio1(float ratio1, const float finalRollOffLen, const float ratio, const float midRollOffStartPlusEnd) {
+float ChainResampler::get3ChainRatio1(float ratio1, const float finalRollOffLen, const float ratio,
+                                      const float midRollOffStartPlusEnd)
+{
 	for (unsigned n = 8; n--;) {
 		const float ratio2 = get3ChainRatio2(ratio1, finalRollOffLen, midRollOffStartPlusEnd);
-		ratio1 = 0.5f * (std::sqrt(ratio * midRollOffStartPlusEnd * (2 - midRollOffStartPlusEnd / ratio2)) + midRollOffStartPlusEnd);
+		ratio1 = (   std::sqrt(ratio * midRollOffStartPlusEnd * (2 - midRollOffStartPlusEnd / ratio2))
+		           + midRollOffStartPlusEnd) * 0.5f;
 	}
 
 	return ratio1;
 }
 
-float ChainResampler::get3ChainCost(const float ratio, const float finalRollOffLen,
-		const float ratio1, const float ratio2, const float midRollOffStartPlusEnd) {
-	const float firstRollOffLen  = ratio1 * 2 - midRollOffStartPlusEnd;
-	return ratio1 * ratio / firstRollOffLen + get2ChainCost(ratio1, finalRollOffLen, ratio2, midRollOffStartPlusEnd);
+float ChainResampler::get3ChainCost(float ratio, float finalRollOffLen,
+		float ratio1, float ratio2, float midRollOffStartPlusEnd) {
+	float firstRollOffLen  = ratio1 * 2 - midRollOffStartPlusEnd;
+	return ratio1 * ratio / firstRollOffLen
+	     + get2ChainCost(ratio1, finalRollOffLen, ratio2, midRollOffStartPlusEnd);
 }
 
 ChainResampler::ChainResampler()
@@ -58,37 +68,45 @@ void ChainResampler::downinitAddSincResamplers(double ratio, float const outRate
 		const float midRollOffStart = std::min(36000.0f * outPeriod, 1.0f);
 		const float midRollOffEnd   = std::min(40000.0f * outPeriod, 1.0f); // after wrap at folding freq.
 		const float midRollOffStartPlusEnd = midRollOffStart + midRollOffEnd;
+		const float ideal2ChainMidRatio = get2ChainMidRatio(ratio, finalRollOffLen, midRollOffStartPlusEnd);
 		
-		int div_2c = static_cast<int>(ratio * smallSincMul / get2ChainMidRatio(ratio, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f);
+		int div_2c = int(ratio * smallSincMul / ideal2ChainMidRatio + 0.5f);
 		double ratio_2c = ratio * smallSincMul / div_2c;
 		float cost_2c = get2ChainCost(ratio, finalRollOffLen, ratio_2c, midRollOffStartPlusEnd);
 		
 		if (cost_2c < get1ChainCost(ratio, finalRollOffLen)) {
-			const int div1_3c = static_cast<int>(
-					ratio * smallSincMul / get3ChainRatio1(ratio_2c, finalRollOffLen, ratio, midRollOffStartPlusEnd) + 0.5f);
+			const float ideal3ChainRatio1 = get3ChainRatio1(ratio_2c, finalRollOffLen,
+			                                                ratio, midRollOffStartPlusEnd);
+			const int div1_3c = int(ratio * smallSincMul / ideal3ChainRatio1 + 0.5f);
 			const double ratio1_3c = ratio * smallSincMul / div1_3c;
-			const int div2_3c = static_cast<int>(
-					ratio1_3c * smallSincMul / get3ChainRatio2(ratio1_3c, finalRollOffLen, midRollOffStartPlusEnd) + 0.5f);
+			const float ideal3ChainRatio2 = get3ChainRatio2(ratio1_3c, finalRollOffLen,
+			                                                midRollOffStartPlusEnd);
+			const int div2_3c = int(ratio1_3c * smallSincMul / ideal3ChainRatio2 + 0.5f);
 			const double ratio2_3c = ratio1_3c * smallSincMul / div2_3c;
 			
-			if (get3ChainCost(ratio, finalRollOffLen, ratio1_3c, ratio2_3c, midRollOffStartPlusEnd) < cost_2c) {
-				list.push_back(createSmallSinc(div1_3c, 0.5f * midRollOffStart / ratio,
-						(ratio1_3c - 0.5f * midRollOffStartPlusEnd) / ratio, gain));
+			if (get3ChainCost(ratio, finalRollOffLen, ratio1_3c,
+			                  ratio2_3c, midRollOffStartPlusEnd) < cost_2c) {
+				list.push_back(createSmallSinc(div1_3c,
+				                               0.5f * midRollOffStart / ratio,
+				                               (ratio1_3c - 0.5f * midRollOffStartPlusEnd) / ratio,
+				                               gain));
 				ratio = ratio1_3c;
 				div_2c = div2_3c;
 				ratio_2c = ratio2_3c;
 				gain = 1.0;
 			}
 			
-			list.push_back(createSmallSinc(div_2c, 0.5f * midRollOffStart / ratio,
-					(ratio_2c - 0.5f * midRollOffStartPlusEnd) / ratio, gain));
+			list.push_back(createSmallSinc(div_2c,
+			                               0.5f * midRollOffStart / ratio,
+			                               (ratio_2c - 0.5f * midRollOffStartPlusEnd) / ratio,
+			                               gain));
 			ratio = ratio_2c;
 			gain = 1.0;
 		}
 	}
 	
 	list.push_back(bigSinc =
-		createBigSinc(static_cast<int>(bigSincMul * ratio + 0.5),
+		createBigSinc(int(bigSincMul * ratio + 0.5),
 			0.5f * (1.0f + std::max((outRate - 40000.0f) * outPeriod, 0.0f) - finalRollOffLen) / ratio,
 			0.5f * finalRollOffLen / ratio, gain));
 }
@@ -120,11 +138,9 @@ std::size_t ChainResampler::reallocateBuffer() {
 
 void ChainResampler::adjustRate(const long inRate, const long outRate) {
 	unsigned long mul, div;
-	
 	exactRatio(mul, div);
-	
-	bigSinc->adjustDiv(static_cast<int>(static_cast<double>(inRate) * mul / (static_cast<double>(div / bigSinc->div()) * outRate) + 0.5));
-	
+	bigSinc->adjustDiv(int(    double(inRate              ) * mul
+	                        / (double(div / bigSinc->div()) * outRate) + 0.5));
 	reallocateBuffer();
 	setRate(inRate, outRate);
 }
@@ -149,7 +165,9 @@ std::size_t ChainResampler::resample(short *const out, const short *const in, st
 	short *outbuf = 0;
 	
 	for (list_t::iterator it = list.begin(); it != list.end(); ++it) {
-		outbuf = ++list_t::iterator(it) == list.end() ? out : (inbuf == buf ? buf2 : buf);
+		outbuf = ++list_t::iterator(it) == list.end()
+		       ? out
+		       : (inbuf == buf ? buf2 : buf);
 		inlen = (*it)->resample(outbuf, inbuf, inlen);
 		inbuf = outbuf;
 	}
@@ -162,9 +180,6 @@ void ChainResampler::uninit() {
 	buffer.reset();
 	periodSize = 0;
 	bigSinc = 0;
-	
-	for (list_t::iterator it = list.begin(); it != list.end(); ++it)
-		delete *it;
-	
+	std::for_each(list.begin(), list.end(), defined_delete<SubResampler>);
 	list.clear();
 }
