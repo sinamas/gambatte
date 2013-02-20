@@ -28,23 +28,23 @@
 	t |= t >> 8;
 	t |= t >> 16;
 	++t;
-	
+
 	return t;
 }*/
 
 static unsigned nearestPowerOf2(const unsigned in) {
 	unsigned out = in;
-	
+
 	out |= out >> 1;
 	out |= out >> 2;
 	out |= out >> 4;
 	out |= out >> 8;
 	out |= out >> 16;
 	++out;
-	
+
 	if (!(out >> 2 & in))
 		out >>= 1;
-	
+
 	return out;
 }
 
@@ -55,7 +55,7 @@ mut(SDL_CreateMutex()),
 bufReadyCond(SDL_CreateCond()),
 failed(false) {
 	rbuf.fill(0);
-	
+
 	SDL_AudioSpec spec;
 	spec.freq = srate;
 	spec.format = AUDIO_S16SYS;
@@ -63,7 +63,7 @@ failed(false) {
 	spec.samples = (rbuf.size() / 2) / periods;
 	spec.callback = fill_buffer;
 	spec.userdata = this;
-	
+
 	if (SDL_OpenAudio(&spec, NULL) < 0) {
 		std::fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
 		failed = true;
@@ -80,13 +80,13 @@ AudioData::~AudioData() {
 const AudioData::Status AudioData::write(const Sint16 *inBuf, unsigned samples) {
 	if (failed)
 		return Status(rbuf.size() >> 1, 0, rateEst.result());
-	
+
 	SDL_mutexP(mut);
 	const Status status(rbuf.used() / 2, rbuf.avail() / 2, rateEst.result());
-	
+
 	{
 		std::size_t avail;
-		
+
 		while ((avail = rbuf.avail() / 2) < samples) {
 			rbuf.write(inBuf, avail * 2);
 			inBuf += avail * 2;
@@ -94,23 +94,23 @@ const AudioData::Status AudioData::write(const Sint16 *inBuf, unsigned samples) 
 			SDL_CondWait(bufReadyCond, mut);
 		}
 	}
-	
+
 	rbuf.write(inBuf, samples * 2);
 	SDL_mutexV(mut);
-	
+
 	return status;
 }
 
 void AudioData::read(Uint8 *const stream, const int len) {
 	if (failed)
 		return;
-	
+
 	SDL_mutexP(mut);
-	
+
 	rbuf.read(reinterpret_cast<Sint16*>(stream), std::min(static_cast<std::size_t>(len) / 2, rbuf.used()));
 	rateEst.feed(len / 4);
-	
+
 	SDL_CondSignal(bufReadyCond);
-	
+
 	SDL_mutexV(mut);
 }

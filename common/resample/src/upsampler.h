@@ -25,7 +25,7 @@
 template<unsigned channels>
 class Upsampler : public SubResampler {
 	unsigned mul_;
-	
+
 public:
 	Upsampler(const unsigned mul) : mul_(mul) {}
 	std::size_t resample(short *out, const short *in, std::size_t inlen);
@@ -37,14 +37,14 @@ template<unsigned channels>
 std::size_t Upsampler<channels>::resample(short *out, const short *in, std::size_t inlen) {
 	if (inlen) {
 		std::memset(out, 0, inlen * mul_ * channels * sizeof *out);
-		
+
 		do {
 			std::memcpy(out, in, channels * sizeof *out);
 			in += channels;
 			out += mul_ * channels;
 		} while (--inlen);
 	}
-	
+
 	return inlen * mul_;
 }
 

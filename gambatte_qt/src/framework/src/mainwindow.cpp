@@ -40,7 +40,7 @@ MainWindow::MainWindow(MediaSource *const source)
 	setCentralWidget(w_->widget());
 	setMouseTracking(true);
 	setFocus();
-	
+
 	connect(w_, SIGNAL( audioEngineFailure()), this, SIGNAL( audioEngineFailure()));
 	connect(w_, SIGNAL(videoBlitterFailure()), this, SIGNAL(videoBlitterFailure()));
 }
@@ -50,7 +50,7 @@ void MainWindow::stop() { w_->stop(); }
 
 void MainWindow::setWindowSize(const QSize &sz) {
 	winSize_ = sz;
-	
+
 	if (!fullscreen_ && isVisible())
 		doSetWindowSize(sz);
 }
@@ -61,14 +61,14 @@ void MainWindow::toggleFullScreen() {
 		w_->parentExclusiveEvent(false);
 		w_->setFullMode(false);
 		showNormal();
-		
+
 		if (isVisible())
 			doSetWindowSize(winSize_);
-		
+
 		activateWindow();
 	} else {
 		fullscreen_ = true;
-		
+
 		if (isVisible())
 			doShowFullScreen();
 	}
@@ -76,14 +76,14 @@ void MainWindow::toggleFullScreen() {
 
 void MainWindow::setVideoFormat(unsigned w, unsigned h) {
 	w_->setVideoFormat(w, h);
-	
+
 	if (winSize_ == QSize(-1, -1))
 		centralWidget()->setMinimumSize(w_->videoSize());
 }
 
 void MainWindow::setVideoFormatAndBlitter(unsigned w, unsigned h, std::size_t blitterNo) {
 	w_->setVideoFormatAndBlitter(w, h, blitterNo);
-	
+
 	if (winSize_ == QSize(-1, -1))
 		centralWidget()->setMinimumSize(w_->videoSize());
 }
@@ -162,7 +162,7 @@ void MainWindow::showEvent(QShowEvent *) {
 	// some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
 	if (!fullscreen_)
 		doSetWindowSize(winSize_);
-	
+
 	w_->showEvent(this);
 }
 
@@ -174,7 +174,7 @@ void MainWindow::focusOutEvent(QFocusEvent *) {
 void MainWindow::focusInEvent(QFocusEvent *) {
 	w_->focusInEvent();
 	w_->parentExclusiveEvent(isFullScreen());
-	
+
 	// urk, delay full screen until getting focus if not visible to avoid WMs screwing up.
 	if (fullscreen_ && !w_->isFullMode())
 		doShowFullScreen();
@@ -200,7 +200,7 @@ void MainWindow::doShowFullScreen() {
 	const int screen = QApplication::desktop()->screenNumber(this);
 
 	w_->setFullMode(true);
-	doSetWindowSize(QSize(-1, -1)); 
+	doSetWindowSize(QSize(-1, -1));
 
 	// If the window is outside the screen it will be moved to the primary screen by Qt.
 	{

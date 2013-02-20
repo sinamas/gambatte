@@ -48,23 +48,23 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
   deleteButtonActions(deleteButtonActions)
 {
 	setWindowTitle(tr("Input Settings"));
-	
+
 	QVBoxLayout *mainLayout = new QVBoxLayout;
 	QPushButton *const okButton = new QPushButton(tr("OK"));
 	QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
-	
+
 	{
 		QTabWidget *const tabw = new QTabWidget;
-		
+
 		for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
 			if (!buttonInfos[i].label.isEmpty()) {
 				inputBoxPairs[i] = new InputBoxPair(new InputBox, new InputBox);
-				
+
 				int j = tabw->count() - 1;
-				
+
 				while (j >= 0 && tabw->tabText(j) != buttonInfos[i].category)
 					--j;
-				
+
 				if (j < 0) {
 					QWidget *const w = new QWidget;
 					QBoxLayout *const boxl = new QVBoxLayout;
@@ -73,16 +73,16 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 					w->setLayout(boxl);
 					j = tabw->addTab(w, buttonInfos[i].category);
 				}
-				
+
 				QGridLayout *const gLayout = (QGridLayout*) tabw->widget(j)->layout()->itemAt(0);
 				gLayout->addWidget(new QLabel(buttonInfos[i].label + ":"), i, 0);
-				
+
 				if (buttonInfos[i].defaultFpp) {
 					QHBoxLayout *hLayout = new QHBoxLayout;
 					hLayout->addWidget(inputBoxPairs[i]->mainBox);
 					hLayout->addWidget(fppBoxes[i * 2] = makeFppBox(buttonInfos[i].defaultFpp).release());
 					gLayout->addLayout(hLayout, i, 1);
-					
+
 					hLayout = new QHBoxLayout;
 					hLayout->addWidget(inputBoxPairs[i]->altBox);
 					hLayout->addWidget(fppBoxes[i * 2 + 1] = makeFppBox(buttonInfos[i].defaultFpp).release());
@@ -91,27 +91,27 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 					gLayout->addWidget(inputBoxPairs[i]->mainBox, i, 1);
 					gLayout->addWidget(inputBoxPairs[i]->altBox, i, 2);
 				}
-				
+
 				QPushButton *const clearButton = new QPushButton(tr("Clear"));
 				gLayout->addWidget(clearButton, i, 3);
 				connect(clearButton, SIGNAL(clicked()), inputBoxPairs[i], SLOT(clear()));
 			}
 		}
-		
+
 		for (int tabi = 0; tabi < tabw->count(); ++tabi) {
 			QWidget *const w = tabw->widget(tabi);
-			
+
 			std::size_t i = 0;
-			
+
 			while (i < inputBoxPairs.size() && (!inputBoxPairs[i] || inputBoxPairs[i]->mainBox->parentWidget() != w))
 				++i;
-			
+
 			while (i < inputBoxPairs.size()) {
 				std::size_t j = i + 1;
-				
+
 				while (j < inputBoxPairs.size() && (!inputBoxPairs[j] || inputBoxPairs[j]->mainBox->parentWidget() != w))
 					++j;
-				
+
 				if (j < inputBoxPairs.size()) {
 					inputBoxPairs[i]->mainBox->setNextFocus(inputBoxPairs[j]->mainBox);
 					inputBoxPairs[i]->altBox->setNextFocus(inputBoxPairs[j]->altBox);
@@ -119,29 +119,29 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 					inputBoxPairs[i]->mainBox->setNextFocus(okButton);
 					inputBoxPairs[i]->altBox->setNextFocus(okButton);
 				}
-				
+
 				i = j;
 			}
 		}
-		
+
 		mainLayout->addWidget(tabw);
 	}
-	
+
 	QHBoxLayout *const hLayout = new QHBoxLayout;
 	hLayout->addWidget(okButton);
 	hLayout->addWidget(cancelButton);
 	mainLayout->addLayout(hLayout);
 	mainLayout->setAlignment(hLayout, Qt::AlignBottom | Qt::AlignRight);
 	okButton->setDefault(true);
-	
+
 	setLayout(mainLayout);
-	
+
 	connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-	
+
 	QSettings settings;
 	settings.beginGroup("input");
-	
+
 	for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
 		if (!buttonInfos[i].label.isEmpty()) {
 			config[i * 2    ].event.id = settings.value(
@@ -151,7 +151,7 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 					buttonInfos[i].defaultKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE).toInt();
 			config[i * 2    ].fpp = buttonInfos[i].defaultFpp ? settings.value(
 					buttonInfos[i].category + buttonInfos[i].label + "Fpp1", buttonInfos[i].defaultFpp).toInt() : 0;
-			
+
 			config[i * 2 + 1].event.id = settings.value(
 					buttonInfos[i].category + buttonInfos[i].label + "Key2", buttonInfos[i].defaultAltKey).toUInt();
 			config[i * 2 + 1].event.value = settings.value(
@@ -164,16 +164,16 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 			config[i * 2    ].event.value =
 					buttonInfos[i].defaultKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE;
 			config[i * 2    ].fpp = buttonInfos[i].defaultFpp;
-			
+
 			config[i * 2 + 1].event.id = buttonInfos[i].defaultAltKey;
 			config[i * 2 + 1].event.value =
 					buttonInfos[i].defaultAltKey == Qt::Key_unknown ? InputBox::NULL_VALUE : InputBox::KBD_VALUE;
 			config[i * 2 + 1].fpp = buttonInfos[i].defaultFpp;
 		}
 	}
-	
+
 	settings.endGroup();
-	
+
 	restore();
 	resetMapping();
 }
@@ -181,23 +181,23 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 InputDialog::~InputDialog() {
 	QSettings settings;
 	settings.beginGroup("input");
-	
+
 	for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
 		if (!buttonInfos[i].label.isEmpty()) {
 			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Key1", config[i * 2].event.id);
 			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Value1", config[i * 2].event.value);
 			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Key2", config[i * 2 + 1].event.id);
 			settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Value2", config[i * 2 + 1].event.value);
-			
+
 			if (buttonInfos[i].defaultFpp) {
 				settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Fpp1", config[i * 2    ].fpp);
 				settings.setValue(buttonInfos[i].category + buttonInfos[i].label + "Fpp2", config[i * 2 + 1].fpp);
 			}
 		}
 	}
-	
+
 	settings.endGroup();
-	
+
 	if (deleteButtonActions)
 		for (std::size_t i = 0; i < buttonInfos.size(); ++i)
 			delete buttonInfos[i].action;
@@ -208,7 +208,7 @@ void InputDialog::resetMapping() {
 		Mutual<KeyMapping>::Locked lkm(keymapping);
 		lkm->map.clear();
 		lkm->rapidvec.clear();
-		
+
 		for (std::size_t i = 0; i < config.size(); ++i) {
 			if (config[i].event.value != InputBox::NULL_VALUE && config[i].event.value == InputBox::KBD_VALUE) {
 				lkm->map.insert(std::make_pair(config[i].event.id,
@@ -216,12 +216,12 @@ void InputDialog::resetMapping() {
 			}
 		}
 	}
-	
+
 	{
 		Mutual<JoyMapping>::Locked ljm(joymapping);
 		ljm->map.clear();
 		ljm->rapidvec.clear();
-		
+
 		for (std::size_t i = 0; i < config.size(); ++i) {
 			if (config[i].event.value != InputBox::NULL_VALUE && config[i].event.value != InputBox::KBD_VALUE) {
 				ljm->map.insert(std::make_pair(config[i].event.id,
@@ -238,12 +238,12 @@ void InputDialog::store() {
 			config[i * 2 + 1].event = inputBoxPairs[i]->altBox->getData();
 		}
 	}
-	
+
 	for (std::size_t i = 0; i < fppBoxes.size(); ++i) {
 		if (fppBoxes[i])
 			config[i].fpp = fppBoxes[i]->value();
 	}
-	
+
 	resetMapping();
 }
 
@@ -254,7 +254,7 @@ void InputDialog::restore() {
 			inputBoxPairs[i]->altBox->setData( config[i * 2 + 1].event);
 		}
 	}
-	
+
 	for (std::size_t i = 0; i < fppBoxes.size(); ++i) {
 		if (fppBoxes[i])
 			fppBoxes[i]->setValue(config[i].fpp);
@@ -269,10 +269,10 @@ static void setButtonPressed(AutoPressVec &v, InputDialog::Button::Action *const
 			if (it->action == action && it->fpp == fpp)
 				return;
 		}
-		
+
 		v.push_back(typename AutoPressVec::value_type(action, fpp, 0));
 	}
-	
+
 	action->buttonPressed();
 }
 
@@ -287,7 +287,7 @@ static void unsetButtonPressed(AutoPressVec &v, InputDialog::Button::Action *con
 			}
 		}
 	}
-	
+
 	action->buttonReleased();
 }
 
@@ -336,7 +336,7 @@ static void doConsumeAutoPress(AutoPressVec &v) {
 void InputDialog::consumeAutoPress() {
 	if (const Mutual<KeyMapping>::TryLocked &lm = keymapping)
 		doConsumeAutoPress(lm->rapidvec);
-	
+
 	if (const Mutual<JoyMapping>::TryLocked &lm = joymapping)
 		doConsumeAutoPress(lm->rapidvec);
 }

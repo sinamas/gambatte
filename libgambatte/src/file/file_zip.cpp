@@ -149,7 +149,7 @@ void ZipFile::read(char *buffer, size_t amount)
 class GzFile : public gambatte::File {
 	gzFile file_;
 	std::size_t fsize_;
-	
+
 	void close();
 	GzFile(const GzFile &);
 	GzFile& operator=(const GzFile &);
@@ -160,33 +160,33 @@ public:
 		if (file_) {
 			char buf[256];
 			int ret;
-			
+
 			while ((ret = gzread(file_, buf, sizeof buf)) > 0)
 				fsize_ += ret;
-			
+
 			if (ret < 0) {
 				close();
 				fsize_ = 0;
 			}
 		}
-		
+
 		rewind();
 	}
-	
+
 	virtual ~GzFile() { close(); }
-	
+
 	virtual void rewind() {
 		if (file_ && gzrewind(file_) < 0)
 			close();
 	}
-	
+
 	virtual std::size_t size() const { return fsize_; };
-	
+
 	virtual void read(char *buffer, std::size_t amount) {
 		if (file_ && gzread(file_, buffer, amount) < 0)
 			close();
 	}
-	
+
 	virtual bool fail() const { return !file_; }
 };
 
@@ -202,16 +202,16 @@ void GzFile::close() {
 // Avoid checking magic header values, because there are no values that cannot occur in a GB ROM.
 transfer_ptr<gambatte::File> gambatte::newFileInstance(const std::string &filepath) {
 	const std::size_t extpos = filepath.rfind(".");
-	
+
 	if (extpos != std::string::npos) {
 		const std::string &ext = filepath.substr(extpos + 1);
-		
+
 		if (ext.length() == 3 && std::tolower(ext[0]) == 'z' && std::tolower(ext[1]) == 'i'&& std::tolower(ext[2]) == 'p')
 			return transfer_ptr<File>(new ZipFile(filepath.c_str()));
-		
+
 		if (!ext.empty() && std::tolower(ext[ext.length() - 1]) == 'z')
 			return transfer_ptr<File>(new GzFile(filepath.c_str()));
 	}
-	
+
 	return transfer_ptr<File>(new StdFile(filepath.c_str()));
 }

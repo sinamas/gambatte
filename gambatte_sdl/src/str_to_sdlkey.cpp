@@ -269,7 +269,7 @@ static void init() {
 void printStrSdlkeys() {
 	if (m.empty())
 		init();
-	
+
 	for (map_t::iterator it = m.begin(); it != m.end(); ++it) {
 		printf("%s\n", it->first);
 	}
@@ -278,8 +278,8 @@ void printStrSdlkeys() {
 const SDLKey* strToSdlkey(const char *const str) {
 	if (m.empty())
 		init();
-	
+
 	map_t::iterator it = m.find(str);
-	
+
 	return it == m.end() ? 0 : &it->second;
 }

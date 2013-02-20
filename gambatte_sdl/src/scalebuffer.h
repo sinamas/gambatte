@@ -24,17 +24,17 @@
 template<typename T>
 static inline void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH, const unsigned dstPitch, const unsigned scale) {
 	const unsigned dstW = srcW * scale;
-	
+
 	for (unsigned h = srcH; h--;) {
 		for (unsigned w = srcW; w--;) {
 			for (unsigned n = scale; n--;)
 				*d++ = *s;
-	
+
 			++s;
 		}
-		
+
 		s += dstPitch - dstW;
-	
+
 		for (unsigned n = scale; --n; d += dstPitch)
 			std::memcpy(d, d - dstPitch, dstW * sizeof *d);
 	}

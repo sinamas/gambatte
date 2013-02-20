@@ -37,7 +37,7 @@ useCustomDev(false)
 	confWidget->layout()->setMargin(0);
 	confWidget->layout()->addWidget(customDevBox);
 	confWidget->layout()->addWidget(customDevEdit);
-	
+
 	{
 		QSettings settings;
 		settings.beginGroup(confgroup);
@@ -45,7 +45,7 @@ useCustomDev(false)
 		customDevStr = settings.value("customDevStr", customDevStr).toByteArray();
 		settings.endGroup();
 	}
-	
+
 	customDevBoxChange(customDevBox->isChecked());
 	connect(customDevBox, SIGNAL(toggled(bool)), this, SLOT(customDevBoxChange(bool)));
 	rejectSettings();

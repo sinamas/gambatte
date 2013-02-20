@@ -30,11 +30,11 @@ class AlsaEngine : public AudioEngine {
 	snd_pcm_t *pcm_handle;
 	unsigned bufSize;
 	unsigned prevfur;
-	
+
 	int doInit(int rate, unsigned latency);
 	void doAcceptSettings() { conf.acceptSettings(); }
 	int write(void *buffer, unsigned samples, const BufferState &bstate);
-	
+
 public:
 	AlsaEngine();
 	~AlsaEngine();

@@ -25,11 +25,11 @@
 void SampleBuffer::reset() {
 	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
 	const long maxin = spf_.ceiled() + source_->overupdate;
-	
+
 	sndInBuffer.reset(0);
 	resampler.reset();
 	samplesBuffered_ = 0;
-	
+
 	if (insrate > 0 && outsrate > 0) {
 		sndInBuffer.reset(maxin * 2);
 		resampler.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate, maxin));
@@ -46,7 +46,7 @@ long SampleBuffer::update(const PixelBuffer &pb) {
 long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwaysResample) {
 	long outsamples = 0;
 	samplesBuffered_ -= insamples;
-	
+
 	if (out) {
 		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
 			std::memcpy(out, sndInBuffer, insamples * 2 * sizeof *out);
@@ -54,7 +54,7 @@ long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwa
 		} else
 			outsamples = resampler->resample(out, sndInBuffer, insamples);
 	}
-	
+
 	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * 2 * sizeof *sndInBuffer);
 	return outsamples;
 }

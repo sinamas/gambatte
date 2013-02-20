@@ -27,14 +27,14 @@ int pollJsEvent(SDL_Event *const ev, const int insensitivity) {
 	static map_t axisState;
 
 	int evValid;
-	
+
 	do {
 		evValid = SDL_PollEvent(ev);
-		
+
 		if (evValid && ev->type == SDL_JOYAXISMOTION) {
 			enum { THRESHOLD = 8192 };
 			const map_t::iterator it = axisState.insert(map_t::value_type(ev->id, 0)).first;
-			
+
 			switch (it->second) {
 			case 0:
 				if (ev->value >= THRESHOLD + insensitivity)
@@ -62,6 +62,6 @@ int pollJsEvent(SDL_Event *const ev, const int insensitivity) {
 			it->second = ev->value;
 		}
 	} while (false);
-	
+
 	return evValid;
 }

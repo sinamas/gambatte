@@ -28,7 +28,7 @@ public:
 		const char *const s;
 		const int nArgs;
 		const char c;
-		
+
 	public:
 		explicit Option(const char *s, char c = 0, int nArgs = 0);
 		virtual ~Option() {}
@@ -37,14 +37,14 @@ public:
 		int neededArgs() const { return nArgs; }
 		virtual void exec(const char *const */*argv*/, int /*index*/) = 0;
 	};
-	
+
 private:
 	struct StrLess {
 		bool operator()(const char *const l, const char *const r) const {
 			return std::strcmp(l, r) < 0;
 		}
 	};
-	
+
 	typedef std::map<char,Option*> smap_t;
 	typedef std::map<const char*,Option*,StrLess> lmap_t;
 
@@ -55,7 +55,7 @@ private:
 	void addShort(Option *o);
 	int parseLong(int argc, const char *const *argv, int index);
 	int parseShort(int argc, const char *const *argv, int index);
-	
+
 public:
 	void add(Option *o);
 	int parse(int argc, const char *const *argv, int index);

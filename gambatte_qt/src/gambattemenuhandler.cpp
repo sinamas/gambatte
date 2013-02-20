@@ -40,11 +40,11 @@ namespace {
 struct TmpPauser : private Uncopyable {
 	MainWindow *const mw;
 	const unsigned inc;
-	
+
 	explicit TmpPauser(MainWindow *const mw, const unsigned inc = 4) : mw(mw), inc(inc) {
 		mw->incPause(inc);
 	}
-	
+
 	~TmpPauser() {
 		mw->decPause(inc);
 	}
@@ -57,7 +57,7 @@ FrameRateAdjuster::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom) : 
 
 void FrameRateAdjuster::FrameTime::setBaseFrameTime(const unsigned baseNum, const unsigned baseDenom) {
 	frameTimes[STEPS] = Rational(baseNum, baseDenom);
-	
+
 	const unsigned bnum = baseNum * 0x10000 / baseDenom;
 
 	for (unsigned i = STEPS, num = bnum; i < STEPS * 2; ++i)
@@ -80,12 +80,12 @@ FrameRateAdjuster::FrameRateAdjuster(const MiscDialog &miscDialog, MainWindow &m
 	decFrameRateAction_->setShortcut(QString("Ctrl+D"));
 	incFrameRateAction_->setShortcut(QString("Ctrl+I"));
 	resetFrameRateAction_->setShortcut(QString("Ctrl+U"));
-	
+
 	connect(decFrameRateAction_,   SIGNAL(triggered()), this, SLOT(decFrameRate()));
 	connect(incFrameRateAction_,   SIGNAL(triggered()), this, SLOT(incFrameRate()));
 	connect(resetFrameRateAction_, SIGNAL(triggered()), this, SLOT(resetFrameRate()));
 	connect(&miscDialog, SIGNAL(accepted()), this, SLOT(miscDialogChange()));
-	
+
 	changed();
 }
 
@@ -133,7 +133,7 @@ void FrameRateAdjuster::changed() {
 	incFrameRateAction_->setEnabled(enabled_ && frameTime_.decPossible());
 	decFrameRateAction_->setEnabled(enabled_ && frameTime_.incPossible());
 	resetFrameRateAction_->setEnabled(enabled_ && frameTime_.resetPossible());
-	
+
 	const FrameTime::Rational &ft = enabled_ ? frameTime_.get() : frameTime_.base();
 	mw_.setFrameTime(ft.num, ft.denom);
 }
@@ -255,7 +255,7 @@ static QAction * findCmdStringAction(const QList<QAction*> &l, const QString &cm
 		if (cmdstr == toCmdString(a))
 			return a;
 	}
-	
+
 	return 0;
 }
 
@@ -264,17 +264,17 @@ static QAction * findCmdCharAction(const QList<QAction*> &l, const char c) {
 		if (c == toCmdChar(a))
 			return a;
 	}
-	
+
 	return 0;
 }
 
 static void printUsage(const char *const arg0, const QList<QAction*> &actions) {
 	std::cout << "Usage: " << arg0 << " [OPTION]... [romfile]\n";
-	
+
 	foreach (const QAction *const a, actions) {
 		if (a->isCheckable() && a->isEnabled()) {
 			const std::string &text = toCmdString(a).toStdString();
-			const char c = toCmdChar(a);			
+			const char c = toCmdChar(a);
 			std::cout << ("  " + (c ? "-" + std::string(1, c) + ", " : std::string("    ")) + "--" + text + "[=0]\n");
 		}
 	}
@@ -350,7 +350,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 				action->setData(no);
 				stateSlotGroup->addAction(action);
 			}
-			
+
 			connect(this, SIGNAL(romLoaded(bool)), stateSlotMenu, SLOT(setEnabled(bool)));
 		}
 
@@ -359,7 +359,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		fileMenu->addAction(tr("&Quit"), qApp, SLOT(closeAllWindows()), tr("Ctrl+Q"));
 		updateRecentFileActions();
 	}
-	
+
 	FrameRateAdjuster *const frameRateAdjuster = new FrameRateAdjuster(*miscDialog, *mw, this);
 	QList<QAction*> cmdactions;
 
@@ -374,10 +374,10 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		syncFrameRateAction->setCheckable(true);
 		connect(syncFrameRateAction, SIGNAL(triggered(bool)), frameRateAdjuster, SLOT(setDisabled(bool)));
 		connect(syncFrameRateAction, SIGNAL(triggered(bool)), mw               , SLOT(setSyncToRefreshRate(bool)));
-		
+
 		foreach (QAction *const action, frameRateAdjuster->actions())
 			playm->addAction(romLoadedActions->addAction(action));
-		
+
 		cmdactions += playm->actions();
 	}
 
@@ -417,7 +417,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 
 // 	settingsm->addAction(hideMenuAct);
 	cmdactions += settingsm->actions();
-	
+
 	romLoadedActions->addAction(mw->menuBar()->addMenu(tr("&Tools"))->addAction(tr("&Cheats..."), cheatDialog, SLOT(exec())));
 	romLoadedActions->setEnabled(false);
 
@@ -457,18 +457,18 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 	connect(mw, SIGNAL(dwmCompositionChange()), this, SLOT(reconsiderSyncFrameRateActionEnable()));
 	connect(this, SIGNAL(romLoaded(bool)), romLoadedActions, SLOT(setEnabled(bool)));
 	connect(this, SIGNAL(romLoaded(bool)), stateSlotGroup->actions().at(0), SLOT(setChecked(bool)));
-	
+
 	mw->setAspectRatio(QSize(160, 144));
 	videoDialogChange();
 	soundDialogChange();
 	miscDialogChange();
-	
+
 	bool unknownCmd = false;
-	
+
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] == '-' && argv[i][1]) {
 			const QString argstr(argv[i] + 2);
-			
+
 			if (QAction *const a = argv[i][1] == '-'
 					? findCmdStringAction(cmdactions, argstr.left(argstr.lastIndexOf('=')))
 					: findCmdCharAction(cmdactions, argv[i][1])) {
@@ -478,7 +478,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 				unknownCmd = true;
 		}
 	}
-	
+
 	if (unknownCmd)
 		printUsage(argv[0], cmdactions);
 
@@ -486,7 +486,7 @@ GambatteMenuHandler::GambatteMenuHandler(MainWindow *const mw,
 		if (argv[i][0] != '-') {
 			if (fsAct->isChecked())
 				mw->menuBar()->hide();
-			
+
 			loadFile(QFileInfo(QString(argv[i])).absoluteFilePath());
 			break;
 		}
@@ -573,7 +573,7 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 
 	mw->setWindowTitle(strippedName(fileName) + (pak.headerChecksumOk() ? "" : " [bad]") + " - Gambatte");
 	setCurrentFile(fileName);
-	
+
 	emit romLoaded(true);
 	emit dmgRomLoaded(!source->isCgb());
 
@@ -584,7 +584,7 @@ void GambatteMenuHandler::loadFile(const QString &fileName) {
 void GambatteMenuHandler::open() {
 	TmpPauser tmpPauser(mw, 4);
 	mw->waitUntilPaused();
-	
+
 	const QString &fileName = QFileDialog::getOpenFileName(mw, tr("Open"), recentFileActs[0]->data().toString(),
 						tr("Game Boy ROM Images (*.dmg *.gb *.gbc *.sgb *.zip *.gz);;All Files (*)"));
 
@@ -678,14 +678,14 @@ void GambatteMenuHandler::miscDialogChange() {
 void GambatteMenuHandler::cheatDialogChange() {
 	std::string gameGenieCodes;
 	std::string gameSharkCodes;
-	
+
 	foreach (const QString &s, cheatDialog->cheats().split(';', QString::SkipEmptyParts)) {
 		if (s.contains('-')) {
 			gameGenieCodes += s.toStdString() + ";";
 		} else
 			gameSharkCodes += s.toStdString() + ";";
 	}
-	
+
 	source->setGameGenie(gameGenieCodes);
 	source->setGameShark(gameSharkCodes);
 }
@@ -859,7 +859,7 @@ void GambatteMenuHandler::escPressed() {
 		fsAct->trigger();
 #else
 	mw->menuBar()->setVisible(!mw->menuBar()->isVisible());
-	
+
 	if (!mw->menuBar()->isVisible())
 		mw->hideCursor();
 #endif

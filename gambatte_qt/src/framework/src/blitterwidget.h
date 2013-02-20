@@ -51,15 +51,15 @@ class BlitterWidget : public QWidget {
 	const QString nameString_;
 	const unsigned maxSwapInterval_;
 	bool paused;
-	
+
 protected:
 	virtual void privSetPaused(const bool paused) { setUpdatesEnabled(paused); }
 	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
-	
+
 	// use these if modifying pixel buffer in the sync method, or in an event method.
 	void lockPixelBuffer() { vbl.lock(); }
 	void unlockPixelBuffer() { vbl.unlock(); }
-	
+
 	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch) {
 		pixbuf.data = pixels;
 		pixbuf.pitch = pitch;
@@ -82,24 +82,24 @@ public:
 	virtual void blit() = 0;
 	virtual void draw() {}
 	virtual bool isUnusable() const { return false; }
-	
+
 	void setVideoFormat(unsigned width, unsigned height/*, PixelBuffer::PixelFormat pf*/) {
 		pixbuf.width = width;
 		pixbuf.height = height;
 		setBufferDimensions(width, height);
 // 		return pf == pixbuf.pixelFormat;
 	}
-	
+
 	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) {
 		setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h);
 	}
-	
+
 	virtual WId hwnd() const { return winId(); }
 	virtual long frameTimeEst() const { return 0; }
 	virtual long sync() { return 0; }
 	virtual void setExclusive(bool) {}
 	virtual void setSwapInterval(unsigned) {}
-	
+
 	virtual QWidget* settingsWidget() const { return 0; }
 	virtual void acceptSettings() {}
 	virtual void rejectSettings() const {}

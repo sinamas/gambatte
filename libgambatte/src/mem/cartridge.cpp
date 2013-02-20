@@ -210,7 +210,7 @@ public:
 		memptrs.setRambank(enableRam ? MemPtrs::READ_EN | MemPtrs::WRITE_EN : 0, 0);
 		setRombank();
 	}
-	
+
 	virtual bool isAddressWithinAreaRombankCanBeMappedTo(unsigned addr, unsigned bank) const {
 		return (addr < 0x4000) == ((bank & 0xF) == 0);
 	}
@@ -264,10 +264,10 @@ class Mbc3 : public DefaultMbc {
 
 	void setRambank() const {
 		unsigned flags = enableRam ? MemPtrs::READ_EN | MemPtrs::WRITE_EN : 0;
-		
+
 		if (rtc) {
 			rtc->set(enableRam, rambank);
-			
+
 			if (rtc->getActive())
 				flags |= MemPtrs::RTC_EN;
 		}
@@ -526,7 +526,7 @@ LoadRes Cartridge::loadROM(std::string const &romfile,
 	const scoped_ptr<File> rom(newFileInstance(romfile));
 	if (rom->fail())
 		return LOADRES_IO_ERROR;
-	
+
 	unsigned rambanks = 1;
 	unsigned rombanks = 2;
 	bool cgb = false;
@@ -545,7 +545,7 @@ LoadRes Cartridge::loadROM(std::string const &romfile,
 		case 0x06: type = MBC2; break;
 		case 0x08:
 		case 0x09: type = PLAIN; break;
-		case 0x0B: 
+		case 0x0B:
 		case 0x0C:
 		case 0x0D: return LOADRES_UNSUPPORTED_MBC_MMM01;
 		case 0x0F:
@@ -553,7 +553,7 @@ LoadRes Cartridge::loadROM(std::string const &romfile,
 		case 0x11:
 		case 0x12:
 		case 0x13: type = MBC3; break;
-		case 0x15: 
+		case 0x15:
 		case 0x16:
 		case 0x17: return LOADRES_UNSUPPORTED_MBC_MBC4;
 		case 0x19:
@@ -591,7 +591,7 @@ LoadRes Cartridge::loadROM(std::string const &romfile,
 
 	std::size_t const filesize = rom->size();
 	rombanks = std::max(pow2ceil(filesize / 0x4000), 2u);
-	
+
 	defaultSaveBasePath.clear();
 	ggUndoList.clear();
 	mbc.reset();
@@ -604,12 +604,12 @@ LoadRes Cartridge::loadROM(std::string const &romfile,
 	            0xFF,
 	            (rombanks - filesize / 0x4000) * 0x4000ul);
 	enforce8bit(memptrs.romdata(), rombanks * 0x4000ul);
-	
+
 	if (rom->fail())
 		return LOADRES_IO_ERROR;
-	
+
 	defaultSaveBasePath = stripExtension(romfile);
-	
+
 	switch (type) {
 	case PLAIN: mbc.reset(new Mbc0(memptrs)); break;
 	case MBC1:
@@ -723,9 +723,9 @@ void Cartridge::setGameGenie(const std::string &codes) {
 			if (memptrs.romdata() + it->addr < memptrs.romdataend())
 				memptrs.romdata()[it->addr] = it->data;
 		}
-		
+
 		ggUndoList.clear();
-		
+
 		std::string code;
 		for (std::size_t pos = 0; pos < codes.length(); pos += code.length() + 1) {
 			code = codes.substr(pos, codes.find(';', pos) - pos);

@@ -29,7 +29,7 @@ class QWidget;
 
 class CustomDevConf : public QObject {
 	Q_OBJECT
-	
+
 	const char *const defaultstr;
 	const char *const confgroup;
 	const scoped_ptr<QWidget> confWidget;
@@ -37,10 +37,10 @@ class CustomDevConf : public QObject {
 	QLineEdit *const customDevEdit;
 	QByteArray customDevStr;
 	bool useCustomDev;
-	
+
 private slots:
 	void customDevBoxChange(bool checked);
-	
+
 public:
 	CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup, const char *customdevstr = 0);
 	~CustomDevConf();

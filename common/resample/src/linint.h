@@ -30,7 +30,7 @@ class LinintCore {
 	std::size_t pos_;
 	unsigned fracPos_;
 	int prevSample_;
-	
+
 public:
 	explicit LinintCore(long inRate = 1, long outRate = 1) { init(inRate, outRate); }
 
@@ -98,7 +98,7 @@ std::size_t LinintCore<channels>::resample(short *const out, const short *const 
 template<int channels>
 class Linint : public Resampler {
 	LinintCore<channels> cores[channels];
-	
+
 public:
 	Linint(long inRate, long outRate);
 	void adjustRate(long inRate, long outRate);
@@ -110,7 +110,7 @@ public:
 template<int channels>
 Linint<channels>::Linint(const long inRate, const long outRate) {
 	setRate(inRate, outRate);
-	
+
 	for (int i = 0; i < channels; ++i)
 		cores[i].init(inRate, outRate);
 }
@@ -118,7 +118,7 @@ Linint<channels>::Linint(const long inRate, const long outRate) {
 template<int channels>
 void Linint<channels>::adjustRate(const long inRate, const long outRate) {
 	setRate(inRate, outRate);
-	
+
 	for (int i = 0; i < channels; ++i)
 		cores[i].adjustRate(inRate, outRate);
 }
@@ -126,10 +126,10 @@ void Linint<channels>::adjustRate(const long inRate, const long outRate) {
 template<int channels>
 std::size_t Linint<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t outlen = 0;
-	
+
 	for (int i = 0; i < channels; ++i)
 		outlen = cores[i].resample(out + i, in + i, inlen);
-	
+
 	return outlen;
 }
 

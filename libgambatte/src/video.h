@@ -31,7 +31,7 @@ namespace gambatte {
 
 class VideoInterruptRequester {
 	InterruptRequester * intreq;
-	
+
 public:
 	explicit VideoInterruptRequester(InterruptRequester * intreq) : intreq(intreq) {}
 	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq); }
@@ -42,44 +42,44 @@ public:
 class M0Irq {
 	unsigned char statReg_;
 	unsigned char lycReg_;
-	
+
 public:
 	M0Irq() : statReg_(0), lycReg_(0) {}
-	
+
 	void lcdReset(const unsigned statReg, const unsigned lycReg) {
 		statReg_ = statReg;
 		 lycReg_ =  lycReg;
 	}
-	
+
 	void statRegChange(const unsigned statReg,
 			const unsigned long nextM0IrqTime, const unsigned long cc, const bool cgb) {
 		if (nextM0IrqTime - cc > cgb * 2U)
 			statReg_ = statReg;
 	}
-	
+
 	void lycRegChange(const unsigned lycReg,
 			const unsigned long nextM0IrqTime, const unsigned long cc, const bool ds, const bool cgb) {
 		if (nextM0IrqTime - cc > cgb * 5 + 1U - ds)
 			lycReg_ = lycReg;
 	}
-	
+
 	void doEvent(unsigned char *const ifreg, const unsigned ly, const unsigned statReg, const unsigned lycReg) {
 		if (((statReg_ | statReg) & 0x08) && (!(statReg_ & 0x40) || ly != lycReg_))
 			*ifreg |= 2;
-		
+
 		statReg_ = statReg;
 		 lycReg_ =  lycReg;
 	}
-	
+
 	void saveState(SaveState &state) const {
 		state.ppu.m0lyc = lycReg_;
 	}
-	
+
 	void loadState(const SaveState &state) {
 		 lycReg_ = state.ppu.m0lyc;
 		statReg_ = state.mem.ioamhram.get()[0x141];
 	}
-	
+
 	unsigned statReg() const { return statReg_; }
 };
 
@@ -87,37 +87,37 @@ class LCD {
 	enum Event { MEM_EVENT, LY_COUNT }; enum { NUM_EVENTS = LY_COUNT + 1 };
 	enum MemEvent { ONESHOT_LCDSTATIRQ, ONESHOT_UPDATEWY2, MODE1_IRQ, LYC_IRQ, SPRITE_MAP,
 	                HDMA_REQ, MODE2_IRQ, MODE0_IRQ }; enum { NUM_MEM_EVENTS = MODE0_IRQ + 1 };
-	
+
 	class EventTimes {
 		MinKeeper<NUM_EVENTS> eventMin_;
 		MinKeeper<NUM_MEM_EVENTS> memEventMin_;
 		VideoInterruptRequester memEventRequester_;
-		
+
 		void setMemEvent() {
 			const unsigned long nmet = nextMemEventTime();
 			eventMin_.setValue<MEM_EVENT>(nmet);
 			memEventRequester_.setNextEventTime(nmet);
 		}
-		
+
 	public:
 		explicit EventTimes(const VideoInterruptRequester memEventRequester) : memEventRequester_(memEventRequester) {}
-		
+
 		Event nextEvent() const { return static_cast<Event>(eventMin_.min()); }
 		unsigned long nextEventTime() const { return eventMin_.minValue(); }
 		unsigned long operator()(const Event e) const { return eventMin_.value(e); }
 		template<Event e> void set(const unsigned long time) { eventMin_.setValue<e>(time); }
 		void set(const Event e, const unsigned long time) { eventMin_.setValue(e, time); }
-		
+
 		MemEvent nextMemEvent() const { return static_cast<MemEvent>(memEventMin_.min()); }
 		unsigned long nextMemEventTime() const { return memEventMin_.minValue(); }
 		unsigned long operator()(const MemEvent e) const { return memEventMin_.value(e); }
 		template<MemEvent e> void setm(const unsigned long time) { memEventMin_.setValue<e>(time); setMemEvent(); }
 		void set(const MemEvent e, const unsigned long time) { memEventMin_.setValue(e, time); setMemEvent(); }
-		
+
 		void flagIrq(const unsigned bit) { memEventRequester_.flagIrq(bit); }
 		void flagHdmaReq() { memEventRequester_.flagHdmaReq(); }
 	};
-	
+
 	PPU ppu;
 	unsigned long dmgColorsRgb32[3 * 4];
 	unsigned char  bgpData[8 * 8];
@@ -145,7 +145,7 @@ class LCD {
 
 	unsigned long m0TimeOfCurrentLine(unsigned long cc);
 	bool cgbpAccessible(unsigned long cycleCounter);
-	
+
 	void mode3CyclesChange();
 	void doCgbBgColorChange(unsigned index, unsigned data, unsigned long cycleCounter);
 	void doCgbSpColorChange(unsigned index, unsigned data, unsigned long cycleCounter);
@@ -222,7 +222,7 @@ public:
 				update(cycleCounter);
 
 			lyReg = ppu.lyCounter().ly();
-			
+
 			if (lyReg == 153) {
 				if (isDoubleSpeed()) {
 					if (ppu.lyCounter().time() - cycleCounter <= 456 * 2 - 8)
@@ -241,13 +241,13 @@ public:
 	void lcdcChange(unsigned data, unsigned long cycleCounter);
 	void lcdstatChange(unsigned data, unsigned long cycleCounter);
 	void lycRegChange(unsigned data, unsigned long cycleCounter);
-	
+
 	void enableHdma(unsigned long cycleCounter);
 	void disableHdma(unsigned long cycleCounter);
 	bool hdmaIsEnabled() const { return eventTimes_(HDMA_REQ) != DISABLED_TIME; }
-	
+
 	void update(unsigned long cycleCounter);
-	
+
 	bool isCgb() const { return ppu.cgb(); }
 	bool isDoubleSpeed() const { return ppu.lyCounter().isDoubleSpeed(); }
 };

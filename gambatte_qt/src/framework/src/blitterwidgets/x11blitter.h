@@ -28,23 +28,23 @@ class X11Blitter : public BlitterWidget {
 	class SubBlitter;
 	class ShmBlitter;
 	class PlainBlitter;
-	
+
 	struct VisInfo {
 		void *visual;
 		unsigned depth;
 	};
-	
+
 	const scoped_ptr<QWidget> confWidget;
 	scoped_ptr<SubBlitter> subBlitter;
 	PersistCheckBox bf_;
 	Array<char> buffer;
 	VisInfo visInfo;
-	
+
 protected:
 	void setBufferDimensions(const unsigned width, const unsigned height);
 	void paintEvent(QPaintEvent *event);
 	void resizeEvent(QResizeEvent *event);
-	
+
 public:
 	explicit X11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~X11Blitter();
@@ -56,7 +56,7 @@ public:
 	QWidget* settingsWidget() const { return confWidget.get(); }
 	void acceptSettings();
 	void rejectSettings() const;
-	
+
 	QPaintEngine* paintEngine() const { return 0; }
 };
 

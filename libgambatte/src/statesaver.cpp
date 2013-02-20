@@ -113,7 +113,7 @@ static unsigned long read(std::ifstream &file) {
 		file.ignore(size - 4);
 		size = 4;
 	}
-	
+
 	unsigned long out = 0;
 	switch (size) {
 	case 4: out = (out | (file.get() & 0xFF)) << 8;
@@ -121,7 +121,7 @@ static unsigned long read(std::ifstream &file) {
 	case 2: out = (out | (file.get() & 0xFF)) << 8;
 	case 1: out =  out | (file.get() & 0xFF);
 	}
-	
+
 	return out;
 }
 
@@ -170,11 +170,11 @@ class SaverList {
 public:
 	typedef std::vector<Saver> list_t;
 	typedef list_t::const_iterator const_iterator;
-	
+
 private:
 	list_t list;
 	std::size_t maxLabelsize_;
-	
+
 public:
 	SaverList();
 	const_iterator begin() const { return list.begin(); }
@@ -217,7 +217,7 @@ SaverList::SaverList() {
 	\
 	pushSaver(list, label, Func::save, Func::load, sizeof label); \
 } while (0)
-	
+
 	{ static const char label[] = { c,c,           NUL }; ADD(cpu.cycleCounter); }
 	{ static const char label[] = { p,c,           NUL }; ADD(cpu.PC); }
 	{ static const char label[] = { s,p,           NUL }; ADD(cpu.SP); }
@@ -330,16 +330,16 @@ SaverList::SaverList() {
 	{ static const char label[] = { r,t,c,m,       NUL }; ADD(rtc.dataM); }
 	{ static const char label[] = { r,t,c,s,       NUL }; ADD(rtc.dataS); }
 	{ static const char label[] = { r,t,c,l,l,d,   NUL }; ADD(rtc.lastLatchData); }
-	
+
 #undef ADD
 #undef ADDPTR
 #undef ADDARRAY
 
 	list.resize(list.size());
 	std::sort(list.begin(), list.end());
-	
+
 	maxLabelsize_ = 0;
-	
+
 	for (std::size_t i = 0; i < list.size(); ++i) {
 		if (list[i].labelsize > maxLabelsize_)
 			maxLabelsize_ = list[i].labelsize;
@@ -366,28 +366,28 @@ static void blendPxlPairs(PxlSum *const dst, const PxlSum *const sums) {
 
 static void writeSnapShot(std::ofstream &file, const uint_least32_t *pixels, const int pitch) {
 	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(uint_least32_t) : 0);
-	
+
 	if (pixels) {
 		uint_least32_t buf[StateSaver::SS_WIDTH];
-		
+
 		for (unsigned h = StateSaver::SS_HEIGHT; h--;) {
 			for (unsigned x = 0; x < StateSaver::SS_WIDTH; ++x) {
 				const uint_least32_t *const p = pixels + x * StateSaver::SS_DIV;
 				PxlSum pxlsum[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
-				
+
 				addPxlPairs(pxlsum    , p            );
 				addPxlPairs(pxlsum + 2, p + pitch    );
 				addPxlPairs(pxlsum + 2, p + pitch * 2);
 				addPxlPairs(pxlsum    , p + pitch * 3);
-				
+
 				blendPxlPairs(pxlsum    , pxlsum    );
 				blendPxlPairs(pxlsum + 1, pxlsum + 2);
-				
+
 				blendPxlPairs(pxlsum    , pxlsum    );
-				
+
 				buf[x] = ((pxlsum[0].rb & 0xFF00FF00U) | (pxlsum[0].g & 0x00FF0000U)) >> 8;
 			}
-			
+
 			file.write(reinterpret_cast<const char*>(buf), sizeof buf);
 			pixels += pitch * StateSaver::SS_DIV;
 		}
@@ -406,10 +406,10 @@ bool StateSaver::saveState(const SaveState &state,
 	std::ofstream file(filename.c_str(), std::ios_base::binary);
 	if (!file)
 		return false;
-	
+
 	{ static const char ver[] = { 0, 1 }; file.write(ver, sizeof ver); }
 	writeSnapShot(file, videoBuf, pitch);
-	
+
 	for (SaverList::const_iterator it = list.begin(); it != list.end(); ++it) {
 		file.write(it->label, it->labelsize);
 		(*it->save)(file, state);

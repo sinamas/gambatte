@@ -21,7 +21,7 @@
 unsigned long u48div(unsigned long num1, unsigned num2, const unsigned long den) {
 	unsigned long res = 0;
 	unsigned s = 16;
-	
+
 	do {
 		if (num1 < 0x10000) {
 			num1 <<= s;
@@ -33,22 +33,22 @@ unsigned long u48div(unsigned long num1, unsigned num2, const unsigned long den)
 				num1 <<= maxs;
 				num1 |= (num2 >> (s -= maxs)) & ((1 << maxs) - 1);
 			}
-			
+
 			if (num1 < 0x10000000) {
 				const unsigned maxs = s < 4 ? s : 4;
 				num1 <<= maxs;
 				num1 |= (num2 >> (s -= maxs)) & ((1 << maxs) - 1);
 			}
-			
+
 			while (num1 < den && s) {
 				num1 <<= 1; // if this overflows we're screwed
 				num1 |= num2 >> --s & 1;
 			}
 		}
-		
+
 		res += (num1 / den) << s;
 		num1 = (num1 % den);
 	} while (s);
-	
+
 	return res;
 }

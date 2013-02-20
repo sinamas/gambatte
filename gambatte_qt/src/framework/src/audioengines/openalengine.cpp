@@ -35,15 +35,15 @@ static const char* errorToString(ALenum error) {
 	case AL_INVALID_OPERATION: return "invalid operation";
 	case AL_OUT_OF_MEMORY: return "out of memory";
 	}
-	
+
 	return "";
 }
 
 static ALint getSourcei(ALuint source, ALenum pname) {
 	ALint value = 0;
-	
+
 	alGetSourcei(source, pname, &value);
-	
+
 	return value;
 }
 
@@ -66,10 +66,10 @@ OpenAlEngine::~OpenAlEngine() {
 
 void OpenAlEngine::deleteProcessedBufs() const {
 	ALint processed = getSourcei(source, AL_BUFFERS_PROCESSED);
-	
+
 	while (processed--) {
 		ALuint bid = 0;
-		
+
 		alSourceUnqueueBuffers(source, 1, &bid);
 		alDeleteBuffers(1, &bid);
 	}
@@ -78,52 +78,52 @@ void OpenAlEngine::deleteProcessedBufs() const {
 int OpenAlEngine::doInit(const int rate, unsigned latency) {
 	class FailureCleaner {
 		OpenAlEngine *const engine;
-		
+
 	public:
 		bool failed;
-		
+
 		FailureCleaner(OpenAlEngine *engine) : engine(engine), failed(true) {}
-		
+
 		~FailureCleaner() {
 			if (failed)
 				engine->uninit();
 		}
 	} failureCleaner(this);
-	
+
 	ALenum error;
-	
+
 	if (!(device = alcOpenDevice(NULL))) {
 		std::fprintf(stderr, "alcOpenDevice error\n");
 		return -1;
 	}
-	
+
 	if (!(context = alcCreateContext(device, NULL))) {
 		std::fprintf(stderr, "alcCreateContext error\n");
 		return -1;
 	}
-	
+
 	alGetError();
 	alcMakeContextCurrent(context);
-	
+
 	if ((error = alGetError()) != AL_NO_ERROR) {
 		std::fprintf(stderr, "alcMakeContextCurrent error: %s\n", errorToString(error));
 		return -1;
 	}
-	
+
 	alGenSources (1, &source);
-	
+
 	if ((error = alGetError()) != AL_NO_ERROR) {
 		std::fprintf(stderr, "alGenSources error: %s\n", errorToString(error));
 		return -1;
 	}
-	
+
 	failureCleaner.failed = false;
 	buffers = rate * latency / (BUF_SZ * 1000);
 	++buffers;
 // 	std::printf("buffers: %u\n", buffers);
 	buf = new qint16[BUF_SZ * 2];
 	bufPos = 0;
-	
+
 	return rate;
 }
 
@@ -131,28 +131,28 @@ void OpenAlEngine::uninit() {
 	if (context) {
 		if (alIsSource(source)) {
 			alSourceStop(source);
-			
+
 			ALint queued = getSourcei(source, AL_BUFFERS_QUEUED);
-			
+
 			while (queued--) {
 				ALuint bid = 0;
-				
+
 				alSourceUnqueueBuffers(source, 1, &bid);
 				alDeleteBuffers(1, &bid);
 			}
-			
+
 			alDeleteSources(1, &source);
 		}
-		
+
 		alcMakeContextCurrent(NULL);
 		alcDestroyContext(context);
 	}
-	
+
 	if (device)
 		alcCloseDevice(device);
-	
+
 	delete []buf;
-	
+
 	buf = NULL;
 	context = NULL;
 	device = NULL;
@@ -163,7 +163,7 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 	{
 		unsigned total = samples + bufPos;
 		const qint16 *src = static_cast<const qint16*>(data);
-		
+
 		while (total >= BUF_SZ) {
 			if (getSourcei(source, AL_BUFFERS_QUEUED) >= static_cast<int>(buffers)) {
 				while (getSourcei(source, AL_BUFFERS_PROCESSED) < 1  && getSourcei(source, AL_SOURCE_STATE) == AL_PLAYING) {
@@ -174,17 +174,17 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 					nanosleep(&tspec, NULL);
 #endif
 				}
-				
+
 				ALuint bid = 0;
 				alSourceUnqueueBuffers(source, 1, &bid);
 				alDeleteBuffers(1, &bid);
 			}
-			
+
 			std::memcpy(buf + bufPos * 2, src, (BUF_SZ - bufPos) * 2 * sizeof *buf);
 			src += (BUF_SZ - bufPos) * 2;
 			total -= BUF_SZ;
 			bufPos = 0;
-			
+
 			{
 				ALuint bufid = 0;
 				alGenBuffers(1, &bufid);
@@ -192,40 +192,40 @@ int OpenAlEngine::write(void *const data, const unsigned samples) {
 				alSourceQueueBuffers(source, 1, &bufid);
 			}
 		}
-		
+
 		std::memcpy(buf + bufPos * 2, src, (total - bufPos) * 2 * sizeof *buf);
-		
+
 		bufPos = total;
 	}
-	
+
 	if (getSourcei(source, AL_SOURCE_STATE) != AL_PLAYING) {
 		//std::printf("UNDERRUN!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 		alSourcePlay(source);
 	}
-	
+
 	//if (alGetError() != AL_NO_ERROR)
 	//	return -1;
-	
+
 	return 0;
 }
 
 const AudioEngine::BufferState OpenAlEngine::bufferState() const {
 	deleteProcessedBufs();
-	
+
 	unsigned fromUnderrun = 0;
-	
+
 	{
 		const ALint queued = getSourcei(source, AL_BUFFERS_QUEUED);
-	
+
 		if (queued > 0)
 			fromUnderrun = queued * BUF_SZ - (BUF_SZ >> 1);
 	}
-	
+
 	fromUnderrun += bufPos;
-	
+
 	const BufferState s = { fromUnderrun: fromUnderrun, fromOverflow: fromUnderrun > (buffers + 1) * BUF_SZ ? 0 : (buffers + 1) * BUF_SZ - fromUnderrun };
-	
+
 	//std::printf("fromUnderrun: %u\n", s.fromUnderrun);
-	
+
 	return s;
 }

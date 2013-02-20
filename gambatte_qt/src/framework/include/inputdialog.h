@@ -42,64 +42,64 @@ public:
 	struct Button {
 		// Label used in input settings dialog. If this is empty the button won't be configurable, but will use the defaultKey.
 		QString label;
-		
+
 		// Tab label used in input settings dialog.
 		QString category;
-		
+
 		// Default Qt::Key. Use Qt::Key_unknown for none.
 		int defaultKey;
-		
+
 		// Default alternate Qt::Key. Use Qt::Key_unknown for none.
 		int defaultAltKey;
-		
+
 		// called on button press / release
 		struct Action {
 			virtual void buttonPressed() {}
 			virtual void buttonReleased() {}
 			virtual ~Action() {}
 		} *action;
-		
+
 		// Default number of frames per auto-repeat press. 0 for auto-repeat disabled.
 		unsigned char defaultFpp;
 	};
-	
+
 private:
 	struct KeyMapped {
 		Button::Action *const action;
 		const unsigned char fpp;
 		KeyMapped(Button::Action *action, int fpp) : action(action), fpp(fpp) {}
 	};
-	
+
 	struct JoyMapped {
 		Button::Action *const action;
 		const int mask;
 		const unsigned char fpp;
 		JoyMapped(Button::Action *action, int mask, int fpp) : action(action), mask(mask), fpp(fpp) {}
 	};
-	
+
 	struct AutoPress {
 		Button::Action *action;
 		unsigned char fpp;
 		unsigned char fcnt;
 		AutoPress(Button::Action *action, unsigned char fpp, unsigned char fcnt) : action(action), fpp(fpp), fcnt(fcnt) {}
 	};
-	
+
 	struct Config {
 		SDL_Event event;
 		unsigned char fpp;
 	};
-	
+
 	template<class Map>
 	struct Mapping {
 		Map map;
 		std::vector<AutoPress> rapidvec;
 	};
-	
+
 	typedef std::multimap<unsigned,KeyMapped> keymap_t;
 	typedef std::multimap<unsigned,JoyMapped> joymap_t;
 	typedef Mapping<keymap_t> KeyMapping;
 	typedef Mapping<joymap_t> JoyMapping;
-	
+
 	const std::vector<Button> buttonInfos;
 	auto_vector<InputBoxPair> inputBoxPairs;
 	auto_vector<QSpinBox> fppBoxes;
@@ -107,25 +107,25 @@ private:
 	Mutual<KeyMapping> keymapping;
 	Mutual<JoyMapping> joymapping;
 	const bool deleteButtonActions;
-	
+
 	void resetMapping();
 	void store();
 	void restore();
-	
+
 public:
 	explicit InputDialog(const std::vector<Button> &buttonInfos,
 	            bool deleteButtonActions = true,
 	            QWidget *parent = 0);
 	~InputDialog();
-	
+
 	// These invoke Button::Actions matching the key pressed/released
 	void keyPressEvent(const QKeyEvent *);
 	void keyReleaseEvent(const QKeyEvent *);
 	void joystickEvent(const SDL_Event&);
-	
+
 	// Call once every frame to tick auto-repeat pressing.
 	void consumeAutoPress();
-	
+
 public slots:
 	void accept();
 	void reject();

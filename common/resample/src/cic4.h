@@ -22,7 +22,7 @@
 #include "subresampler.h"
 #include "rshift16_round.h"
 
-template<unsigned channels> 
+template<unsigned channels>
 class Cic4Core {
 	enum { BUFLEN = 64 };
 	unsigned long buf[BUFLEN];
@@ -37,10 +37,10 @@ class Cic4Core {
 	unsigned div_;
 // 	unsigned nextdivn;
 	unsigned bufpos;
-	
+
 	// trouble if div is too large, may be better to only support power of 2 div
 	static long mulForDiv(unsigned div) { return 0x10000 / (div * div * div * div); }
-	
+
 public:
 	explicit Cic4Core(const unsigned div = 1) { reset(div); }
 	unsigned div() const { return div_; }
@@ -49,7 +49,7 @@ public:
 	static double gain(unsigned div) { return rshift16_round(-32768l * (div * div * div * div) * mulForDiv(div)) / -32768.0; }
 };
 
-template<unsigned channels> 
+template<unsigned channels>
 void Cic4Core<channels>::reset(const unsigned div) {
 	sum4 = sum3 = sum2 = sum1 = 0;
 	prev4 = prev3 = prev2 = prev1 = 0;
@@ -64,7 +64,7 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 // 	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
 	const long mul = mulForDiv(div_);
 	const short *s = in;
-	
+
 	unsigned long sm1 = sum1;
 	unsigned long sm2 = sum2;
 	unsigned long sm3 = sum3;
@@ -73,12 +73,12 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 	unsigned long prv2 = prev2;
 	unsigned long prv3 = prev3;
 	unsigned long prv4 = prev4;
-	
+
 	while (inlen >> 2) {
 		const unsigned end = inlen < BUFLEN ? inlen & ~3 : BUFLEN & ~3;
 		unsigned long *b = buf;
 		unsigned n = end;
-		
+
 		do {
 			unsigned long s1 = sm1 += static_cast<long>(s[0 * channels]);
 			sm1 += static_cast<long>(s[1 * channels]);
@@ -99,30 +99,30 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 			s += 4 * channels;
 			b += 4;
 		} while (n -= 4);
-		
+
 		while (bufpos < end) {
 			const unsigned long out4 = buf[bufpos] - prv4;
 			prv4 = buf[bufpos];
 			bufpos += div_;
-			
+
 			const unsigned long out3 = out4 - prv3;
 			prv3 = out4;
 			const unsigned long out2 = out3 - prv2;
 			prv2 = out3;
-			
+
 			*out = rshift16_round(static_cast<long>(out2 - prv1) * mul);
 			prv1 = out2;
 			out += channels;
 		}
-		
+
 		bufpos -= end;
 		inlen -= end;
 	}
-	
+
 	if (inlen) {
 		unsigned n = inlen;
 		unsigned i = 0;
-		
+
 		do {
 			sm1 += static_cast<long>(*s);
 			s += channels;
@@ -130,25 +130,25 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 			sm3 += sm2;
 			buf[i++] = sm4 += sm3;
 		} while (--n);
-		
+
 		while (bufpos < inlen) {
 			const unsigned long out4 = buf[bufpos] - prv4;
 			prv4 = buf[bufpos];
 			bufpos += div_;
-			
+
 			const unsigned long out3 = out4 - prv3;
 			prv3 = out4;
 			const unsigned long out2 = out3 - prv2;
 			prv2 = out3;
-			
+
 			*out = rshift16_round(static_cast<long>(out2 - prv1) * mul);
 			prv1 = out2;
 			out += channels;
 		}
-		
+
 		bufpos -= inlen;
 	}
-	
+
 	sum1 = sm1;
 	sum2 = sm2;
 	sum3 = sm3;
@@ -157,16 +157,16 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 	prev2 = prv2;
 	prev3 = prv3;
 	prev4 = prv4;
-	
+
 	/*unsigned long sm1 = sum1;
 	unsigned long sm2 = sum2;
 	unsigned long sm3 = sum3;
 	unsigned long sm4 = sum4;
-	
+
 	if (produced) {
 		unsigned divn = nextdivn;
 		std::size_t n = produced;
-		
+
 		do {
 			do {
 				sm1 += static_cast<long>(*s);
@@ -175,7 +175,7 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 				sm3 += sm2;
 				sm4 += sm3;
 			} while (--divn);
-			
+
 			const unsigned long out4 = sm4 - prev4;
 			prev4 = sm4;
 			const unsigned long out3 = out4 - prev3;
@@ -185,17 +185,17 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
-			
+
 			divn = div_;
 		} while (--n);
-		
+
 		nextdivn = div_;
 	}
-	
+
 	{
 		unsigned divn = (in + inlen * channels - s) / channels;
 		nextdivn -= divn;
-		
+
 		while (divn--) {
 			sm1 += static_cast<long>(*s);
 			s += channels;
@@ -204,19 +204,19 @@ std::size_t Cic4Core<channels>::filter(short *out, const short *const in, std::s
 			sm4 += sm3;
 		}
 	}
-	
+
 	sum1 = sm1;
 	sum2 = sm2;
 	sum3 = sm3;
 	sum4 = sm4;*/
-	
+
 	return produced;
 }
 
 template<unsigned channels>
 class Cic4 : public SubResampler {
 	Cic4Core<channels> cics[channels];
-	
+
 public:
 	enum { MAX_DIV = 13 };
 	explicit Cic4(unsigned div);
@@ -235,11 +235,11 @@ Cic4<channels>::Cic4(const unsigned div) {
 template<unsigned channels>
 std::size_t Cic4<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t samplesOut;
-	
+
 	for (unsigned i = 0; i < channels; ++i) {
 		samplesOut = cics[i].filter(out + i, in + i, inlen);
 	}
-	
+
 	return samplesOut;
 }
 

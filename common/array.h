@@ -27,7 +27,7 @@ template<typename T>
 class Array : Uncopyable {
 	T *a;
 	std::size_t sz;
-	
+
 public:
 	explicit Array(std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}
 	~Array() { delete[] defined_ptr(a); }
@@ -40,7 +40,7 @@ public:
 template<typename T>
 class ScopedArray : Uncopyable {
 	T *a_;
-	
+
 public:
 	explicit ScopedArray(T *a = 0) : a_(a) {}
 	~ScopedArray() { delete[] defined_ptr(a_); }

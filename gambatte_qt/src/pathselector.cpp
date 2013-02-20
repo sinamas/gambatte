@@ -28,15 +28,15 @@ static int getCustomIndex(const QComboBox *const comboBox) {
 
 static void setPath(QComboBox *const comboBox, const QString &value) {
 	const int valueIndex = comboBox->findData(value);
-	
+
 	if (valueIndex < 0) {
 		comboBox->addItem(QDir::toNativeSeparators(value), value);
-		
+
 		const int customIndex = getCustomIndex(comboBox);
-		
+
 		if (comboBox->count() > customIndex + 2)
 			comboBox->removeItem(customIndex + 1);
-		
+
 		comboBox->setCurrentIndex(comboBox->count() - 1);
 	} else
 		comboBox->setCurrentIndex(valueIndex);
@@ -50,12 +50,12 @@ PathSelector::PathSelector(const QString &caption, const QString &settingskey,
   key_(settingskey)
 {
 	comboBox_->addItem(default1.first, default1.second);
-	
+
 	if (default2 != Mapping())
 		comboBox_->addItem(default2.first, default2.second);
-	
+
 	comboBox_->addItem(tr("Other..."));
-	
+
 	value_ = QSettings().value(key_, value_).toString();
 	reject();
 

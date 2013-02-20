@@ -56,29 +56,29 @@ void print(RandomAccessIterator dest, const unsigned pitch, Fill fill, const cha
 	while (const int character = *chars++) {
 		RandomAccessIterator dst = dest;
 		const unsigned char *s = font[character];
-		
+
 		const unsigned width = *s >> 4;
 		unsigned h = *s++ & 0xF;
-		
+
 		while (h--) {
 			RandomAccessIterator d = dst;
-			
+
 			unsigned line = *s++;
-			
+
 			if (width > 8)
 				line |= *s++ << 8;
-			
+
 			while (line) {
 				if (line & 1)
 					fill(d, pitch);
-				
+
 				line >>= 1;
 				++d;
 			}
-			
+
 			dst += pitch;
 		}
-		
+
 		dest += width;
 	}
 }

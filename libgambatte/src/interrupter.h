@@ -34,7 +34,7 @@ class Interrupter {
 	unsigned short &SP;
 	unsigned short &PC;
 	std::vector<GsCode> gsCodes;
-	
+
 	void applyVblankCheats(unsigned long cc, class Memory &mem);
 public:
 	Interrupter(unsigned short &SP, unsigned short &PC);

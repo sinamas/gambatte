@@ -29,7 +29,7 @@ class Kreed2xSaI : public VideoLink {
 public:
 	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
 	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
-	
+
 	Kreed2xSaI();
 	virtual void* inBuf() const;
 	virtual int inPitch() const;

@@ -32,7 +32,7 @@ lstartserial:
 .code@1500
 	xor a, a
 	ldff(0f), a,
-	
+
 .code@15f1
 	ldff a, (0f)
 	ld b, a

@@ -30,32 +30,32 @@ class RingBuffer {
 	std::size_t sz;
 	std::size_t rpos;
 	std::size_t wpos;
-	
+
 public:
 	explicit RingBuffer(const std::size_t sz_in = 0) : sz(0), rpos(0), wpos(0) { reset(sz_in); }
-	
+
 	std::size_t avail() const {
 		return (wpos < rpos ? 0 : sz) + rpos - wpos - 1;
 	}
-	
+
 	void clear() {
 		wpos = rpos = 0;
 	}
-	
+
 	void fill(T value);
-	
+
 	void read(T *out, std::size_t num);
-	
+
 	void reset(std::size_t sz_in);
-	
+
 	std::size_t size() const {
 		return sz - 1;
 	}
-	
+
 	std::size_t used() const {
 		return (wpos < rpos ? sz : 0) + wpos - rpos;
 	}
-	
+
 	void write(const T *in, std::size_t num);
 };
 
@@ -70,16 +70,16 @@ template<typename T>
 void RingBuffer<T>::read(T *out, std::size_t num) {
 	if (rpos + num > sz) {
 		const std::size_t n = sz - rpos;
-		
+
 		std::memcpy(out, buf + rpos, n * sizeof *out);
-		
+
 		rpos = 0;
 		num -= n;
 		out += n;
 	}
-	
+
 	std::memcpy(out, buf + rpos, num * sizeof *out);
-	
+
 	if ((rpos += num) == sz)
 		rpos = 0;
 }
@@ -95,16 +95,16 @@ template<typename T>
 void RingBuffer<T>::write(const T *in, std::size_t num) {
 	if (wpos + num > sz) {
 		const std::size_t n = sz - wpos;
-		
+
 		std::memcpy(buf + wpos, in, n * sizeof *buf);
-		
+
 		wpos = 0;
 		num -= n;
 		in += n;
 	}
-	
+
 	std::memcpy(buf + wpos, in, num * sizeof *buf);
-	
+
 	if ((wpos += num) == sz)
 		wpos = 0;
 }

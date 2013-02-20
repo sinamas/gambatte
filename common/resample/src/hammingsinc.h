@@ -48,27 +48,27 @@ public:
 			const float widthTimesTaps = 3.0f;
 			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
-		
+
 		static float toFc(const float rollOffStart, const int taps) {
 			const float startToFcDeltaTimesTaps = 1.27f;
 			return startToFcDeltaTimesTaps / taps + rollOffStart;
 		}
-		
+
 	public:
 		const unsigned taps;
 		const float fc;
-		
+
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
 	HammingSinc(unsigned div, unsigned phaseLen, double fc)
 	: kernel(phaseLen * phases), convoluter_(kernel, phaseLen, div)
 	{ makeSincKernel(kernel, phases, phaseLen, fc, hammingWin, 1.0); }
-	
+
 	HammingSinc(unsigned div, RollOff ro, double gain)
 	: kernel(ro.taps * phases), convoluter_(kernel, ro.taps, div)
 	{ makeSincKernel(kernel, phases, ro.taps, ro.fc, hammingWin, gain);}
-	
+
 	std::size_t resample(short *out, const short *in, std::size_t inlen) { return convoluter_.filter(out, in, inlen); }
 	void adjustDiv(unsigned div) { convoluter_.adjustDiv(div); }
 	unsigned mul() const { return MUL; }

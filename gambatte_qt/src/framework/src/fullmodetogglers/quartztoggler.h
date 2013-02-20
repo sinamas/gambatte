@@ -27,7 +27,7 @@ class QWidget;
 
 class QuartzToggler : public FullModeToggler {
 	Q_OBJECT
-		
+
 	CFDictionaryRef originalMode;
 	CGDirectDisplayID *activeDspys;
 	std::vector<std::vector<ResInfo> > infoVector;
@@ -35,7 +35,7 @@ class QuartzToggler : public FullModeToggler {
 	std::vector<unsigned> fullRateIndex;
 	unsigned widgetScreen;
 	bool isFull;
-	
+
 public:
 	QuartzToggler();
 	~QuartzToggler();
@@ -50,7 +50,7 @@ public:
 	void setScreen(const QWidget *widget);
 	unsigned screen() const { return widgetScreen; }
 	unsigned screens() const { return infoVector.size(); }
-	
+
 signals:
 	void rateChange(int newHz);
 //	void modeChange();

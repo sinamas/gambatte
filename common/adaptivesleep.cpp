@@ -21,36 +21,36 @@
 usec_t AdaptiveSleep::sleepUntil(usec_t base, usec_t inc) {
 	usec_t now = getusecs();
 	usec_t diff = now - base;
-	
+
 	if (diff >= inc)
 		return diff - inc;
-	
+
 	diff = inc - diff;
-	
+
 	if (diff > oversleep + oversleepVar) {
 		diff -= oversleep + oversleepVar;
 		usecsleep(diff);
 		const usec_t ideal = now + diff;
 		now = getusecs();
-		
+
 		{
 			usec_t curOversleep = now - ideal;
-				
+
 			if (negate(curOversleep) < curOversleep)
 				curOversleep = 0;
-			
+
 			oversleepVar = (oversleepVar * 15 + (curOversleep < oversleep ? oversleep - curOversleep : curOversleep - oversleep) + 8) >> 4;
 			oversleep = (oversleep * 15 + curOversleep + 8) >> 4;
 		}
-		
+
 		noSleep = 60;
 	} else if (--noSleep == 0) {
 		noSleep = 60;
 		oversleep = oversleepVar = 0;
 	}
-	
+
 	while (now - base < inc)
 		now = getusecs();
-	
+
 	return 0;
 }

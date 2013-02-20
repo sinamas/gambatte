@@ -69,7 +69,7 @@ struct CustomEvent : QEvent {
 struct MediaWidget::Pauser::DoPause {
 	MediaWidget &mw;
 	explicit DoPause(MediaWidget &mw) : mw(mw) {}
-	
+
 	void operator()() const {
 		if (mw.running) {
 			mw.worker->pause();
@@ -83,7 +83,7 @@ struct MediaWidget::Pauser::DoPause {
 struct MediaWidget::Pauser::DoUnpause {
 	MediaWidget &mw;
 	explicit DoUnpause(MediaWidget &mw) : mw(mw) {}
-	
+
 	void operator()() const {
 		if (mw.running) {
 			mw.jsTimer->stop();
@@ -131,16 +131,16 @@ public:
 	bool cancelBlit();
 	void paused();
 	void audioEngineFailure();
-	
+
 	bool tryLockVideoBuffer(PixelBuffer &pb) {
 		if (mw.vbmut.tryLock()) {
 			pb = mw.blitterContainer->blitter()->inBuffer();
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	void unlockVideoBuffer() { mw.vbmut.unlock(); }
 
 	void consumeBlitRequest();
@@ -232,11 +232,11 @@ void MediaWidget::WorkerCallback::consumeBlitRequest() {
 
 static auto_vector<BlitterWidget> makeBlitterWidgets(const VideoBufferLocker vbl, const DwmControlHwndChange hwndc) {
 	auto_vector<BlitterWidget> blitters;
-	
+
 	addBlitterWidgets(blitters, vbl);
 	blitters.push_back(new QGLBlitter(vbl, hwndc));
 	blitters.push_back(new QPainterBlitter(vbl));
-	
+
 	for (auto_vector<BlitterWidget>::iterator it = blitters.begin(); it != blitters.end();) {
 		if ((*it)->isUnusable()) {
 			it = blitters.erase(it);
@@ -249,10 +249,10 @@ static auto_vector<BlitterWidget> makeBlitterWidgets(const VideoBufferLocker vbl
 
 static auto_vector<AudioEngine> makeAudioEngines(const WId winId) {
 	auto_vector<AudioEngine> audioEngines;
-	
+
 	addAudioEngines(audioEngines, winId);
 	audioEngines.push_back(new NullAudioEngine);
-	
+
 	return audioEngines;
 }
 
@@ -378,7 +378,7 @@ void MediaWidget::setVideo(const unsigned w, const unsigned h, BlitterWidget *co
 			if (running)
 				blitterContainer->blitter()->setVideoFormat(w, h);
 		}
-		
+
 		blitterContainer->setSourceSize(QSize(w, h));
 	}
 }
@@ -466,7 +466,7 @@ void MediaWidget::setFrameTime(long num, long denom) {
 		num = 0xFFFF;
 		denom = 1;
 	}
-	
+
 	frameRateControl.setFrameTime(Rational(num, denom));
 }
 
@@ -486,7 +486,7 @@ void MediaWidget::updateJoysticks() {
 struct MediaWidget::FrameStepFun {
 	MediaWidget &mw;
 	explicit FrameStepFun(MediaWidget &mw) : mw(mw) {}
-	
+
 	void operator()() const {
 		if (mw.running && mw.worker->frameStep()) {
 			BlitterWidget *const blitter = mw.blitterContainer->blitter();

@@ -27,13 +27,13 @@ class QWidget;
 
 class FpsSelector : public QObject {
 	Q_OBJECT
-	
+
 	QComboBox *const comboBox_;
 	QSize value_;
-	
+
 private slots:
 	void indexChanged(int index);
-	
+
 public:
 	FpsSelector();
 	~FpsSelector();

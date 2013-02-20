@@ -30,7 +30,7 @@ struct Colorsum {
 
 static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) {
 	unsigned w = WIDTH;
-	
+
 	while (w--) {
 		{
 			gambatte::uint_least32_t rsum = sums[1].r;
@@ -229,7 +229,7 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
-			
+
 			while (n--) {
 				const unsigned long pixel = *s;
 				sum->r = (pixel >> 16) * 27;
@@ -240,7 +240,7 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 				++sum;
 			}
 		}
-		
+
 		merge_columns(dline, sums);
 		dline += pitch;
 
@@ -248,7 +248,7 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
-			
+
 			while (n--) {
 				unsigned long pixel = *s;
 				unsigned long rsum = (pixel >> 16) * 21;
@@ -279,7 +279,7 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 				++sum;
 			}
 		}
-		
+
 		merge_columns(dline, sums);
 		dline += pitch;
 
@@ -287,7 +287,7 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
-			
+
 			while (n--) {
 				unsigned long pixel = *s;
 				unsigned long rsum = (pixel >> 16) * 9;
@@ -318,7 +318,7 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 				++sum;
 			}
 		}
-		
+
 		merge_columns(dline, sums);
 		dline += pitch;
 		sline += PITCH;

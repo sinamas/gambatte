@@ -45,23 +45,23 @@ public:
 			const float widthTimesTaps = 3.75f;
 			return std::max(static_cast<unsigned>(std::ceil(widthTimesTaps / rollOffWidth)), 4u);
 		}
-		
+
 		static float toFc(const float rollOffStart, const int taps) {
 			const float startToFcDeltaTimesTaps = 1.5f;
 			return startToFcDeltaTimesTaps / taps + rollOffStart;
 		}
-		
+
 	public:
 		const unsigned taps;
 		const float fc;
-		
+
 		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
 	Kaiser70Sinc(unsigned div, unsigned phaseLen, double fc)
 	: kernel(phaseLen * phases), convoluter_(kernel, phaseLen, div)
 	{ makeSincKernel(kernel, phases, phaseLen, fc, kaiser70SincWin, 1.0); }
-	
+
 	Kaiser70Sinc(unsigned div, RollOff ro, double gain)
 	: kernel(ro.taps * phases), convoluter_(kernel, ro.taps, div)
 	{ makeSincKernel(kernel, phases, ro.taps, ro.fc, kaiser70SincWin, gain);}

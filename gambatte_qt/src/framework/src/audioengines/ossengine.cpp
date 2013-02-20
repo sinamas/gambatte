@@ -50,66 +50,66 @@ int OssEngine::doInit(int speed, const unsigned latency) {
 		std::perror(conf.device());
 		goto fail;
 	}
-	
+
 	{
 		int channels = 2;
-		
+
 		if (ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &channels) == -1) {
 			std::perror("SNDCTL_DSP_CHANNELS");
 			goto fail;
 		}
-		
+
 		if (channels != 2) {
 			std::fprintf(stderr, "oss: unsupported number of channels\n");
 			goto fail;
 		}
 	}
-	
+
 	{
 		int format = AFMT_S16_NE;
-		
+
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
 			std::perror("SNDCTL_DSP_SETFMT");
 			goto fail;
 		}
-		
+
 		if (format != AFMT_S16_NE) {
 			std::fprintf(stderr, "oss: unsupported format\n");
 			goto fail;
 		}
 	}
-	
+
 	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed) == -1) {
 		std::perror("SNDCTL_DSP_SPEED");
 		goto fail;
 	}
-	
+
 	{
 		int arg = 0x60000 | static_cast<int>(std::log(speed * latency * 4 / 6000.0) / std::log(2.0) + 0.5);
-		
+
 		if (ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &arg) == -1) {
 			std::perror("SNDCTL_DSP_SETFRAGMENT");
 // 			goto fail;
 		}
 	}
-	
+
 	{
 		audio_buf_info info;
-		
+
 		if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info) == -1) {
 			std::perror("SNDCTL_DSP_GETOSPACE");
 			goto fail;
 		}
-		
+
 		bufSize = info.bytes >> 2;
 		fragSize = info.fragsize >> 2;
 	}
-	
+
 	prevbytes = 0;
 	est.init(speed, speed, bufSize);
-	
+
 	return speed;
-	
+
 fail:
 	uninit();
 	return -1;
@@ -118,14 +118,14 @@ fail:
 void OssEngine::uninit() {
 	if (audio_fd != -1)
 		close(audio_fd);
-	
+
 	audio_fd = -1;
 }
 
 int OssEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
 	if (bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
 		count_info ci;
-		
+
 		if (ioctl(audio_fd, SNDCTL_DSP_GETOPTR, &ci) != -1) {
 			if (static_cast<unsigned>(ci.bytes) > prevbytes) {
 				if (bstate.fromUnderrun > fragSize)
@@ -133,14 +133,14 @@ int OssEngine::write(void *const buffer, const unsigned samples, const BufferSta
 				else
 					est.reset();
 			}
-			
+
 			prevbytes = ci.bytes;
 		}
 	}
-	
+
 	if (::write(audio_fd, buffer, samples * 4) != static_cast<int>(samples * 4))
 		return -1;
-	
+
 	return 0;
 }
 
@@ -157,7 +157,7 @@ int OssEngine::write(void *const buffer, const unsigned samples, BufferState &pr
 const AudioEngine::BufferState OssEngine::bufferState() const {
 	BufferState s;
 	audio_buf_info info;
-	
+
 	if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info) == -1) {
 		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
 	} else {
@@ -165,10 +165,10 @@ const AudioEngine::BufferState OssEngine::bufferState() const {
 			info.bytes = 0;
 		else if (static_cast<unsigned>(info.bytes >> 2) > bufSize)
 			info.bytes = bufSize << 2;
-		
+
 		s.fromUnderrun = bufSize - (info.bytes >> 2);
 		s.fromOverflow = info.bytes >> 2;
 	}
-	
+
 	return s;
 }

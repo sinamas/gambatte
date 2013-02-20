@@ -25,21 +25,21 @@ class QWidget;
 
 class ConstBlitterConf {
 	const BlitterWidget *const blitter;
-	
+
 public:
 	explicit ConstBlitterConf(const BlitterWidget *const blitter) : blitter(blitter) {}
 	const QString& nameString() const;
 	unsigned maxSwapInterval() const;
 	QWidget* settingsWidget() const;
 	void rejectSettings() const;
-	
+
 	bool operator==(ConstBlitterConf r) const { return blitter == r.blitter; }
 	bool operator!=(ConstBlitterConf r) const { return blitter != r.blitter; }
 };
 
 class BlitterConf {
 	BlitterWidget *const blitter;
-	
+
 public:
 	explicit BlitterConf(BlitterWidget *const blitter) : blitter(blitter) {}
 	const QString& nameString() const;
@@ -47,7 +47,7 @@ public:
 	QWidget* settingsWidget() const;
 	void acceptSettings() const;
 	void rejectSettings() const;
-	
+
 	bool operator==(BlitterConf r) const { return blitter == r.blitter; }
 	bool operator!=(BlitterConf r) const { return blitter != r.blitter; }
 	operator const ConstBlitterConf() const { return ConstBlitterConf(blitter); }

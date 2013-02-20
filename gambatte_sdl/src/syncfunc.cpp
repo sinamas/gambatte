@@ -31,7 +31,7 @@ void usecsleep(const usec_t usecs) {
 void syncfunc(const long inc) {
 	static AdaptiveSleep asleep;
 	static usec_t last = getusecs();
-	
+
 	last += asleep.sleepUntil(last, inc);
 	last += inc;
 }

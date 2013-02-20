@@ -34,14 +34,14 @@ SdlBlitter::~SdlBlitter() {
 		SDL_UnlockYUVOverlay(overlay);
 		SDL_FreeYUVOverlay(overlay);
 	}
-	
+
 	if (surface != screen)
 		SDL_FreeSurface(surface);
 }
 
 void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned int height) {
 	surface = screen = SDL_SetVideoMode(width * scale, height * scale, SDL_GetVideoInfo()->vfmt->BitsPerPixel == 16 ? 16 : 32, screen ? screen->flags : startFlags);
-	
+
 	if (scale > 1 && screen) {
 		if (yuv) {
 			if ((overlay = SDL_CreateYUVOverlay(width * 2, height, SDL_UYVY_OVERLAY, screen)))
@@ -53,7 +53,7 @@ void SdlBlitter::setBufferDimensions(const unsigned int width, const unsigned in
 
 const SdlBlitter::PixelBuffer SdlBlitter::inBuffer() const {
 	PixelBuffer pb;
-	
+
 	if (overlay) {
 		pb.pixels = overlay->pixels[0];
 		pb.format = UYVY;
@@ -63,7 +63,7 @@ const SdlBlitter::PixelBuffer SdlBlitter::inBuffer() const {
 		pb.format = surface->format->BitsPerPixel == 16 ? RGB16 : RGB32;
 		pb.pitch = surface->pitch / surface->format->BytesPerPixel;
 	}
-	
+
 	return pb;
 }
 
@@ -75,7 +75,7 @@ inline void SdlBlitter::swScale() {
 void SdlBlitter::draw() {
 	if (!screen || !surface)
 		return;
-		
+
 	if (!overlay && surface != screen) {
 		if (surface->format->BitsPerPixel == 16)
 			swScale<Uint16>();
@@ -87,7 +87,7 @@ void SdlBlitter::draw() {
 void SdlBlitter::present() {
 	if (!screen || !surface)
 		return;
-		
+
 	if (overlay) {
 		SDL_Rect dstr = { 0, 0, Uint16(screen->w), Uint16(screen->h) };
 		SDL_UnlockYUVOverlay(overlay);

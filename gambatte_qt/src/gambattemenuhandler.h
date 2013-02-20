@@ -38,7 +38,7 @@ class CheatDialog;
 
 class FrameRateAdjuster : public QObject {
 	Q_OBJECT
-	
+
 	class FrameTime {
 	public:
 		struct Rational {
@@ -46,52 +46,52 @@ class FrameRateAdjuster : public QObject {
 			unsigned denom;
 			Rational(unsigned num = 0, unsigned denom = 1) : num(num), denom(denom) {}
 		};
-		
+
 	private:
 		enum { STEPS = 16 };
-		
+
 		Rational frameTimes[STEPS * 2 + 1];
 		unsigned index;
-		
+
 	public:
 		FrameTime(unsigned baseNum, unsigned baseDenom);
 		void setBaseFrameTime(unsigned baseNum, unsigned baseDenom);
-		
+
 		bool incPossible() const { return index < STEPS * 2; }
 		bool decPossible() const { return index; }
 		bool resetPossible() const { return index != STEPS; }
-		
+
 		void inc() {
 			if (index < STEPS * 2)
 				++index;
 		}
-		
+
 		void dec() {
 			if (index)
 				--index;
 		}
-		
+
 		void reset() { index = STEPS; }
 		const Rational& get() const { return frameTimes[index]; }
 		const Rational& base() const { return frameTimes[STEPS]; }
 	} frameTime_;
-	
+
 	const MiscDialog &miscDialog_;
 	MainWindow &mw_;
 	QAction *const decFrameRateAction_;
 	QAction *const incFrameRateAction_;
 	QAction *const resetFrameRateAction_;
 	bool enabled_;
-	
+
 	void changed();
-	
+
 private slots:
 	void miscDialogChange();
-	
+
 public:
 	FrameRateAdjuster(const MiscDialog &miscDialog, MainWindow &mw, QObject *parent = 0);
 	const QList<QAction*> actions();
-	
+
 public slots:
 	void setDisabled(bool disabled);
 	void decFrameRate();
@@ -123,9 +123,9 @@ public:
 
 class GambatteMenuHandler : public QObject {
 	Q_OBJECT
-		
+
 	enum { MaxRecentFiles = 9 };
-	
+
 	MainWindow *const mw;
 	GambatteSource *const source;
 	SoundDialog *const soundDialog;
@@ -146,16 +146,16 @@ class GambatteMenuHandler : public QObject {
 	QActionGroup *const stateSlotGroup;
 	WindowSizeMenu windowSizeMenu;
 	unsigned pauseInc;
-	
+
 	void loadFile(const QString &fileName);
 	void setCurrentFile(const QString &fileName);
 	void setDmgPaletteColors();
 	void updateRecentFileActions();
-	
+
 signals:
 	void romLoaded(bool);
 	void dmgRomLoaded(bool);
-	
+
 private slots:
 	void open();
 	void openRecentFile();
@@ -188,7 +188,7 @@ private slots:
 	void audioEngineFailure();
 	void toggleFullScreen();
 	void saveWindowSizeIfNotFullScreen();
-	
+
 public:
 	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);
 	~GambatteMenuHandler();

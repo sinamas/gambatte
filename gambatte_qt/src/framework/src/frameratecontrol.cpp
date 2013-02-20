@@ -42,7 +42,7 @@ void FrameRateControl::setFrameTime(const Rational frameTime) {
 void FrameRateControl::setRefreshRate(int refreshRate) {
 	if (refreshRate < 1)
 		refreshRate = 600;
-	
+
 	refreshRate_ = refreshRate;
 	blitter_->rateChange(refreshRate);
 	update();

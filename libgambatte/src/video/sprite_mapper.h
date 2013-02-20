@@ -76,7 +76,7 @@ public:
 private:
 	mutable unsigned char spritemap[144*10];
 	mutable unsigned char num[144];
-	
+
 	NextM0Time &nextM0Time_;
 	OamReader oamReader;
 

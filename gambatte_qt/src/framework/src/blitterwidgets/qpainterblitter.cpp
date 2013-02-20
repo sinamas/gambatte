@@ -63,7 +63,7 @@ void QPainterBlitter::draw() {
 void QPainterBlitter::paintEvent(QPaintEvent *const event) {
 	if (!image.get())
 		return;
-	
+
 	QImage *const frontImage = image2.get() && backImage == image.get() ? image2.get() : image.get();
 	QPainter painter(this);
 	painter.setClipRegion(event->region());
@@ -94,13 +94,13 @@ void QPainterBlitter::setBufferDimensions(const unsigned int w, const unsigned i
 
 void QPainterBlitter::uninit() {
 	image.reset();
-	
+
 	if (image2.get()) {
 		image2.reset();
 	} else {
 		delete[] buffer;
 	}
-	
+
 	buffer = NULL;
 }
 

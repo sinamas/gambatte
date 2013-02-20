@@ -29,7 +29,7 @@
 struct ResamplerInfo {
 	/** Short character string description of the resampler. */
 	const char *desc;
-	
+
 	/** Points to a function that can be used to create an instance of the resampler.
 	  * @param inRate The input sampling rate.
 	  * @param outRate The desired output sampling rate.
@@ -37,13 +37,13 @@ struct ResamplerInfo {
 	  * @return Pointer to the created instance (on the heap). Caller must free this with the delete operator.
 	  */
 	Resampler* (*create)(long inRate, long outRate, std::size_t periodSz);
-	
+
 	/** Returns the number of ResamplerInfos that can be gotten with get(). */
 	static std::size_t num() { return num_; }
-	
+
 	/** Returns ResamplerInfo number n. Where n is less than num(). */
 	static const ResamplerInfo& get(std::size_t n) { return resamplers[n]; }
-	
+
 private:
 	static const ResamplerInfo resamplers[];
 	static const std::size_t num_;

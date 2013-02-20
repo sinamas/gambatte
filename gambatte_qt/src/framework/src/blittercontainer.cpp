@@ -74,12 +74,12 @@ void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
 	if (blitter_ != blitter_in) {
 // 		if (blitter_)
 // 			blitter_->setParent(0);
-	
+
 		blitter_ = blitter_in;
-	
+
 // 		if (blitter_)
 // 			blitter_->setParent(this);
-		
+
 		updateLayout();
 		testExclusive();
 	}

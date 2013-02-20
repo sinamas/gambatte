@@ -27,7 +27,7 @@
 
 class XRandRToggler : public FullModeToggler, Uncopyable {
 	Q_OBJECT
-		
+
 	std::vector<ResInfo> infoVector;
 	XRRScreenConfiguration *const config;
 	unsigned originalResIndex;
@@ -36,7 +36,7 @@ class XRandRToggler : public FullModeToggler, Uncopyable {
 	unsigned fullRateIndex;
 	short originalRate;
 	bool isFull;
-	
+
 public:
 	static bool isUsable();
 	XRandRToggler();
@@ -52,7 +52,7 @@ public:
 	void setScreen(const QWidget */*widget*/) {}
 	unsigned screen() const { return 0; }
 	unsigned screens() const { return 1; }
-	
+
 signals:
 	void rateChange(int newHz);
 //	void modeChange();

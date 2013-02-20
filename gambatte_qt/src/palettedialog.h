@@ -34,14 +34,14 @@ class QSettings;
 
 class ColorPicker : public QFrame {
 	Q_OBJECT
-	
+
 	QWidget *const w;
 	QPoint dragStartPosition;
-	
+
 	const QColor& getQColor() const;
 	void requestColor();
 	void setColor(const QColor &color);
-	
+
 protected:
 	void dragEnterEvent(QDragEnterEvent *e);
 	void dropEvent(QDropEvent *e);
@@ -49,7 +49,7 @@ protected:
 	void mousePressEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
 	void keyReleaseEvent(QKeyEvent *e);
-	
+
 public:
 	ColorPicker(QRgb color = 0xFFFFFF, QWidget *parent = 0);
 	QRgb getColor() const;
@@ -62,29 +62,29 @@ signals:
 
 class ColorQuad : public QGroupBox {
 	Q_OBJECT
-	
+
 	ColorPicker* picker[4];
-	
+
 private slots:
 	void pickerChanged();
-	
+
 protected:
 	void dragEnterEvent(QDragEnterEvent *e);
 	void dropEvent(QDropEvent *e);
 	void mousePressEvent(QMouseEvent *e);
-	
+
 public:
 	ColorQuad(const QString &label, QWidget *parent = 0);
 	QRgb getColor(unsigned index) const { return picker[index & 3]->getColor(); }
 	void setColor(unsigned index, QRgb color) { picker[index & 3]->setColor(color); }
-	
+
 signals:
 	void colorChanged();
 };
 
 class PaletteDialog : public QDialog {
 	Q_OBJECT
-	
+
 	const PaletteDialog *const global;
 	QListView *const listView;
 	QPushButton *const rmSchemeButton;
@@ -94,19 +94,19 @@ class PaletteDialog : public QDialog {
 	QString schemeString;
 	QString savedir;
 	QString settingsFile;
-	
+
 	void saveSettings(QSettings &settings);
 	void loadSettings(QSettings &settings);
 	void saveToSettingsFile();
 	void setSchemeList();
 	void store();
 	void restore();
-	
+
 private slots:
 	void rmScheme();
 	void saveScheme();
 	void schemeChanged(const QModelIndex &current, const QModelIndex &previous);
-	
+
 public:
 	explicit PaletteDialog(const QString &savepath, const PaletteDialog *global = 0, QWidget *parent = 0);
 	~PaletteDialog();

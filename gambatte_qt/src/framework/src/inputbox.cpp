@@ -374,7 +374,7 @@ void InputBox::focusInEvent(QFocusEvent *event) {
 		ignoreCnt = 1;
 		timerId = startTimer(100);
 	}
-	
+
 	QLineEdit::focusInEvent(event);
 }
 
@@ -384,7 +384,7 @@ void InputBox::focusOutEvent(QFocusEvent *event) {
 		killTimer(timerId);
 		timerId = 0;
 	}
-	
+
 	QLineEdit::focusOutEvent(event);
 }
 
@@ -393,7 +393,7 @@ void InputBox::keyPressEvent(QKeyEvent *e) {
 		QLineEdit::keyPressEvent(e);
 	} else {
 		setData(e->key());
-		
+
 		if (nextFocus)
 			nextFocus->setFocus();
 	}
@@ -404,11 +404,11 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 		return;
 
 	SDL_JoystickUpdate();
-	
+
 	SDL_Event ev;
 	int value = 0;
 	unsigned id = 0;
-	
+
 	if (ignoreCnt) {
 		ignoreCnt--;
 	} else while (pollJsEvent(&ev, 256)) {
@@ -418,20 +418,20 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 		case SDL_JOYBUTTONCHANGE:
 			if (!ev.value)
 				continue;
-			
+
 			value = ev.value;
 			break;
 		default: continue;
 		}
-		
+
 		id = ev.id;
 	}
-	
+
 	SDL_ClearEvents();
-	
+
 	if (id) {
 		setData(id, value);
-		
+
 		if (nextFocus)
 			nextFocus->setFocus();
 	}
@@ -440,7 +440,7 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 void InputBox::setData(const unsigned id, const int value) {
 	data.id = id;
 	data.value = value;
-	
+
 	if (value == KBD_VALUE) {
 		setText(keyToString(id));
 	} else if (value == NULL_VALUE) {
@@ -448,7 +448,7 @@ void InputBox::setData(const unsigned id, const int value) {
 	} else {
 		QString str(SDL_JoystickName(data.dev_num));
 		str.append(' ');
-		
+
 		switch (data.type) {
 		case SDL_JOYAXISMOTION:
 			str.append("Axis ");
@@ -460,7 +460,7 @@ void InputBox::setData(const unsigned id, const int value) {
 			str.append("Hat ");
 			str.append(QString::number(data.num));
 			str.append(' ');
-			
+
 			if (data.value & SDL_HAT_UP)
 				str.append("Up");
 			if (data.value & SDL_HAT_DOWN)
@@ -469,14 +469,14 @@ void InputBox::setData(const unsigned id, const int value) {
 				str.append("Left");
 			if (data.value & SDL_HAT_RIGHT)
 				str.append("Right");
-			
+
 			break;
 		case SDL_JOYBUTTONCHANGE:
 			str.append("Button ");
 			str.append(QString::number(data.num));
 			break;
 		}
-		
+
 		setText(str);
 	}
 }

@@ -25,16 +25,16 @@
 
 class GdiToggler : public FullModeToggler, private Uncopyable {
 	Q_OBJECT
-	
+
 	class MultiMon;
-	
+
 	MultiMon *const mon;
 	std::vector<std::vector<ResInfo> > infoVector;
 	std::vector<unsigned> fullResIndex;
 	std::vector<unsigned> fullRateIndex;
 	unsigned widgetScreen;
 	bool isFull;
-	
+
 public:
 	GdiToggler();
 	~GdiToggler();
@@ -49,7 +49,7 @@ public:
 	void setScreen(const QWidget *widget);
 	unsigned screen() const { return widgetScreen; }
 	unsigned screens() const { return infoVector.size(); }
-	
+
 signals:
 	void rateChange(int newHz);
 //	void modeChange();

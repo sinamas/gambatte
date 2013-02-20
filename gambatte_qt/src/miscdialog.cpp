@@ -55,34 +55,34 @@ MiscDialog::MiscDialog(const QString &savepath, QWidget *const parent)
 	setWindowTitle(tr("Miscellaneous Settings"));
 	turboSpeedBox->setRange(2, 16);
 	turboSpeedBox->setSuffix("x");
-	
+
 	QVBoxLayout *const mainLayout = new QVBoxLayout(this);
 	QVBoxLayout *const topLayout = addLayout(mainLayout, new QVBoxLayout);
-	
+
 	{
 		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Fast-forward speed:")));
 		hLayout->addWidget(turboSpeedBox);
 	}
-	
+
 	addLayout(topLayout, new QHBoxLayout)->addWidget(pauseOnDialogs_.checkBox());
 	addLayout(topLayout, new QHBoxLayout)->addWidget(pauseOnFocusOut_.checkBox());
-	
+
 	{
 		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Base frame rate:")));
 		hLayout->addWidget(fpsSelector_.widget());
 	}
-	
+
 	if (MainWindow::hasDwmCapability()) {
 		dwmTripleBuf_.checkBox()->setToolTip(tr("Avoids excessive frame duplication when DWM composition is active. Recommended."));
 		addLayout(topLayout, new QHBoxLayout)->addWidget(dwmTripleBuf_.checkBox());
 	} else
 		dwmTripleBuf_.checkBox()->hide();
-	
+
 	multicartCompat_.checkBox()->setToolTip(tr("Support certain multicart ROM images by not strictly respecting ROM header MBC type."));
 	addLayout(topLayout, new QHBoxLayout)->addWidget(multicartCompat_.checkBox());
-	
+
 	{
 		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Save path:")));
@@ -93,16 +93,16 @@ MiscDialog::MiscDialog(const QString &savepath, QWidget *const parent)
 		QPushButton *const okButton = new QPushButton(tr("OK"), this);
 		QPushButton *const cancelButton = new QPushButton(tr("Cancel"), this);
 		QHBoxLayout *const hLayout = addLayout(mainLayout, new QHBoxLayout, Qt::AlignBottom | Qt::AlignRight);
-		
+
 		hLayout->addWidget(okButton);
 		hLayout->addWidget(cancelButton);
 
 		okButton->setDefault(true);
-		
+
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 	}
-	
+
 	turboSpeed_ = std::min(std::max(QSettings().value("misc/turboSpeed", turboSpeed_).toInt(), 2), 16);
 	restore();
 }

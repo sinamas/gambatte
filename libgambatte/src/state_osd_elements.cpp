@@ -44,10 +44,10 @@ class ShadedTextOsdElment : public OsdElement {
 			dest[2] = dest[1] = dest[0] = 0x000000ul;
 		}
 	};
-	
+
 	uint_least32_t *const pixels;
 	unsigned life;
-	
+
 	ShadedTextOsdElment(const ShadedTextOsdElment&);
 	ShadedTextOsdElment& operator=(const ShadedTextOsdElment&);
 public:
@@ -63,7 +63,7 @@ ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
 , life(4 * 60)
 {
 	std::memset(pixels, 0xFF, w() * h() * sizeof *pixels);
-	
+
 	/*print(pixels + 0 * w() + 0, w(), 0x000000ul, txt);
 	print(pixels + 0 * w() + 1, w(), 0x000000ul, txt);
 	print(pixels + 0 * w() + 2, w(), 0x000000ul, txt);
@@ -73,7 +73,7 @@ ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
 	print(pixels + 2 * w() + 1, w(), 0x000000ul, txt);
 	print(pixels + 2 * w() + 2, w(), 0x000000ul, txt);
 	print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul, txt);*/
-	
+
 	bitmapfont::print(pixels              , w(), ShadeFill(), txt);
 	bitmapfont::print(pixels + 1 * w() + 1, w(), 0xE0E0E0ul , txt);
 }
@@ -85,14 +85,14 @@ ShadedTextOsdElment::~ShadedTextOsdElment() {
 const uint_least32_t* ShadedTextOsdElment::update() {
 	if (life--)
 		return pixels;
-	
+
 	return 0;
 }
 
 /*class FramedTextOsdElment : public OsdElement {
 	uint_least32_t *const pixels;
 	unsigned life;
-	
+
 	FramedTextOsdElment(const FramedTextOsdElment&);
 	FramedTextOsdElment& operator=(const FramedTextOsdElment&);
 public:
@@ -116,14 +116,14 @@ FramedTextOsdElment::~FramedTextOsdElment() {
 const uint_least32_t* FramedTextOsdElment::update() {
 	if (life--)
 		return pixels;
-	
+
 	return 0;
 }*/
 
 class SaveStateOsdElement : public OsdElement {
 	uint_least32_t pixels[StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT];
 	unsigned life;
-	
+
 public:
 	SaveStateOsdElement(const std::string &fileName, unsigned stateNo);
 	const uint_least32_t* update();
@@ -136,13 +136,13 @@ SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned s
 , life(4 * 60)
 {
 	std::ifstream file(fileName.c_str(), std::ios_base::binary);
-	
+
 	if (file) {
 		file.ignore(5);
 		file.read(reinterpret_cast<char*>(pixels), sizeof pixels);
 	} else {
 		std::memset(pixels, 0, sizeof pixels);
-		
+
 		using namespace bitmapfont;
 		static const char txt[] = { E,m,p,t,bitmapfont::y,0 };
 		print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - bitmapfont::HEIGHT / 2) * StateSaver::SS_WIDTH,
@@ -153,7 +153,7 @@ SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned s
 const uint_least32_t* SaveStateOsdElement::update() {
 	if (life--)
 		return pixels;
-	
+
 	return 0;
 }
 
@@ -163,19 +163,19 @@ namespace gambatte {
 
 transfer_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo) {
 	char txt[sizeof text::stateLoaded];
-	
+
 	std::memcpy(txt, text::stateLoaded, sizeof text::stateLoaded);
 	bitmapfont::utoa(stateNo, txt + 6);
-	
+
 	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(text::stateLoadedWidth, txt));
 }
 
 transfer_ptr<OsdElement> newStateSavedOsdElement(unsigned stateNo) {
 	char txt[sizeof text::stateSaved];
-	
+
 	std::memcpy(txt, text::stateSaved, sizeof text::stateSaved);
 	bitmapfont::utoa(stateNo, txt + 6);
-	
+
 	return transfer_ptr<OsdElement>(new ShadedTextOsdElment(text::stateSavedWidth, txt));
 }
 

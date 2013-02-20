@@ -25,10 +25,10 @@ class QWidget;
 
 class NullToggler : public FullModeToggler {
 	Q_OBJECT
-	
+
 	const std::vector<ResInfo> nullVector;
 	bool fullRes;
-	
+
 public:
 	NullToggler() : fullRes(false) {}
 	unsigned currentResIndex(unsigned /*screen*/) const { return 0; }
@@ -41,7 +41,7 @@ public:
 	void setScreen(const QWidget */*widget*/) {}
 	unsigned screen() const { return 0; }
 	unsigned screens() const { return 0; }
-	
+
 signals:
 	void rateChange(int newHz);
 };

@@ -45,11 +45,11 @@ public:
 	struct VideoSourceInfo {
 		// label used in the video dialog combobox.
 		QString label;
-		
+
 		unsigned width;
 		unsigned height;
 	};
-	
+
 private:
 	class PersistInt {
 		const QString key_;
@@ -60,11 +60,11 @@ private:
 		PersistInt & operator=(int i) { i_ = i; return *this; }
 		operator int() const { return i_; }
 	};
-	
+
 	class EngineSelector {
 		QComboBox *const comboBox_;
 		PersistInt index_;
-		
+
 	public:
 		explicit EngineSelector(const MainWindow *mw);
 		void addToLayout(QBoxLayout *topLayout);
@@ -73,13 +73,13 @@ private:
 		void restore();
 		int index() const { return index_; }
 	};
-	
+
 	class ScalingMethodSelector {
 		QRadioButton *const unrestrictedScalingButton_;
 		QRadioButton *const keepRatioButton_;
 		QRadioButton *const integerScalingButton_;
 		PersistInt scaling_;
-		
+
 	public:
 		ScalingMethodSelector();
 		void addToLayout(QLayout *layout);
@@ -88,12 +88,12 @@ private:
 		void restore();
 		ScalingMethod scalingMethod() const { return static_cast<ScalingMethod>(static_cast<int>(scaling_)); }
 	};
-	
+
 	class SourceSelector {
 		QLabel *const label_;
 		QComboBox *const comboBox_;
 		PersistInt index_;
-		
+
 	public:
 		SourceSelector(const QString &sourcesLabel, const std::vector<VideoSourceInfo> &sourceInfos);
 		void addToLayout(QBoxLayout *layout);
@@ -103,12 +103,12 @@ private:
 		void restore();
 		int index() const { return index_; }
 	};
-	
+
 	class FullResSelector {
 		QComboBox *const comboBox_;
 		const QString key_;
 		int index_;
-		
+
 		void fillComboBox(const QSize &sourceSize, const std::vector<ResInfo> &resVector);
 	public:
 		FullResSelector(const QString &key, int defaultIndex,
@@ -121,12 +121,12 @@ private:
 		void setSourceSize(const QSize &sourceSize, const std::vector<ResInfo> &resVector);
 		int index() const { return index_; }
 	};
-	
+
 	class FullHzSelector {
 		QComboBox *const comboBox_;
 		const QString key_;
 		int index_;
-		
+
 	public:
 		FullHzSelector(const QString &key, const std::vector<short> &rates, int defaultIndex);
 		~FullHzSelector();
@@ -137,7 +137,7 @@ private:
 		void setRates(const std::vector<short> &rates);
 		int index() const { return index_; }
 	};
-	
+
 	const MainWindow *const mw;
 	QVBoxLayout *const topLayout;
 	QWidget *engineWidget;
@@ -146,7 +146,7 @@ private:
 	SourceSelector sourceSelector;
 	const auto_vector<FullResSelector> fullResSelectors;
 	const auto_vector<FullHzSelector> fullHzSelectors;
-	
+
 	static auto_vector<FullResSelector> makeFullResSelectors(const QSize &sourceSize, const MainWindow *mw);
 	static auto_vector<FullHzSelector> makeFullHzSelectors(
 			const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *mw);
@@ -172,7 +172,7 @@ public:
 	void setVideoSources(const std::vector<VideoSourceInfo> &sourceInfos);
 	void setSourceSize(const QSize &sourceSize);
 	ScalingMethod scalingMethod() const { return scalingMethodSelector.scalingMethod(); }
-	
+
 public slots:
 	void accept();
 	void reject();

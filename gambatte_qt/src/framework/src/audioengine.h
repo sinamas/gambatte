@@ -29,7 +29,7 @@ class AudioEngine {
 	QMutex mut;
 	const QString nameString_;
 	int rate_;
-	
+
 protected:
 	virtual int doInit(int rate, unsigned msLatency) = 0;
 	virtual void doAcceptSettings() {}
@@ -39,10 +39,10 @@ public:
 		unsigned fromUnderrun;
 		unsigned fromOverflow;
 	};
-	
+
 	const QString& nameString() const { return nameString_; }
 	int rate() const { return rate_; }
-	
+
 	AudioEngine(const QString &name) : nameString_(name), rate_(0) {}
 	virtual ~AudioEngine() {}
 	int init(int rate, unsigned msLatency) { QMutexLocker l(&mut); return rate_ = doInit(rate, msLatency); }
@@ -54,14 +54,14 @@ public:
 
 	/** @return success */
 	virtual bool flushPausedBuffers() const { return false; }
-	
+
 	virtual int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out) {
 		preBufState_out = bufferState();
 		const int ret = write(buffer, samples);
 		rate_out = rateEstimate();
 		return ret;
 	}
-	
+
 	virtual QWidget* settingsWidget() const { return 0; }
 	void acceptSettings() { QMutexLocker l(&mut); doAcceptSettings(); }
 	virtual void rejectSettings() const {}

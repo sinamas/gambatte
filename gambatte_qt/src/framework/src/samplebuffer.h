@@ -37,10 +37,10 @@ class SampleBuffer : Uncopyable {
 	Rational ft_;
 	int outsrate;
 	unsigned resamplerNo_;
-	
+
 	unsigned size() const { return sndInBuffer.size() >> 1; }
 	void reset();
-	
+
 public:
 	explicit SampleBuffer(MediaSource *source) : source_(source), spf_(0), ft_(1, 0), outsrate(0), resamplerNo_(1) { reset(); }
 	long update(const PixelBuffer &pb);

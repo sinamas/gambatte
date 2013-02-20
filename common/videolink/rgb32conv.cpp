@@ -28,12 +28,12 @@ class Rgb32ToUyvy {
 		gambatte::uint_least32_t rgb32;
 		gambatte::uint_least32_t uyvy;
 	};
-	
+
 	enum { cache_size = 0x100 };
 	enum { cache_mask = cache_size - 1 };
-	
+
 	CacheUnit cache[cache_size];
-	
+
 public:
 	Rgb32ToUyvy();
 	void operator()(const gambatte::uint_least32_t *s, gambatte::uint_least32_t *d,
@@ -54,7 +54,7 @@ void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s,
 {
 	while (h--) {
 		unsigned n = w >> 1;
-		
+
 		do {
 			if ((cache[*s & cache_mask].rgb32 - *s) | (cache[*(s+1) & cache_mask].rgb32 - *(s+1))) {
 				cache[*s     & cache_mask].rgb32 = *s;
@@ -76,7 +76,7 @@ void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s,
 				cache[*(s+1) & cache_mask].uyvy = (y & 0xFF000000) | (v >> 8 & 0x00FF0000) | (y >> 16 & 0x0000FF00) | u >> 24;
 #endif
 			}
-			
+
 			*d     = cache[*s     & cache_mask].uyvy;
 			*(d+1) = cache[*(s+1) & cache_mask].uyvy;
 			s += 2;
@@ -118,10 +118,10 @@ public:
 	  height_(height)
 	{
 	}
-	
+
 	virtual void* inBuf() const { return inbuf_; }
 	virtual int inPitch() const { return width_; }
-	
+
 	virtual void draw(void *dst, int dstpitch) {
 		rgb32ToUyvy(inbuf_, static_cast<gambatte::uint_least32_t*>(dst), width_, height_, inPitch(), dstpitch);
 	}
@@ -139,10 +139,10 @@ public:
 	  height_(height)
 	{
 	}
-	
+
 	virtual void* inBuf() const { return inbuf_; }
 	virtual int inPitch() const { return width_; }
-	
+
 	virtual void draw(void *dst, int dstpitch) {
 		rgb32ToRgb16(inbuf_, static_cast<gambatte::uint_least16_t*>(dst), width_, height_, inPitch(), dstpitch);
 	}

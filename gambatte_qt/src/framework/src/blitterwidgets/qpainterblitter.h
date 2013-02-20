@@ -33,12 +33,12 @@ class QPainterBlitter : public BlitterWidget {
 	scoped_ptr<QImage> image2;
 	PersistCheckBox bf_;
 	union { quint32 *buffer; QImage *backImage; };
-	
+
 protected:
 	void privSetPaused(bool) {}
 	void paintEvent(QPaintEvent *event);
 	void resizeEvent(QResizeEvent *event);
-	
+
 public:
 	explicit QPainterBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 	~QPainterBlitter();

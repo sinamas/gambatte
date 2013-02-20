@@ -35,10 +35,10 @@ class MiscDialog : public QDialog {
 	PersistCheckBox dwmTripleBuf_;
 	PersistCheckBox multicartCompat_;
 	int turboSpeed_;
-	
+
 	void store();
 	void restore();
-	
+
 public:
 	explicit MiscDialog(const QString &savePath, QWidget *parent = 0);
 	~MiscDialog();

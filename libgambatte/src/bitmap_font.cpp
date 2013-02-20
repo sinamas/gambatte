@@ -48,7 +48,7 @@
   names.
 
   The Font Software may be sold as part of a larger software package but no
-  copy of one or more of the Font Software typefaces may be sold by itself. 
+  copy of one or more of the Font Software typefaces may be sold by itself.
 
   THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
@@ -281,17 +281,17 @@ unsigned getWidth(const char *chars) {
 	while (const int character = *chars++) {
 		w += *font[character] >> 4;
 	}
-	
+
 	return w;
 }
 
 namespace {
 class Rgb32Fill {
 	const unsigned long color;
-	
+
 public:
 	explicit Rgb32Fill(unsigned long color) : color(color) {}
-	
+
 	void operator()(gambatte::uint_least32_t *dest, unsigned /*pitch*/) const {
 		*dest = color;
 	}

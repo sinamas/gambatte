@@ -46,14 +46,14 @@ void SDL_SetEventFilter(const unsigned int f) {
 int SDL_PollEvent(SDL_Event *const event) {
 	if (!event || queue.empty())
 		return 0;
-	
+
 	{
 		const SDL_Event &front = queue.front();
 		event->id = front.id;
 		event->value = front.value;
 	}
-	
+
 	queue.pop_front();
-	
+
 	return 1;
 }

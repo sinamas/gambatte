@@ -25,7 +25,7 @@ class AdaptiveSleep {
 	usec_t oversleep;
 	usec_t oversleepVar;
 	unsigned noSleep;
-	
+
 public:
 	AdaptiveSleep() : oversleep(0), oversleepVar(0), noSleep(60) {}
 	usec_t sleepUntil(usec_t base, usec_t inc);

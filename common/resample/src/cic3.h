@@ -22,7 +22,7 @@
 #include "subresampler.h"
 #include "rshift16_round.h"
 
-template<unsigned channels> 
+template<unsigned channels>
 class Cic3Core {
 // 	enum { BUFLEN = 64 };
 // 	unsigned long buf[BUFLEN];
@@ -34,10 +34,10 @@ class Cic3Core {
 	unsigned div_;
 	unsigned nextdivn;
 // 	unsigned bufpos;
-	
+
 	// trouble if div is too large, may be better to only support power of 2 div
 	static long mulForDiv(unsigned div) { return 0x10000 / (div * div * div); }
-	
+
 public:
 	explicit Cic3Core(const unsigned div = 1) { reset(div); }
 	unsigned div() const { return div_; }
@@ -46,7 +46,7 @@ public:
 	static double gain(unsigned div) { return rshift16_round(-32768l * (div * div * div) * mulForDiv(div)) / -32768.0; }
 };
 
-template<unsigned channels> 
+template<unsigned channels>
 void Cic3Core<channels>::reset(const unsigned div) {
 	sum3 = sum2 = sum1 = 0;
 	prev2 = prev1 = 0;
@@ -60,16 +60,16 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 // 	const std::size_t produced = (inlen + div_ - (bufpos + 1)) / div_;
 	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
 	const short *s = in;
-	
+
 	/*unsigned long sm1 = sum1;
 	unsigned long sm2 = sum2;
 	unsigned long sm3 = sum3;
-	
+
 	while (inlen >> 1) {
 		unsigned n = (inlen < BUFLEN ? inlen >> 1 : BUFLEN >> 1);
 		const unsigned end = n * 2;
 		unsigned i = 0;
-		
+
 		do {
 			unsigned long s1 = sm1 += static_cast<long>(*s);
 			s += channels;
@@ -80,65 +80,65 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 			buf[i++] = sm3 += s2;
 			buf[i++] = sm3 += sm2;
 		} while (--n);
-		
+
 		while (bufpos < end) {
 			const unsigned long out3 = buf[bufpos] - prev3;
 			prev3 = buf[bufpos];
 			bufpos += div_;
-			
+
 			const unsigned long out2 = out3 - prev2;
 			prev2 = out3;
-			
+
 			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 		}
-		
+
 		bufpos -= end;
 		inlen -= end;
 	}
-	
+
 	if (inlen) {
 		unsigned n = inlen;
 		unsigned i = 0;
-		
+
 		do {
 			sm1 += static_cast<long>(*s);
 			s += channels;
 			sm2 += sm1;
 			buf[i++] = sm3 += sm2;
 		} while (--n);
-		
+
 		while (bufpos < inlen) {
 			const unsigned long out3 = buf[bufpos] - prev3;
 			prev3 = buf[bufpos];
 			bufpos += div_;
-			
+
 			const unsigned long out2 = out3 - prev2;
 			prev2 = out3;
-			
+
 			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
 			prev1 = out2;
 			out += channels;
 		}
-		
+
 		bufpos -= inlen;
 	}
-	
+
 	sum1 = sm1;
 	sum2 = sm2;
 	sum3 = sm3;*/
-	
-	
+
+
 	unsigned long sm1 = sum1;
 	unsigned long sm2 = sum2;
 	unsigned long sm3 = sum3;
-	
+
 	if (inlen >= nextdivn) {
 		const long mul = mulForDiv(div_);
 		unsigned divn = nextdivn;
 		std::size_t n = produced;
-		
+
 		do {
 			do {
 				sm1 += static_cast<long>(*s);
@@ -146,7 +146,7 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 				sm3 += sm2;
 				s += channels;
 			} while (--divn);
-			
+
 			const unsigned long out2 = sm3 - prev2;
 			prev2 = sm3;
 			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
@@ -155,14 +155,14 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 			divn = div_;
 			sm3 = 0;
 		} while (--n);
-		
+
 		nextdivn = div_;
 	}
-	
+
 	{
 		unsigned divn = (in + inlen * channels - s) / channels;
 		nextdivn -= divn;
-		
+
 		while (divn--) {
 			sm1 += static_cast<long>(*s);
 			sm2 += sm1;
@@ -170,15 +170,15 @@ std::size_t Cic3Core<channels>::filter(short *out, const short *const in, std::s
 			s += channels;
 		}
 	}
-	
+
 	sum1 = sm1;
 	sum2 = sm2;
 	sum3 = sm3;
-	
+
 	return produced;
 }
 
-/*template<unsigned channels> 
+/*template<unsigned channels>
 class Cic3EvenOddCore {
 	unsigned long sum1;
 	unsigned long sum2;
@@ -188,25 +188,25 @@ class Cic3EvenOddCore {
 	unsigned long prev3;
 	unsigned div_;
 	unsigned nextdivn;
-	
+
 	static int getMul(unsigned div) {
 		return 0x10000 / (div * div * div); // trouble if div is too large, may be better to only support power of 2 div
 	}
-	
+
 	void filterEven(short *out, const short *s, std::size_t n);
 	void filterOdd(short *out, const short *s, std::size_t n);
-	
+
 public:
 	Cic3EvenOddCore(const unsigned div = 2) {
 		reset(div);
 	}
-	
+
 	unsigned div() const { return div_; }
 	std::size_t filter(short *out, const short *in, std::size_t inlen);
 	void reset(unsigned div);
 };
 
-template<unsigned channels> 
+template<unsigned channels>
 void Cic3EvenOddCore<channels>::reset(const unsigned div) {
 	sum3 = sum2 = sum1 = 0;
 	prev3 = prev2 = prev1 = 0;
@@ -220,11 +220,11 @@ void Cic3EvenOddCore<channels>::filterEven(short *out, const short *s, std::size
 	unsigned long sm1 = sum1;
 	unsigned long sm2 = sum2;
 	unsigned long sm3 = sum3;
-	
+
 	while (n--) {
 		{
 			unsigned sn = div_ >> 1;
-			
+
 			do {
 				unsigned long s1 = sm1 += static_cast<long>(*s);
 				s += channels;
@@ -236,7 +236,7 @@ void Cic3EvenOddCore<channels>::filterEven(short *out, const short *s, std::size
 				sm3 += sm2;
 			} while (--sn);
 		}
-			
+
 		const unsigned long out3 = sm3 - prev3;
 		prev3 = sm3;
 		const unsigned long out2 = out3 - prev2;
@@ -245,7 +245,7 @@ void Cic3EvenOddCore<channels>::filterEven(short *out, const short *s, std::size
 		prev1 = out2;
 		out += channels;
 	}
-	
+
 	sum1 = sm1;
 	sum2 = sm2;
 	sum3 = sm3;
@@ -257,11 +257,11 @@ void Cic3EvenOddCore<channels>::filterOdd(short *out, const short *s, std::size_
 	unsigned long sm1 = sum1;
 	unsigned long sm2 = sum2;
 	unsigned long sm3 = sum3;
-	
+
 	while (n--) {
 		{
 			unsigned sn = div_ >> 1;
-			
+
 			do {
 				unsigned long s1 = sm1 += static_cast<long>(*s);
 				s += channels;
@@ -273,12 +273,12 @@ void Cic3EvenOddCore<channels>::filterOdd(short *out, const short *s, std::size_
 				sm3 += sm2;
 			} while (--sn);
 		}
-		
+
 		sm1 += static_cast<long>(*s);
 		s += channels;
 		sm2 += sm1;
 		sm3 += sm2;
-		
+
 		const unsigned long out3 = sm3 - prev3;
 		prev3 = sm3;
 		const unsigned long out2 = out3 - prev2;
@@ -287,7 +287,7 @@ void Cic3EvenOddCore<channels>::filterOdd(short *out, const short *s, std::size_
 		prev1 = out2;
 		out += channels;
 	}
-	
+
 	sum1 = sm1;
 	sum2 = sm2;
 	sum3 = sm3;
@@ -297,12 +297,12 @@ template<unsigned channels>
 std::size_t Cic3EvenOddCore<channels>::filter(short *out, const short *const in, std::size_t inlen) {
 	short *const outStart = out;
 	const short *s = in;
-	
+
 	if (inlen >= nextdivn) {
 		{
 			{
 				unsigned divn = nextdivn;
-				
+
 				do {
 					sum1 += static_cast<long>(*s);
 					s += channels;
@@ -310,7 +310,7 @@ std::size_t Cic3EvenOddCore<channels>::filter(short *out, const short *const in,
 					sum3 += sum2;
 				} while (--divn);
 			}
-			
+
 			const unsigned long out3 = sum3 - prev3;
 			prev3 = sum3;
 			const unsigned long out2 = out3 - prev2;
@@ -319,23 +319,23 @@ std::size_t Cic3EvenOddCore<channels>::filter(short *out, const short *const in,
 			prev1 = out2;
 			out += channels;
 		}
-		
+
 		std::size_t n = (inlen - nextdivn) / div_;
-		
+
 		if (div_ & 1)
 			filterOdd(out, s, n);
 		else
 			filterEven(out, s, n);
-		
+
 		s += n * div_ * channels;
 		out += n * channels;
 		nextdivn = div_;
 	}
-	
+
 	{
 		unsigned divn = inlen - (s - in) / channels;
 		nextdivn -= divn;
-		
+
 		while (divn--) {
 			sum1 += static_cast<long>(*s);
 			s += channels;
@@ -343,14 +343,14 @@ std::size_t Cic3EvenOddCore<channels>::filter(short *out, const short *const in,
 			sum3 += sum2;
 		}
 	}
-	
+
 	return (out - outStart) / channels;
 }*/
 
 template<unsigned channels>
 class Cic3 : public SubResampler {
 	Cic3Core<channels> cics[channels];
-	
+
 public:
 	enum { MAX_DIV = 23 };
 	explicit Cic3(unsigned div);
@@ -369,11 +369,11 @@ Cic3<channels>::Cic3(const unsigned div) {
 template<unsigned channels>
 std::size_t Cic3<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
 	std::size_t samplesOut;
-	
+
 	for (unsigned i = 0; i < channels; ++i) {
 		samplesOut = cics[i].filter(out + i, in + i, inlen);
 	}
-	
+
 	return samplesOut;
 }
 

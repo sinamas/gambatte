@@ -48,7 +48,7 @@ public:
 
 private:
 	class AudioOut;
-	
+
 	class PauseVar {
 		CallQueue<> callq;
 		mutable QMutex mut;
@@ -110,7 +110,7 @@ private:
 		long var() const { return dsum / size; }
 		void push(long i);
 	};
-	
+
 	struct ResetAudio;
 	struct SetAudioOut;
 	struct SetFrameTime;

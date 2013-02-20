@@ -29,7 +29,7 @@ class BlitterWrapper {
 	scoped_ptr<VideoLink> cconvert;
 	scoped_ptr<VideoLink> vfilter;
 	unsigned vsrci;
-	
+
 public:
 	struct Buf { gambatte::uint_least32_t* pixels; unsigned pitch; };
 	BlitterWrapper() : vsrci(0) {}
@@ -41,7 +41,7 @@ public:
 	void setStartFull() { blitter.setStartFull(); }
 	void setYuv(const bool yuv) { blitter.setYuv(yuv); }
 	void setVideoFilter(unsigned n) { vsrci = n; }
-	
+
 	void init();
 };
 

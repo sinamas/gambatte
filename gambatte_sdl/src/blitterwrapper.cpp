@@ -22,7 +22,7 @@
 
 const BlitterWrapper::Buf BlitterWrapper::inBuf() const {
 	Buf buf;
-	
+
 	if (VideoLink *const gblink = vfilter.get() ? vfilter.get() : cconvert.get()) {
 		buf.pixels = static_cast<gambatte::uint_least32_t*>(gblink->inBuf());
 		buf.pitch  = gblink->inPitch();
@@ -31,7 +31,7 @@ const BlitterWrapper::Buf BlitterWrapper::inBuf() const {
 		buf.pixels = static_cast<gambatte::uint_least32_t*>(pxbuf.pixels);
 		buf.pitch = pxbuf.pitch;
 	}
-	
+
 	return buf;
 }
 
@@ -48,7 +48,7 @@ void BlitterWrapper::draw() {
 		} else if (cconvert.get())
 			cconvert->draw(pbdata, pb.pitch);
 	}
-	
+
 	blitter.draw();
 }
 
@@ -58,5 +58,5 @@ void BlitterWrapper::init() {
 	blitter.setBufferDimensions(vfinfo.outWidth, vfinfo.outHeight);
 	cconvert.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(blitter.inBuffer().format),
 			vfinfo.outWidth, vfinfo.outHeight));
-	
+
 }

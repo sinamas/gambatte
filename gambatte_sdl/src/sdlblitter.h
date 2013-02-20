@@ -36,9 +36,9 @@ private:
 	Uint32 startFlags;
 	Uint8 scale;
 	bool yuv;
-	
+
 	template<typename T> void swScale();
-	
+
 public:
 	SdlBlitter(bool startFull = false, Uint8 scale = 1, bool yuv = false);
 	~SdlBlitter();

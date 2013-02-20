@@ -39,24 +39,24 @@ Rtc::Rtc()
 
 void Rtc::doLatch() {
 	std::time_t tmp = ((dataDh & 0x40) ? haltTime : std::time(0)) - baseTime;
-	
+
 	while (tmp > 0x1FF * 86400) {
 		baseTime += 0x1FF * 86400;
 		tmp -= 0x1FF * 86400;
 		dataDh |= 0x80;
 	}
-	
+
 	dataDl = (tmp / 86400) & 0xFF;
 	dataDh &= 0xFE;
 	dataDh |= ((tmp / 86400) & 0x100) >> 8;
 	tmp %= 86400;
-	
+
 	dataH = tmp / 3600;
 	tmp %= 3600;
-	
+
 	dataM = tmp / 60;
 	tmp %= 60;
-	
+
 	dataS = tmp;
 }
 
@@ -108,7 +108,7 @@ void Rtc::loadState(const SaveState &state) {
 	dataM = state.rtc.dataM;
 	dataS = state.rtc.dataS;
 	lastLatchData = state.rtc.lastLatchData;
-	
+
 	doSwapActive();
 }
 
@@ -117,7 +117,7 @@ void Rtc::setDh(const unsigned new_dh) {
 	const std::time_t old_highdays = ((unixtime - baseTime) / 86400) & 0x100;
 	baseTime += old_highdays * 86400;
 	baseTime -= ((new_dh & 0x1) << 8) * 86400;
-	
+
 	if ((dataDh ^ new_dh) & 0x40) {
 		if (new_dh & 0x40)
 			haltTime = std::time(0);

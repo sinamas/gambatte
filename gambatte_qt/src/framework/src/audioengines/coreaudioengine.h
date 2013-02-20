@@ -35,13 +35,13 @@ class CoreAudioEngine : public AudioEngine, private Uncopyable {
 	pthread_cond_t *availCond;
 	Float64 rateEst;
 	bool running;
-	
+
 	static OSStatus renderProc(void *inRefCon, AudioUnitRenderActionFlags *inActionFlags,
 			const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumFrames, AudioBufferList *ioData);
 	unsigned read(void *stream, unsigned frames, Float64 rateScalar);
 	int doInit(int rate, unsigned latency);
 	int doWrite(void *buffer, unsigned frames);
-	
+
 public:
 	CoreAudioEngine();
 	~CoreAudioEngine();

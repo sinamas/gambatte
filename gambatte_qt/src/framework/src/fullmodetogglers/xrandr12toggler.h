@@ -26,7 +26,7 @@
 
 class XRandR12Toggler : public FullModeToggler, Uncopyable {
 	Q_OBJECT
-		
+
 	RRMode originalMode;
 	XRRScreenResources *resources;
 	std::vector<std::vector<ResInfo> > infoVector;
@@ -34,7 +34,7 @@ class XRandR12Toggler : public FullModeToggler, Uncopyable {
 	std::vector<unsigned> fullRateIndex;
 	unsigned widgetScreen;
 	bool isFull;
-	
+
 public:
 	static bool isUsable();
 	XRandR12Toggler();
@@ -51,11 +51,11 @@ public:
 	unsigned screen() const { return widgetScreen; }
 	unsigned screens() const { return infoVector.size(); }
 	const QString screenName(unsigned screen) const;
-	
+
 signals:
 	void rateChange(int newHz);
 //	void modeChange();
 };
 
 #endif
- 
+

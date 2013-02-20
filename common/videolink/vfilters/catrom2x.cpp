@@ -30,129 +30,129 @@ struct Colorsum {
 
 static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) {
 	unsigned w = WIDTH;
-	
+
 	while (w--) {
 		{
 			gambatte::uint_least32_t rsum = sums[1].r;
 			gambatte::uint_least32_t gsum = sums[1].g;
 			gambatte::uint_least32_t bsum = sums[1].b;
-			
+
 			if (rsum & 0x80000000) rsum = 0;
 			if (gsum & 0x80000000) gsum = 0;
 			if (bsum & 0x80000000) bsum = 0;
-			
+
 			rsum <<= 12;
 			rsum += 0x008000;
 			gsum >>= 4;
 			gsum += 0x0080;
 			bsum += 0x0008;
 			bsum >>= 4;
-			
+
 			if (rsum > 0xFF0000) rsum = 0xFF0000;
 			if (gsum > 0x00FF00) gsum = 0x00FF00;
 			if (bsum > 0x0000FF) bsum = 0x0000FF;
-			
+
 			*dest++ = (rsum & 0xFF0000) | (gsum & 0x00FF00) | bsum;
 		}
-		
+
 		{
 			gambatte::uint_least32_t rsum = sums[1].r * 9;
 			gambatte::uint_least32_t gsum = sums[1].g * 9;
 			gambatte::uint_least32_t bsum = sums[1].b * 9;
-			
+
 			rsum -= sums[0].r;
 			gsum -= sums[0].g;
 			bsum -= sums[0].b;
-			
+
 			rsum += sums[2].r * 9;
 			gsum += sums[2].g * 9;
 			bsum += sums[2].b * 9;
-			
+
 			rsum -= sums[3].r;
 			gsum -= sums[3].g;
 			bsum -= sums[3].b;
-			
+
 			if (rsum & 0x80000000) rsum = 0;
 			if (gsum & 0x80000000) gsum = 0;
 			if (bsum & 0x80000000) bsum = 0;
-			
+
 			rsum <<= 8;
 			rsum += 0x008000;
 			gsum >>= 8;
 			gsum += 0x000080;
 			bsum += 0x000080;
 			bsum >>= 8;
-			
+
 			if (rsum > 0xFF0000) rsum = 0xFF0000;
 			if (gsum > 0x00FF00) gsum = 0x00FF00;
 			if (bsum > 0x0000FF) bsum = 0x0000FF;
-			
+
 			*dest++ = (rsum & 0xFF0000) | (gsum & 0x00FF00) | bsum;
 		}
-		
+
 		++sums;
 	}
 }
 
 static void filter(gambatte::uint_least32_t *dline, const int pitch, const gambatte::uint_least32_t *sline) {
 	Colorsum sums[PITCH];
-	
+
 	for (unsigned h = HEIGHT; h--;) {
 		{
 			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
-			
+
 			while (n--) {
 				unsigned long pixel = *s;
 				sum->r = pixel >> 12 & 0x000FF0 ;
 				pixel <<= 4;
 				sum->g = pixel & 0x0FF000;
 				sum->b = pixel & 0x000FF0;
-				
+
 				++s;
 				++sum;
 			}
 		}
-		
+
 		merge_columns(dline, sums);
 		dline += pitch;
-		
+
 		{
 			const gambatte::uint_least32_t *s = sline;
 			Colorsum *sum = sums;
 			unsigned n = PITCH;
-			
+
 			while (n--) {
 				unsigned long pixel = *s;
 				unsigned long rsum = (pixel >> 16) * 9;
 				unsigned long gsum = (pixel & 0x00FF00) * 9;
 				unsigned long bsum = (pixel & 0x0000FF) * 9;
-				
+
 				pixel = s[-1*PITCH];
 				rsum -= pixel >> 16;
 				gsum -= pixel & 0x00FF00;
 				bsum -= pixel & 0x0000FF;
-				
+
 				pixel = s[1*PITCH];
 				rsum += (pixel >> 16) * 9;
 				gsum += (pixel & 0x00FF00) * 9;
 				bsum += (pixel & 0x0000FF) * 9;
-				
+
 				pixel = s[2*PITCH];
 				rsum -= pixel >> 16;
 				gsum -= pixel & 0x00FF00;
 				bsum -= pixel & 0x0000FF;
-				
+
 				sum->r = rsum;
 				sum->g = gsum;
 				sum->b = bsum;
-				
+
 				++s;
 				++sum;
 			}
 		}
-		
+
 		merge_columns(dline, sums);
 		dline += pitch;
 		sline += PITCH;

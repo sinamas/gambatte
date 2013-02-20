@@ -47,7 +47,7 @@ public:
 class XvBlitter::ShmBlitter : public SubBlitter {
 	XShmSegmentInfo shminfo;
 	XvImage *xvimage;
-	
+
 public:
 	ShmBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
 	void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
@@ -61,7 +61,7 @@ public:
 XvBlitter::ShmBlitter::ShmBlitter(const XvPortID xvport, const int formatid, const unsigned int width, const unsigned int height) {
 	shminfo.shmaddr = NULL;
 	xvimage = XvShmCreateImage(QX11Info::display(), xvport, formatid, NULL, width << (formatid != 3), height, &shminfo);
-	
+
 	if (xvimage == NULL) {
 		std::cerr << "failed to create xvimage\n";
 	} else {
@@ -80,7 +80,7 @@ XvBlitter::ShmBlitter::~ShmBlitter() {
 		shmdt(shminfo.shmaddr);
 		shmctl(shminfo.shmid, IPC_RMID, 0);
 	}
-	
+
 	if (xvimage != NULL)
 		XFree(xvimage);
 }
@@ -116,7 +116,7 @@ unsigned XvBlitter::ShmBlitter::pitch() const {
 class XvBlitter::PlainBlitter : public SubBlitter {
 	XvImage *const xvimage;
 	char *data;
-	
+
 public:
 	PlainBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
 	void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
@@ -128,7 +128,7 @@ public:
 };
 
 XvBlitter::PlainBlitter::PlainBlitter(const XvPortID xvport, const int formatid, const unsigned int width, const unsigned int height)
-: xvimage(XvCreateImage(QX11Info::display(), xvport, formatid, 0, width << (formatid != 3), height)), 
+: xvimage(XvCreateImage(QX11Info::display(), xvport, formatid, 0, width << (formatid != 3), height)),
   data(0)
 {
 	if (xvimage) {
@@ -184,12 +184,12 @@ public:
 			num_ = 0;
 		}
 	}
-	
+
 	~XvAdaptorInfos() {
 		if (infos_)
 			XvFreeAdaptorInfo(infos_);
 	}
-	
+
 	unsigned len() const { return num_; }
 	operator const XvAdaptorInfo*() const { return infos_; }
 };
@@ -197,48 +197,48 @@ public:
 class XvPortImageFormats : Uncopyable {
 	int num_;
 	XvImageFormatValues *const formats_;
-	
+
 public:
 	explicit XvPortImageFormats(const XvPortID baseId)
 	: num_(0), formats_(XvListImageFormats(QX11Info::display(), baseId, &num_))
 	{
 	}
-	
+
 	~XvPortImageFormats() {
 		if (formats_)
 			XFree(formats_);
 	}
-	
+
 	int len() const { return num_; }
 	operator const XvImageFormatValues*() const { return formats_; }
 };
 
 static int findId(const XvPortImageFormats &formats, const int id) {
 	int i = 0;
-	
+
 	while (i < formats.len() && formats[i].id != id)
 		++i;
-	
+
 	return i;
 }
 
 static void addPorts(QComboBox &portSelector) {
 	XvAdaptorInfos adaptors;
-	
+
 	for (unsigned i = 0; i < adaptors.len(); ++i) {
 		if (!(adaptors[i].type & XvImageMask))
 			continue;
-		
+
 		const XvPortImageFormats formats(adaptors[i].base_id);
-		
+
 		int formatId = 0x3;
 		int j = findId(formats, formatId);
-		
+
 		if (j == formats.len()) {
 			formatId = 0x59565955;
 			j = findId(formats, formatId);
 		}
-		
+
 		if (j < formats.len()) {
 			QList<QVariant> l;
 			l.append(static_cast<uint>(adaptors[i].base_id));
@@ -255,12 +255,12 @@ XvBlitter::ConfWidget::ConfWidget()
 : widget_(new QWidget), portSelector_(new QComboBox(widget_.get())), portIndex_(0)
 {
 	addPorts(*portSelector_);
-	
+
 	if ((portIndex_ = QSettings().value("xvblitter/portIndex", 0).toUInt()) >= static_cast<unsigned>(portSelector_->count()))
 		portIndex_ = 0;
-	
+
 	restore();
-	
+
 	widget_->setLayout(new QHBoxLayout);
 	widget_->layout()->setMargin(0);
 	widget_->layout()->addWidget(new QLabel(QString(tr("Xv Port:"))));
@@ -304,14 +304,14 @@ XvBlitter::PortGrabber::~PortGrabber() {
 
 bool XvBlitter::PortGrabber::grab(const XvPortID basePort, const unsigned numPorts) {
 	ungrab();
-	
+
 	for (XvPortID port = basePort; port < basePort + numPorts; ++port) {
 		port_ = port;
-		
+
 		if ((grabbed_ = XvGrabPort(QX11Info::display(), port, CurrentTime) == Success))
 			return true;
 	}
-	
+
 	return false;
 }
 
@@ -332,10 +332,10 @@ XvBlitter::XvBlitter(VideoBufferLocker vbl, QWidget *parent) :
 	setPalette(pal);
 	setBackgroundRole(QPalette::Window);
 	setAutoFillBackground(true);*/
-	
+
 	setAttribute(Qt::WA_NoSystemBackground, true);
 	setAttribute(Qt::WA_PaintOnScreen, true);
-	
+
 	{
 		XGCValues gcValues;
 		gcValues.foreground = gcValues.background = 2110;
@@ -351,23 +351,23 @@ bool XvBlitter::isUnusable() const {
 	for (unsigned int i = 0; i < num_adaptors; ++i) {
 		if (!(adaptor_info[i].type & XvImageMask))
 			continue;
-		
+
 		int numImages;
 		XvImageFormatValues *const formats = XvListImageFormats(QX11Info::display(), adaptor_info[i].base_id, &numImages);
-		
+
 		for (int j = 0; j < numImages; ++j) {
 			if (formats[j].id == 0x59565955 &&
 			    XvGrabPort(QX11Info::display(), adaptor_info[i].base_id, CurrentTime) == Success) {
 				*port_out = adaptor_info[i].base_id;
 				XFree(formats);
-				
+
 				return false;
 			}
 		}
-		
+
 		XFree(formats);
 	}
-	
+
 	return true;
 }*/
 
@@ -387,11 +387,11 @@ void XvBlitter::init() {
 			yuv_table[i] = (y << 24) | (v << 16) | (y << 8) | u;
 		}
 	}*/
-	
+
 	XSync(QX11Info::display(), 0);
-	
+
 	initPort();
-	
+
 	initialized = true;
 }
 
@@ -408,38 +408,38 @@ XvBlitter::~XvBlitter() {
 long XvBlitter::sync() {
 	if (!portGrabber.grabbed() || subBlitter->failed())
 		return -1;
-	
+
 	subBlitter->blit(winId(), portGrabber.port(), width(), height());
 	XSync(QX11Info::display(), 0);
-	
+
 	return 0;
 }
 
 void XvBlitter::paintEvent(QPaintEvent *event) {
 	const QRect &rect = event->rect();
 	XFillRectangle(QX11Info::display(), winId(), gc, rect.x(), rect.y(), rect.width(), rect.height());
-	
+
 	if (isPaused() && portGrabber.grabbed())
 		subBlitter->blit(winId(), portGrabber.port(), width(), height());
 }
 
 void XvBlitter::setBufferDimensions(const unsigned width, const unsigned height) {
 	const int formatid = confWidget.formatId();
-	
+
 	subBlitter.reset(); // predestruct previous object to ensure resource availability.
-	
+
 	bool shm = XShmQueryExtension(QX11Info::display());
 	std::cout << "shm: " << shm << std::endl;
-	
+
 	if (shm) {
 		subBlitter.reset(new ShmBlitter(portGrabber.port(), formatid, width, height));
-		
+
 		if (subBlitter->failed()) {
 			shm = false;
 			subBlitter.reset();
 		}
 	}
-	
+
 	if (!shm)
 		subBlitter.reset(new PlainBlitter(portGrabber.port(), formatid, width, height));
 
@@ -459,30 +459,30 @@ class XvAttributes : Uncopyable {
 	const XvPortID xvport_;
 	int numAttribs_;
 	XvAttribute *const attribs_;
-	
+
 	Atom atomOf(const char *const name) const {
 		for (int i = 0; i < numAttribs_; ++i) {
 			if (!strcmp(attribs_[i].name, name))
 				return XInternAtom(QX11Info::display(), name, True);
 		}
-		
+
 		return None;
 	}
-	
+
 public:
 	explicit XvAttributes(const XvPortID xvport)
 	: xvport_(xvport), numAttribs_(0), attribs_(XvQueryPortAttributes(QX11Info::display(), xvport, &numAttribs_))
 	{
 	}
-	
+
 	~XvAttributes() {
 		if (attribs_)
 			XFree(attribs_);
 	}
-	
+
 	void set(const char *const name, const int value) {
 		const Atom atom = atomOf(name);
-		
+
 		if (atom != None)
 			XvSetPortAttribute(QX11Info::display(), xvport_, atom, value);
 	}
@@ -500,7 +500,7 @@ void XvBlitter::initPort() {
 
 void XvBlitter::acceptSettings() {
 	confWidget.store();
-	
+
 	if (initialized && !(portGrabber.port() >= confWidget.basePortId()
 				&& portGrabber.port() < confWidget.basePortId() + confWidget.numPortIds())) {
 		initPort();

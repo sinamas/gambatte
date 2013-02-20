@@ -33,16 +33,16 @@ typedef struct {
 			uint8_t num;
 			uint8_t zero;
 		};
-		
+
 		uint32_t id;
 	};
-	
+
 	union {
 		struct {
 			int16_t xrel;
 			int16_t yrel;
 		};
-		
+
 		int32_t value;
 	};
 } SDL_Event;

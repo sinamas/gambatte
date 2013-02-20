@@ -34,19 +34,19 @@ struct AudioData {
 		{
 		}
 	};
-	
+
 	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);
 	~AudioData();
 	const Status write(const Sint16 *inBuf, unsigned samples);
 	void read(Uint8 *stream, int len);
-	
+
 private:
 	RingBuffer<Sint16> rbuf;
 	RateEst rateEst;
 	SDL_mutex *const mut;
 	SDL_cond *const bufReadyCond;
 	bool failed;
-	
+
 	static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
 		reinterpret_cast<AudioData*>(data)->read(stream, len);
 	}

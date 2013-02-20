@@ -32,7 +32,7 @@ public:
 	enum { SS_DIV = 1 << 2 };
 	enum { SS_WIDTH = 160 >> SS_SHIFT };
 	enum { SS_HEIGHT = 144 >> SS_SHIFT };
-	
+
 	static bool saveState(const SaveState &state,
 			const uint_least32_t *videoBuf, int pitch,
 			const std::string &filename);

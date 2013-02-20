@@ -32,7 +32,7 @@ class QSpinBox;
   */
 class SoundDialog : public QDialog {
 	Q_OBJECT
-	
+
 	const MainWindow *const mw;
 	QVBoxLayout *const topLayout;
 	QComboBox *const engineSelector;
@@ -44,14 +44,14 @@ class SoundDialog : public QDialog {
 	int resamplerNum;
 	int rate_;
 	int latency_;
-	
+
 	void store();
 	void restore();
-	
+
 private slots:
 	void engineChange(int index);
 	void rateIndexChange(int index);
-	
+
 public:
 	explicit SoundDialog(const MainWindow *mw, QWidget *parent = 0);
 	~SoundDialog();
@@ -59,9 +59,9 @@ public:
 	int resamplerNo() const { return resamplerNum; }
 	int rate() const { return rate_; }
 	int latency() const { return latency_; };
-	
+
 	static void applySettings(MainWindow *mw, const SoundDialog *sd);
-	
+
 public slots:
 	void accept();
 	void reject();

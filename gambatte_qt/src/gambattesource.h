@@ -32,14 +32,14 @@
 
 class GambatteSource : public QObject, public MediaSource {
 	Q_OBJECT
-	
+
 	struct GbVidBuf;
 	struct GetInput : public gambatte::InputGetter {
 		unsigned is;
 		GetInput() : is(0) {}
 		unsigned operator()() { return is; }
 	};
-	
+
 	gambatte::GB gb;
 	GetInput inputGetter;
 	InputDialog *const inputDialog_;
@@ -51,13 +51,13 @@ class GambatteSource : public QObject, public MediaSource {
 	volatile bool dpadUp, dpadDown;
 	volatile bool dpadLeft, dpadRight;
 	volatile bool dpadUpLast, dpadLeftLast;
-	
+
 	InputDialog* createInputDialog();
 	const GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch);
 	void keyPressEvent(const QKeyEvent *);
 	void keyReleaseEvent(const QKeyEvent *);
 	void joystickEvent(const SDL_Event&);
-	
+
 	void emitSetTurbo(bool on) { emit setTurbo(on); }
 	void emitPause() { emit togglePause(); }
 	void emitFrameStep() { emit frameStep(); }
@@ -69,12 +69,12 @@ class GambatteSource : public QObject, public MediaSource {
 	void emitSaveState() { emit saveStateSignal(); }
 	void emitLoadState() { emit loadStateSignal(); }
 	void emitQuit() { emit quit(); }
-	
+
 public:
 	GambatteSource();
-	
+
 	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
-	
+
 	gambatte::LoadRes load(std::string const &romfile, unsigned flags) { return gb.load(romfile, flags); }
 	void setGameGenie(const std::string &codes) { gb.setGameGenie(codes); }
 	void setGameShark(const std::string &codes) { gb.setGameShark(codes); }
@@ -89,18 +89,18 @@ public:
 	void saveState(const PixelBuffer &fb, const std::string &filepath);
 	void loadState(const std::string &filepath) { gb.loadState(filepath); }
 	QDialog* inputDialog() const { return inputDialog_; }
-	
+
 	//overrides
 	void buttonPressEvent(unsigned buttonIndex);
 	void buttonReleaseEvent(unsigned buttonIndex);
 	void setVideoSource(unsigned videoSourceIndex);// { gb.setVideoFilter(videoSourceIndex); }
 	long update(const PixelBuffer &fb, qint16 *soundBuf, long &samples);
 	void generateVideoFrame(const PixelBuffer &fb);
-	
+
 // public slots:
 	void saveState(const PixelBuffer &fb);
 	void loadState() { gb.loadState(); }
-	
+
 signals:
 	void setTurbo(bool on);
 	void togglePause();

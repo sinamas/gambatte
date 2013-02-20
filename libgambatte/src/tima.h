@@ -25,7 +25,7 @@ namespace gambatte {
 
 class TimaInterruptRequester {
 	InterruptRequester &intreq;
-	
+
 public:
 	explicit TimaInterruptRequester(InterruptRequester &intreq) : intreq(intreq) {}
 	void flagIrq() const { intreq.flagIrq(4); }
@@ -36,29 +36,29 @@ public:
 class Tima {
 	unsigned long lastUpdate_;
 	unsigned long tmatime_;
-	
+
 	unsigned char tima_;
 	unsigned char tma_;
 	unsigned char tac_;
-	
+
 	void updateIrq(const unsigned long cc, const TimaInterruptRequester timaIrq) {
 		while (cc >= timaIrq.nextIrqEventTime())
 			doIrqEvent(timaIrq);
 	}
-	
+
 	void updateTima(unsigned long cc);
-	
+
 public:
 	Tima();
 	void saveState(SaveState &) const;
 	void loadState(const SaveState &, TimaInterruptRequester timaIrq);
 	void resetCc(unsigned long oldCc, unsigned long newCc, TimaInterruptRequester timaIrq);
-	
+
 	void setTima(unsigned tima, unsigned long cc, TimaInterruptRequester timaIrq);
 	void setTma(unsigned tma, unsigned long cc, TimaInterruptRequester timaIrq);
 	void setTac(unsigned tac, unsigned long cc, TimaInterruptRequester timaIrq);
 	unsigned tima(unsigned long cc);
-	
+
 	void doIrqEvent(TimaInterruptRequester timaIrq);
 };
 

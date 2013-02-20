@@ -22,13 +22,13 @@
 struct Rational {
 	long num;
 	long denom;
-	
+
 	Rational(const long num = 1, const long denom = 1) : num(num), denom(denom) {}
 	float toFloat() const { return static_cast<float>(num) / denom; }
 	double toDouble() const { return static_cast<double>(num) / denom; }
-	
+
 	const Rational reciprocal() const { return Rational(denom, num); }
-	
+
 	// assumes positive num and denom
 	long ceiled() const { return (num - 1) / denom + 1; }
 	long floored() const { return num / denom; }

@@ -29,7 +29,7 @@ class MaxStHq2x : public VideoLink {
 public:
 	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
 	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
-	
+
 	MaxStHq2x();
 	virtual void* inBuf() const;
 	virtual int inPitch() const;

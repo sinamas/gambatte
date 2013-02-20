@@ -26,7 +26,7 @@
 
 class Xf86VidModeToggler : public FullModeToggler {
 	Q_OBJECT
-	
+
 	XF86VidModeModeInfo **modesinfo;
 	XF86VidModeModeInfo originalMode;
 	std::vector<ResInfo> infoVector;
@@ -37,7 +37,7 @@ class Xf86VidModeToggler : public FullModeToggler {
 	int originalvporty;
 	WId winId;
 	bool isFull;
-	
+
 public:
 	static bool isUsable();
 	Xf86VidModeToggler(WId winId);
@@ -54,7 +54,7 @@ public:
 	unsigned screen() const { return 0; }
 	unsigned screens() const { return 1; }
 	bool eventFilter(QObject *obj, QEvent *ev);
-	
+
 signals:
 	void rateChange(int newHz);
 //	void modeChange();

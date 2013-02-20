@@ -25,9 +25,9 @@
 
 class AoEngine : public AudioEngine {
 	ao_device *aoDevice;
-	
+
 	int doInit(int rate, unsigned latency);
-	
+
 public:
 	AoEngine();
 	~AoEngine();

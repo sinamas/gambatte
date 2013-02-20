@@ -40,10 +40,10 @@ class OpenAlEngine : public AudioEngine {
 	ALuint source;
 	unsigned buffers;
 	unsigned bufPos;
-	
+
 	void deleteProcessedBufs() const;
 	int doInit(int rate, unsigned latency);
-	
+
 public:
 	OpenAlEngine();
 	~OpenAlEngine();

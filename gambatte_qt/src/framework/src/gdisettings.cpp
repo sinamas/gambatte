@@ -23,10 +23,10 @@ GdiSettings::GdiSettings() : user32handle(NULL), getMonitorInfo(NULL), changeDis
 	if ((user32handle = LoadLibraryA("user32.dll"))) {
 		QT_WA({getMonitorInfo = (GetMonInfo)GetProcAddress(user32handle, "GetMonitorInfoW");},
 		      {getMonitorInfo = (GetMonInfo)GetProcAddress(user32handle, "GetMonitorInfoA");});
-		
+
 		QT_WA({changeDisplaySettingsEx = (ChangeGdiSettingsEx)GetProcAddress(user32handle, "ChangeDisplaySettingsExW");},
 		      {changeDisplaySettingsEx = (ChangeGdiSettingsEx)GetProcAddress(user32handle, "ChangeDisplaySettingsExA");});
-		
+
 		monitorFromWindow = (MonFromWindow)GetProcAddress(user32handle, "MonitorFromWindow");
 		monitorFromPoint = (MonFromPoint)GetProcAddress(user32handle, "MonitorFromPoint");
 	}
@@ -41,22 +41,22 @@ TCHAR* GdiSettings::getMonitorName(HMONITOR monitor, GdiSettings::MonInfo *minfo
 	if (getMonitorInfo && monitor) {
 		minfo->cbSize = sizeof *minfo;
 		getMonitorInfo(monitor, minfo);
-		
+
 		return minfo->szDevice;
 	}
-	
+
 	return NULL;
 }
 
 BOOL GdiSettings::enumDisplaySettings(HMONITOR monitor, DWORD iModeNum, LPDEVMODE devmode) const {
 	MonInfo minfo;
-	
+
 	return EnumDisplaySettings(getMonitorName(monitor, &minfo), iModeNum, devmode);
 }
 
 LONG GdiSettings::changeDisplaySettings(HMONITOR monitor, LPDEVMODE devmode, DWORD dwflags) const {
 	MonInfo minfo;
-	
+
 	return changeDisplaySettingsEx ?
 		changeDisplaySettingsEx(getMonitorName(monitor, &minfo), devmode, NULL, dwflags, NULL) :
 		ChangeDisplaySettings(devmode, dwflags);

@@ -29,19 +29,19 @@ class InputBox : public QLineEdit {
 	SDL_Event data;
 	int timerId;
 	int ignoreCnt;
-	
+
 private slots:
 	void textEditedSlot(const QString &) {
 		setData(data);
 	}
-	
+
 protected:
 	void contextMenuEvent(QContextMenuEvent *event);
 	void focusInEvent(QFocusEvent *event);
 	void focusOutEvent(QFocusEvent *event);
 	void keyPressEvent(QKeyEvent *e);
 	void timerEvent(QTimerEvent */*event*/);
-	
+
 public:
 	enum { NULL_VALUE = 0, KBD_VALUE = 0x7FFFFFFF };
 	explicit InputBox(QWidget *nextFocus = 0);
@@ -60,9 +60,9 @@ class InputBoxPair : public QObject {
 public:
 	InputBox *const mainBox;
 	InputBox *const altBox;
-	
+
 	InputBoxPair(InputBox *mainBox, InputBox *altBox) : mainBox(mainBox), altBox(altBox) {}
-	
+
 public slots:
 	void clear();
 };

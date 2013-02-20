@@ -40,16 +40,16 @@ struct GB::Priv {
 	CPU cpu;
 	int stateNo;
 	unsigned loadflags;
-	
+
 	Priv() : stateNo(1), loadflags(0) {}
 };
-	
+
 GB::GB() : p_(new Priv) {}
 
 GB::~GB() {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
-	
+
 	delete p_;
 }
 
@@ -59,7 +59,7 @@ long GB::runFor(gambatte::uint_least32_t *const videoBuf, const int pitch,
 		samples = 0;
 		return -1;
 	}
-	
+
 	p_->cpu.setVideoBuffer(videoBuf, pitch);
 	p_->cpu.setSoundBuffer(soundBuf);
 
@@ -74,7 +74,7 @@ long GB::runFor(gambatte::uint_least32_t *const videoBuf, const int pitch,
 void GB::reset() {
 	if (p_->cpu.loaded()) {
 		p_->cpu.saveSavedata();
-		
+
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
 		setInitState(state, p_->cpu.isCgb(), p_->loadflags & GBA_CGB);
@@ -94,11 +94,11 @@ void GB::setSaveDir(const std::string &sdir) {
 LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
-	
+
 	LoadRes const loadres = p_->cpu.load(romfile,
 	                                     flags & FORCE_DMG,
 	                                     flags & MULTICART_COMPAT);
-	
+
 	if (loadres == LOADRES_OK) {
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
@@ -106,11 +106,11 @@ LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 		setInitState(state, p_->cpu.isCgb(), flags & GBA_CGB);
 		p_->cpu.loadState(state);
 		p_->cpu.loadSavedata();
-		
+
 		p_->stateNo = 1;
 		p_->cpu.setOsdElement(transfer_ptr<OsdElement>());
 	}
-	
+
 	return loadres;
 }
 
@@ -134,10 +134,10 @@ void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) 
 bool GB::loadState(const std::string &filepath) {
 	if (p_->cpu.loaded()) {
 		p_->cpu.saveSavedata();
-		
+
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
-		
+
 		if (StateSaver::loadState(state, filepath)) {
 			p_->cpu.loadState(state);
 			return true;
@@ -180,7 +180,7 @@ bool GB::saveState(const gambatte::uint_least32_t *videoBuf, int pitch,
 void GB::selectState(int n) {
 	n -= (n / 10) * 10;
 	p_->stateNo = n < 0 ? n + 10 : n;
-	
+
 	if (p_->cpu.loaded()) {
 		std::string const &path = statePath(p_->cpu.saveBasePath(), p_->stateNo);
 		p_->cpu.setOsdElement(newSaveStateOsdElement(path, p_->stateNo));
@@ -196,7 +196,7 @@ std::string const GB::romTitle() const {
 		title[title[0xF] & 0x80 ? 0xF : 0x10] = '\0';
 		return std::string(title);
 	}
-	
+
 	return std::string();
 }
 

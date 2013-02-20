@@ -23,11 +23,11 @@
 #include <windows.h>
 
 class GdiSettings : Uncopyable {
-	struct MonInfo { 
-		DWORD  cbSize; 
-		RECT   rcMonitor; 
-		RECT   rcWork; 
-		DWORD  dwFlags; 
+	struct MonInfo {
+		DWORD  cbSize;
+		RECT   rcMonitor;
+		RECT   rcWork;
+		DWORD  dwFlags;
 		TCHAR  szDevice[CCHDEVICENAME];
 	};
 
@@ -35,22 +35,22 @@ class GdiSettings : Uncopyable {
     typedef HMONITOR (WINAPI *MonFromWindow)(HWND, DWORD);
     typedef HMONITOR (WINAPI *MonFromPoint)(POINT pt, DWORD dwFlags);
     typedef LONG (WINAPI *ChangeGdiSettingsEx)(LPCTSTR, LPDEVMODE, HWND, DWORD, LPVOID);
-    
+
 public:
 	enum { MON_DEFAULTTONEAREST = 2 };
-	
+
 private:
 	HMODULE user32handle;
 	GetMonInfo getMonitorInfo;
 	ChangeGdiSettingsEx changeDisplaySettingsEx;
-	
+
 public:
 	MonFromWindow monitorFromWindow;
 	MonFromPoint monitorFromPoint;
-	
+
 private:
 	TCHAR *getMonitorName(HMONITOR monitor, MonInfo *minfo) const;
-	
+
 public:
 	GdiSettings();
 	~GdiSettings();

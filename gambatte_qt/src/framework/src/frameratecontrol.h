@@ -39,7 +39,7 @@ public:
 	void setFrameTime(Rational frameTime);
 	void setRefreshRate(int refreshRate);
 	void setRefreshRateSync(bool enable) { refreshRateSync_ = enable; update(); }
-	
+
 };
 
 #endif

@@ -325,7 +325,7 @@ void QGLBlitter::blit() {
 void QGLBlitter::draw() {
 	if (buffer)
 		subWidget->updateTexture(inBuffer().data == buffer ? buffer + buffer.size() / 2 : buffer);
-	
+
 	if (subWidget->doubleBuffer())
 		subWidget->blit();
 }

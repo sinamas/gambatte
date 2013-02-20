@@ -33,17 +33,17 @@ class FilterInfo;
 class Memory {
 	Cartridge cart;
 	unsigned char ioamhram[0x200];
-	
+
 	InputGetter *getInput;
 	unsigned long divLastUpdate;
 	unsigned long lastOamDmaUpdate;
-	
+
 	InterruptRequester intreq;
 	Tima tima;
 	LCD display;
 	PSG sound;
 	Interrupter interrupter;
-	
+
 	unsigned short dmaSource;
 	unsigned short dmaDestination;
 	unsigned char oamDmaPos;
@@ -58,21 +58,21 @@ class Memory {
 	void startOamDma(unsigned long cycleCounter);
 	void endOamDma(unsigned long cycleCounter);
 	const unsigned char * oamDmaSrcPtr() const;
-	
+
 	unsigned nontrivial_ff_read(unsigned P, unsigned long cycleCounter);
 	unsigned nontrivial_read(unsigned P, unsigned long cycleCounter);
 	void nontrivial_ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
-	
+
 	void updateSerial(unsigned long cc);
 	void updateTimaIrq(unsigned long cc);
 	void updateIrqs(unsigned long cc);
-	
+
 	bool isDoubleSpeed() const { return display.isDoubleSpeed(); }
 
 public:
 	explicit Memory(const Interrupter &interrupter);
-	
+
 	bool loaded() const { return cart.loaded(); }
 	char const * romTitle() const { return cart.romTitle(); }
 	PakInfo const pakInfo(bool multicartCompat) const { return cart.pakInfo(multicartCompat); }
@@ -83,7 +83,7 @@ public:
 	void loadSavedata() { cart.loadSavedata(); }
 	void saveSavedata() { cart.saveSavedata(); }
 	const std::string saveBasePath() const { return cart.saveBasePath(); }
-	
+
 	void setOsdElement(transfer_ptr<OsdElement> osdElement) {
 		display.setOsdElement(osdElement);
 	}
@@ -93,9 +93,9 @@ public:
 	bool ime() const { return intreq.ime(); }
 	bool halted() const { return intreq.halted(); }
 	unsigned long nextEventTime() const { return intreq.minEventTime(); }
-	
+
 	bool isActive() const { return intreq.eventTime(END) != DISABLED_TIME; }
-	
+
 	long cyclesSinceBlit(const unsigned long cc) const {
 		if (cc < intreq.eventTime(BLIT))
 			return -1;
@@ -122,7 +122,7 @@ public:
 		} else
 			nontrivial_write(P, data, cycleCounter);
 	}
-	
+
 	void ff_write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
 		if (P - 0xFF80u < 0x7Fu) {
 			ioamhram[P - 0xFE00] = data;
@@ -141,14 +141,14 @@ public:
 	}
 
 	void setEndtime(unsigned long cc, unsigned long inc);
-	
+
 	void setSoundBuffer(uint_least32_t *const buf) { sound.setBuffer(buf); }
 	unsigned fillSoundBuffer(unsigned long cc);
-	
+
 	void setVideoBuffer(uint_least32_t *const videoBuf, const int pitch) {
 		display.setVideoBuffer(videoBuf, pitch);
 	}
-	
+
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
 	void setGameGenie(const std::string &codes) { cart.setGameGenie(codes); }
 	void setGameShark(const std::string &codes) { interrupter.setGameShark(codes); }

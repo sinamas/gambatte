@@ -27,6 +27,6 @@ double kaiser50SincWin(const long n, const long M) {
 	double x = static_cast<double>(n * 2) / M - 1.0;
 	x = x * x;
 	x = beta * std::sqrt(1.0 - x);
-	
+
 	return i0(x) * i0beta_rec;
 }

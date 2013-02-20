@@ -33,7 +33,7 @@ struct PixelBuffer {
 	  *            umask: 0x000000ff, ymask: 0xff00ff00, vmask: 0x00ff0000 (little endian)
 	  */
 	enum PixelFormat { RGB32, RGB16, UYVY };
-	
+
 	void *data;
 	int pitch; // number of pixels (not bytes) between line N and line N+1
 	unsigned width, height;

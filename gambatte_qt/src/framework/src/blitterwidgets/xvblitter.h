@@ -31,12 +31,12 @@ class XvBlitter : public BlitterWidget {
 	class SubBlitter;
 	class ShmBlitter;
 	class PlainBlitter;
-	
+
 	class ConfWidget {
 		const scoped_ptr<QWidget> widget_;
 		QComboBox *const portSelector_;
 		unsigned portIndex_;
-		
+
 	public:
 		ConfWidget();
 		~ConfWidget();
@@ -48,7 +48,7 @@ class XvBlitter : public BlitterWidget {
 		int numAdapters() const;
 		QWidget * qwidget() const { return widget_.get(); }
 	};
-	
+
 	class PortGrabber : Uncopyable {
 		XvPortID port_;
 		bool grabbed_;
@@ -60,13 +60,13 @@ class XvBlitter : public BlitterWidget {
 		bool grabbed() const { return grabbed_; }
 		XvPortID port() const { return port_; }
 	};
-	
+
 	ConfWidget confWidget;
 	PortGrabber portGrabber;
 	scoped_ptr<SubBlitter> subBlitter;
 	GC gc;
 	bool initialized;
-	
+
 	void initPort();
 	void privSetPaused(const bool /*paused*/) {}
 
@@ -83,11 +83,11 @@ public:
 	long sync();
 	void setBufferDimensions(const unsigned int width, const unsigned int height);
 	void blit();
-	
+
 	QWidget* settingsWidget() const { return confWidget.qwidget(); }
 	void acceptSettings();
 	void rejectSettings() const;
-	
+
 	QPaintEngine* paintEngine() const { return NULL; }
 };
 

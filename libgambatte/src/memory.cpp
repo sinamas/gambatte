@@ -113,7 +113,7 @@ void Memory::loadState(const SaveState &state) {
 	                        ? display.nextMode1IrqTime()
 	                        : state.cpu.cycleCounter);
 	blanklcd = false;
-	
+
 	if (!isCgb())
 		std::memset(cart.vramdata() + 0x2000, 0, 0x2000);
 }
@@ -121,7 +121,7 @@ void Memory::loadState(const SaveState &state) {
 void Memory::setEndtime(const unsigned long cycleCounter, const unsigned long inc) {
 	if (intreq.eventTime(BLIT) <= cycleCounter)
 		intreq.setEventTime<BLIT>(intreq.eventTime(BLIT) + (70224 << isDoubleSpeed()));
-	
+
 	intreq.setEventTime<END>(cycleCounter + (inc << isDoubleSpeed()));
 }
 
@@ -166,7 +166,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 
 		while (cycleCounter >= intreq.minEventTime() && intreq.eventTime(END) != DISABLED_TIME)
 			cycleCounter = event(cycleCounter);
-		
+
 		intreq.setEventTime<END>(DISABLED_TIME);
 
 		break;
@@ -174,17 +174,17 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		{
 			const bool lcden = ioamhram[0x140] >> 7 & 1;
 			unsigned long blitTime = intreq.eventTime(BLIT);
-			
+
 			if (lcden | blanklcd) {
 				display.updateScreen(blanklcd, cycleCounter);
 				intreq.setEventTime<BLIT>(DISABLED_TIME);
 				intreq.setEventTime<END>(DISABLED_TIME);
-				
+
 				while (cycleCounter >= intreq.minEventTime())
 					cycleCounter = event(cycleCounter);
 			} else
 				blitTime += 70224 << isDoubleSpeed();
-			
+
 			blanklcd = lcden ^ 1;
 			intreq.setEventTime<BLIT>(blitTime);
 		}
@@ -204,7 +204,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			unsigned dmaDest = dmaDestination;
 			unsigned dmaLength = ((ioamhram[0x155] & 0x7F) + 0x1) * 0x10;
 			unsigned length = hdmaReqFlagged(intreq) ? 0x10 : dmaLength;
-			
+
 			ackDmaReq(&intreq);
 
 			if ((static_cast<unsigned long>(dmaDest) + length) & 0x10000) {
@@ -259,7 +259,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			if ((ioamhram[0x155] & 0x80) && display.hdmaIsEnabled()) {
 				if (lastOamDmaUpdate != DISABLED_TIME)
 					updateOamDma(cycleCounter);
-				
+
 				display.disableHdma(cycleCounter);
 			}
 		}
@@ -275,26 +275,26 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		if (halted()) {
 			if (isCgb())
 				cycleCounter += 4;
-			
+
 			intreq.unhalt();
 			intreq.setEventTime<UNHALT>(DISABLED_TIME);
 		}
-		
+
 		if (ime()) {
 			unsigned address;
 			const unsigned pendingIrqs = intreq.pendingIrqs();
 			const unsigned n = pendingIrqs & -pendingIrqs;
-			
+
 			if (n <= 4) {
 				static const unsigned char lut[] = { 0x40, 0x48, 0x48, 0x50 };
 				address = lut[n-1];
 			} else
 				address = 0x50 + n;
-			
+
 			intreq.ackIrq(n);
 			cycleCounter = interrupter.interrupt(address, cycleCounter, *this);
 		}
-		
+
 		break;
 	}
 
@@ -303,17 +303,17 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 
 unsigned long Memory::stop(unsigned long cycleCounter) {
 	cycleCounter += 4 << isDoubleSpeed();
-	
+
 	if (ioamhram[0x14D] & isCgb()) {
 		sound.generate_samples(cycleCounter, isDoubleSpeed());
-		
+
 		display.speedChange(cycleCounter);
 		ioamhram[0x14D] = ~ioamhram[0x14D] & 0x80;
 
 		intreq.setEventTime<BLIT>(ioamhram[0x140] & 0x80
 			? display.nextMode1IrqTime()
 			: cycleCounter + (70224 << isDoubleSpeed()));
-		
+
 		if (intreq.eventTime(END) > cycleCounter) {
 			intreq.setEventTime<END>(cycleCounter
 				+ (  isDoubleSpeed()
@@ -321,10 +321,10 @@ unsigned long Memory::stop(unsigned long cycleCounter) {
 				   : (intreq.eventTime(END) - cycleCounter) >> 1));
 		}
 	}
-	
+
 	intreq.halt();
 	intreq.setEventTime<UNHALT>(cycleCounter + 0x20000 + isDoubleSpeed() * 8);
-	
+
 	return cycleCounter;
 }
 
@@ -365,7 +365,7 @@ unsigned long Memory::resetCounters(unsigned long cycleCounter) {
 	decEventCycles(UNHALT, dec);
 
 	cycleCounter -= dec;
-	
+
 	intreq.resetCc(oldCC, cycleCounter);
 	tima.resetCc(oldCC, cycleCounter, TimaInterruptRequester(intreq));
 	display.resetCc(oldCC, cycleCounter);
@@ -437,7 +437,7 @@ const unsigned char * Memory::oamDmaSrcPtr() const {
 	case OAM_DMA_SRC_INVALID:
 	case OAM_DMA_SRC_OFF:  break;
 	}
-	
+
 	return ioamhram[0x146] == 0xFF && !isCgb() ? oamDmaSrcZero() : cart.rdisabledRam();
 }
 
@@ -520,7 +520,7 @@ unsigned Memory::nontrivial_ff_read(const unsigned P, const unsigned long cycleC
 
 static bool isInOamDmaConflictArea(const OamDmaSrc oamDmaSrc, const unsigned addr, const bool cgb) {
 	struct Area { unsigned short areaUpper, exceptAreaLower, exceptAreaWidth, pad; };
-	
+
 	static const Area cgbAreas[] = {
 		{ 0xC000, 0x8000, 0x2000, 0 },
 		{ 0xC000, 0x8000, 0x2000, 0 },
@@ -529,7 +529,7 @@ static bool isInOamDmaConflictArea(const OamDmaSrc oamDmaSrc, const unsigned add
 		{ 0xC000, 0x8000, 0x2000, 0 },
 		{ 0x0000, 0x0000, 0x0000, 0 }
 	};
-	
+
 	static const Area dmgAreas[] = {
 		{ 0xFE00, 0x8000, 0x2000, 0 },
 		{ 0xFE00, 0x8000, 0x2000, 0 },
@@ -538,7 +538,7 @@ static bool isInOamDmaConflictArea(const OamDmaSrc oamDmaSrc, const unsigned add
 		{ 0xFE00, 0x8000, 0x2000, 0 },
 		{ 0x0000, 0x0000, 0x0000, 0 }
 	};
-	
+
 	const Area *const a = cgb ? cgbAreas : dmgAreas;
 
 	return addr < a[oamDmaSrc].areaUpper
@@ -549,7 +549,7 @@ unsigned Memory::nontrivial_read(const unsigned P, const unsigned long cycleCoun
 	if (P < 0xFF80) {
 		if (lastOamDmaUpdate != DISABLED_TIME) {
 			updateOamDma(cycleCounter);
-			
+
 			if (isInOamDmaConflictArea(cart.oamDmaSrc(), P, isCgb()) && oamDmaPos < 0xA0)
 				return ioamhram[oamDmaPos];
 		}
@@ -788,7 +788,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 			if ((ioamhram[0x140] ^ data) & 0x80) {
 				const unsigned lyc = display.getStat(ioamhram[0x145], cycleCounter) & 4;
 				const bool hdmaEnabled = display.hdmaIsEnabled();
-				
+
 				display.lcdcChange(data, cycleCounter);
 				ioamhram[0x144] = 0;
 				ioamhram[0x141] &= 0xF8;
@@ -970,7 +970,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
 	if (lastOamDmaUpdate != DISABLED_TIME) {
 		updateOamDma(cycleCounter);
-		
+
 		if (isInOamDmaConflictArea(cart.oamDmaSrc(), P, isCgb()) && oamDmaPos < 0xA0) {
 			ioamhram[oamDmaPos] = data;
 			return;

@@ -35,10 +35,10 @@ unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycle
 	memory.write(SP, PC & 0xFF, cycleCounter);
 	PC = address;
 	cycleCounter += 8;
-	
+
 	if (address == 0x40 && !gsCodes.empty())
 		applyVblankCheats(cycleCounter, memory);
-	
+
 	return cycleCounter;
 }
 
@@ -49,7 +49,7 @@ static int asHex(const char c) {
 void Interrupter::setGameShark(const std::string &codes) {
 	std::string code;
 	gsCodes.clear();
-	
+
 	for (std::size_t pos = 0; pos < codes.length() && (code = codes.substr(pos, codes.find(';', pos) - pos), true); pos += code.length() + 1) {
 		if (code.length() >= 8) {
 			GsCode gs;

@@ -32,15 +32,15 @@ class BlitterContainer : public QWidget {
 	ScalingMethod scalingMethod_;
 	bool parentExclusive;
 	bool cursorHidden_;
-	
+
 	void doLayout(int w, int h);
 	void testExclusive();
 	void updateLayout() { doLayout(width(), height()); }
-	
+
 protected:
 	void moveEvent(QMoveEvent *event);
 	void resizeEvent(QResizeEvent *event);
-	
+
 public:
 	explicit BlitterContainer(QWidget *parent = 0);
 	~BlitterContainer();

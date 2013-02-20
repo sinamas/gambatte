@@ -37,9 +37,9 @@ class Channel1 {
 		unsigned short shadow;
 		unsigned char nr0;
 		bool negging;
-		
+
 		unsigned calcFreq();
-		
+
 	public:
 		SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit);
 		void event();
@@ -49,27 +49,27 @@ class Channel1 {
 		void saveState(SaveState &state) const;
 		void loadState(const SaveState &state);
 	};
-	
+
 	friend class StaticOutputTester<Channel1,DutyUnit>;
-	
+
 	StaticOutputTester<Channel1,DutyUnit> staticOutputTest;
 	DutyMasterDisabler disableMaster;
 	LengthCounter lengthCounter;
 	DutyUnit dutyUnit;
 	EnvelopeUnit envelopeUnit;
 	SweepUnit sweepUnit;
-	
+
 	SoundUnit *nextEventUnit;
-	
+
 	unsigned long cycleCounter;
 	unsigned long soMask;
 	unsigned long prevOut;
-	
+
 	unsigned char nr4;
 	bool master;
-	
+
 	void setEvent();
-	
+
 public:
 	Channel1();
 	void setNr0(unsigned data);
@@ -77,12 +77,12 @@ public:
 	void setNr2(unsigned data);
 	void setNr3(unsigned data);
 	void setNr4(unsigned data);
-	
+
 	void setSo(unsigned long soMask);
 	bool isActive() const { return master; }
-	
+
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
-	
+
 	void reset();
 	void init(bool cgb);
 	void saveState(SaveState &state);

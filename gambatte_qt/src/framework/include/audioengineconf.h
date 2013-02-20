@@ -25,27 +25,27 @@ class QWidget;
 
 class ConstAudioEngineConf {
 	const AudioEngine *const ae;
-	
+
 public:
 	/*explicit */ConstAudioEngineConf(const AudioEngine *const ae) : ae(ae) {}
 	const QString& nameString() const;
 	QWidget* settingsWidget() const;
 	void rejectSettings() const;
-	
+
 	bool operator==(ConstAudioEngineConf r) const { return ae == r.ae; }
 	bool operator!=(ConstAudioEngineConf r) const { return ae != r.ae; }
 };
 
 class AudioEngineConf {
 	AudioEngine *const ae;
-	
+
 public:
 	/*explicit */AudioEngineConf(AudioEngine *const ae) : ae(ae) {}
 	const QString& nameString() const;
 	QWidget* settingsWidget() const;
 	void acceptSettings() const;
 	void rejectSettings() const;
-	
+
 	bool operator==(AudioEngineConf r) const { return ae == r.ae; }
 	bool operator!=(AudioEngineConf r) const { return ae != r.ae; }
 	operator const ConstAudioEngineConf() const { return ConstAudioEngineConf(ae); }

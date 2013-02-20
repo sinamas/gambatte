@@ -58,30 +58,30 @@ class MediaWorker::AudioOut : Uncopyable {
 	const unsigned latency_;
 	long estrate_;
 	bool inited_;
-	
+
 public:
 	AudioOut(AudioEngine &ae, long rate, unsigned latency, std::size_t resamplerNo)
 	: ae_(ae), resamplerNo_(resamplerNo), rate_(rate), latency_(latency), estrate_(rate), inited_(false)
 	{
 	}
-	
+
 	~AudioOut() {
 		uninit();
 	}
-	
+
 	void init() {
 		inited_ = true;
 		ae_.init(rate_, latency_);
 		estrate_ = rate();
 	}
-	
+
 	void uninit() {
 		if (inited_) {
 			ae_.uninit();
 			inited_ = false;
 		}
 	}
-	
+
 	void pause() {
 		if (successfullyInitialized())
 			ae_.pause();
@@ -93,11 +93,11 @@ public:
 	std::size_t resamplerNo() const { return resamplerNo_; }
 	bool initialized() const { return inited_; }
 	bool successfullyInitialized() const { return inited_ && ae_.rate() > 0; }
-	
+
 	int write(qint16 *buf, std::size_t samples, AudioEngine::BufferState &preBstateOut) {
 		return ae_.write(buf, samples, preBstateOut, estrate_);
 	}
-	
+
 	int write(qint16 *buf, std::size_t samples) {
 		return ae_.write(buf, samples);
 	}
@@ -319,18 +319,18 @@ static const NowDelta frameWait(const NowDelta basetime,
 		const usec_t syncft, const usec_t usecsFromUnderrun, SyncVar &waitingForSync) {
 	const usec_t now = getusecs();
 	const usec_t target = basetime.now + basetime.inc + syncft;
-	
+
 	if (target - now < basetime.inc + syncft) {
 		if (target - now >= usecsFromUnderrun - (usecsFromUnderrun >> 2))
 			return basetime;
-		
+
 		SyncVar::Locked wfs(waitingForSync);
 		if (!wfs.get())
 			wfs.wait((target - now) / 1000);
-		
+
 		return NowDelta(now, target - now);
 	}
-	
+
 	return NowDelta(now, 0);
 }
 
@@ -347,7 +347,7 @@ static void blitWait(MediaWorker::Callback &cb, SyncVar &waitingForSync) {
 static bool audioBufIsLow(const AudioEngine::BufferState &bstate, const int outsamples) {
 	if (bstate.fromUnderrun == AudioEngine::BufferState::NOT_SUPPORTED)
 		return false;
-	
+
 	const int fur = bstate.fromUnderrun + outsamples;
 	const int fof = static_cast<int>(bstate.fromOverflow) - outsamples;
 	return fur < fof * 2;
@@ -356,7 +356,7 @@ static bool audioBufIsLow(const AudioEngine::BufferState &bstate, const int outs
 static usec_t usecsFromUnderrun(const AudioEngine::BufferState &bstate, const int outsamples, const long estsrate) {
 	if (bstate.fromUnderrun == AudioEngine::BufferState::NOT_SUPPORTED || estsrate == 0)
 		return 0x10000000;
-	
+
 	const int fur = bstate.fromUnderrun + outsamples;
 	const int fof = static_cast<int>(bstate.fromOverflow) - outsamples;
 	return (fof < 0 ? fur + fof : fur) * 1000000LL / estsrate;
@@ -376,7 +376,7 @@ void MediaWorker::run() {
 		explicit AoInit(MediaWorker &w) : w_(w) {
 			w.initAudioEngine();
 		}
-		
+
 		~AoInit() {
 			w_.ao_->uninit();
 			w_.sampleBuffer.setOutSampleRate(0);

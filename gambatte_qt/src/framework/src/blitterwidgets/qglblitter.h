@@ -27,7 +27,7 @@
 
 class QGLBlitter : public BlitterWidget {
 	class SubWidget;
-	
+
 	const DwmControlHwndChange hwndChange_;
 	FtEst ftEst;
 	const scoped_ptr<QWidget> confWidget;
@@ -37,14 +37,14 @@ class QGLBlitter : public BlitterWidget {
 	unsigned swapInterval_;
 	int dhz;
 	scoped_ptr<SubWidget> subWidget;
-	
+
 	void resetSubWidget();
 	void privSetPaused(const bool /*paused*/) {}
-	
+
 protected:
 	void setBufferDimensions(unsigned int width, unsigned int height);
 	void resizeEvent(QResizeEvent *event);
-	
+
 public:
 	explicit QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent = 0);
 	~QGLBlitter();
@@ -57,10 +57,10 @@ public:
 	void draw();
 	long sync();
 	QWidget* settingsWidget() const { return confWidget.get(); }
-	
+
 	void acceptSettings();
 	void rejectSettings() const;
-	
+
 	void setSwapInterval(unsigned);
 	void rateChange(int dhz);
 	void compositionEnabledChange();

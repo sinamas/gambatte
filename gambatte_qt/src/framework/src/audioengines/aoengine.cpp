@@ -26,22 +26,22 @@ AoEngine::~AoEngine() {
 
 int AoEngine::doInit(const int rate, unsigned /*latency*/) {
 	ao_initialize();
-	
+
 	aoDevice = NULL;
-	
+
 	ao_sample_format sampleFormat = { 16, rate, 2, AO_FMT_NATIVE };
-	
+
 	int aoDriverId = ao_default_driver_id();
-	
+
 	if (aoDriverId != -1) {
 		aoDevice = ao_open_live(aoDriverId, &sampleFormat, NULL);
 	}
-	
+
 	if (aoDevice == NULL) {
 		ao_shutdown();
 		return -1;
 	}
-	
+
 	return sampleFormat.rate;
 }
 
@@ -49,7 +49,7 @@ void AoEngine::uninit() {
 	if (aoDevice) {
 		ao_close(aoDevice);
 		aoDevice = NULL;
-		
+
 		ao_shutdown();
 	}
 }
@@ -57,6 +57,6 @@ void AoEngine::uninit() {
 int AoEngine::write(void *const buffer, const unsigned samples) {
 	if (ao_play(aoDevice, reinterpret_cast<char*>(buffer), samples * 4) == 0)
 		return -1;
-	
+
 	return 0;
 }

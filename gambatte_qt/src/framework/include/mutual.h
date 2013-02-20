@@ -50,7 +50,7 @@ public:
 		const T* operator->() const { return &lc.t; }
 		const T& get() const { return lc.t; }
 	};
-	
+
 	class TryLocked : Uncopyable {
 		Mutual *const lc;
 	public:

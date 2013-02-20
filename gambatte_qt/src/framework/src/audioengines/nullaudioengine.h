@@ -23,7 +23,7 @@
 
 class NullAudioEngine : public AudioEngine {
 	int doInit(int rate, unsigned /*latency*/) { return rate; }
-	
+
 public:
 	NullAudioEngine() : AudioEngine("Null") {}
 	int write(void */*buffer*/, unsigned /*samples*/) { return 0; }

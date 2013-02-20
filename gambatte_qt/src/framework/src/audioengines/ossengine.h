@@ -30,11 +30,11 @@ class OssEngine : public AudioEngine {
 	unsigned bufSize;
 	unsigned fragSize;
 	unsigned prevbytes;
-	
+
 	int doInit(int rate, unsigned latency);
 	void doAcceptSettings() { conf.acceptSettings(); }
 	int write(void *buffer, unsigned samples, const BufferState &bstate);
-	
+
 public:
 	OssEngine();
 	~OssEngine();

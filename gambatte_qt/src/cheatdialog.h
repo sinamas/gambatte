@@ -27,7 +27,7 @@ struct CheatListItem {
 	QString label;
 	QString code;
 	bool checked;
-	
+
 	CheatListItem(const QString &label, const QString &code, const bool checked)
 	: label(label), code(code), checked(checked)
 	{
@@ -36,14 +36,14 @@ struct CheatListItem {
 
 class GetCheatInput : public QDialog {
 	Q_OBJECT
-	
+
 	class QLineEdit *const codeEdit_;
 	class QLineEdit *const descEdit_;
 	class QPushButton *const okButton_;
-	
+
 private slots:
 	void codeTextEdited(const QString&);
-	
+
 public:
 	explicit GetCheatInput(const QString &desc, const QString &code, QWidget *parent);
 	const QString codeText() const;
@@ -52,31 +52,31 @@ public:
 
 class CheatDialog : public QDialog {
 	Q_OBJECT
-	
+
 	class QListView *const view_;
 	class QPushButton *const editButton_;
 	class QPushButton *const rmButton_;
 	std::vector<CheatListItem> items_;
 	const QString savefile_;
 	QString gamename_;
-	
+
 	void loadFromSettingsFile();
 	void saveToSettingsFile();
 	void resetViewModel(const std::vector<CheatListItem> &items);
 	void resetViewModel(const std::vector<CheatListItem> &items, int newCurRow);
-	
+
 private slots:
 	void addCheat();
 	void editCheat();
 	void removeCheat();
 	void selectionChanged(const class QModelIndex &current, const class QModelIndex &last);
-	
+
 public:
 	explicit CheatDialog(const QString &savefile, QWidget *parent = 0);
 	~CheatDialog();
 	const QString cheats() const;
 	void setGameName(const QString &name);
-	
+
 public slots:
 	virtual void accept();
 	virtual void reject();

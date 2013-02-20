@@ -26,12 +26,12 @@ class VideoLink;
 struct VfilterInfo {
 	enum { IN_WIDTH = 160 };
 	enum { IN_HEIGHT = 144 };
-	
+
 	const char *handle;
 	unsigned outWidth;
 	unsigned outHeight;
 	VideoLink* (*create)();
-	
+
 	static const VfilterInfo& get(std::size_t n);
 	static std::size_t numVfilters();
 };

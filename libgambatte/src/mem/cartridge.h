@@ -44,23 +44,23 @@ class Cartridge {
 		unsigned char data;
 		AddrData(unsigned long addr, unsigned data) : addr(addr), data(data) {}
 	};
-	
+
 	MemPtrs memptrs;
 	Rtc rtc;
 	scoped_ptr<Mbc> mbc;
 	std::string defaultSaveBasePath;
 	std::string saveDir;
 	std::vector<AddrData> ggUndoList;
-	
+
 	void applyGameGenie(const std::string &code);
-	
+
 public:
 	void setStatePtrs(SaveState &);
 	void saveState(SaveState &) const;
 	void loadState(const SaveState &);
-	
+
 	bool loaded() const { return mbc.get(); }
-	
+
 	const unsigned char * rmem(unsigned area) const { return memptrs.rmem(area); }
 	unsigned char * wmem(unsigned area) const { return memptrs.wmem(area); }
 	unsigned char * vramdata() const { return memptrs.vramdata(); }
@@ -71,18 +71,18 @@ public:
 	unsigned char * wsrambankptr() const { return memptrs.wsrambankptr(); }
 	unsigned char * vrambankptr() const { return memptrs.vrambankptr(); }
 	OamDmaSrc oamDmaSrc() const { return memptrs.oamDmaSrc(); }
-	
+
 	void setVrambank(unsigned bank) { memptrs.setVrambank(bank); }
 	void setWrambank(unsigned bank) { memptrs.setWrambank(bank); }
 	void setOamDmaSrc(OamDmaSrc oamDmaSrc) { memptrs.setOamDmaSrc(oamDmaSrc); }
-	
+
 	void mbcWrite(unsigned addr, unsigned data) { mbc->romWrite(addr, data); }
 
 	bool isCgb() const { return gambatte::isCgb(memptrs); }
-	
+
 	void rtcWrite(unsigned data) { rtc.write(data); }
 	unsigned char rtcRead() const { return *rtc.getActive(); }
-	
+
 	void loadSavedata();
 	void saveSavedata();
 	const std::string saveBasePath() const;

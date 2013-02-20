@@ -44,13 +44,13 @@ class QMainWindow;
 
 class MediaWidget : public QObject {
 	Q_OBJECT
-	
+
 	class Pauser {
 		struct DoPause;
 		struct DoUnpause;
-		
+
 		unsigned paused;
-		
+
 		void modifyPaused(unsigned newPaused, MediaWidget &mw);
 	public:
 		Pauser() : paused(0) {}
@@ -60,17 +60,17 @@ class MediaWidget : public QObject {
 		void set(unsigned bm, MediaWidget &mw) { modifyPaused(paused | bm, mw); }
 		void unset(unsigned bm, MediaWidget &mw) { modifyPaused(paused & ~bm, mw); }
 	};
-	
+
 	const class JoystickIniter : Uncopyable {
 		std::vector<SDL_Joystick*> joysticks;
 	public:
 		JoystickIniter();
 		~JoystickIniter();
 	} jsInit_;
-	
+
 	class WorkerCallback;
 	struct FrameStepFun;
-	
+
 	QMutex vbmut;
 	BlitterContainer *const blitterContainer;
 	const auto_vector<AudioEngine> audioEngines;
@@ -86,7 +86,7 @@ class MediaWidget : public QObject {
 	DwmControl dwmControl_;
 	unsigned focusPauseBit;
 	bool running;
-	
+
 	friend class CallWhenMediaWorkerPaused;
 	friend class PushMediaWorkerCall;
 	virtual void customEvent(QEvent*);
@@ -96,17 +96,17 @@ class MediaWidget : public QObject {
 	void updateSwapInterval();
 	void emitVideoBlitterFailure() { emit videoBlitterFailure(); }
 	void emitAudioEngineFailure();
-	
+
 private slots:
 	void refreshRateChange(int refreshRate);
 	void updateJoysticks();
-	
+
 public:
 	MediaWidget(MediaSource *source, QWidget &parent);
 	~MediaWidget();
-	
+
 	QWidget* widget() const { return blitterContainer; }
-	
+
 	/** @return compositionChange */
 	bool winEvent(const void *message) { return dwmControl_.winEvent(message); }
 	void hideEvent() { dwmControl_.hideEvent(); }
@@ -118,57 +118,57 @@ public:
 	void focusInEvent();
 	void keyPressEvent(QKeyEvent*);
 	void keyReleaseEvent(QKeyEvent*);
-	
+
 	bool tryLockFrameBuf(PixelBuffer &pb) {
 		if (vbmut.tryLock()) {
 			pb = running ? blitterContainer->blitter()->inBuffer() : PixelBuffer();
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	void unlockFrameBuf() { vbmut.unlock(); }
-	
+
 	const QSize& videoSize() const { return blitterContainer->sourceSize(); }
-	
+
 	void setFrameTime(long num, long denom);
 	void setSamplesPerFrame(long num, long denom = 1) { worker->setSamplesPerFrame(Rational(num, denom)); }
-	
+
 	void frameStep();
 	void pause(unsigned bitmask = 1) { pauser.set(bitmask, *this); }
 	void unpause(unsigned bitmask = 1) { pauser.unset(bitmask, *this); }
 	void incPause(unsigned inc) { pauser.inc(inc, *this); }
 	void decPause(unsigned dec) { pauser.dec(dec, *this); }
 	void setPauseOnFocusOut(unsigned bitmask, bool hasFocus);
-	
+
 	void run();
 	void stop();
 	bool isRunning() const { return running; }
-	
+
 	void setAspectRatio(const QSize &ar) { blitterContainer->setAspectRatio(ar); }
 	void setScalingMethod(ScalingMethod smet) { blitterContainer->setScalingMethod(smet); }
-	
+
 	const BlitterConf blitterConf(std::size_t blitterNo) { return BlitterConf(blitters[blitterNo]); }
 	const ConstBlitterConf blitterConf(std::size_t blitterNo) const { return ConstBlitterConf(blitters[blitterNo]); }
 	std::size_t numBlitters() const { return blitters.size(); }
 	const BlitterConf currentBlitterConf() { return BlitterConf(blitterContainer->blitter()); }
 	const ConstBlitterConf currentBlitterConf() const { return ConstBlitterConf(blitterContainer->blitter()); }
-	
+
 	void setVideoBlitter(std::size_t blitterNo) {
 		setVideoFormatAndBlitter(blitterContainer->sourceSize().width(),
 		                         blitterContainer->sourceSize().height(), blitterNo);
 	}
-	
+
 	void setVideoFormat(unsigned w, unsigned h/*, PixelBuffer::PixelFormat pf*/) {
 		setVideo(w, h, /*pf, */blitterContainer->blitter());
 	}
-	
+
 	void setVideoFormatAndBlitter(unsigned w, unsigned h,
 			/*PixelBuffer::PixelFormat pf, */std::size_t blitterNo) {
 		setVideo(w, h,/* pf,*/ blitters[blitterNo]);
 	}
-	
+
 	void setFastForwardSpeed(unsigned speed) { worker->setFastForwardSpeed(speed); }
 	void setMode(std::size_t screenNo, std::size_t resIndex, std::size_t rateIndex) { fullModeToggler->setMode(screenNo, resIndex, rateIndex); }
 	const std::vector<ResInfo>& modeVector(std::size_t screen) const { return fullModeToggler->modeVector(screen); }
@@ -181,20 +181,20 @@ public:
 	void setFullMode(bool fullscreen) { fullModeToggler->setFullMode(fullscreen); }
 	bool isFullMode() const { return fullModeToggler->isFullMode(); }
 	void parentExclusiveEvent(bool exclusive) { blitterContainer->parentExclusiveEvent(exclusive); }
-	
+
 	const AudioEngineConf audioEngineConf(std::size_t aeNo) { return AudioEngineConf(audioEngines[aeNo]); }
 	const ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const { return ConstAudioEngineConf(audioEngines[aeNo]); }
 	std::size_t numAudioEngines() const { return audioEngines.size(); }
-	
+
 	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo) {
 		worker->setAudioOut(audioEngines[engineNo], srateHz, msecLatency, resamplerNo);
 	}
-	
+
 	std::size_t numResamplers() const { return ResamplerInfo::num(); }
 	const char* resamplerDesc(std::size_t resamplerNo) const { return ResamplerInfo::get(resamplerNo).desc; }
-	
+
 	void waitUntilPaused();
-	
+
 	template<class T>
 	void callWhenPaused(const T &fun) {
 		worker->qPause();
@@ -206,10 +206,10 @@ public:
 	void setDwmTripleBuffer(bool enable) { dwmControl_.setDwmTripleBuffer(enable); }
 	void setFastForward(bool enable) { worker->setFastForward(enable); }
 	void setSyncToRefreshRate(bool on) { frameRateControl.setRefreshRateSync(on); }
-	
+
 public slots:
 	void hideCursor();
-	
+
 signals:
 	void audioEngineFailure();
 	void videoBlitterFailure();

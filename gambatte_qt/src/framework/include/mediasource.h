@@ -48,14 +48,14 @@ protected:
 	explicit MediaSource(const unsigned overupdate = 0) : overupdate(overupdate) {}
 public:
 	const unsigned overupdate;
-	
+
 	// Reimplement to get input events. The InputDialog class may be useful.
 	// joystickEvent is called from the worker thread, while keyPress/ReleaseEvent
 	// are called from the GUI thread.
 	virtual void keyPressEvent(const QKeyEvent *) {}
 	virtual void keyReleaseEvent(const QKeyEvent *) {}
 	virtual void joystickEvent(const SDL_Event&) {}
-	
+
 	/**
 	  * Update until a new frame of video, or 'samples' audio samples have been produced.
 	  * May postpone writing to frameBuf until generateVideoFrame is called.
@@ -73,7 +73,7 @@ public:
 	  * @return The number of stereo samples that should be output before the video frame is displayed. Or a negative number if no new video frame should be displayed.
 	  */
 	virtual long update(const PixelBuffer &frameBuf, qint16 *soundBuf, long &samples) = 0;
-	
+
 	/**
 	  * This is called after update returns, but only when it is clear that the frame won't be skipped.
 	  * This gives an opportunity to delay heavy video work until it is clear that it will be used.
@@ -82,7 +82,7 @@ public:
 	  * Heavy post-processing of video is a good candidate for this method.
 	  */
 	virtual void generateVideoFrame(const PixelBuffer &/*fb*/) {}
-	
+
 	virtual ~MediaSource() {}
 };
 
