@@ -19,10 +19,10 @@
 #ifndef LININT_H
 #define LININT_H
 
-#include <cstddef>
 #include "../resampler.h"
 #include "u48div.h"
 #include "rshift16_round.h"
+#include <cstddef>
 
 template<int channels>
 class LinintCore {
