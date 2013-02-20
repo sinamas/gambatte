@@ -49,7 +49,9 @@ class MinKeeper {
 		
 		static void updateValue(MinKeeper<ids> &m) {
 			// GCC 4.3 generates better code with the ternary operator on i386.
-			m.a[P] = (id * 2 + 1 == Num<level>::R || m.values[m.a[C0]] < m.values[m.a[C0 + 1]]) ? m.a[C0] : m.a[C0 + 1];
+			m.a[P] = id * 2 + 1 == Num<level>::R || m.values[m.a[C0]] < m.values[m.a[C0 + 1]]
+			       ? m.a[C0    ]
+			       : m.a[C0 + 1];
 			UpdateValue<id / 2, level - 1>::updateValue(m);
 		}
 	};
@@ -114,7 +116,9 @@ MinKeeper<ids>::MinKeeper(const unsigned long initValue) {
 	std::fill(values, values + ids, initValue);
 	
 	for (int i = 0; i < Num<LEVELS-1>::R; ++i) {
-		a[Sum<LEVELS-1>::R + i] = (i * 2 + 1 == ids || values[i * 2] < values[i * 2 + 1]) ? i * 2 : i * 2 + 1;
+		a[Sum<LEVELS-1>::R + i] = i * 2 + 1 == ids || values[i * 2] < values[i * 2 + 1]
+		                        ? i * 2
+		                        : i * 2 + 1;
 	}
 	
 	int n   = Num<LEVELS-1>::R;
@@ -125,9 +129,10 @@ MinKeeper<ids>::MinKeeper(const unsigned long initValue) {
 		const int poff = off - pn;
 		
 		for (int i = 0; i < pn; ++i) {
-			a[poff + i] = (i * 2 + 1 == n ||
-					values[a[off + i * 2]] < values[a[off + i * 2 + 1]]) ?
-					a[off + i * 2] : a[off + i * 2 + 1];
+			a[poff + i] =
+				  i * 2 + 1 == n || values[a[off + i * 2]] < values[a[off + i * 2 + 1]]
+				? a[off + i * 2    ]
+				: a[off + i * 2 + 1];
 		}
 		
 		off = poff;
@@ -140,7 +145,9 @@ MinKeeper<ids>::MinKeeper(const unsigned long initValue) {
 template<int ids>
 template<int id>
 void MinKeeper<ids>::updateValue(MinKeeper<ids> &m) {
-	m.a[Sum<LEVELS-1>::R + id] = (id * 2 + 1 == ids || m.values[id * 2] < m.values[id * 2 + 1]) ? id * 2 : id * 2 + 1;
+	m.a[Sum<LEVELS-1>::R + id] = id * 2 + 1 == ids || m.values[id * 2] < m.values[id * 2 + 1]
+	                           ? id * 2
+	                           : id * 2 + 1;
 	UpdateValue<id / 2, LEVELS-1>::updateValue(m);
 }
 
