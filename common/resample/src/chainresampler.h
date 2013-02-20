@@ -19,15 +19,15 @@
 #ifndef CHAINRESAMPLER_H
 #define CHAINRESAMPLER_H
 
-#include <cmath>
-#include <cstdlib>
-#include <cassert>
-#include <cstddef>
-#include <list>
 #include "array.h"
 #include "subresampler.h"
 #include "../resampler.h"
 #include "upsampler.h"
+#include <cassert>
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <list>
 
 class ChainResampler : public Resampler {
 	typedef std::list<SubResampler*> list_t;
