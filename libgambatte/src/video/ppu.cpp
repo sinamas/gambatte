@@ -1068,7 +1068,7 @@ namespace Tile {
 		if ((p.winDrawState & WIN_DRAW_START) && handleWinDrawStartReq(p))
 			return StartWindowDraw::f0(p);
 
- 			doFullTilesUnrolled(p);
+		doFullTilesUnrolled(p);
 
 		if (p.xpos == 168) {
 			++p.cycles;
