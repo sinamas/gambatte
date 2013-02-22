@@ -191,6 +191,28 @@ namespace M2 {
 }
 */
 
+static int loadTileDataByte0(PPUPriv const &p) {
+	unsigned const yoffset = p.winDrawState & WIN_DRAW_STARTED
+	                       ? p.winYPos
+	                       : p.scy + p.lyCounter.ly();
+
+	return p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
+	                     - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
+	                     + p.reg1 * 16
+	                     + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2];
+}
+
+static int loadTileDataByte1(PPUPriv const &p) {
+	unsigned const yoffset = p.winDrawState & WIN_DRAW_STARTED
+	                       ? p.winYPos
+	                       : p.scy + p.lyCounter.ly();
+
+	return p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
+	                     - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
+	                     + p.reg1 * 16
+	                     + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2 + 1];
+}
+
 namespace M3Start {
 	static void f0(PPUPriv &p) {
 		p.xpos = 0;
@@ -227,28 +249,11 @@ namespace M3Start {
 
 				break;
 			case 2:
-				{
-					const unsigned yoffset = p.winDrawState & WIN_DRAW_STARTED
-					                       ? p.winYPos
-					                       : p.scy + p.lyCounter.ly();
-
-					p.reg0 = p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-					                       - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-					                       + p.reg1 * 16
-					                       + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2];
-				}
-
+				p.reg0 = loadTileDataByte0(p);
 				break;
 			case 4:
 				{
-					const unsigned yoffset = p.winDrawState & WIN_DRAW_STARTED
-					                       ? p.winYPos
-					                       : p.scy + p.lyCounter.ly();
-					const unsigned r1 = p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-					                                  - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-					                                  + p.reg1 * 16
-					                                  + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2 + 1];
-
+					int const r1 = loadTileDataByte1(p);
 					p.ntileword = (expand_lut + (p.nattrib << 3 & 0x100))[p.reg0]
 					            + (expand_lut + (p.nattrib << 3 & 0x100))[r1    ] * 2;
 				}
@@ -929,15 +934,7 @@ namespace StartWindowDraw {
 	}
 
 	static void f2(PPUPriv &p) {
-		const unsigned yoffset = p.winDrawState & WIN_DRAW_STARTED
-		                       ? p.winYPos
-		                       : p.scy + p.lyCounter.ly();
-
-		p.reg0 = p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-		                       - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-		                       + p.reg1 * 16
-		                       + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2];
-
+		p.reg0 = loadTileDataByte0(p);
 		inc(f3_, p);
 	}
 
@@ -946,13 +943,7 @@ namespace StartWindowDraw {
 	}
 
 	static void f4(PPUPriv &p) {
-		const unsigned yoffset = p.winDrawState & WIN_DRAW_STARTED
-		                       ? p.winYPos
-		                       : p.scy + p.lyCounter.ly();
-		const unsigned r1 = p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-		                                  - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-		                                  + p.reg1 * 16
-		                                  + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2 + 1];
+		int const r1 = loadTileDataByte1(p);
 
 		p.ntileword = (expand_lut + (p.nattrib << 3 & 0x100))[p.reg0]
 		            + (expand_lut + (p.nattrib << 3 & 0x100))[r1    ] * 2;
@@ -1109,15 +1100,7 @@ namespace Tile {
 		if ((p.winDrawState & WIN_DRAW_START) && handleWinDrawStartReq(p))
 			return StartWindowDraw::f0(p);
 
-		const unsigned yoffset = p.winDrawState & WIN_DRAW_STARTED
-		                       ? p.winYPos
-		                       : p.scy + p.lyCounter.ly();
-
-		p.reg0 = p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-		                       - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-		                       + p.reg1 * 16
-		                       + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2];
-
+		p.reg0 = loadTileDataByte0(p);
 		inc(f3_, p);
 	}
 
@@ -1132,13 +1115,7 @@ namespace Tile {
 		if ((p.winDrawState & WIN_DRAW_START) && handleWinDrawStartReq(p))
 			return StartWindowDraw::f0(p);
 
-		const unsigned yoffset = p.winDrawState & WIN_DRAW_STARTED
-		                       ? p.winYPos
-		                       : p.scy + p.lyCounter.ly();
-		const unsigned r1 = p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-		                                  - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-		                                  + p.reg1 * 16
-		                                  + ((-(p.nattrib >> 6 & 1) ^ yoffset) & 7) * 2 + 1];
+		int const r1 = loadTileDataByte1(p);
 
 		p.ntileword = (expand_lut + (p.nattrib << 3 & 0x100))[p.reg0]
 		            + (expand_lut + (p.nattrib << 3 & 0x100))[r1    ] * 2;
