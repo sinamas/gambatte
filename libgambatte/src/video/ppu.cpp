@@ -26,11 +26,13 @@ namespace {
 
 using namespace gambatte;
 
-#define PREP(u8) (((u8) << 7 & 0x80) | ((u8) << 5 & 0x40) | ((u8) << 3 & 0x20) | ((u8) << 1 & 0x10) | \
-                  ((u8) >> 1 & 0x08) | ((u8) >> 3 & 0x04) | ((u8) >> 5 & 0x02) | ((u8) >> 7 & 0x01))
+#define PREP(u8) (((u8) << 7 & 0x80) | ((u8) << 5 & 0x40) | ((u8) << 3 & 0x20) | ((u8) << 1 & 0x10) \
+                | ((u8) >> 1 & 0x08) | ((u8) >> 3 & 0x04) | ((u8) >> 5 & 0x02) | ((u8) >> 7 & 0x01))
 
-#define EXPAND(u8) ((PREP(u8) << 7 & 0x4000) | (PREP(u8) << 6 & 0x1000) | (PREP(u8) << 5 & 0x0400) | (PREP(u8) << 4 & 0x0100) | \
-                    (PREP(u8) << 3 & 0x0040) | (PREP(u8) << 2 & 0x0010) | (PREP(u8) << 1 & 0x0004) | (PREP(u8)      & 0x0001))
+#define EXPAND(u8) ((PREP(u8) << 7 & 0x4000) | (PREP(u8) << 6 & 0x1000) \
+                  | (PREP(u8) << 5 & 0x0400) | (PREP(u8) << 4 & 0x0100) \
+                  | (PREP(u8) << 3 & 0x0040) | (PREP(u8) << 2 & 0x0010) \
+                  | (PREP(u8) << 1 & 0x0004) | (PREP(u8)      & 0x0001))
 
 #define EXPAND_ROW(n) EXPAND((n)|0x0), EXPAND((n)|0x1), EXPAND((n)|0x2), EXPAND((n)|0x3), \
                       EXPAND((n)|0x4), EXPAND((n)|0x5), EXPAND((n)|0x6), EXPAND((n)|0x7), \
@@ -162,7 +164,8 @@ namespace M2 {
 		int cycles = p.cycles;
 		unsigned oampos = p.reg0;
 		unsigned nextSprite = p.nextSprite;
-		const unsigned nly = (p.lyCounter.ly() + 1 == 154 ? 0 : p.lyCounter.ly() + 1) + ((p.lyCounter.time()-(p.now-p.cycles)) <= 4);
+		const unsigned nly = (p.lyCounter.ly() + 1 == 154 ? 0 : p.lyCounter.ly() + 1)
+		                   + ((p.lyCounter.time()-(p.now-p.cycles)) <= 4);
 		const bool ls = p.spriteMapper.largeSpritesSource();
 
 		do {
@@ -338,8 +341,9 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, const int xend, uint_least32_t *c
 				p.cycles = cycles;
 
 				do {
-					unsigned reg0, reg1   = p.spriteMapper.oamram()[p.spriteList[nextSprite].oampos + 2] * 16;
-					const unsigned attrib = p.spriteMapper.oamram()[p.spriteList[nextSprite].oampos + 3];
+					unsigned char const *const oam = p.spriteMapper.oamram();
+					unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * 16;
+					const unsigned attrib = oam[p.spriteList[nextSprite].oampos + 3];
 					const unsigned spline = (  attrib & 0x40
 					                         ? p.spriteList[nextSprite].line ^ 15
 					                         : p.spriteList[nextSprite].line     ) * 2;
@@ -525,8 +529,9 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, const int xend, uint_least32_t *c
 			p.cycles = cycles;
 
 			do {
-				unsigned reg0, reg1   = p.spriteMapper.oamram()[p.spriteList[nextSprite].oampos + 2] * 16;
-				const unsigned attrib = p.spriteMapper.oamram()[p.spriteList[nextSprite].oampos + 3];
+				unsigned char const *const oam = p.spriteMapper.oamram();
+				unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * 16;
+				const unsigned attrib = oam[p.spriteList[nextSprite].oampos + 3];
 				const unsigned spline = (  attrib & 0x40
 				                         ? p.spriteList[nextSprite].line ^ 15
 				                         : p.spriteList[nextSprite].line     ) * 2;
@@ -1260,9 +1265,10 @@ namespace Tile {
 
 			if (sprite < spriteEnd) {
 				const int spx = p.spriteMapper.posbuf()[*sprite + 1];
-				unsigned firstTileXpos = static_cast<unsigned>(endx) & 7; // ok even if endx is capped at 168, because fno will be used.
-				unsigned prevSpriteTileNo = (xpos - firstTileXpos) & ~7; // this tile. all sprites on this tile will now add 6 cycles.
-
+				unsigned firstTileXpos = endx & 7u; // ok even if endx is capped at 168,
+				                                    // because fno will be used.
+				unsigned prevSpriteTileNo = (xpos - firstTileXpos) & ~7; // this tile. all sprites on
+				                                                         // this tile will now add 6 cycles.
 				// except this one
 				if (fno + spx - xpos < 5 && spx <= nwx) {
 					cycles += 11 - (fno + spx - xpos);
@@ -1477,34 +1483,34 @@ namespace M2_LyNon0 {
 
 namespace gambatte {
 
-PPUPriv::PPUPriv(NextM0Time &nextM0Time, const unsigned char *const oamram, const unsigned char *const vram) :
-	nextSprite(0),
-	currentSprite(0xFF),
-	vram(vram),
-	nextCallPtr(&M2_Ly0::f0_),
-	now(0),
-	lastM0Time(0),
-	cycles(-4396),
-	tileword(0),
-	ntileword(0),
-	spriteMapper(nextM0Time, lyCounter, oamram),
-	lcdc(0),
-	scy(0),
-	scx(0),
-	wy(0),
-	wy2(0),
-	wx(0),
-	winDrawState(0),
-	wscx(0),
-	winYPos(0),
-	reg0(0),
-	reg1(0),
-	attrib(0),
-	nattrib(0),
-	xpos(0),
-	endx(0),
-	cgb(false),
-	weMaster(false)
+PPUPriv::PPUPriv(NextM0Time &nextM0Time, const unsigned char *const oamram, const unsigned char *const vram)
+: nextSprite(0)
+, currentSprite(0xFF)
+, vram(vram)
+, nextCallPtr(&M2_Ly0::f0_)
+, now(0)
+, lastM0Time(0)
+, cycles(-4396)
+, tileword(0)
+, ntileword(0)
+, spriteMapper(nextM0Time, lyCounter, oamram)
+, lcdc(0)
+, scy(0)
+, scx(0)
+, wy(0)
+, wy2(0)
+, wx(0)
+, winDrawState(0)
+, wscx(0)
+, winYPos(0)
+, reg0(0)
+, reg1(0)
+, attrib(0)
+, nattrib(0)
+, xpos(0)
+, endx(0)
+, cgb(false)
+, weMaster(false)
 {
 	std::memset(spriteList, 0, sizeof spriteList);
 	std::memset(spwordList, 0, sizeof spwordList);
@@ -1674,7 +1680,7 @@ void PPU::loadState(const SaveState &ss, const unsigned char *const oamram) {
 	loadSpriteList(p_, ss);
 
 	if (m3loopState && videoCycles < 144 * 456L && p_.xpos < 168
-			&& lineCycles + cyclesUntilM0Upperbound(p_) < static_cast<long>(weMasterCheckPriorToLyIncLineCycle(p_.cgb))) {
+			&& lineCycles + cyclesUntilM0Upperbound(p_) < weMasterCheckPriorToLyIncLineCycle(p_.cgb)) {
 		p_.nextCallPtr = m3loopState;
 		p_.cycles = -1;
 	} else if (vcycs < 143 * 456L + static_cast<long>(m3StartLineCycle(p_.cgb)) + MAX_M3START_CYCLES) {
@@ -1735,7 +1741,8 @@ void PPU::speedChange(const unsigned long cycleCounter) {
 }
 
 unsigned long PPU::predictedNextXposTime(const unsigned xpos) const {
-	return p_.now + (p_.nextCallPtr->predictCyclesUntilXpos_f(p_, xpos, -p_.cycles) << p_.lyCounter.isDoubleSpeed());
+	return p_.now
+	    + (p_.nextCallPtr->predictCyclesUntilXpos_f(p_, xpos, -p_.cycles) << p_.lyCounter.isDoubleSpeed());
 }
 
 void PPU::setLcdc(const unsigned lcdc, const unsigned long cc) {
