@@ -1267,8 +1267,8 @@ namespace Tile {
 				const int spx = p.spriteMapper.posbuf()[*sprite + 1];
 				unsigned firstTileXpos = endx & 7u; // ok even if endx is capped at 168,
 				                                    // because fno will be used.
-				unsigned prevSpriteTileNo = (xpos - firstTileXpos) & ~7; // this tile. all sprites on
-				                                                         // this tile will now add 6 cycles.
+				unsigned prevSpriteTileNo = (xpos - firstTileXpos) & ~7; // this tile. all sprites on this
+				                                                         // tile will now add 6 cycles.
 				// except this one
 				if (fno + spx - xpos < 5 && spx <= nwx) {
 					cycles += 11 - (fno + spx - xpos);
