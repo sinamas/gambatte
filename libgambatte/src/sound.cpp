@@ -18,8 +18,8 @@
  ***************************************************************************/
 #include "sound.h"
 #include "savestate.h"
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 
 /*
 	Frame Sequencer
@@ -43,12 +43,12 @@ S) start step on sound power on.
 namespace gambatte {
 
 PSG::PSG()
-: buffer(0),
-  lastUpdate(0),
-  soVol(0),
-  rsum(0x8000), // initialize to 0x8000 to prevent borrows from high word, xor away later
-  bufferPos(0),
-  enabled(false)
+: buffer(0)
+, lastUpdate(0)
+, soVol(0)
+, rsum(0x8000) // initialize to 0x8000 to prevent borrows from high word, xor away later
+, bufferPos(0)
+, enabled(false)
 {
 }
 
@@ -109,7 +109,7 @@ void PSG::generate_samples(const unsigned long cycleCounter, const unsigned doub
 	bufferPos += cycles;
 }
 
-void PSG::resetCounter(const unsigned long newCc, const unsigned long oldCc, const unsigned doubleSpeed) {
+void PSG::resetCounter(unsigned long newCc, unsigned long oldCc, unsigned doubleSpeed) {
 	generate_samples(oldCc, doubleSpeed);
 	lastUpdate = newCc - (oldCc - lastUpdate);
 }
@@ -146,7 +146,9 @@ unsigned PSG::fillBuffer() {
 
 	while (n--) {
 		sum += *b;
-		*b++ = sum ^ 0x8000; // xor away the initial rsum value of 0x8000 (which prevents borrows from the high word) from the low word
+		// xor away the initial rsum value of 0x8000 (which prevents
+		// borrows from the high word) from the low word
+		*b++ = sum ^ 0x8000;
 	}
 
 	rsum = sum;
@@ -163,7 +165,8 @@ static const unsigned long so2Mul = 0x00000001;
 #endif
 
 void PSG::set_so_volume(const unsigned nr50) {
-	soVol = (((nr50 & 0x7) + 1) * so1Mul + ((nr50 >> 4 & 0x7) + 1) * so2Mul) * 64;
+	soVol = ((nr50      & 0x7) + 1) * so1Mul * 64
+	      + ((nr50 >> 4 & 0x7) + 1) * so2Mul * 64;
 }
 
 void PSG::map_so(const unsigned nr51) {

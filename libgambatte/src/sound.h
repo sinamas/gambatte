@@ -27,24 +27,6 @@
 namespace gambatte {
 
 class PSG {
-	Channel1 ch1;
-	Channel2 ch2;
-	Channel3 ch3;
-	Channel4 ch4;
-
-	uint_least32_t *buffer;
-
-	unsigned long lastUpdate;
-	unsigned long soVol;
-
-	uint_least32_t rsum;
-
-	unsigned bufferPos;
-
-	bool enabled;
-
-	void accumulate_channels(unsigned long cycles);
-
 public:
 	PSG();
 	void init(bool cgb);
@@ -88,6 +70,20 @@ public:
 	void set_so_volume(unsigned nr50);
 	void map_so(unsigned nr51);
 	unsigned getStatus() const;
+
+private:
+	Channel1 ch1;
+	Channel2 ch2;
+	Channel3 ch3;
+	Channel4 ch4;
+	uint_least32_t *buffer;
+	unsigned long lastUpdate;
+	unsigned long soVol;
+	uint_least32_t rsum;
+	unsigned bufferPos;
+	bool enabled;
+
+	void accumulate_channels(unsigned long cycles);
 };
 
 }
