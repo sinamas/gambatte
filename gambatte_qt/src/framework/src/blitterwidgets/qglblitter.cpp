@@ -25,6 +25,7 @@
 #include <QGLWidget>
 #include <algorithm>
 #include <cstring>
+#include <vector>
 
 #ifdef PLATFORM_WIN32
 #include <GL/glext.h>
@@ -254,14 +255,14 @@ void QGLBlitter::SubWidget::setBufferDimensions(const unsigned int width, const 
 
 	glLoadIdentity();
 
+	// avoid bilinear filter border garbage
 	{
-		const Array<quint32> nulltexture(textureRes * textureRes); // avoids bilinear filter border garbage
-		std::memset(nulltexture, 0, nulltexture.size() * sizeof *nulltexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureRes, textureRes, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nulltexture);
+		std::vector<quint32> const nulltexture(textureRes * textureRes);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureRes, textureRes, 0, GL_BGRA,
+		             GL_UNSIGNED_INT_8_8_8_8_REV, &nulltexture[0]);
 	}
 
 	glOrtho(0, 1, 1, 0, -1, 1);
-
 	resizeGL(this->width(), this->height());
 }
 
