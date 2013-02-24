@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,15 +19,12 @@
 #include "blitterwidget.h"
 #include <adaptivesleep.h>
 #include <QtGlobal> // for Q_WS_WIN define
+#include <algorithm>
 #include <cstdlib>
 
-static long limit(long est, const long ref) {
-	if (est > ref + (ref >> 5))
-		est = ref + (ref >> 5);
-	else if (est < ref - (ref >> 5))
-		est = ref - (ref >> 5);
-
-	return est;
+static long limit(long const est, long const ref) {
+	long const maxdiff = ref * 3 >> 6;
+	return std::max(std::min(est, ref + maxdiff), ref - maxdiff);
 }
 
 void FtEst::init(const long frameTime) {
@@ -39,15 +36,16 @@ void FtEst::init(const long frameTime) {
 }
 
 void FtEst::update(const usec_t t) {
-	if (std::abs(static_cast<long>(t - last) - frameTime) < frameTime >> 3) {
-		ft += (t - last) << 6;
+	if (t - last < usec_t(ftAvg + (ftAvg >> 4)) >> UPSHIFT) {
+		ft += t - last < usec_t(ftAvg - (ftAvg >> 4)) >> UPSHIFT
+		    ? (ftAvg - (ftAvg >> 7)) << (6 - UPSHIFT)
+		    : (t - last) << 6;
 		count += 1 << 6;
 
-		long ftAvgNew = static_cast<long>(static_cast<float>(ft) * UP / count + 0.5f);
-		ftAvgNew = limit((ftAvg * 31 + ftAvgNew + 16) >> 5, frameTime << UPSHIFT);
-		ftAvg = ftAvgNew;
+		long const ftAvgNew = long(float(ft) * UP / count + 0.5f);
+		ftAvg = limit((ftAvg * 31 + ftAvgNew + 16) >> 5, frameTime << UPSHIFT);
 
-		if (ft > (6000000 << 6)) {
+		if (ft > 6000000 << 6) {
 			ft = (ft * 3 + 2) >> 2;
 			count = (count * 3 + 2) >> 2;
 		}
