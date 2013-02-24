@@ -21,7 +21,6 @@
 
 static inline bool toOutState(const unsigned duty, const unsigned pos) {
 	static const unsigned char duties[4] = { 0x80, 0x81, 0xE1, 0x7E };
-
 	return duties[duty] >> pos & 1;
 }
 
@@ -30,6 +29,16 @@ static inline unsigned toPeriod(const unsigned freq) {
 }
 
 namespace gambatte {
+
+DutyUnit::DutyUnit()
+: nextPosUpdate(COUNTER_DISABLED)
+, period(4096)
+, pos(0)
+, duty(0)
+, high(false)
+, enableEvents(true)
+{
+}
 
 void DutyUnit::updatePos(const unsigned long cc) {
 	if (cc >= nextPosUpdate) {
@@ -96,15 +105,6 @@ void DutyUnit::nr4Change(const unsigned newNr4, const unsigned long cc) {
 	}
 }
 
-DutyUnit::DutyUnit() :
-nextPosUpdate(COUNTER_DISABLED),
-period(4096),
-pos(0),
-duty(0),
-high(false),
-enableEvents(true)
-{}
-
 void DutyUnit::reset() {
 	pos = 0;
 	high = toOutState(duty, pos);
@@ -119,7 +119,8 @@ void DutyUnit::saveState(SaveState::SPU::Duty &dstate, const unsigned long cc) {
 	dstate.pos = pos;
 }
 
-void DutyUnit::loadState(const SaveState::SPU::Duty &dstate, const unsigned nr1, const unsigned nr4, const unsigned long cc) {
+void DutyUnit::loadState(const SaveState::SPU::Duty &dstate,
+		const unsigned nr1, const unsigned nr4, const unsigned long cc) {
 	nextPosUpdate = std::max(dstate.nextPosUpdate, cc);
 	pos = dstate.pos & 7;
 	setDuty(nr1);

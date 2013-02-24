@@ -26,6 +26,25 @@
 namespace gambatte {
 
 class DutyUnit : public SoundUnit {
+public:
+	DutyUnit();
+	virtual void event();
+	bool isHighState() const { return high; }
+	void nr1Change(unsigned newNr1, unsigned long cc);
+	void nr3Change(unsigned newNr3, unsigned long cc);
+	void nr4Change(unsigned newNr4, unsigned long cc);
+	void reset();
+	void saveState(SaveState::SPU::Duty &dstate, unsigned long cc);
+	void loadState(const SaveState::SPU::Duty &dstate, unsigned nr1, unsigned nr4, unsigned long cc);
+	virtual void resetCounters(unsigned long oldCc);
+	void killCounter();
+	void reviveCounter(unsigned long cc);
+
+	//intended for use by SweepUnit only.
+	unsigned getFreq() const { return 2048 - (period >> 1); }
+	void setFreq(unsigned newFreq, unsigned long cc);
+
+private:
 	unsigned long nextPosUpdate;
 	unsigned short period;
 	unsigned char pos;
@@ -36,31 +55,13 @@ class DutyUnit : public SoundUnit {
 	void setCounter();
 	void setDuty(unsigned nr1);
 	void updatePos(unsigned long cc);
-
-public:
-	DutyUnit();
-	void event();
-	bool isHighState() const { return high; }
-	void nr1Change(unsigned newNr1, unsigned long cc);
-	void nr3Change(unsigned newNr3, unsigned long cc);
-	void nr4Change(unsigned newNr4, unsigned long cc);
-	void reset();
-	void saveState(SaveState::SPU::Duty &dstate, unsigned long cc);
-	void loadState(const SaveState::SPU::Duty &dstate, unsigned nr1, unsigned nr4, unsigned long cc);
-	void resetCounters(unsigned long oldCc);
-	void killCounter();
-	void reviveCounter(unsigned long cc);
-
-	//intended for use by SweepUnit only.
-	unsigned getFreq() const { return 2048 - (period >> 1); }
-	void setFreq(unsigned newFreq, unsigned long cc);
 };
 
 class DutyMasterDisabler : public MasterDisabler {
 	DutyUnit &dutyUnit;
 public:
 	DutyMasterDisabler(bool &m, DutyUnit &dutyUnit) : MasterDisabler(m), dutyUnit(dutyUnit) {}
-	void operator()() { MasterDisabler::operator()(); dutyUnit.killCounter(); }
+	virtual void operator()() { MasterDisabler::operator()(); dutyUnit.killCounter(); }
 };
 
 }
