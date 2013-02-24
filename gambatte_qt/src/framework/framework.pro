@@ -113,6 +113,7 @@ else:unix {
             exists( /usr/include/libusbhid.h ):DEFINES += HAVE_LIBUSBHID_H
             SOURCES += framework/src/SDL_Joystick/src/bsd/SDL_sysjoystick.c
             openbsd-*:DEFINES += USBHID_NEW USBHID_UCR_DATA
+            openbsd-*:LIBS += -lusbhid -lossaudio
         }
         else:darwin-*:SOURCES += framework/src/SDL_Joystick/src/darwin/SDL_sysjoystick.c
         else:SOURCES += framework/src/SDL_Joystick/src/dummy/SDL_sysjoystick.c
