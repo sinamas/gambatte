@@ -20,16 +20,16 @@
 #include "../savestate.h"
 #include <algorithm>
 
-
 namespace gambatte {
 
-Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit) :
-	disableMaster(disabler),
-	dutyUnit(dutyUnit),
-	shadow(0),
-	nr0(0),
-	negging(false)
-{}
+Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit)
+: disableMaster(disabler)
+, dutyUnit(dutyUnit)
+, shadow(0)
+, nr0(0)
+, negging(false)
+{
+}
 
 unsigned Channel1::SweepUnit::calcFreq() {
 	unsigned freq = shadow >> (nr0 & 0x07);
@@ -104,25 +104,23 @@ void Channel1::SweepUnit::loadState(const SaveState &state) {
 	negging = state.spu.ch1.sweep.negging;
 }
 
-Channel1::Channel1() :
-	staticOutputTest(*this, dutyUnit),
-	disableMaster(master, dutyUnit),
-	lengthCounter(disableMaster, 0x3F),
-	envelopeUnit(staticOutputTest),
-	sweepUnit(disableMaster, dutyUnit),
-	cycleCounter(0),
-	soMask(0),
-	prevOut(0),
-	nr4(0),
-	master(false)
+Channel1::Channel1()
+: staticOutputTest(*this, dutyUnit)
+, disableMaster(master, dutyUnit)
+, lengthCounter(disableMaster, 0x3F)
+, envelopeUnit(staticOutputTest)
+, sweepUnit(disableMaster, dutyUnit)
+, cycleCounter(0)
+, soMask(0)
+, prevOut(0)
+, nr4(0)
+, master(false)
 {
 	setEvent();
 }
 
 void Channel1::setEvent() {
-// 	nextEventUnit = &dutyUnit;
-// 	if (sweepUnit.getCounter() < nextEventUnit->getCounter())
-		nextEventUnit = &sweepUnit;
+	nextEventUnit = &sweepUnit;
 	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &envelopeUnit;
 	if (lengthCounter.getCounter() < nextEventUnit->getCounter())
@@ -179,9 +177,9 @@ void Channel1::setSo(const unsigned long soMask) {
 }
 
 void Channel1::reset() {
-	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	// cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF);
 
-// 	lengthCounter.reset();
 	dutyUnit.reset();
 	envelopeUnit.reset();
 	sweepUnit.reset();
@@ -206,8 +204,10 @@ void Channel1::saveState(SaveState &state) {
 
 void Channel1::loadState(const SaveState &state) {
 	sweepUnit.loadState(state);
-	dutyUnit.loadState(state.spu.ch1.duty, state.mem.ioamhram.get()[0x111], state.spu.ch1.nr4, state.spu.cycleCounter);
-	envelopeUnit.loadState(state.spu.ch1.env, state.mem.ioamhram.get()[0x112], state.spu.cycleCounter);
+	dutyUnit.loadState(state.spu.ch1.duty, state.mem.ioamhram.get()[0x111],
+	                   state.spu.ch1.nr4, state.spu.cycleCounter);
+	envelopeUnit.loadState(state.spu.ch1.env, state.mem.ioamhram.get()[0x112],
+	                       state.spu.cycleCounter);
 	lengthCounter.loadState(state.spu.ch1.lcounter, state.spu.cycleCounter);
 
 	cycleCounter = state.spu.cycleCounter;
@@ -221,8 +221,10 @@ void Channel1::update(uint_least32_t *buf, const unsigned long soBaseVol, unsign
 	const unsigned long endCycles = cycleCounter + cycles;
 
 	for (;;) {
-		const unsigned long outHigh = master ? outBase * (envelopeUnit.getVolume() * 2 - 15ul) : outLow;
-		const unsigned long nextMajorEvent = nextEventUnit->getCounter() < endCycles ? nextEventUnit->getCounter() : endCycles;
+		const unsigned long outHigh = master
+		                            ? outBase * (envelopeUnit.getVolume() * 2 - 15ul)
+		                            : outLow;
+		const unsigned long nextMajorEvent = std::min(nextEventUnit->getCounter(), endCycles);
 		unsigned long out = dutyUnit.isHighState() ? outHigh : outLow;
 
 		while (dutyUnit.getCounter() <= nextMajorEvent) {

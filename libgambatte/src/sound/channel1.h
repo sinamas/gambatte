@@ -19,11 +19,11 @@
 #ifndef SOUND_CHANNEL1_H
 #define SOUND_CHANNEL1_H
 
-#include "gbint.h"
-#include "master_disabler.h"
-#include "length_counter.h"
 #include "duty_unit.h"
 #include "envelope_unit.h"
+#include "gbint.h"
+#include "length_counter.h"
+#include "master_disabler.h"
 #include "static_output_tester.h"
 
 namespace gambatte {
@@ -31,45 +31,6 @@ namespace gambatte {
 struct SaveState;
 
 class Channel1 {
-	class SweepUnit : public SoundUnit {
-		MasterDisabler &disableMaster;
-		DutyUnit &dutyUnit;
-		unsigned short shadow;
-		unsigned char nr0;
-		bool negging;
-
-		unsigned calcFreq();
-
-	public:
-		SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit);
-		void event();
-		void nr0Change(unsigned newNr0);
-		void nr4Init(unsigned long cycleCounter);
-		void reset();
-		void saveState(SaveState &state) const;
-		void loadState(const SaveState &state);
-	};
-
-	friend class StaticOutputTester<Channel1,DutyUnit>;
-
-	StaticOutputTester<Channel1,DutyUnit> staticOutputTest;
-	DutyMasterDisabler disableMaster;
-	LengthCounter lengthCounter;
-	DutyUnit dutyUnit;
-	EnvelopeUnit envelopeUnit;
-	SweepUnit sweepUnit;
-
-	SoundUnit *nextEventUnit;
-
-	unsigned long cycleCounter;
-	unsigned long soMask;
-	unsigned long prevOut;
-
-	unsigned char nr4;
-	bool master;
-
-	void setEvent();
-
 public:
 	Channel1();
 	void setNr0(unsigned data);
@@ -87,6 +48,44 @@ public:
 	void init(bool cgb);
 	void saveState(SaveState &state);
 	void loadState(const SaveState &state);
+
+private:
+	class SweepUnit : public SoundUnit {
+	public:
+		SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit);
+		virtual void event();
+		void nr0Change(unsigned newNr0);
+		void nr4Init(unsigned long cycleCounter);
+		void reset();
+		void saveState(SaveState &state) const;
+		void loadState(const SaveState &state);
+
+	private:
+		MasterDisabler &disableMaster;
+		DutyUnit &dutyUnit;
+		unsigned short shadow;
+		unsigned char nr0;
+		bool negging;
+
+		unsigned calcFreq();
+	};
+
+	friend class StaticOutputTester<Channel1,DutyUnit>;
+
+	StaticOutputTester<Channel1,DutyUnit> staticOutputTest;
+	DutyMasterDisabler disableMaster;
+	LengthCounter lengthCounter;
+	DutyUnit dutyUnit;
+	EnvelopeUnit envelopeUnit;
+	SweepUnit sweepUnit;
+	SoundUnit *nextEventUnit;
+	unsigned long cycleCounter;
+	unsigned long soMask;
+	unsigned long prevOut;
+	unsigned char nr4;
+	bool master;
+
+	void setEvent();
 };
 
 }
