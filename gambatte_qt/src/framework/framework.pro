@@ -104,6 +104,7 @@ QT += opengl
 INCLUDEPATH += framework/include
 INCLUDEPATH += framework/src/SDL_Joystick/include
 INCLUDEPATH += $$COMMONPATH
+DEPENDPATH  += $$COMMONPATH
 DEFINES += HAVE_STDINT_H
 
 macx {
