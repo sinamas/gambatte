@@ -19,10 +19,10 @@
 #ifndef SOUND_CHANNEL2_H
 #define SOUND_CHANNEL2_H
 
-#include "gbint.h"
-#include "length_counter.h"
 #include "duty_unit.h"
 #include "envelope_unit.h"
+#include "gbint.h"
+#include "length_counter.h"
 #include "static_output_tester.h"
 
 namespace gambatte {
@@ -30,25 +30,6 @@ namespace gambatte {
 struct SaveState;
 
 class Channel2 {
-	friend class StaticOutputTester<Channel2,DutyUnit>;
-
-	StaticOutputTester<Channel2,DutyUnit> staticOutputTest;
-	DutyMasterDisabler disableMaster;
-	LengthCounter lengthCounter;
-	DutyUnit dutyUnit;
-	EnvelopeUnit envelopeUnit;
-
-	SoundUnit *nextEventUnit;
-
-	unsigned long cycleCounter;
-	unsigned long soMask;
-	unsigned long prevOut;
-
-	unsigned char nr4;
-	bool master;
-
-	void setEvent();
-
 public:
 	Channel2();
 	void setNr1(unsigned data);
@@ -57,7 +38,6 @@ public:
 	void setNr4(unsigned data);
 
 	void setSo(unsigned long soMask);
-	// void deactivate() { disableMaster(); setEvent(); }
 	bool isActive() const { return master; }
 
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
@@ -66,6 +46,23 @@ public:
 	void init(bool cgb);
 	void saveState(SaveState &state);
 	void loadState(const SaveState &state);
+
+private:
+	friend class StaticOutputTester<Channel2,DutyUnit>;
+
+	StaticOutputTester<Channel2,DutyUnit> staticOutputTest;
+	DutyMasterDisabler disableMaster;
+	LengthCounter lengthCounter;
+	DutyUnit dutyUnit;
+	EnvelopeUnit envelopeUnit;
+	SoundUnit *nextEventUnit;
+	unsigned long cycleCounter;
+	unsigned long soMask;
+	unsigned long prevOut;
+	unsigned char nr4;
+	bool master;
+
+	void setEvent();
 };
 
 }

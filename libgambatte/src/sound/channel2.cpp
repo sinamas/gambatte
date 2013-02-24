@@ -18,27 +18,26 @@
  ***************************************************************************/
 #include "channel2.h"
 #include "../savestate.h"
+#include <algorithm>
 
 namespace gambatte {
 
-Channel2::Channel2() :
-	staticOutputTest(*this, dutyUnit),
-	disableMaster(master, dutyUnit),
-	lengthCounter(disableMaster, 0x3F),
-	envelopeUnit(staticOutputTest),
-	cycleCounter(0),
-	soMask(0),
-	prevOut(0),
-	nr4(0),
-	master(false)
+Channel2::Channel2()
+: staticOutputTest(*this, dutyUnit)
+, disableMaster(master, dutyUnit)
+, lengthCounter(disableMaster, 0x3F)
+, envelopeUnit(staticOutputTest)
+, cycleCounter(0)
+, soMask(0)
+, prevOut(0)
+, nr4(0)
+, master(false)
 {
 	setEvent();
 }
 
 void Channel2::setEvent() {
-// 	nextEventUnit = &dutyUnit;
-// 	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
-		nextEventUnit = &envelopeUnit;
+	nextEventUnit = &envelopeUnit;
 	if (lengthCounter.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &lengthCounter;
 }
@@ -87,9 +86,9 @@ void Channel2::setSo(const unsigned long soMask) {
 }
 
 void Channel2::reset() {
-	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	// cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF);
 
-// 	lengthCounter.reset();
 	dutyUnit.reset();
 	envelopeUnit.reset();
 
@@ -110,8 +109,10 @@ void Channel2::saveState(SaveState &state) {
 }
 
 void Channel2::loadState(const SaveState &state) {
-	dutyUnit.loadState(state.spu.ch2.duty, state.mem.ioamhram.get()[0x116], state.spu.ch2.nr4,state.spu.cycleCounter);
-	envelopeUnit.loadState(state.spu.ch2.env, state.mem.ioamhram.get()[0x117], state.spu.cycleCounter);
+	dutyUnit.loadState(state.spu.ch2.duty, state.mem.ioamhram.get()[0x116],
+	                   state.spu.ch2.nr4,state.spu.cycleCounter);
+	envelopeUnit.loadState(state.spu.ch2.env, state.mem.ioamhram.get()[0x117],
+	                       state.spu.cycleCounter);
 	lengthCounter.loadState(state.spu.ch2.lcounter, state.spu.cycleCounter);
 
 	cycleCounter = state.spu.cycleCounter;
@@ -125,8 +126,10 @@ void Channel2::update(uint_least32_t *buf, const unsigned long soBaseVol, unsign
 	const unsigned long endCycles = cycleCounter + cycles;
 
 	for (;;) {
-		const unsigned long outHigh = master ? outBase * (envelopeUnit.getVolume() * 2 - 15ul) : outLow;
-		const unsigned long nextMajorEvent = nextEventUnit->getCounter() < endCycles ? nextEventUnit->getCounter() : endCycles;
+		const unsigned long outHigh = master
+		                            ? outBase * (envelopeUnit.getVolume() * 2 - 15ul)
+		                            : outLow;
+		const unsigned long nextMajorEvent = std::min(nextEventUnit->getCounter(), endCycles);
 		unsigned long out = dutyUnit.isHighState() ? outHigh : outLow;
 
 		while (dutyUnit.getCounter() <= nextMajorEvent) {
