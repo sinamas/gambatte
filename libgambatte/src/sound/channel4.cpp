@@ -34,19 +34,15 @@ static unsigned long toPeriod(const unsigned nr3) {
 
 namespace gambatte {
 
-Channel4::Lfsr::Lfsr() :
-backupCounter(COUNTER_DISABLED),
-reg(0xFF),
-nr3(0),
-master(false)
-{}
+Channel4::Lfsr::Lfsr()
+: backupCounter(COUNTER_DISABLED)
+, reg(0xFF)
+, nr3(0)
+, master(false)
+{
+}
 
 void Channel4::Lfsr::updateBackupCounter(const unsigned long cc) {
-	/*if (backupCounter <= cc) {
-		const unsigned long period = toPeriod(nr3);
-		backupCounter = cc - (cc - backupCounter) % period + period;
-	}*/
-
 	if (backupCounter <= cc) {
 		const unsigned long period = toPeriod(nr3);
 		unsigned long periods = (cc - backupCounter) / period + 1;
@@ -80,17 +76,6 @@ void Channel4::Lfsr::reviveCounter(const unsigned long cc) {
 	counter = backupCounter;
 }
 
-/*static const unsigned char nextStateDistance[0x40] = {
-	6, 1, 1, 2, 2, 1, 1, 3,
-	3, 1, 1, 2, 2, 1, 1, 4,
-	4, 1, 1, 2, 2, 1, 1, 3,
-	3, 1, 1, 2, 2, 1, 1, 5,
-	5, 1, 1, 2, 2, 1, 1, 3,
-	3, 1, 1, 2, 2, 1, 1, 4,
-	4, 1, 1, 2, 2, 1, 1, 3,
-	3, 1, 1, 2, 2, 1, 1, 6,
-};*/
-
 inline void Channel4::Lfsr::event() {
 	if (nr3 < 0xE0) {
 		const unsigned shifted = reg >> 1;
@@ -104,29 +89,11 @@ inline void Channel4::Lfsr::event() {
 
 	counter += toPeriod(nr3);
 	backupCounter = counter;
-
-
-	/*if (nr3 < 0xE0) {
-		const unsigned periods = nextStateDistance[reg & 0x3F];
-		const unsigned xored = ((reg ^ reg >> 1) << (7 - periods)) & 0x7F;
-
-		reg = reg >> periods | xored << 8;
-
-		if (nr3 & 8)
-			reg = reg & ~(0x80 - (0x80 >> periods)) | xored;
-	}
-
-	const unsigned long period = toPeriod(nr3);
-	backupCounter = counter + period;
-	counter += period * nextStateDistance[reg & 0x3F];*/
 }
 
 void Channel4::Lfsr::nr3Change(const unsigned newNr3, const unsigned long cc) {
 	updateBackupCounter(cc);
 	nr3 = newNr3;
-
-// 	if (counter != COUNTER_DISABLED)
-// 		counter = backupCounter + toPeriod(nr3) * (nextStateDistance[reg & 0x3F] - 1);
 }
 
 void Channel4::Lfsr::nr4Init(unsigned long cc) {
@@ -135,7 +102,6 @@ void Channel4::Lfsr::nr4Init(unsigned long cc) {
 	master = true;
 	backupCounter += 4;
 	counter = backupCounter;
-// 	counter = backupCounter + toPeriod(nr3) * (nextStateDistance[reg & 0x3F] - 1);
 }
 
 void Channel4::Lfsr::reset(const unsigned long cc) {
@@ -163,31 +129,28 @@ void Channel4::Lfsr::loadState(const SaveState &state) {
 	nr3 = state.mem.ioamhram.get()[0x122];
 }
 
-Channel4::Channel4() :
-	staticOutputTest(*this, lfsr),
-	disableMaster(master, lfsr),
-	lengthCounter(disableMaster, 0x3F),
-	envelopeUnit(staticOutputTest),
-	cycleCounter(0),
-	soMask(0),
-	prevOut(0),
-	nr4(0),
-	master(false)
+Channel4::Channel4()
+: staticOutputTest(*this, lfsr)
+, disableMaster(master, lfsr)
+, lengthCounter(disableMaster, 0x3F)
+, envelopeUnit(staticOutputTest)
+, cycleCounter(0)
+, soMask(0)
+, prevOut(0)
+, nr4(0)
+, master(false)
 {
 	setEvent();
 }
 
 void Channel4::setEvent() {
-// 	nextEventUnit = &lfsr;
-// 	if (envelopeUnit.getCounter() < nextEventUnit->getCounter())
-		nextEventUnit = &envelopeUnit;
+	nextEventUnit = &envelopeUnit;
 	if (lengthCounter.getCounter() < nextEventUnit->getCounter())
 		nextEventUnit = &lengthCounter;
 }
 
 void Channel4::setNr1(const unsigned data) {
 	lengthCounter.nr1Change(data, nr4, cycleCounter);
-
 	setEvent();
 }
 
@@ -226,12 +189,11 @@ void Channel4::setSo(const unsigned long soMask) {
 }
 
 void Channel4::reset() {
-	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	// cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF);
 
-// 	lengthCounter.reset();
 	lfsr.reset(cycleCounter);
 	envelopeUnit.reset();
-
 	setEvent();
 }
 
@@ -250,7 +212,8 @@ void Channel4::saveState(SaveState &state) {
 
 void Channel4::loadState(const SaveState &state) {
 	lfsr.loadState(state);
-	envelopeUnit.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121], state.spu.cycleCounter);
+	envelopeUnit.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121],
+	                       state.spu.cycleCounter);
 	lengthCounter.loadState(state.spu.ch4.lcounter, state.spu.cycleCounter);
 
 	cycleCounter = state.spu.cycleCounter;
@@ -264,8 +227,8 @@ void Channel4::update(uint_least32_t *buf, const unsigned long soBaseVol, unsign
 	const unsigned long endCycles = cycleCounter + cycles;
 
 	for (;;) {
-		const unsigned long outHigh = /*master ? */outBase * (envelopeUnit.getVolume() * 2 - 15ul)/* : outLow*/;
-		const unsigned long nextMajorEvent = nextEventUnit->getCounter() < endCycles ? nextEventUnit->getCounter() : endCycles;
+		const unsigned long outHigh = outBase * (envelopeUnit.getVolume() * 2 - 15ul);
+		const unsigned long nextMajorEvent = std::min(nextEventUnit->getCounter(), endCycles);
 		unsigned long out = lfsr.isHighState() ? outHigh : outLow;
 
 		while (lfsr.getCounter() <= nextMajorEvent) {
