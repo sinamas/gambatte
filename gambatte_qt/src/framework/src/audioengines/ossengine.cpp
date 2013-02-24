@@ -32,14 +32,23 @@
 #include <cstdio>
 #include <cmath>
 
-OssEngine::OssEngine() :
-AudioEngine("OSS"),
-conf("Custom DSP device:", "/dev/dsp", "ossengine"),
-audio_fd(-1),
-bufSize(0),
-fragSize(0),
-prevbytes(0)
-{}
+static inline char const * defaultDspDevPath() {
+#ifdef Q_OS_OPENBSD
+	return "/dev/audio";
+#else
+	return "/dev/dsp";
+#endif
+}
+
+OssEngine::OssEngine()
+: AudioEngine("OSS")
+, conf("Custom DSP device:", defaultDspDevPath(), "ossengine")
+, audio_fd(-1)
+, bufSize(0)
+, fragSize(0)
+, prevbytes(0)
+{
+}
 
 OssEngine::~OssEngine() {
 	uninit();
