@@ -20,45 +20,14 @@
 #define SOUND_CHANNEL3_H
 
 #include "gbint.h"
-#include "master_disabler.h"
 #include "length_counter.h"
+#include "master_disabler.h"
 
 namespace gambatte {
 
 struct SaveState;
 
 class Channel3 {
-	class Ch3MasterDisabler : public MasterDisabler {
-		unsigned long &waveCounter;
-
-	public:
-		Ch3MasterDisabler(bool &m, unsigned long &wC) : MasterDisabler(m), waveCounter(wC) {}
-		void operator()() { MasterDisabler::operator()(); waveCounter = SoundUnit::COUNTER_DISABLED; }
-	};
-
-	unsigned char waveRam[0x10];
-
-	Ch3MasterDisabler disableMaster;
-	LengthCounter lengthCounter;
-
-	unsigned long cycleCounter;
-	unsigned long soMask;
-	unsigned long prevOut;
-	unsigned long waveCounter;
-	unsigned long lastReadTime;
-
-	unsigned char nr0;
-	unsigned char nr3;
-	unsigned char nr4;
-	unsigned char wavePos;
-	unsigned char rShift;
-	unsigned char sampleBuf;
-
-	bool master;
-	bool cgb;
-
-	void updateWaveCounter(unsigned long cc);
-
 public:
 	Channel3();
 	bool isActive() const { return master; }
@@ -96,6 +65,33 @@ public:
 
 		waveRam[index] = data;
 	}
+
+private:
+	class Ch3MasterDisabler : public MasterDisabler {
+		unsigned long &waveCounter;
+	public:
+		Ch3MasterDisabler(bool &m, unsigned long &wC) : MasterDisabler(m), waveCounter(wC) {}
+		virtual void operator()() { MasterDisabler::operator()(); waveCounter = SoundUnit::COUNTER_DISABLED; }
+	};
+
+	unsigned char waveRam[0x10];
+	Ch3MasterDisabler disableMaster;
+	LengthCounter lengthCounter;
+	unsigned long cycleCounter;
+	unsigned long soMask;
+	unsigned long prevOut;
+	unsigned long waveCounter;
+	unsigned long lastReadTime;
+	unsigned char nr0;
+	unsigned char nr3;
+	unsigned char nr4;
+	unsigned char wavePos;
+	unsigned char rShift;
+	unsigned char sampleBuf;
+	bool master;
+	bool cgb;
+
+	void updateWaveCounter(unsigned long cc);
 };
 
 }

@@ -18,8 +18,8 @@
  ***************************************************************************/
 #include "channel3.h"
 #include "../savestate.h"
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 
 static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
 	return 0x800 - ((nr4 << 8 & 0x700) | nr3);
@@ -27,22 +27,22 @@ static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
 
 namespace gambatte {
 
-Channel3::Channel3() :
-	disableMaster(master, waveCounter),
-	lengthCounter(disableMaster, 0xFF),
-	cycleCounter(0),
-	soMask(0),
-	prevOut(0),
-	waveCounter(SoundUnit::COUNTER_DISABLED),
-	lastReadTime(0),
-	nr0(0),
-	nr3(0),
-	nr4(0),
-	wavePos(0),
-	rShift(4),
-	sampleBuf(0),
-	master(false),
-	cgb(false)
+Channel3::Channel3()
+: disableMaster(master, waveCounter)
+, lengthCounter(disableMaster, 0xFF)
+, cycleCounter(0)
+, soMask(0)
+, prevOut(0)
+, waveCounter(SoundUnit::COUNTER_DISABLED)
+, lastReadTime(0)
+, nr0(0)
+, nr3(0)
+, nr4(0)
+, wavePos(0)
+, rShift(4)
+, sampleBuf(0)
+, master(false)
+, cgb(false)
 {}
 
 void Channel3::setNr0(const unsigned data) {
@@ -85,9 +85,9 @@ void Channel3::setSo(const unsigned long soMask) {
 }
 
 void Channel3::reset() {
-	cycleCounter = 0x1000 | (cycleCounter & 0xFFF); // cycleCounter >> 12 & 7 represents the frame sequencer position.
+	// cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter = 0x1000 | (cycleCounter & 0xFFF);
 
-// 	lengthCounter.reset();
 	sampleBuf = 0;
 }
 
@@ -150,8 +150,12 @@ void Channel3::update(uint_least32_t *buf, const unsigned long soBaseVol, unsign
 		const unsigned long endCycles = cycleCounter + cycles;
 
 		for (;;) {
-			const unsigned long nextMajorEvent = lengthCounter.getCounter() < endCycles ? lengthCounter.getCounter() : endCycles;
-			unsigned long out = outBase * (master ? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul : 0 - 15ul);
+			const unsigned long nextMajorEvent =
+				std::min(lengthCounter.getCounter(), endCycles);
+			unsigned long out = master
+				? ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul
+				: 0 - 15ul;
+			out *= outBase;
 
 			while (waveCounter <= nextMajorEvent) {
 				*buf += out - prevOut;
@@ -164,7 +168,8 @@ void Channel3::update(uint_least32_t *buf, const unsigned long soBaseVol, unsign
 				++wavePos;
 				wavePos &= 0x1F;
 				sampleBuf = waveRam[wavePos >> 1];
-				out = outBase * (/*master ? */((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul/* : 0 - 15ul*/);
+				out = ((sampleBuf >> (~wavePos << 2 & 4) & 0xF) >> rShift) * 2 - 15ul;
+				out *= outBase;
 			}
 
 			if (cycleCounter < nextMajorEvent) {
