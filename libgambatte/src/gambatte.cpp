@@ -54,7 +54,7 @@ GB::~GB() {
 	delete p_;
 }
 
-long GB::runFor(gambatte::uint_least32_t *const videoBuf, const int pitch,
+long GB::runFor(gambatte::uint_least32_t *const videoBuf, const std::ptrdiff_t pitch,
                 gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
@@ -148,7 +148,7 @@ bool GB::loadState(const std::string &filepath) {
 	return false;
 }
 
-bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const int pitch) {
+bool GB::saveState(const gambatte::uint_least32_t *const videoBuf, const std::ptrdiff_t pitch) {
 	if (saveState(videoBuf, pitch, statePath(p_->cpu.saveBasePath(), p_->stateNo))) {
 		p_->cpu.setOsdElement(newStateSavedOsdElement(p_->stateNo));
 		return true;
@@ -166,7 +166,7 @@ bool GB::loadState() {
 	return false;
 }
 
-bool GB::saveState(const gambatte::uint_least32_t *videoBuf, int pitch,
+bool GB::saveState(const gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
                    const std::string &filepath) {
 	if (p_->cpu.loaded()) {
 		SaveState state;

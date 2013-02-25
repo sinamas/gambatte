@@ -33,7 +33,7 @@ public:
 	void loadSavedata() { memory.loadSavedata(); }
 	void saveSavedata() { memory.saveSavedata(); }
 
-	void setVideoBuffer(uint_least32_t *const videoBuf, const int pitch) {
+	void setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch) {
 		memory.setVideoBuffer(videoBuf, pitch);
 	}
 

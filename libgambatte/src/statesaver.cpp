@@ -364,7 +364,7 @@ static void blendPxlPairs(PxlSum *const dst, const PxlSum *const sums) {
 	dst->g  = sums[1].g  * 8 + (sums[0].g  - sums[1].g ) * 3;
 }
 
-static void writeSnapShot(std::ofstream &file, const uint_least32_t *pixels, const int pitch) {
+static void writeSnapShot(std::ofstream &file, const uint_least32_t *pixels, const std::ptrdiff_t pitch) {
 	put24(file, pixels ? StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT * sizeof(uint_least32_t) : 0);
 
 	if (pixels) {
@@ -402,7 +402,7 @@ namespace gambatte {
 
 bool StateSaver::saveState(const SaveState &state,
 		const uint_least32_t *const videoBuf,
-		const int pitch, const std::string &filename) {
+		const std::ptrdiff_t pitch, const std::string &filename) {
 	std::ofstream file(filename.c_str(), std::ios_base::binary);
 	if (!file)
 		return false;

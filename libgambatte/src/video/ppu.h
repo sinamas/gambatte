@@ -22,13 +22,14 @@
 #include "video/ly_counter.h"
 #include "video/sprite_mapper.h"
 #include "gbint.h"
+#include <cstddef>
 
 namespace gambatte {
 
 class PPUFrameBuf {
 	uint_least32_t *buf_;
 	uint_least32_t *fbline_;
-	int pitch_;
+	std::ptrdiff_t pitch_;
 
 	static uint_least32_t * nullfbline() { static uint_least32_t nullfbline_[160]; return nullfbline_; }
 
@@ -36,9 +37,9 @@ public:
 	PPUFrameBuf() : buf_(0), fbline_(nullfbline()), pitch_(0) {}
 	uint_least32_t * fb() const { return buf_; }
 	uint_least32_t * fbline() const { return fbline_; }
-	int pitch() const { return pitch_; }
-	void setBuf(uint_least32_t *const buf, const int pitch) { buf_ = buf; pitch_ = pitch; fbline_ = nullfbline(); }
-	void setFbline(const unsigned ly) { fbline_ = buf_ ? buf_ + static_cast<long>(ly) * static_cast<long>(pitch_) : nullfbline(); }
+	std::ptrdiff_t pitch() const { return pitch_; }
+	void setBuf(uint_least32_t *buf, std::ptrdiff_t pitch) { buf_ = buf; pitch_ = pitch; fbline_ = nullfbline(); }
+	void setFbline(unsigned ly) { fbline_ = buf_ ? buf_ + std::ptrdiff_t(ly) * pitch_ : nullfbline(); }
 };
 
 struct PPUState {
@@ -117,7 +118,7 @@ public:
 	void reset(const unsigned char *oamram, const unsigned char *vram, bool cgb);
 	void resetCc(unsigned long oldCc, unsigned long newCc);
 	void saveState(SaveState &ss) const;
-	void setFrameBuf(uint_least32_t *buf, unsigned pitch) { p_.framebuf.setBuf(buf, pitch); }
+	void setFrameBuf(uint_least32_t *buf, std::ptrdiff_t pitch) { p_.framebuf.setBuf(buf, pitch); }
 	void setLcdc(unsigned lcdc, unsigned long cc);
 	void setScx(const unsigned scx) { p_.scx = scx; }
 	void setScy(const unsigned scy) { p_.scy = scy; }

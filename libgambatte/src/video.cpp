@@ -195,7 +195,7 @@ namespace {
 
 template<class Blend>
 static void blitOsdElement(uint_least32_t *d, const uint_least32_t *s,
-                           const unsigned width, unsigned h, const int dpitch, Blend blend)
+                           const unsigned width, unsigned h, const std::ptrdiff_t dpitch, Blend blend)
 {
 	while (h--) {
 		for (unsigned w = width; w--;) {
@@ -206,7 +206,7 @@ static void blitOsdElement(uint_least32_t *d, const uint_least32_t *s,
 			++s;
 		}
 
-		d += dpitch - static_cast<int>(width);
+		d += dpitch - static_cast<std::ptrdiff_t>(width);
 	}
 }
 
@@ -220,7 +220,7 @@ struct Blend {
 };
 
 template<typename T>
-static void clear(T *buf, const unsigned long color, const int dpitch) {
+static void clear(T *buf, const unsigned long color, const std::ptrdiff_t dpitch) {
 	unsigned lines = 144;
 
 	while (lines--) {
@@ -242,7 +242,7 @@ void LCD::updateScreen(const bool blanklcd, const unsigned long cycleCounter) {
 	if (ppu.frameBuf().fb() && osdElement.get()) {
 		if (const uint_least32_t *const s = osdElement->update()) {
 			uint_least32_t *const d = ppu.frameBuf().fb()
-				+ long(osdElement->y()) * ppu.frameBuf().pitch()
+				+ std::ptrdiff_t(osdElement->y()) * ppu.frameBuf().pitch()
 				+ osdElement->x();
 
 			switch (osdElement->opacity()) {
@@ -817,7 +817,7 @@ void LCD::update(const unsigned long cycleCounter) {
 	ppu.update(cycleCounter);
 }
 
-void LCD::setVideoBuffer(uint_least32_t *const videoBuf, const int pitch) {
+void LCD::setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch) {
 	ppu.setFrameBuf(videoBuf, pitch);
 }
 

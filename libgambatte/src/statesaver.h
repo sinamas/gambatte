@@ -20,6 +20,7 @@
 #define STATESAVER_H
 
 #include "gbint.h"
+#include <cstddef>
 #include <string>
 
 namespace gambatte {
@@ -34,7 +35,7 @@ public:
 	enum { SS_HEIGHT = 144 >> SS_SHIFT };
 
 	static bool saveState(const SaveState &state,
-			const uint_least32_t *videoBuf, int pitch,
+			const uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 			const std::string &filename);
 	static bool loadState(SaveState &state, const std::string &filename);
 

@@ -23,8 +23,8 @@
 #include "video/lyc_irq.h"
 #include "video/next_m0_time.h"
 #include "interruptrequester.h"
-#include "osd_element.h"
 #include "minkeeper.h"
+#include "osd_element.h"
 #include "scoped_ptr.h"
 
 namespace gambatte {
@@ -157,7 +157,7 @@ public:
 	void saveState(SaveState &state) const;
 	void loadState(const SaveState &state, const unsigned char *oamram);
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
-	void setVideoBuffer(uint_least32_t *videoBuf, int pitch);
+	void setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch);
 
 	void setOsdElement(transfer_ptr<OsdElement> osdElement) { this->osdElement = osdElement; }
 

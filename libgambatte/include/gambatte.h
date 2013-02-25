@@ -22,6 +22,7 @@
 #include "gbint.h"
 #include "inputgetter.h"
 #include "loadres.h"
+#include <cstddef>
 #include <string>
 
 namespace gambatte {
@@ -76,7 +77,7 @@ public:
 	  * @return sample number at which the video frame was produced. -1 means no frame
 	  *         was produced.
 	  */
-	long runFor(gambatte::uint_least32_t *videoBuf, int pitch,
+	long runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 	            gambatte::uint_least32_t *soundBuf, unsigned &samples);
 
 	/**
@@ -119,7 +120,7 @@ public:
 	  *               to the next in videoBuf.
 	  * @return success
 	  */
-	bool saveState(const gambatte::uint_least32_t *videoBuf, int pitch);
+	bool saveState(const gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch);
 
 	/**
 	  * Loads emulator state from the state slot selected with selectState().
@@ -136,7 +137,7 @@ public:
 	  *               to the next in videoBuf.
 	  * @return success
 	  */
-	bool saveState(const gambatte::uint_least32_t *videoBuf, int pitch,
+	bool saveState(const gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 	               const std::string &filepath);
 
 	/**
