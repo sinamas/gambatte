@@ -74,15 +74,13 @@ static void calcHF(const unsigned HF1, unsigned& HF2) {
 	HF2 |= arg1 & 0x200;
 }
 
-#define F() (((HF2 & 0x600) | (CF & 0x100)) >> 4 | (ZF & 0xFF ? 0 : 0x80))
+static inline unsigned toF(unsigned HF2, unsigned CF, unsigned ZF) {
+	return ((HF2 & 0x600) | (CF & 0x100)) >> 4 | (ZF & 0xFF ? 0 : 0x80);
+}
 
-#define FROM_F(f_in) do { \
-	unsigned fval = f_in; \
-\
-	ZF = ~fval & 0x80; \
-	HF2 = fval << 4 & 0x600; \
-	CF  = fval << 4 & 0x100; \
-} while (0)
+static inline unsigned  zfFromF(unsigned f) { return ~f & 0x80; }
+static inline unsigned hf2FromF(unsigned f) { return f << 4 & 0x600; }
+static inline unsigned  cfFromF(unsigned f) { return f << 4 & 0x100; }
 
 void CPU::setStatePtrs(SaveState &state) {
 	memory.setStatePtrs(state);
@@ -101,7 +99,7 @@ void CPU::saveState(SaveState &state) {
 	state.cpu.C = C;
 	state.cpu.D = D;
 	state.cpu.E = E;
-	state.cpu.F = F();
+	state.cpu.F = toF(HF2, CF, ZF);
 	state.cpu.H = H;
 	state.cpu.L = L;
 	state.cpu.skip = skip;
@@ -118,7 +116,9 @@ void CPU::loadState(const SaveState &state) {
 	C = state.cpu.C & 0xFF;
 	D = state.cpu.D & 0xFF;
 	E = state.cpu.E & 0xFF;
-	FROM_F(state.cpu.F);
+	ZF  =  zfFromF(state.cpu.F);
+	HF2 = hf2FromF(state.cpu.F);
+	CF  =  cfFromF(state.cpu.F);
 	H = state.cpu.H & 0xFF;
 	L = state.cpu.L & 0xFF;
 	skip = state.cpu.skip;
@@ -1884,7 +1884,9 @@ void CPU::process(const unsigned long cycles) {
 				{
 					unsigned F;
 					pop_rr(A, F);
-					FROM_F(F);
+					ZF  =  zfFromF(F);
+					HF2 = hf2FromF(F);
+					CF  =  cfFromF(F);
 				}
 
 				break;
@@ -1907,7 +1909,7 @@ void CPU::process(const unsigned long cycles) {
 				calcHF(HF1, HF2);
 
 				{
-					unsigned F = F();
+					unsigned F = toF(HF2, CF, ZF);
 					push_rr(A, F);
 				}
 
