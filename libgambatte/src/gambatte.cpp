@@ -18,12 +18,12 @@
  ***************************************************************************/
 #include "gambatte.h"
 #include "cpu.h"
-#include "savestate.h"
-#include "statesaver.h"
 #include "initstate.h"
+#include "savestate.h"
 #include "state_osd_elements.h"
-#include <sstream>
+#include "statesaver.h"
 #include <cstring>
+#include <sstream>
 
 static const std::string itos(const int i) {
 	std::stringstream ss;
@@ -36,6 +36,7 @@ static const std::string statePath(const std::string &basePath, const int stateN
 }
 
 namespace gambatte {
+
 struct GB::Priv {
 	CPU cpu;
 	int stateNo;
