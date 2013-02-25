@@ -624,7 +624,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, const int xend, uint_least32_t *c
 				} while (i >= 0 && int(p.spriteList[i].spx) > xpos - 8);
 			} else {
 				unsigned char idtab[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-				const unsigned bgenmask = p.lcdc << 7 & 0x80;
+				const unsigned bgenmask = p.lcdc << 7;
 
 				do {
 					int n;
