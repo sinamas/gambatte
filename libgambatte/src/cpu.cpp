@@ -53,33 +53,32 @@ long CPU::runFor(const unsigned long cycles) {
 	return csb;
 }
 
-// (HF2 & 0x200) == true means HF is set.
-// (HF2 & 0x400) marks the subtract flag.
-// (HF2 & 0x800) is set for inc/dec.
-// (HF2 & 0x100) is set if there's a carry to add.
-static void calcHF(const unsigned HF1, unsigned& HF2) {
-	unsigned arg1 = HF1 & 0xF;
-	unsigned arg2 = (HF2 & 0xF) + (HF2 >> 8 & 1);
+enum { HF2_HCF = 0x200, HF2_SUBF = 0x400, HF2_INCF = 0x800 };
 
-	if (HF2 & 0x800) {
-		arg1 = arg2;
-		arg2 = 1;
+static unsigned updateHF2FromHF1(const unsigned HF1, unsigned HF2) {
+	unsigned lhs  = HF1 & 0xF;
+	unsigned rhs = (HF2 & 0xF) + (HF2 >> 8 & 1);
+
+	if (HF2 & HF2_INCF) {
+		lhs = rhs;
+		rhs = 1;
 	}
 
-	if (HF2 & 0x400)
-		arg1 -= arg2;
-	else
-		arg1 = (arg1 + arg2) << 5;
+	unsigned res = HF2 & HF2_SUBF
+	             ?  lhs - rhs
+	             : (lhs + rhs) << 5;
 
-	HF2 |= arg1 & 0x200;
+	HF2 |= res & HF2_HCF;
+	return HF2;
 }
 
 static inline unsigned toF(unsigned HF2, unsigned CF, unsigned ZF) {
-	return ((HF2 & 0x600) | (CF & 0x100)) >> 4 | (ZF & 0xFF ? 0 : 0x80);
+	return ((HF2 & (HF2_SUBF | HF2_HCF)) | (CF & 0x100)) >> 4
+	     | (ZF & 0xFF ? 0 : 0x80);
 }
 
 static inline unsigned  zfFromF(unsigned f) { return ~f & 0x80; }
-static inline unsigned hf2FromF(unsigned f) { return f << 4 & 0x600; }
+static inline unsigned hf2FromF(unsigned f) { return f << 4 & (HF2_SUBF | HF2_HCF); }
 static inline unsigned  cfFromF(unsigned f) { return f << 4 & 0x100; }
 
 void CPU::setStatePtrs(SaveState &state) {
@@ -89,7 +88,7 @@ void CPU::setStatePtrs(SaveState &state) {
 void CPU::saveState(SaveState &state) {
 	cycleCounter_ = memory.saveState(state, cycleCounter_);
 
-	calcHF(HF1, HF2);
+	HF2 = updateHF2FromHF1(HF1, HF2);
 
 	state.cpu.cycleCounter = cycleCounter_;
 	state.cpu.PC = PC_;
@@ -227,7 +226,7 @@ void CPU::loadState(const SaveState &state) {
 // Test bitn in 8-bit value, check ZF, unset SF, set HCF:
 #define bitn_u8(bitmask, u8) do { \
 	ZF = (u8) & (bitmask); \
-	HF2 = 0x200; \
+	HF2 = HF2_HCF; \
 } while (0)
 
 #define bit0_u8(u8) bitn_u8(0x01, (u8))
@@ -337,7 +336,7 @@ void CPU::loadState(const SaveState &state) {
 	HF2 = u8; \
 	ZF = CF = A - HF2; \
 	A = ZF & 0xFF; \
-	HF2 |= 0x400; \
+	HF2 |= HF2_SUBF; \
 } while (0)
 
 // sbc a,r (4 cycles):
@@ -345,7 +344,7 @@ void CPU::loadState(const SaveState &state) {
 // Subtract CF and 8-bit value from A, check flags:
 #define sbc_a_u8(u8) do { \
 	HF1 = A; \
-	HF2 = 0x400 | (CF & 0x100) | (u8); \
+	HF2 = HF2_SUBF | (CF & 0x100) | (u8); \
 	ZF = CF = A - ((CF >> 8) & 1) - (u8); \
 	A = ZF & 0xFF; \
 } while (0)
@@ -354,7 +353,7 @@ void CPU::loadState(const SaveState &state) {
 // and a,(addr) (8 cycles):
 // bitwise and 8-bit value into A, check flags:
 #define and_a_u8(u8) do { \
-	HF2 = 0x200; \
+	HF2 = HF2_HCF; \
 	CF = 0; \
 	A &= (u8); \
 	ZF = A; \
@@ -385,13 +384,13 @@ void CPU::loadState(const SaveState &state) {
 	HF1 = A; \
 	HF2 = u8; \
 	ZF = CF = A - HF2; \
-	HF2 |= 0x400; \
+	HF2 |= HF2_SUBF; \
 } while (0)
 
 // inc r (4 cycles):
 // Increment value of 8-bit register, check flags except CF:
 #define inc_r(r) do { \
-	HF2 = (r) | 0x800; \
+	HF2 = (r) | HF2_INCF; \
 	ZF = (r) + 1; \
 	(r) = ZF & 0xFF; \
 } while (0)
@@ -399,7 +398,7 @@ void CPU::loadState(const SaveState &state) {
 // dec r (4 cycles):
 // Decrement value of 8-bit register, check flags except CF:
 #define dec_r(r) do { \
-	HF2 = (r) | 0xC00; \
+	HF2 = (r) | HF2_INCF | HF2_SUBF; \
 	ZF = (r) - 1; \
 	(r) = ZF & 0xFF; \
 } while (0)
@@ -442,7 +441,7 @@ void CPU::loadState(const SaveState &state) {
 \
 	const unsigned res = SP + disp; \
 	CF = SP ^ disp ^ res; \
-	HF2 = CF << 5 & 0x200; \
+	HF2 = CF << 5 & HF2_HCF; \
 	ZF = 1; \
 	cycleCounter += 4; \
 	(sumout) = res & 0xFFFF; \
@@ -715,15 +714,15 @@ void CPU::process(const unsigned long cycles) {
 				// daa (4 cycles):
 				// Adjust register A to correctly represent a BCD. Check ZF, HF and CF:
 			case 0x27:
-				calcHF(HF1, HF2);
+				HF2 = updateHF2FromHF1(HF1, HF2);
 
 				{
 					unsigned correction = CF & 0x100 ? 0x60 : 0x00;
 
-					if (HF2 & 0x200)
+					if (HF2 & HF2_HCF)
 						correction |= 0x06;
 
-					if (!(HF2 &= 0x400)) {
+					if (!(HF2 &= HF2_SUBF)) {
 						if ((A & 0x0F) > 0x09)
 							correction |= 0x06;
 
@@ -786,7 +785,7 @@ void CPU::process(const unsigned long cycles) {
 				// cpl (4 cycles):
 				// Complement register A. (Flip all bits), set SF and HCF:
 			case 0x2F:
-				HF2 = 0x600;
+				HF2 = HF2_SUBF | HF2_HCF;
 				A ^= 0xFF;
 				break;
 
@@ -841,7 +840,7 @@ void CPU::process(const unsigned long cycles) {
 					READ(HF2, addr);
 					ZF = HF2 + 1;
 					WRITE(addr, ZF & 0xFF);
-					HF2 |= 0x800;
+					HF2 |= HF2_INCF;
 				}
 
 				break;
@@ -854,7 +853,7 @@ void CPU::process(const unsigned long cycles) {
 					READ(HF2, addr);
 					ZF = HF2 - 1;
 					WRITE(addr, ZF & 0xFF);
-					HF2 |= 0xC00;
+					HF2 |= HF2_INCF | HF2_SUBF;
 				}
 
 				break;
@@ -1057,7 +1056,7 @@ void CPU::process(const unsigned long cycles) {
 
 				// A-A is always 0:
 			case 0x97:
-				HF2 = 0x400;
+				HF2 = HF2_SUBF;
 				CF = ZF = A = 0;
 				break;
 
@@ -1082,7 +1081,7 @@ void CPU::process(const unsigned long cycles) {
 			case 0xA7:
 				ZF = A;
 				CF = 0;
-				HF2 = 0x200;
+				HF2 = HF2_HCF;
 				break;
 
 			case 0xA8: xor_a_u8(B); break;
@@ -1121,7 +1120,7 @@ void CPU::process(const unsigned long cycles) {
 				// A always equals A:
 			case 0xBF:
 				CF = ZF = 0;
-				HF2 = 0x400;
+				HF2 = HF2_SUBF;
 				break;
 
 				// ret nz (20;8 cycles):
@@ -1906,7 +1905,7 @@ void CPU::process(const unsigned long cycles) {
 				break;
 
 			case 0xF5:
-				calcHF(HF1, HF2);
+				HF2 = updateHF2FromHF1(HF1, HF2);
 
 				{
 					unsigned F = toF(HF2, CF, ZF);
