@@ -63,14 +63,16 @@ static inline unsigned long interpolate(const unsigned long a, const unsigned lo
 	return (a + b - ((a ^ b) & 0x010101)) >> 1;
 }
 
-static inline unsigned long qInterpolate(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
+static inline unsigned long qInterpolate(const unsigned long a, const unsigned long b,
+                                         const unsigned long c, const unsigned long d) {
 	const unsigned long lowBits = ((a & 0x030303) + (b & 0x030303) + (c & 0x030303) + (d & 0x030303)) & 0x030303;
 
 	return (a + b + c + d - lowBits) >> 2;
 }
 
-template<unsigned srcPitch, unsigned width, unsigned height>
-static void filter(gambatte::uint_least32_t *dstPtr, const int dstPitch, const gambatte::uint_least32_t *srcPtr)
+template<std::ptrdiff_t srcPitch, unsigned width, unsigned height>
+static void filter(gambatte::uint_least32_t *dstPtr, const std::ptrdiff_t dstPitch,
+                   const gambatte::uint_least32_t *srcPtr)
 {
 	unsigned h = height;
 
@@ -213,7 +215,7 @@ enum { PITCH  = WIDTH + 3 };
 enum { BUF_SIZE = (HEIGHT + 3) * PITCH };
 enum { BUF_OFFSET = PITCH + 1 };
 
-}
+} // anon namespace
 
 Kreed2xSaI::Kreed2xSaI()
 : buffer_(BUF_SIZE)
@@ -225,10 +227,10 @@ void* Kreed2xSaI::inBuf() const {
 	return buffer_ + BUF_OFFSET;
 }
 
-int Kreed2xSaI::inPitch() const {
+std::ptrdiff_t Kreed2xSaI::inPitch() const {
 	return PITCH;
 }
 
-void Kreed2xSaI::draw(void *const dbuffer, const int pitch) {
+void Kreed2xSaI::draw(void *const dbuffer, const std::ptrdiff_t pitch) {
 	::filter<PITCH, WIDTH, HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_ + BUF_OFFSET);
 }

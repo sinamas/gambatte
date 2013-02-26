@@ -32,8 +32,8 @@ public:
 
 	Kreed2xSaI();
 	virtual void* inBuf() const;
-	virtual int inPitch() const;
-	virtual void draw(void *dst, int dstpitch);
+	virtual std::ptrdiff_t inPitch() const;
+	virtual void draw(void *dst, std::ptrdiff_t dstpitch);
 };
 
 #endif

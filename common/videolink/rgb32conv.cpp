@@ -23,6 +23,7 @@
 #include <algorithm>
 
 namespace {
+
 class Rgb32ToUyvy {
 	struct CacheUnit {
 		gambatte::uint_least32_t rgb32;
@@ -37,7 +38,7 @@ class Rgb32ToUyvy {
 public:
 	Rgb32ToUyvy();
 	void operator()(const gambatte::uint_least32_t *s, gambatte::uint_least32_t *d,
-					unsigned w, unsigned h, int srcPitch, int dstPitch);
+	                unsigned w, unsigned h, std::ptrdiff_t srcPitch, std::ptrdiff_t dstPitch);
 };
 
 Rgb32ToUyvy::Rgb32ToUyvy() {
@@ -49,50 +50,56 @@ Rgb32ToUyvy::Rgb32ToUyvy() {
 	std::fill(cache, cache + cache_size, c);
 }
 
-void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s,
-		gambatte::uint_least32_t *d, const unsigned w, unsigned h, const int s_pitch, const int d_pitch)
+void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s, gambatte::uint_least32_t *d,
+		const unsigned w, unsigned h, const std::ptrdiff_t s_pitch, const std::ptrdiff_t d_pitch)
 {
 	while (h--) {
 		unsigned n = w >> 1;
 
 		do {
-			if ((cache[*s & cache_mask].rgb32 - *s) | (cache[*(s+1) & cache_mask].rgb32 - *(s+1))) {
-				cache[*s     & cache_mask].rgb32 = *s;
-				cache[*(s+1) & cache_mask].rgb32 = *(s+1);
+			if ((cache[s[0] & cache_mask].rgb32 - s[0]) | (cache[s[1] & cache_mask].rgb32 - s[1])) {
+				cache[s[0] & cache_mask].rgb32 = s[0];
+				cache[s[1] & cache_mask].rgb32 = s[1];
 
-				const unsigned long r = (*s >> 16 & 0x000000FF) | (*(s+1)       & 0x00FF0000);
-				const unsigned long g = (*s >>  8 & 0x000000FF) | (*(s+1) <<  8 & 0x00FF0000);
-				const unsigned long b = (*s       & 0x000000FF) | (*(s+1) << 16 & 0x00FF0000);
+				const unsigned long r = (s[0] >> 16 & 0x000000FF) | (s[1]       & 0x00FF0000);
+				const unsigned long g = (s[0] >>  8 & 0x000000FF) | (s[1] <<  8 & 0x00FF0000);
+				const unsigned long b = (s[0]       & 0x000000FF) | (s[1] << 16 & 0x00FF0000);
 
 				const unsigned long y = r *  66 + g * 129 + b * 25 + ( 16 * 256 + 128) * 0x00010001ul;
 				const unsigned long u = b * 112 - r *  38 - g * 74 + (128 * 256 + 128) * 0x00010001ul;
 				const unsigned long v = r * 112 - g *  94 - b * 18 + (128 * 256 + 128) * 0x00010001ul;
 
 #ifdef WORDS_BIGENDIAN
-				cache[*s & cache_mask].uyvy = (u << 16 & 0xFF000000) | (y << 8 & 0x00FF0000) | (v & 0x0000FF00) | (y >> 8 & 0x000000FF);
-				cache[*(s+1) & cache_mask].uyvy = (u & 0xFF000000) | (y >> 8 & 0x00FF0000) | (v >> 16 & 0x0000FF00) | y >> 24;
+				cache[s[0] & cache_mask].uyvy = (u << 16 & 0xFF000000) | (y <<  8 & 0x00FF0000)
+				                              | (v       & 0x0000FF00) | (y >>  8 & 0x000000FF);
+
+				cache[s[1] & cache_mask].uyvy = (u       & 0xFF000000) | (y >>  8 & 0x00FF0000)
+				                              | (v >> 16 & 0x0000FF00) |  y >> 24              ;
 #else
-				cache[*s & cache_mask].uyvy = (y << 16 & 0xFF000000) | (v << 8 & 0x00FF0000) | (y & 0x0000FF00) | (u >> 8 & 0x000000FF);
-				cache[*(s+1) & cache_mask].uyvy = (y & 0xFF000000) | (v >> 8 & 0x00FF0000) | (y >> 16 & 0x0000FF00) | u >> 24;
+				cache[s[0] & cache_mask].uyvy = (y << 16 & 0xFF000000) | (v <<  8 & 0x00FF0000)
+				                              | (y       & 0x0000FF00) | (u >>  8 & 0x000000FF);
+
+				cache[s[1] & cache_mask].uyvy = (y       & 0xFF000000) | (v >>  8 & 0x00FF0000)
+				                              | (y >> 16 & 0x0000FF00) |  u >> 24              ;
 #endif
 			}
 
-			*d     = cache[*s     & cache_mask].uyvy;
-			*(d+1) = cache[*(s+1) & cache_mask].uyvy;
+			d[0] = cache[s[0] & cache_mask].uyvy;
+			d[1] = cache[s[1] & cache_mask].uyvy;
 			s += 2;
 			d += 2;
 		} while (--n);
 
-		s += s_pitch - static_cast<int>(w);
-		d += d_pitch - static_cast<int>(w);
+		s += s_pitch - static_cast<std::ptrdiff_t>(w);
+		d += d_pitch - static_cast<std::ptrdiff_t>(w);
 	}
 }
 
 static void rgb32ToRgb16(const gambatte::uint_least32_t *s, gambatte::uint_least16_t *d,
-			const unsigned w, unsigned h, const int srcPitch, const int dstPitch)
+		const unsigned w, unsigned h, const std::ptrdiff_t srcPitch, const std::ptrdiff_t dstPitch)
 {
 	do {
-		int i = -static_cast<int>(w);
+		std::ptrdiff_t i = -static_cast<std::ptrdiff_t>(w);
 		s += w;
 		d += w;
 
@@ -100,8 +107,8 @@ static void rgb32ToRgb16(const gambatte::uint_least32_t *s, gambatte::uint_least
 			d[i] = (s[i] >> 8 & 0xF800) | (s[i] & 0xFC00) >> 5 | (s[i] & 0xFF) >> 3;
 		} while (++i);
 
-		s += srcPitch - static_cast<int>(w);
-		d += dstPitch - static_cast<int>(w);
+		s += srcPitch - static_cast<std::ptrdiff_t>(w);
+		d += dstPitch - static_cast<std::ptrdiff_t>(w);
 	} while (--h);
 }
 
@@ -120,9 +127,9 @@ public:
 	}
 
 	virtual void* inBuf() const { return inbuf_; }
-	virtual int inPitch() const { return width_; }
+	virtual std::ptrdiff_t inPitch() const { return width_; }
 
-	virtual void draw(void *dst, int dstpitch) {
+	virtual void draw(void *dst, std::ptrdiff_t dstpitch) {
 		rgb32ToUyvy(inbuf_, static_cast<gambatte::uint_least32_t*>(dst), width_, height_, inPitch(), dstpitch);
 	}
 };
@@ -141,13 +148,14 @@ public:
 	}
 
 	virtual void* inBuf() const { return inbuf_; }
-	virtual int inPitch() const { return width_; }
+	virtual std::ptrdiff_t inPitch() const { return width_; }
 
-	virtual void draw(void *dst, int dstpitch) {
+	virtual void draw(void *dst, std::ptrdiff_t dstpitch) {
 		rgb32ToRgb16(inbuf_, static_cast<gambatte::uint_least16_t*>(dst), width_, height_, inPitch(), dstpitch);
 	}
 };
-}
+
+} // anon namespace
 
 VideoLink* Rgb32Conv::create(PixelFormat pf, unsigned width, unsigned height) {
 	switch (pf) {

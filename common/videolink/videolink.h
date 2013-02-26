@@ -19,12 +19,14 @@
 #ifndef VIDEOLINK_H
 #define VIDEOLINK_H
 
+#include <cstddef>
+
 class VideoLink {
 public:
 	virtual ~VideoLink() {}
 	virtual void* inBuf() const = 0;
-	virtual int inPitch() const = 0;
-	virtual void draw(void *dst, int dstpitch) = 0;
+	virtual std::ptrdiff_t inPitch() const = 0;
+	virtual void draw(void *dst, std::ptrdiff_t dstpitch) = 0;
 };
 
 #endif

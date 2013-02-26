@@ -117,7 +117,7 @@ static /*inline*/ bool Diff(const unsigned long w1, const unsigned long w2) {
 }
 
 template<unsigned Xres, unsigned Yres>
-static void filter(gambatte::uint_least32_t *pOut, const int dstPitch, const gambatte::uint_least32_t *pIn)
+static void filter(gambatte::uint_least32_t *pOut, const std::ptrdiff_t dstPitch, const gambatte::uint_least32_t *pIn)
 {
 	unsigned long w[10];
 
@@ -2833,7 +2833,7 @@ static void filter(gambatte::uint_least32_t *pOut, const int dstPitch, const gam
 			++pIn;
 			pOut += 2;
 		}
-		pOut += dstPitch * 2 - static_cast<int>(Xres * 2);
+		pOut += dstPitch * 2 - static_cast<std::ptrdiff_t>(Xres * 2);
 	}
 }
 
@@ -2846,10 +2846,11 @@ void* MaxStHq2x::inBuf() const {
 	return buffer_;
 }
 
-int MaxStHq2x::inPitch() const {
+std::ptrdiff_t MaxStHq2x::inPitch() const {
 	return VfilterInfo::IN_WIDTH;
 }
 
-void MaxStHq2x::draw(void *const dbuffer, const int pitch) {
-	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_);
+void MaxStHq2x::draw(void *const dbuffer, const std::ptrdiff_t pitch) {
+	::filter<VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer),
+	                                                        pitch, buffer_);
 }

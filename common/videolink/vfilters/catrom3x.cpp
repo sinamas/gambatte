@@ -20,6 +20,7 @@
 #include <algorithm>
 
 namespace {
+
 enum { WIDTH  = VfilterInfo::IN_WIDTH };
 enum { HEIGHT = VfilterInfo::IN_HEIGHT };
 enum { PITCH  = WIDTH + 3 };
@@ -221,7 +222,7 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 	}
 }
 
-static void filter(gambatte::uint_least32_t *dline, const int pitch, const gambatte::uint_least32_t *sline) {
+static void filter(gambatte::uint_least32_t *dline, const std::ptrdiff_t pitch, const gambatte::uint_least32_t *sline) {
 	Colorsum sums[PITCH];
 
 	for (unsigned h = HEIGHT; h--;) {
@@ -324,7 +325,8 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 		sline += PITCH;
 	}
 }
-}
+
+} // anon namespace
 
 Catrom3x::Catrom3x()
 : buffer_((HEIGHT + 3UL) * PITCH)
@@ -336,10 +338,10 @@ void* Catrom3x::inBuf() const {
 	return buffer_ + PITCH + 1;
 }
 
-int Catrom3x::inPitch() const {
+std::ptrdiff_t Catrom3x::inPitch() const {
 	return PITCH;
 }
 
-void Catrom3x::draw(void *const dbuffer, const int pitch) {
+void Catrom3x::draw(void *const dbuffer, const std::ptrdiff_t pitch) {
 	::filter(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_ + PITCH);
 }
