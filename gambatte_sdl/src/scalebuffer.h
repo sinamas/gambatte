@@ -19,10 +19,13 @@
 #ifndef SCALEBUFFER_H_
 #define SCALEBUFFER_H_
 
+#include <cstddef>
 #include <cstring>
 
 template<typename T>
-static inline void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH, const unsigned dstPitch, const unsigned scale) {
+inline void do_scaleBuffer(const T *s, T *d,
+		const unsigned srcW, const unsigned srcH,
+		const std::ptrdiff_t dstPitch, const unsigned scale) {
 	const unsigned dstW = srcW * scale;
 
 	for (unsigned h = srcH; h--;) {
@@ -33,7 +36,7 @@ static inline void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const u
 			++s;
 		}
 
-		s += dstPitch - dstW;
+		s += dstPitch - std::ptrdiff_t(dstW);
 
 		for (unsigned n = scale; --n; d += dstPitch)
 			std::memcpy(d, d - dstPitch, dstW * sizeof *d);
@@ -41,7 +44,9 @@ static inline void do_scaleBuffer(const T *s, T *d, const unsigned srcW, const u
 }
 
 template<typename T>
-void scaleBuffer(const T *s, T *d, const unsigned srcW, const unsigned srcH, const unsigned dstPitch, const unsigned scale) {
+void scaleBuffer(const T *s, T *d,
+		const unsigned srcW, const unsigned srcH,
+		const std::ptrdiff_t dstPitch, const unsigned scale) {
 	switch (scale) {
 	case 2: do_scaleBuffer(s, d, srcW, srcH, dstPitch, 2); break;
 	case 3: do_scaleBuffer(s, d, srcW, srcH, dstPitch, 3); break;
