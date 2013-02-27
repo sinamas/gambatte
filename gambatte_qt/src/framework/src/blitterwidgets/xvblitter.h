@@ -19,7 +19,6 @@
 #ifndef XVBLITTER_H
 #define XVBLITTER_H
 
-
 #include "../blitterwidget.h"
 #include "scoped_ptr.h"
 #include <QComboBox>
@@ -28,15 +27,29 @@
 #include <X11/extensions/Xvlib.h>
 
 class XvBlitter : public BlitterWidget {
+public:
+	explicit XvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	virtual ~XvBlitter();
+	virtual void init();
+	virtual void uninit();
+	virtual bool isUnusable() const;
+	virtual long sync();
+	virtual void blit();
+	virtual QWidget * settingsWidget() const { return confWidget.qwidget(); }
+	virtual void acceptSettings();
+	virtual void rejectSettings() const;
+	virtual QPaintEngine * paintEngine() const { return 0; }
+
+protected:
+	virtual void paintEvent(QPaintEvent *event);
+	virtual void setBufferDimensions(unsigned int width, unsigned int height);
+
+private:
 	class SubBlitter;
 	class ShmBlitter;
 	class PlainBlitter;
 
 	class ConfWidget {
-		const scoped_ptr<QWidget> widget_;
-		QComboBox *const portSelector_;
-		unsigned portIndex_;
-
 	public:
 		ConfWidget();
 		~ConfWidget();
@@ -47,11 +60,14 @@ class XvBlitter : public BlitterWidget {
 		int formatId() const;
 		int numAdapters() const;
 		QWidget * qwidget() const { return widget_.get(); }
+
+	private:
+		const scoped_ptr<QWidget> widget_;
+		QComboBox *const portSelector_;
+		unsigned portIndex_;
 	};
 
 	class PortGrabber : Uncopyable {
-		XvPortID port_;
-		bool grabbed_;
 	public:
 		PortGrabber();
 		~PortGrabber();
@@ -59,6 +75,10 @@ class XvBlitter : public BlitterWidget {
 		void ungrab();
 		bool grabbed() const { return grabbed_; }
 		XvPortID port() const { return port_; }
+
+	private:
+		XvPortID port_;
+		bool grabbed_;
 	};
 
 	ConfWidget confWidget;
@@ -68,27 +88,7 @@ class XvBlitter : public BlitterWidget {
 	bool initialized;
 
 	void initPort();
-	void privSetPaused(const bool /*paused*/) {}
-
-protected:
-	void paintEvent(QPaintEvent *event);
-// 	void resizeEvent(QResizeEvent *event);
-
-public:
-	explicit XvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
-	~XvBlitter();
-	void init();
-	void uninit();
-	bool isUnusable() const;
-	long sync();
-	void setBufferDimensions(const unsigned int width, const unsigned int height);
-	void blit();
-
-	QWidget* settingsWidget() const { return confWidget.qwidget(); }
-	void acceptSettings();
-	void rejectSettings() const;
-
-	QPaintEngine* paintEngine() const { return NULL; }
+	virtual void privSetPaused(bool /*paused*/) {}
 };
 
 #endif
