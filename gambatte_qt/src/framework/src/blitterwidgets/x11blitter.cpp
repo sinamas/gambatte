@@ -22,7 +22,6 @@
 #include <QX11Info>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-// #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include <QVBoxLayout>
@@ -30,42 +29,54 @@
 #include <QSettings>
 #include <iostream>
 
+static std::size_t imageDataSize(XImage const &ximage) {
+	return std::size_t(ximage.height) * ximage.bytes_per_line;
+}
+
 class X11Blitter::SubBlitter {
 public:
+	virtual ~SubBlitter() {};
+	virtual bool failed() const = 0;
 	virtual void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h) = 0;
 	virtual void flip() = 0;
-	virtual bool failed() const = 0;
-	virtual void* pixels() const = 0;
-	virtual unsigned pitch() const = 0;
-	virtual ~SubBlitter() {};
+	virtual std::ptrdiff_t pitch() const = 0;
+	virtual void * pixels() const = 0;
 };
 
 class X11Blitter::ShmBlitter : public SubBlitter, Uncopyable {
-	XShmSegmentInfo shminfo;
-	XImage *ximage;
-	const bool doubleBuffer;
 public:
 	ShmBlitter(unsigned int width, unsigned int height, const VisInfo &visInfo, bool db);
-	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
-	void flip();
-	bool failed() const;
-	void* pixels() const;
-	unsigned pitch() const;
-	~ShmBlitter();
+	virtual ~ShmBlitter();
+	virtual bool failed() const { return !shminfo.shmaddr; }
+	virtual void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
+	virtual void flip();
+	virtual std::ptrdiff_t pitch() const { return ximage ? ximage->width : 0; }
+	virtual void * pixels() const { return backBuffer(); }
+
+private:
+	XShmSegmentInfo shminfo;
+	XImage *const ximage;
+	bool const doubleBuffer;
+
+	char * backBuffer() const;
+	char * frontBuffer() const { return ximage ? ximage->data : 0; }
 };
 
-X11Blitter::ShmBlitter::ShmBlitter(const unsigned width, const unsigned height, const VisInfo &visInfo, const bool db) : doubleBuffer(db) {
-	shminfo.shmaddr = NULL;
-	ximage = XShmCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(visInfo.visual), visInfo.depth, ZPixmap, NULL, &shminfo, width, height);
-
-	if (ximage == NULL) {
-		std::cerr << "failed to create shm ximage\n";
-	} else {
-		shminfo.shmid = shmget(IPC_PRIVATE, ximage->bytes_per_line * ximage->height << db, IPC_CREAT | 0777);
+X11Blitter::ShmBlitter::ShmBlitter(const unsigned width, const unsigned height, const VisInfo &visInfo, const bool db)
+: shminfo()
+, ximage(XShmCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(visInfo.visual),
+                         visInfo.depth, ZPixmap, 0, &shminfo, width, height))
+, doubleBuffer(db)
+{
+	if (ximage) {
+		shminfo.shmid = shmget(IPC_PRIVATE, imageDataSize(*ximage) << db, IPC_CREAT | 0777);
 		shminfo.shmaddr = ximage->data = static_cast<char*>(shmat(shminfo.shmid, 0, 0));
 		shminfo.readOnly = True;
 		XShmAttach(QX11Info::display(), &shminfo);
 		XSync(QX11Info::display(), 0);
+	} else {
+		std::cerr << "failed to create shm ximage\n";
+		shminfo.shmaddr = 0;
 	}
 }
 
@@ -80,107 +91,90 @@ X11Blitter::ShmBlitter::~ShmBlitter() {
 	}
 }
 
-void X11Blitter::ShmBlitter::blit(const Drawable drawable, const unsigned x, const unsigned y, const unsigned w, const unsigned h) {
+char * X11Blitter::ShmBlitter::backBuffer() const {
+	if (doubleBuffer) {
+		return shminfo.shmaddr && frontBuffer() == shminfo.shmaddr
+		     ? shminfo.shmaddr + imageDataSize(*ximage)
+		     : shminfo.shmaddr;
+	}
+
+	return frontBuffer();
+}
+
+void X11Blitter::ShmBlitter::blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h) {
 	if (ximage && ximage->data) {
-		XShmPutImage(QX11Info::display(), drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()), ximage, x, y, x, y, w, h, False);
+		XShmPutImage(QX11Info::display(), drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()),
+		             ximage, x, y, x, y, w, h, False);
 	}
 }
 
 void X11Blitter::ShmBlitter::flip() {
 	if (ximage)
-		ximage->data = static_cast<char*>(pixels());
-}
-
-bool X11Blitter::ShmBlitter::failed() const {
-	return ximage == NULL || ximage->data == NULL;
-}
-
-void* X11Blitter::ShmBlitter::pixels() const {
-	if (!ximage)
-		return 0;
-
-	if (!doubleBuffer)
-		return ximage->data;
-
-	return ximage->data == shminfo.shmaddr ? shminfo.shmaddr + ximage->bytes_per_line * ximage->height : shminfo.shmaddr;
-}
-
-unsigned X11Blitter::ShmBlitter::pitch() const {
-	return ximage ? ximage->width : 0;
+		ximage->data = backBuffer();
 }
 
 class X11Blitter::PlainBlitter : public X11Blitter::SubBlitter, Uncopyable {
-	XImage *const ximage;
-	char *data;
-
-	bool doubleBuffer() const { return data; }
 public:
 	PlainBlitter(unsigned int width, unsigned int height, const VisInfo &visInfo, bool db);
-	void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
-	void flip();
-	bool failed() const;
-	void* pixels() const;
-	unsigned pitch() const;
-	~PlainBlitter();
+	virtual ~PlainBlitter();
+	virtual bool failed() const { return !data; }
+	virtual void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
+	virtual void flip();
+	virtual std::ptrdiff_t pitch() const { return ximage ? ximage->width : 0; }
+	virtual void * pixels() const { return backBuffer(); }
+
+private:
+	XImage *const ximage;
+	Array<char> const data;
+
+	bool doubleBuffer() const { return ximage && data.size() >= imageDataSize(*ximage) * 2; }
+	char * backBuffer() const;
+	char * frontBuffer() const { return ximage ? ximage->data : 0;  }
 };
 
-X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned int height, const VisInfo &visInfo, const bool db)
+X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned int height,
+                                       const VisInfo &visInfo, const bool db)
 : ximage(XCreateImage(QX11Info::display(), reinterpret_cast<Visual*>(visInfo.visual),
-			visInfo.depth, ZPixmap, 0, NULL, width, height, visInfo.depth <= 16 ? 16 : 32, 0)),
-  data(0)
+                      visInfo.depth, ZPixmap, 0, 0, width, height, visInfo.depth <= 16 ? 16 : 32, 0))
+, data(ximage ? imageDataSize(*ximage) << db : 0)
 {
 	if (ximage) {
-		ximage->data = new char[ximage->bytes_per_line * ximage->height << db];
-
-		if (db)
-			data = ximage->data;
+		ximage->data = data;
 	} else {
 		std::cerr << "failed to create ximage\n";
 	}
 }
 
-X11Blitter::PlainBlitter::~PlainBlitter () {
-	if (ximage) {
-		if (doubleBuffer()) {
-			delete[] data;
-		} else
-			delete[] ximage->data;
-
+X11Blitter::PlainBlitter::~PlainBlitter() {
+	if (ximage)
 		XFree(ximage);
-	}
 }
 
-void X11Blitter::PlainBlitter::blit(const Drawable drawable, const unsigned x, const unsigned y, const unsigned w, const unsigned h) {
-	if (ximage) {
-		XPutImage(QX11Info::display(), drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()), ximage, x, y, x, y, w, h);
+char * X11Blitter::PlainBlitter::backBuffer() const {
+	if (doubleBuffer()) {
+		return data && frontBuffer() == data
+		     ? data + imageDataSize(*ximage)
+		     : data;
+	}
+
+	return frontBuffer();
+}
+
+void X11Blitter::PlainBlitter::blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h) {
+	if (ximage && ximage->data) {
+		XPutImage(QX11Info::display(), drawable,
+		          DefaultGC(QX11Info::display(), QX11Info::appScreen()),
+		          ximage, x, y, x, y, w, h);
 	}
 }
 
 void X11Blitter::PlainBlitter::flip() {
-	if (ximage) {
-		ximage->data = static_cast<char*>(pixels());
-	}
+	if (ximage)
+		ximage->data = backBuffer();
 }
 
-bool X11Blitter::PlainBlitter::failed() const {
-	return ximage == NULL;
-}
-
-void* X11Blitter::PlainBlitter::pixels() const {
-	if (!ximage)
-		return 0;
-
-	if (!doubleBuffer())
-		return ximage->data;
-
-	return ximage->data == data ? data + ximage->bytes_per_line * ximage->height : data;
-}
-
-unsigned X11Blitter::PlainBlitter::pitch() const {
-	return ximage ? ximage->width : 0;
-}
-
-static XVisualInfo* getVisualPtr(unsigned depth, int c_class, unsigned long rmask, unsigned long gmask, unsigned long bmask) {
+static XVisualInfo* getVisualPtr(unsigned depth, int c_class,
+		unsigned long rmask, unsigned long gmask, unsigned long bmask) {
 	XVisualInfo vinfo_template;
 	vinfo_template.screen = QX11Info::appScreen();
 	vinfo_template.depth = depth;
@@ -191,14 +185,32 @@ static XVisualInfo* getVisualPtr(unsigned depth, int c_class, unsigned long rmas
 
 	int nitems = 0;
 	XVisualInfo *vinfos = XGetVisualInfo(QX11Info::display(),
-	                                     VisualScreenMask|(depth ? VisualDepthMask : 0)|VisualClassMask|VisualRedMaskMask|VisualGreenMaskMask|VisualBlueMaskMask,
-	                                     &vinfo_template, &nitems);
-
-	if (nitems > 0) {
+	                                     (   VisualScreenMask
+	                                       | (depth ? VisualDepthMask : 0)
+	                                       | VisualClassMask
+	                                       | VisualRedMaskMask
+	                                       | VisualGreenMaskMask
+	                                       | VisualBlueMaskMask),
+	                                     &vinfo_template,
+	                                     &nitems);
+	if (nitems > 0)
 		return vinfos;
-	}
 
-	return NULL;
+	return 0;
+}
+
+static bool isRgb24(XVisualInfo const &vinfo) {
+	return vinfo.depth == 24
+	    && vinfo.red_mask   == 0xFF0000
+	    && vinfo.green_mask == 0x00FF00
+	    && vinfo.blue_mask  == 0x0000FF;
+}
+
+static bool isRgb16(XVisualInfo const &vinfo) {
+	return vinfo.depth <= 16 // ?
+	    && vinfo.red_mask   == 0xF800
+	    && vinfo.green_mask == 0x07E0
+	    && vinfo.blue_mask  == 0x001F;
 }
 
 static XVisualInfo* getVisualPtr() {
@@ -210,10 +222,8 @@ static XVisualInfo* getVisualPtr() {
 		XVisualInfo *vinfos = XGetVisualInfo(QX11Info::display(), VisualIDMask, &vinfo_template, &nitems);
 
 		if (nitems > 0) {
-			if ((vinfos->depth == 24 && vinfos->red_mask == 0xFF0000 && vinfos->green_mask == 0x00FF00 && vinfos->blue_mask == 0x0000FF) ||
-					(vinfos->depth <= 16 && vinfos->red_mask == 0xF800 && vinfos->green_mask == 0x07E0 && vinfos->blue_mask == 0x001F)) {
+			if (isRgb24(vinfos[0]) || isRgb16(vinfos[0]))
 				return vinfos;
-			}
 
 			XFree(vinfos);
 		}
@@ -237,15 +247,15 @@ static XVisualInfo* getVisualPtr() {
 	if (XVisualInfo *visual = getVisualPtr(0, DirectColor, 0xF800, 0x07E0, 0x001F))
 		return visual;
 
-	return NULL;
+	return 0;
 }
 
-X11Blitter::X11Blitter(VideoBufferLocker vbl, QWidget *parent) :
-BlitterWidget(vbl, QString("X11"), false, parent),
-confWidget(new QWidget),
-bf_(new QCheckBox(QString("Semi-bilinear filtering")), "x11blitter/bf", false)
+X11Blitter::X11Blitter(VideoBufferLocker vbl, QWidget *parent)
+: BlitterWidget(vbl, QString("X11"), false, parent)
+, confWidget(new QWidget)
+, bf_(new QCheckBox(QString("Semi-bilinear filtering")), "x11blitter/bf", false)
 {
-	visInfo.visual = NULL;
+	visInfo.visual = 0;
 	visInfo.depth = 0;
 
 	confWidget->setLayout(new QVBoxLayout);
@@ -266,7 +276,7 @@ X11Blitter::~X11Blitter() {
 }
 
 bool X11Blitter::isUnusable() const {
-	return visInfo.visual == NULL;
+	return visInfo.visual == 0;
 }
 
 void X11Blitter::init() {
@@ -288,18 +298,6 @@ long X11Blitter::sync() {
 	return 0;
 }
 
-/*
-void X11Blitter::paintEvent(QPaintEvent *event) {
-	if(event)
-		event->accept();
-
-	if(xvimage) {
-		XvShmPutImage(QX11Info::display(), xvport, winId(), DefaultGC(QX11Info::display(), QX11Info::appScreen()), xvimage, 0, 0, inWidth*2, inHeight, 0, 0, width(), height(), False);
-		XSync(QX11Info::display(),0);
-	}
-}
-*/
-
 void X11Blitter::paintEvent(QPaintEvent *event) {
 	if (subBlitter.get()) {
 		event->accept();
@@ -313,14 +311,13 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 
 	const bool scale = width() != static_cast<int>(w) || height() != static_cast<int>(h);
 	bool shm = XShmQueryExtension(QX11Info::display());
-	std::cout << "shm: " << shm << std::endl;
 
 	if (shm) {
 		subBlitter.reset(new ShmBlitter(width(), height(), visInfo, !scale));
 
 		if (subBlitter->failed()) {
 			shm = false;
-			subBlitter.reset(); // predestruct previous object to ensure resource availability.
+			subBlitter.reset();
 		}
 	}
 
@@ -330,8 +327,11 @@ void X11Blitter::setBufferDimensions(const unsigned int w, const unsigned int h)
 	if (scale) {
 		buffer.reset(w * h * (visInfo.depth <= 16 ? 2 : 4));
 		setPixelBuffer(buffer, visInfo.depth <= 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32, w);
-	} else
-		setPixelBuffer(subBlitter->pixels(), visInfo.depth <= 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32, subBlitter->pitch());
+	} else {
+		setPixelBuffer(subBlitter->pixels(),
+		               visInfo.depth <= 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32,
+		               subBlitter->pitch());
+	}
 }
 
 void X11Blitter::blit() {
@@ -339,22 +339,28 @@ void X11Blitter::blit() {
 		if (visInfo.depth <= 16) {
 			if (bf_.value()) {
 				semiLinearScale<quint16, 0xF81F, 0x07E0, 6>(
-						reinterpret_cast<quint16*>(buffer.get()), static_cast<quint16*>(subBlitter->pixels()),
-						inBuffer().width, inBuffer().height, width(), height(), subBlitter->pitch());
+					reinterpret_cast<quint16*>(buffer.get()),
+					static_cast<quint16*>(subBlitter->pixels()),
+					inBuffer().width, inBuffer().height, width(), height(),
+					subBlitter->pitch());
 			} else {
 				nearestNeighborScale(reinterpret_cast<quint16*>(buffer.get()),
 				                     static_cast<quint16*>(subBlitter->pixels()),
-				                     inBuffer().width, inBuffer().height, width(), height(), subBlitter->pitch());
+				                     inBuffer().width, inBuffer().height, width(), height(),
+				                     subBlitter->pitch());
 			}
 		} else {
 			if (bf_.value()) {
 				semiLinearScale<quint32, 0xFF00FF, 0x00FF00, 8>(
-						reinterpret_cast<quint32*>(buffer.get()), static_cast<quint32*>(subBlitter->pixels()),
-						inBuffer().width, inBuffer().height, width(), height(), subBlitter->pitch());
+					reinterpret_cast<quint32*>(buffer.get()),
+					static_cast<quint32*>(subBlitter->pixels()),
+					inBuffer().width, inBuffer().height, width(), height(),
+					subBlitter->pitch());
 			} else {
 				nearestNeighborScale(reinterpret_cast<quint32*>(buffer.get()),
 				                     static_cast<quint32*>(subBlitter->pixels()),
-				                     inBuffer().width, inBuffer().height, width(), height(), subBlitter->pitch());
+				                     inBuffer().width, inBuffer().height, width(), height(),
+				                     subBlitter->pitch());
 			}
 		}
 	} else {
