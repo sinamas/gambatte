@@ -60,7 +60,7 @@ protected:
 	void lockPixelBuffer() { vbl.lock(); }
 	void unlockPixelBuffer() { vbl.unlock(); }
 
-	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch) {
+	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch) {
 		pixbuf.data = pixels;
 		pixbuf.pitch = pitch;
 		pixbuf.pixelFormat = format;
@@ -83,11 +83,10 @@ public:
 	virtual void draw() {}
 	virtual bool isUnusable() const { return false; }
 
-	void setVideoFormat(unsigned width, unsigned height/*, PixelBuffer::PixelFormat pf*/) {
+	void setVideoFormat(unsigned width, unsigned height) {
 		pixbuf.width = width;
 		pixbuf.height = height;
 		setBufferDimensions(width, height);
-// 		return pf == pixbuf.pixelFormat;
 	}
 
 	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) {

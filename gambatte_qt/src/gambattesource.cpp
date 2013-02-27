@@ -40,6 +40,7 @@ GambatteSource::GambatteSource()
 }
 
 namespace {
+
 static const InputDialog::Button makeButtonInfo(InputDialog::Button::Action *action, const char *label,
 		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown,
 		unsigned char defaultFpp = 0) {
@@ -64,6 +65,7 @@ struct GbDirAct : InputDialog::Button::Action {
 };
 
 enum { A_BUT, B_BUT, SELECT_BUT, START_BUT, RIGHT_BUT, LEFT_BUT, UP_BUT, DOWN_BUT };
+
 }
 
 InputDialog* GambatteSource::createInputDialog() {
@@ -93,16 +95,23 @@ InputDialog* GambatteSource::createInputDialog() {
 	v.push_back(makeButtonInfo(new GbButAct(inputState[SELECT_BUT]), "Select", "Game", Qt::Key_Shift));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPause>(this), "Pause", "Play", Qt::Key_Pause));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitFrameStep>(this), "Frame step", "Play", Qt::Key_F1));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitDecFrameRate>(this), "Decrease frame rate", "Play", Qt::Key_F2));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitIncFrameRate>(this), "Increase frame rate", "Play", Qt::Key_F3));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitResetFrameRate>(this), "Reset frame rate", "Play", Qt::Key_F4));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitDecFrameRate>(this),
+	                           "Decrease frame rate", "Play", Qt::Key_F2));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitIncFrameRate>(this),
+	                           "Increase frame rate", "Play", Qt::Key_F3));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitResetFrameRate>(this),
+	                           "Reset frame rate", "Play", Qt::Key_F4));
 	v.push_back(makeButtonInfo(new FastForwardAct(this), "Fast forward", "Play", Qt::Key_Tab));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitSaveState>(this), "Save state", "State", Qt::Key_F5));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitLoadState>(this), "Load state", "State", Qt::Key_F8));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPrevStateSlot>(this), "Previous state slot", "State", Qt::Key_F6));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitNextStateSlot>(this), "Next state slot", "State", Qt::Key_F7));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + A_BUT]), "Turbo A", "Other", Qt::Key_unknown, Qt::Key_unknown, 1));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + B_BUT]), "Turbo B", "Other", Qt::Key_unknown, Qt::Key_unknown, 1));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPrevStateSlot>(this),
+	                           "Previous state slot", "State", Qt::Key_F6));
+	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitNextStateSlot>(this),
+	                           "Next state slot", "State", Qt::Key_F7));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + A_BUT]), "Turbo A", "Other",
+	                           Qt::Key_unknown, Qt::Key_unknown, 1));
+	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + B_BUT]), "Turbo B", "Other",
+	                           Qt::Key_unknown, Qt::Key_unknown, 1));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitQuit>(this), "Quit", "Other"));
 
 	return new InputDialog(v);
@@ -134,11 +143,12 @@ void GambatteSource::joystickEvent(const SDL_Event &e) {
 }
 
 struct GambatteSource::GbVidBuf {
-	uint_least32_t *pixels; long pitch;
-	GbVidBuf(uint_least32_t *pixels, long pitch) : pixels(pixels), pitch(pitch) {}
+	uint_least32_t *pixels; std::ptrdiff_t pitch;
+	GbVidBuf(uint_least32_t *pixels, std::ptrdiff_t pitch) : pixels(pixels), pitch(pitch) {}
 };
 
-const GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch) {
+const GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(
+		void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch) {
 	if (pxformat != format && pixels) {
 		pxformat = format;
 		cconvert.reset();
@@ -172,7 +182,10 @@ static unsigned packedInputState(const bool inputState[], const std::size_t len)
 }
 
 static void* getpbdata(const PixelBuffer &pb, const unsigned vsrci) {
-	return pb.width == VfilterInfo::get(vsrci).outWidth && pb.height == VfilterInfo::get(vsrci).outHeight ? pb.data : 0;
+	return    pb.width  == VfilterInfo::get(vsrci).outWidth
+	       && pb.height == VfilterInfo::get(vsrci).outHeight
+	     ? pb.data
+	     : 0;
 }
 
 long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long &samples) {
@@ -189,7 +202,8 @@ long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long 
 	inputGetter.is = packedInputState(inputState, sizeof inputState / sizeof inputState[0]);
 
 	unsigned usamples = samples;
-	const long retval = gb.runFor(gbvidbuf.pixels, gbvidbuf.pitch, reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
+	const long retval = gb.runFor(gbvidbuf.pixels, gbvidbuf.pitch,
+	                              reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
 	samples = usamples;
 
 	if (retval >= 0)

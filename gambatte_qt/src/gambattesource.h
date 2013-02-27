@@ -53,10 +53,7 @@ class GambatteSource : public QObject, public MediaSource {
 	volatile bool dpadUpLast, dpadLeftLast;
 
 	InputDialog* createInputDialog();
-	const GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, unsigned pitch);
-	void keyPressEvent(const QKeyEvent *);
-	void keyReleaseEvent(const QKeyEvent *);
-	void joystickEvent(const SDL_Event&);
+	const GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch);
 
 	void emitSetTurbo(bool on) { emit setTurbo(on); }
 	void emitPause() { emit togglePause(); }
@@ -79,8 +76,13 @@ public:
 	void setGameGenie(const std::string &codes) { gb.setGameGenie(codes); }
 	void setGameShark(const std::string &codes) { gb.setGameShark(codes); }
 	void reset() { gb.reset(); }
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) { gb.setDmgPaletteColor(palNum, colorNum, rgb32); }
+
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
+		gb.setDmgPaletteColor(palNum, colorNum, rgb32);
+	}
+
 	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir); }
+	void setVideoSource(unsigned videoSourceIndex);
 	bool isCgb() const { return gb.isCgb(); }
 	const std::string romTitle() const { return gb.romTitle(); }
 	gambatte::PakInfo const pakInfo() const { return gb.pakInfo(); }
@@ -91,13 +93,12 @@ public:
 	QDialog* inputDialog() const { return inputDialog_; }
 
 	//overrides
-	void buttonPressEvent(unsigned buttonIndex);
-	void buttonReleaseEvent(unsigned buttonIndex);
-	void setVideoSource(unsigned videoSourceIndex);// { gb.setVideoFilter(videoSourceIndex); }
-	long update(const PixelBuffer &fb, qint16 *soundBuf, long &samples);
-	void generateVideoFrame(const PixelBuffer &fb);
+	virtual void keyPressEvent(const QKeyEvent *);
+	virtual void keyReleaseEvent(const QKeyEvent *);
+	virtual void joystickEvent(const SDL_Event&);
+	virtual long update(const PixelBuffer &fb, qint16 *soundBuf, long &samples);
+	virtual void generateVideoFrame(const PixelBuffer &fb);
 
-// public slots:
 	void saveState(const PixelBuffer &fb);
 	void loadState() { gb.loadState(); }
 

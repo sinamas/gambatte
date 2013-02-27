@@ -19,9 +19,11 @@
 #ifndef PIXELBUFFER_H
 #define PIXELBUFFER_H
 
+#include <cstddef>
+
 struct PixelBuffer {
 	/**
-	  * @enum RGB32 Native endian RGB with 8 bits pr color. rmask: 0xff0000, gmask: 0x00ff00, bmask: 0x0000ff
+	  * @enum RGB32 Native endian RGB with 8 bits per color. rmask: 0xff0000, gmask: 0x00ff00, bmask: 0x0000ff
 	  *
 	  * @enum RGB16 Native endian RGB with 5. 6. and 5 bits for red, green and blue respectively.
 	  *             rmask: 0xf800, gmask: 0x07e0 , bmask: 0x001f
@@ -35,10 +37,12 @@ struct PixelBuffer {
 	enum PixelFormat { RGB32, RGB16, UYVY };
 
 	void *data;
-	int pitch; // number of pixels (not bytes) between line N and line N+1
+	std::ptrdiff_t pitch; // number of pixels (not bytes) between line N and line N+1
 	unsigned width, height;
 	PixelFormat pixelFormat;
-	explicit PixelBuffer(unsigned width = 0, unsigned height = 0, PixelFormat pixelFormat = RGB32, void *data = 0, int pitch = 0)
+
+	explicit PixelBuffer(unsigned width = 0, unsigned height = 0, PixelFormat pixelFormat = RGB32,
+	                     void *data = 0, std::ptrdiff_t pitch = 0)
 	: data(data), pitch(pitch), width(width), height(height), pixelFormat(pixelFormat)
 	{
 	}

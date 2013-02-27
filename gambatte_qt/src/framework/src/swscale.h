@@ -20,11 +20,12 @@
 #define SWSCALE_H
 
 #include "array.h"
+#include <cstddef>
 #include <cstring>
 
 template<typename T>
-void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth,
-		const unsigned inHeight, const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
+void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight,
+		const unsigned outWidth, const unsigned outHeight, const std::ptrdiff_t dstPitch) {
 	int vppos = inHeight >> 1;
 	unsigned h = inHeight;
 
@@ -56,7 +57,7 @@ void nearestNeighborScale(const T *src, T *dst, const unsigned inWidth,
 
 template<typename T, T c13mask, T c2mask, unsigned c13distance>
 void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned inHeight,
-		const unsigned outWidth, const unsigned outHeight, const unsigned dstPitch) {
+		const unsigned outWidth, const unsigned outHeight, const std::ptrdiff_t dstPitch) {
 	const ScopedArray<T> sums(new T[inWidth + 1]);
 	const ScopedArray<unsigned char> hcoeffs(new unsigned char[outWidth - 1]);
 
@@ -96,8 +97,8 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 						const T p2c2  = *(s+srcPitch) & c2mask ;
 						++s;
 
-						*sum++ = ((p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask) |
-						         ((p1c2  + ((p2c2  - p1c2)  * coeff >> c13distance)) & c2mask );
+						*sum++ = ((p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask)
+						       | ((p1c2  + ((p2c2  - p1c2)  * coeff >> c13distance)) & c2mask );
 					} while (--n);
 
 					sums[0] = sums[1];
@@ -119,8 +120,10 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 						hppos -= static_cast<int>(outWidth);
 
 						while (hppos < 0) {
-							*dst++ = ((p1c13 + ((p2c13 - p1c13) * *coeff >> c13distance)) & c13mask) |
-							         ((p1c2  + ((p2c2  - p1c2)  * *coeff >> c13distance)) & c2mask );
+							*dst++ = ((p1c13 + ((p2c13 - p1c13) * *coeff >> c13distance))
+							          & c13mask)
+							       | ((p1c2  + ((p2c2  - p1c2)  * *coeff >> c13distance))
+							          & c2mask);
 							++coeff;
 							hppos += static_cast<int>(inWidth);
 						}
@@ -131,7 +134,7 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 					} while (static_cast<unsigned>(hppos += inWidth) < (outWidth + inWidth) >> 1);
 				}
 
-				dst += dstPitch - outWidth;
+				dst += dstPitch - std::ptrdiff_t(outWidth);
 				vppos += inHeight;
 			}
 
@@ -147,7 +150,8 @@ void linearScale(const T *src, T *dst, const unsigned inWidth, const unsigned in
 }
 
 template<typename T, T c13mask, T c2mask, unsigned c13distance>
-static void semiLinearScale1d(const T *in, T *out, const unsigned inWidth, const unsigned outWidth, const unsigned char *coeff) {
+static void semiLinearScale1d(const T *in, T *out,
+		const unsigned inWidth, const unsigned outWidth, const unsigned char *coeff) {
 	int hppos = inWidth;
 	unsigned w = inWidth;
 
@@ -168,8 +172,8 @@ static void semiLinearScale1d(const T *in, T *out, const unsigned inWidth, const
 		const T p2c2  = *(in+1) & c2mask;
 		++in;
 
-		*out++ = ((p1c13 + ((p2c13 - p1c13) * *coeff >> c13distance)) & c13mask) |
-		         ((p1c2  + ((p2c2  - p1c2 ) * *coeff >> c13distance)) & c2mask ) ;
+		*out++ = ((p1c13 + ((p2c13 - p1c13) * *coeff >> c13distance)) & c13mask)
+		       | ((p1c2  + ((p2c2  - p1c2 ) * *coeff >> c13distance)) & c2mask );
 		++coeff;
 	}
 
@@ -180,7 +184,7 @@ static void semiLinearScale1d(const T *in, T *out, const unsigned inWidth, const
 
 template<typename T, T c13mask, T c2mask, unsigned c13distance>
 void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned inHeight,
-		const unsigned outWidth, const unsigned outHeight, const unsigned outPitch) {
+		const unsigned outWidth, const unsigned outHeight, const std::ptrdiff_t outPitch) {
 	const ScopedArray<T> sums(new T[inWidth]);
 	const ScopedArray<unsigned char> hcoeffs(new unsigned char[inWidth]);
 
@@ -225,8 +229,8 @@ void semiLinearScale(const T *in, T *out, const unsigned inWidth, const unsigned
 					const T p2c2  = *(in+inWidth) & c2mask;
 					++in;
 
-					*sum++ = ((p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask) |
-					         ((p1c2  + ((p2c2  - p1c2 ) * coeff >> c13distance)) & c2mask ) ;
+					*sum++ = ((p1c13 + ((p2c13 - p1c13) * coeff >> c13distance)) & c13mask)
+					       | ((p1c2  + ((p2c2  - p1c2 ) * coeff >> c13distance)) & c2mask );
 				} while (--n);
 			}
 
