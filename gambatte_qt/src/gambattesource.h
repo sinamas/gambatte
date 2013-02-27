@@ -48,9 +48,9 @@ class GambatteSource : public QObject, public MediaSource {
 	PixelBuffer::PixelFormat pxformat;
 	unsigned vsrci;
 	bool inputState[10];
-	volatile bool dpadUp, dpadDown;
-	volatile bool dpadLeft, dpadRight;
-	volatile bool dpadUpLast, dpadLeftLast;
+	bool dpadUp, dpadDown;
+	bool dpadLeft, dpadRight;
+	bool dpadUpLast, dpadLeftLast;
 
 	InputDialog* createInputDialog();
 	const GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch);

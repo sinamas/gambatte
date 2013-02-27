@@ -58,8 +58,8 @@ struct CallAct : InputDialog::Button::Action {
 
 template<bool bval>
 struct GbDirAct : InputDialog::Button::Action {
-	volatile bool &a, &b;
-	explicit GbDirAct(volatile bool &a, volatile bool &b) : a(a), b(b) {}
+	bool &a, &b;
+	explicit GbDirAct(bool &a, bool &b) : a(a), b(b) {}
 	virtual void buttonPressed() { a = true; b = bval; }
 	virtual void buttonReleased() { a = false; }
 };
