@@ -110,7 +110,7 @@ QGLBlitter::SubWidget::SubWidget(const unsigned swapInterval_in, const bool bf_i
 	inWidth(160),
 	inHeight(144),
 	swapInterval(swapInterval_in),
-	clear(2),
+	clear(3),
 	initialized(false),
 	bf(bf_in),
 	blitted(false)
@@ -181,7 +181,7 @@ void QGLBlitter::SubWidget::initializeGL() {
 }*/
 
 void QGLBlitter::SubWidget::paintGL() {
-	clear = 2;
+	clear = 3;
 
 	if (reinterpret_cast<const QGLBlitter*>(parentWidget())->isPaused()) {
 // 	if (swapInterval)
@@ -219,7 +219,7 @@ void QGLBlitter::SubWidget::resizeGL(const int w, const int h) {
 	glEnd();
 	glEndList();
 
-	clear = 2;
+	clear = 3;
 }
 
 void QGLBlitter::SubWidget::setBilinearFiltering(const bool on) {
