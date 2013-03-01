@@ -26,44 +26,45 @@
 #include "scoped_ptr.h"
 
 class QGLBlitter : public BlitterWidget {
-	class SubWidget;
+public:
+	QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent = 0);
+	virtual ~QGLBlitter();
+	virtual void uninit();
+	virtual bool isUnusable() const;
+	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h);
+	virtual WId hwnd() const;
+	virtual long frameTimeEst() const;
+	virtual void blit();
+	virtual void draw();
+	virtual long sync();
+	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
 
-	const DwmControlHwndChange hwndChange_;
-	FtEst ftEst;
-	const scoped_ptr<QWidget> confWidget;
-	PersistCheckBox vsync_;
-	PersistCheckBox bf_;
-	Array<quint32> buffer;
-	unsigned swapInterval_;
-	int dhz;
-	scoped_ptr<SubWidget> subWidget;
+	virtual void acceptSettings();
+	virtual void rejectSettings() const;
 
-	void resetSubWidget();
-	void privSetPaused(const bool /*paused*/) {}
+	virtual void setSwapInterval(unsigned);
+	virtual void rateChange(int dhz);
+	virtual void compositionEnabledChange();
 
 protected:
-	void setBufferDimensions(unsigned int width, unsigned int height);
-	void resizeEvent(QResizeEvent *event);
+	virtual void setBufferDimensions(unsigned width, unsigned height);
+	virtual void resizeEvent(QResizeEvent *event);
 
-public:
-	explicit QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent = 0);
-	~QGLBlitter();
-	void uninit();
-	bool isUnusable() const;
-	void setCorrectedGeometry(int w, int h, int new_w, int new_h);
-	WId hwnd() const;
-	long frameTimeEst() const;
-	void blit();
-	void draw();
-	long sync();
-	QWidget* settingsWidget() const { return confWidget.get(); }
+private:
+	class SubWidget;
 
-	void acceptSettings();
-	void rejectSettings() const;
+	DwmControlHwndChange const hwndChange_;
+	scoped_ptr<QWidget> const confWidget_;
+	FtEst ftEst_;
+	PersistCheckBox vsync_;
+	PersistCheckBox bf_;
+	Array<quint32> buffer_;
+	unsigned swapInterval_;
+	int dhz_;
+	scoped_ptr<SubWidget> subWidget_;
 
-	void setSwapInterval(unsigned);
-	void rateChange(int dhz);
-	void compositionEnabledChange();
+	void resetSubWidget();
+	virtual void privSetPaused(bool ) {}
 };
 
 #endif
