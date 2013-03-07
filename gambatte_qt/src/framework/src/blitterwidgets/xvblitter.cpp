@@ -25,10 +25,21 @@
 // Qt headers and xlib headers do not get along, so Qt headers must preceed xlib headers :(
 #include "xvblitter.h" // should be on top
 #include "array.h"
-#include "uncopyable.h"
 #include <sys/shm.h>
 #include <cstring>
 #include <iostream>
+
+namespace {
+
+struct XDeleter {
+	template<class T> static void del(T *p) { if (p) { XFree(p); } }
+	static void del(XvAdaptorInfo *p) { if (p) { XvFreeAdaptorInfo(p); } }
+};
+
+template<class T>
+struct x_ptr { typedef scoped_ptr<T, XDeleter> scoped; };
+
+}
 
 class XvBlitter::SubBlitter {
 public:
@@ -52,7 +63,7 @@ public:
 
 private:
 	XShmSegmentInfo shminfo;
-	XvImage *const xvimage;
+	x_ptr<XvImage>::scoped const xvimage;
 
 	char * backbuf() const;
 	char * frontbuf() const { return xvimage ? xvimage->data : 0; }
@@ -82,9 +93,6 @@ XvBlitter::ShmBlitter::~ShmBlitter() {
 		shmdt(shminfo.shmaddr);
 		shmctl(shminfo.shmid, IPC_RMID, 0);
 	}
-
-	if (xvimage)
-		XFree(xvimage);
 }
 
 char * XvBlitter::ShmBlitter::backbuf() const {
@@ -97,8 +105,9 @@ void XvBlitter::ShmBlitter::blit(const Drawable drawable,
 		const XvPortID xvport, const unsigned width, const unsigned height) {
 	if (xvimage && xvimage->data) {
 		if (XvShmPutImage(QX11Info::display(), xvport, drawable,
-		                  DefaultGC(QX11Info::display(), QX11Info::appScreen()), xvimage, 0, 0,
-		                  xvimage->width, xvimage->height, 0, 0, width, height, False) != Success) {
+		                  DefaultGC(QX11Info::display(), QX11Info::appScreen()),
+		                  xvimage.get(), 0, 0, xvimage->width, xvimage->height,
+		                  0, 0, width, height, False) != Success) {
 			std::cerr << "XvShmPutImage failed\n";
 		}
 	}
@@ -119,7 +128,6 @@ void* XvBlitter::ShmBlitter::pixels() const {
 class XvBlitter::PlainBlitter : public SubBlitter {
 public:
 	PlainBlitter(XvPortID xvport, int formatid, unsigned int width, unsigned int height);
-	virtual ~PlainBlitter();
 	virtual bool failed() const { return !data; }
 	virtual void blit(Drawable drawable, XvPortID xvport, unsigned width, unsigned height);
 	virtual void flip();
@@ -127,7 +135,7 @@ public:
 	virtual void * pixels() const;
 
 private:
-	XvImage *const xvimage;
+	x_ptr<XvImage>::scoped const xvimage;
 	Array<char> const data;
 
 	char * backbuf() const;
@@ -145,11 +153,6 @@ XvBlitter::PlainBlitter::PlainBlitter(const XvPortID xvport, const int formatid,
 		std::cerr << "XvCreateImage failed\n";
 }
 
-XvBlitter::PlainBlitter::~PlainBlitter() {
-	if (xvimage)
-		XFree(xvimage);
-}
-
 char * XvBlitter::PlainBlitter::backbuf() const {
 	return data && frontbuf() == data
 	     ? data + xvimage->data_size
@@ -161,7 +164,8 @@ void XvBlitter::PlainBlitter::blit(const Drawable drawable,
 	if (xvimage && xvimage->data) {
 		if (XvPutImage(QX11Info::display(), xvport, drawable,
 		               DefaultGC(QX11Info::display(), QX11Info::appScreen()),
-		               xvimage, 0, 0, xvimage->width, xvimage->height, 0, 0, width, height) != Success) {
+		               xvimage.get(), 0, 0, xvimage->width, xvimage->height,
+		               0, 0, width, height) != Success) {
 			std::cerr << "XvPutImage failed\n";
 		}
 	}
@@ -181,51 +185,43 @@ void* XvBlitter::PlainBlitter::pixels() const {
 
 namespace {
 
-class XvAdaptorInfos : Uncopyable {
+class XvAdaptorInfos {
 public:
-	XvAdaptorInfos() : num_(0), infos_(0) {
-		if (XvQueryAdaptors(QX11Info::display(), QX11Info::appRootWindow(), &num_, &infos_) != Success) {
+	XvAdaptorInfos() : num_(0) {
+		XvAdaptorInfo *infos = 0;
+		if (XvQueryAdaptors(QX11Info::display(), QX11Info::appRootWindow(), &num_, &infos) != Success) {
 			std::cerr << "failed to query xv adaptors\n";
 			num_ = 0;
 		}
-	}
 
-	~XvAdaptorInfos() {
-		if (infos_)
-			XvFreeAdaptorInfo(infos_);
+		infos_.reset(infos);
 	}
 
 	unsigned len() const { return num_; }
-	operator const XvAdaptorInfo*() const { return infos_; }
+	operator const XvAdaptorInfo*() const { return infos_.get(); }
 
 private:
 	unsigned num_;
-	XvAdaptorInfo *infos_;
+	x_ptr<XvAdaptorInfo>::scoped infos_;
 };
 
-class XvPortImageFormats : Uncopyable {
+class XvPortImageFormats {
 public:
 	explicit XvPortImageFormats(const XvPortID baseId)
 	: num_(0), formats_(XvListImageFormats(QX11Info::display(), baseId, &num_))
 	{
 	}
 
-	~XvPortImageFormats() {
-		if (formats_)
-			XFree(formats_);
-	}
-
 	int len() const { return num_; }
-	operator const XvImageFormatValues*() const { return formats_; }
+	operator const XvImageFormatValues*() const { return formats_.get(); }
 
 private:
 	int num_;
-	XvImageFormatValues *const formats_;
+	x_ptr<XvImageFormatValues>::scoped const formats_;
 };
 
 static int findId(const XvPortImageFormats &formats, const int id) {
 	int i = 0;
-
 	while (i < formats.len() && formats[i].id != id)
 		++i;
 
@@ -419,18 +415,13 @@ void XvBlitter::blit() {
 
 namespace {
 
-class XvAttributes : Uncopyable {
+class XvAttributes {
 public:
 	explicit XvAttributes(const XvPortID xvport)
 	: xvport_(xvport)
 	, numAttribs_(0)
 	, attribs_(XvQueryPortAttributes(QX11Info::display(), xvport, &numAttribs_))
 	{
-	}
-
-	~XvAttributes() {
-		if (attribs_)
-			XFree(attribs_);
 	}
 
 	void set(const char *const name, const int value) {
@@ -440,13 +431,13 @@ public:
 	}
 
 private:
-	const XvPortID xvport_;
+	XvPortID const xvport_;
 	int numAttribs_;
-	XvAttribute *const attribs_;
+	x_ptr<XvAttribute>::scoped const attribs_;
 
 	Atom atomOf(const char *const name) const {
 		for (int i = 0; i < numAttribs_; ++i) {
-			if (std::strcmp(attribs_[i].name, name) == 0)
+			if (std::strcmp(attribs_.get()[i].name, name) == 0)
 				return XInternAtom(QX11Info::display(), name, True);
 		}
 
