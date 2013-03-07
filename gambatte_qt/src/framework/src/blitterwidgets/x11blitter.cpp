@@ -29,8 +29,20 @@
 #include <QSettings>
 #include <iostream>
 
+namespace {
+
 static std::size_t imageDataSize(XImage const &ximage) {
 	return std::size_t(ximage.height) * ximage.bytes_per_line;
+}
+
+struct XDeleter { template<class T> static void del(T *p) { if (p) { XFree(p); } } };
+
+template<class T>
+struct x_ptr {
+	typedef scoped_ptr<T, XDeleter> scoped;
+	typedef transfer_ptr<T, XDeleter> transfer;
+};
+
 }
 
 class X11Blitter::SubBlitter {
@@ -43,7 +55,7 @@ public:
 	virtual void * pixels() const = 0;
 };
 
-class X11Blitter::ShmBlitter : public SubBlitter, Uncopyable {
+class X11Blitter::ShmBlitter : public SubBlitter {
 public:
 	ShmBlitter(unsigned int width, unsigned int height, const VisInfo &visInfo, bool db);
 	virtual ~ShmBlitter();
@@ -55,7 +67,7 @@ public:
 
 private:
 	XShmSegmentInfo shminfo;
-	XImage *const ximage;
+	x_ptr<XImage>::scoped const ximage;
 	bool const doubleBuffer;
 
 	char * backBuffer() const;
@@ -86,8 +98,6 @@ X11Blitter::ShmBlitter::~ShmBlitter() {
 		XSync(QX11Info::display(), 0);
 		shmdt(shminfo.shmaddr);
 		shmctl(shminfo.shmid, IPC_RMID, 0);
-
-		XFree(ximage);
 	}
 }
 
@@ -104,7 +114,7 @@ char * X11Blitter::ShmBlitter::backBuffer() const {
 void X11Blitter::ShmBlitter::blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h) {
 	if (ximage && ximage->data) {
 		XShmPutImage(QX11Info::display(), drawable, DefaultGC(QX11Info::display(), QX11Info::appScreen()),
-		             ximage, x, y, x, y, w, h, False);
+		             ximage.get(), x, y, x, y, w, h, False);
 	}
 }
 
@@ -113,10 +123,9 @@ void X11Blitter::ShmBlitter::flip() {
 		ximage->data = backBuffer();
 }
 
-class X11Blitter::PlainBlitter : public X11Blitter::SubBlitter, Uncopyable {
+class X11Blitter::PlainBlitter : public X11Blitter::SubBlitter {
 public:
 	PlainBlitter(unsigned int width, unsigned int height, const VisInfo &visInfo, bool db);
-	virtual ~PlainBlitter();
 	virtual bool failed() const { return !data; }
 	virtual void blit(Drawable drawable, unsigned x, unsigned y, unsigned w, unsigned h);
 	virtual void flip();
@@ -124,7 +133,7 @@ public:
 	virtual void * pixels() const { return backBuffer(); }
 
 private:
-	XImage *const ximage;
+	x_ptr<XImage>::scoped const ximage;
 	Array<char> const data;
 
 	bool doubleBuffer() const { return ximage && data.size() >= imageDataSize(*ximage) * 2; }
@@ -145,11 +154,6 @@ X11Blitter::PlainBlitter::PlainBlitter(const unsigned int width, const unsigned 
 	}
 }
 
-X11Blitter::PlainBlitter::~PlainBlitter() {
-	if (ximage)
-		XFree(ximage);
-}
-
 char * X11Blitter::PlainBlitter::backBuffer() const {
 	if (doubleBuffer()) {
 		return data && frontBuffer() == data
@@ -164,7 +168,7 @@ void X11Blitter::PlainBlitter::blit(Drawable drawable, unsigned x, unsigned y, u
 	if (ximage && ximage->data) {
 		XPutImage(QX11Info::display(), drawable,
 		          DefaultGC(QX11Info::display(), QX11Info::appScreen()),
-		          ximage, x, y, x, y, w, h);
+		          ximage.get(), x, y, x, y, w, h);
 	}
 }
 
@@ -173,7 +177,8 @@ void X11Blitter::PlainBlitter::flip() {
 		ximage->data = backBuffer();
 }
 
-static XVisualInfo* getVisualPtr(unsigned depth, int c_class,
+static x_ptr<XVisualInfo>::transfer getVisualInfo(
+		unsigned depth, int c_class,
 		unsigned long rmask, unsigned long gmask, unsigned long bmask) {
 	XVisualInfo vinfo_template;
 	vinfo_template.screen = QX11Info::appScreen();
@@ -184,19 +189,20 @@ static XVisualInfo* getVisualPtr(unsigned depth, int c_class,
 	vinfo_template.blue_mask = bmask;
 
 	int nitems = 0;
-	XVisualInfo *vinfos = XGetVisualInfo(QX11Info::display(),
-	                                     (   VisualScreenMask
-	                                       | (depth ? VisualDepthMask : 0)
-	                                       | VisualClassMask
-	                                       | VisualRedMaskMask
-	                                       | VisualGreenMaskMask
-	                                       | VisualBlueMaskMask),
-	                                     &vinfo_template,
-	                                     &nitems);
+	x_ptr<XVisualInfo>::transfer vinfos(
+		XGetVisualInfo(QX11Info::display(),
+		               (   VisualScreenMask
+		                 | (depth ? VisualDepthMask : 0)
+		                 | VisualClassMask
+		                 | VisualRedMaskMask
+		                 | VisualGreenMaskMask
+		                 | VisualBlueMaskMask),
+		               &vinfo_template,
+		               &nitems));
 	if (nitems > 0)
 		return vinfos;
 
-	return 0;
+	return x_ptr<XVisualInfo>::transfer();
 }
 
 static bool isRgb24(XVisualInfo const &vinfo) {
@@ -213,51 +219,43 @@ static bool isRgb16(XVisualInfo const &vinfo) {
 	    && vinfo.blue_mask  == 0x001F;
 }
 
-static XVisualInfo* getVisualPtr() {
+static x_ptr<XVisualInfo>::transfer getVisualInfo() {
+	typedef x_ptr<XVisualInfo>::transfer vptr;
+
 	{
 		XVisualInfo vinfo_template;
-		vinfo_template.visualid = XVisualIDFromVisual(XDefaultVisual(QX11Info::display(), QX11Info::appScreen()));
-
+		vinfo_template.visualid =
+			XVisualIDFromVisual(XDefaultVisual(QX11Info::display(),
+			                                   QX11Info::appScreen()));
 		int nitems = 0;
-		XVisualInfo *vinfos = XGetVisualInfo(QX11Info::display(), VisualIDMask, &vinfo_template, &nitems);
-
-		if (nitems > 0) {
-			if (isRgb24(vinfos[0]) || isRgb16(vinfos[0]))
-				return vinfos;
-
-			XFree(vinfos);
-		}
+		vptr vinfos(XGetVisualInfo(QX11Info::display(), VisualIDMask,
+		                           &vinfo_template, &nitems));
+		if (nitems > 0 && (isRgb24(vinfos.get()[0]) || isRgb16(vinfos.get()[0])))
+			return vinfos;
 	}
 
-	if (XVisualInfo *visual = getVisualPtr(24, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF))
+	if (vptr visual = getVisualInfo(24, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF))
+		return visual;
+	if (vptr visual = getVisualInfo(16, TrueColor, 0xF800, 0x07E0, 0x001F))
+		return visual;
+	if (vptr visual = getVisualInfo(0, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF))
+		return visual;
+	if (vptr visual = getVisualInfo(0, TrueColor, 0xF800, 0x07E0, 0x001F))
+		return visual;
+	if (vptr visual = getVisualInfo(0, DirectColor, 0xFF0000, 0x00FF00, 0x0000FF))
+		return visual;
+	if (vptr visual = getVisualInfo(0, DirectColor, 0xF800, 0x07E0, 0x001F))
 		return visual;
 
-	if (XVisualInfo *visual = getVisualPtr(16, TrueColor, 0xF800, 0x07E0, 0x001F))
-		return visual;
-
-	if (XVisualInfo *visual = getVisualPtr(0, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF))
-		return visual;
-
-	if (XVisualInfo *visual = getVisualPtr(0, TrueColor, 0xF800, 0x07E0, 0x001F))
-		return visual;
-
-	if (XVisualInfo *visual = getVisualPtr(0, DirectColor, 0xFF0000, 0x00FF00, 0x0000FF))
-		return visual;
-
-	if (XVisualInfo *visual = getVisualPtr(0, DirectColor, 0xF800, 0x07E0, 0x001F))
-		return visual;
-
-	return 0;
+	return vptr();
 }
 
 X11Blitter::X11Blitter(VideoBufferLocker vbl, QWidget *parent)
 : BlitterWidget(vbl, QString("X11"), false, parent)
 , confWidget(new QWidget)
 , bf_(new QCheckBox(QString("Semi-bilinear filtering")), "x11blitter/bf", false)
+, visInfo()
 {
-	visInfo.visual = 0;
-	visInfo.depth = 0;
-
 	confWidget->setLayout(new QVBoxLayout);
 	confWidget->layout()->setMargin(0);
 	confWidget->layout()->addWidget(bf_.checkBox());
@@ -265,10 +263,9 @@ X11Blitter::X11Blitter(VideoBufferLocker vbl, QWidget *parent)
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAttribute(Qt::WA_PaintOnScreen, true);
 
-	if (XVisualInfo *v = getVisualPtr()) {
+	if (x_ptr<XVisualInfo>::transfer v = getVisualInfo()) {
 		visInfo.visual = v->visual;
 		visInfo.depth = v->depth;
-		XFree(v);
 	}
 }
 
