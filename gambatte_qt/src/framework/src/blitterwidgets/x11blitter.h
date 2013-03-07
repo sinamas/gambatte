@@ -19,45 +19,12 @@
 #ifndef X11BLITTER_H
 #define X11BLITTER_H
 
-#include "../blitterwidget.h"
-#include "array.h"
-#include "persistcheckbox.h"
-#include "scoped_ptr.h"
+#include "transfer_ptr.h"
 
-class X11Blitter : public BlitterWidget {
-public:
-	explicit X11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
-	virtual ~X11Blitter();
-	virtual void init();
-	virtual void uninit();
-	virtual bool isUnusable() const;
-	virtual long sync();
-	virtual void blit();
-	virtual QWidget * settingsWidget() const { return confWidget.get(); }
-	virtual void acceptSettings();
-	virtual void rejectSettings() const;
-	virtual QPaintEngine * paintEngine() const { return 0; }
+class BlitterWidget;
+class QWidget;
+class VideoBufferLocker;
 
-protected:
-	virtual void setBufferDimensions(unsigned width, unsigned height);
-	virtual void paintEvent(QPaintEvent *event);
-	virtual void resizeEvent(QResizeEvent *event);
-
-private:
-	class SubBlitter;
-	class ShmBlitter;
-	class PlainBlitter;
-
-	struct VisInfo {
-		void *visual;
-		unsigned depth;
-	};
-
-	const scoped_ptr<QWidget> confWidget;
-	scoped_ptr<SubBlitter> subBlitter;
-	PersistCheckBox bf_;
-	Array<char> buffer;
-	VisInfo visInfo;
-};
+transfer_ptr<BlitterWidget> createX11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
 
 #endif

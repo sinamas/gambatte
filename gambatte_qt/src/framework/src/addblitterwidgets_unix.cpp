@@ -17,11 +17,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "addblitterwidgets.h"
-
 #include "blitterwidgets/x11blitter.h"
 #include "blitterwidgets/xvblitter.h"
 
 void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl) {
-	blitters.push_back(new X11Blitter(vbl));
+	blitters.push_back(createX11Blitter(vbl).release());
 	blitters.push_back(new XvBlitter(vbl));
 }
