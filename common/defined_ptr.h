@@ -11,4 +11,6 @@ inline T * defined_ptr(T *t) {
 template<class T>
 inline void defined_delete(T *t) { delete defined_ptr(t); }
 
+struct DefinedDeleter { template<class T> static void del(T *p) { defined_delete(p); } };
+
 #endif
