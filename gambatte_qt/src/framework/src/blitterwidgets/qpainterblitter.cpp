@@ -78,9 +78,15 @@ void QPainterBlitter::resizeEvent(QResizeEvent *) {
 	if (!image0_ || !image1_)
 		return;
 
+	scoped_ptr<QImage> &backImage  = inBuffer().data == image0_->bits() ? image0_ : image1_;
 	scoped_ptr<QImage> &frontImage = inBuffer().data == image0_->bits() ? image1_ : image0_;
-	frontImage.reset();
-	frontImage.reset(new QImage(size(), QImage::Format_RGB32));
+	if (size() == backImage->size()) {
+		*frontImage = *backImage;
+	} else {
+		frontImage.reset();
+		frontImage.reset(new QImage(size(), QImage::Format_RGB32));
+		blit();
+	}
 }
 
 void QPainterBlitter::setBufferDimensions(unsigned const w, unsigned const h) {
