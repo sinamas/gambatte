@@ -22,33 +22,31 @@
 #include "../blitterwidget.h"
 #include "persistcheckbox.h"
 #include "scoped_ptr.h"
-#include <QImage>
 
-class QPainter;
-class QCheckBox;
+class QImage;
 
 class QPainterBlitter : public BlitterWidget {
-	const scoped_ptr<QWidget> confWidget;
-	scoped_ptr<QImage> image;
-	scoped_ptr<QImage> image2;
-	PersistCheckBox bf_;
-	union { quint32 *buffer; QImage *backImage; };
-
-protected:
-	void privSetPaused(bool) {}
-	void paintEvent(QPaintEvent *event);
-	void resizeEvent(QResizeEvent *event);
-
 public:
 	explicit QPainterBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
-	~QPainterBlitter();
-	void blit();
-	void draw();
-	void setBufferDimensions(unsigned int w, unsigned int h);
-	void uninit();
-	QWidget* settingsWidget() const { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings() const;
+	virtual ~QPainterBlitter();
+	virtual void blit();
+	virtual void draw();
+	virtual void setBufferDimensions(unsigned w, unsigned h);
+	virtual void uninit();
+	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
+	virtual void acceptSettings();
+	virtual void rejectSettings() const;
+
+protected:
+	virtual void privSetPaused(bool ) {}
+	virtual void paintEvent(QPaintEvent *event);
+	virtual void resizeEvent(QResizeEvent *event);
+
+private:
+	scoped_ptr<QWidget> const confWidget_;
+	scoped_ptr<QImage> image0_;
+	scoped_ptr<QImage> image1_;
+	PersistCheckBox bf_;
 };
 
 #endif

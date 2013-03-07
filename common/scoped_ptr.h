@@ -14,6 +14,7 @@ public:
 	void reset(T *p = 0) { defined_delete(p_); p_ = p; }
 	T & operator*() const { return *p_; }
 	T * operator->() const { return p_; }
+	operator bool() const { return p_; }
 
 	template<class U>
 	scoped_ptr & operator=(transfer_ptr<U> p) {
