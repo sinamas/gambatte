@@ -195,6 +195,32 @@ static transfer_ptr<Image> createImage(QSize const &size, VisualInfo const &vinf
 	return createPlainImage(size, vinfo.visual, vinfo.depth);
 }
 
+template<typename T, T rbmask, T gmask, unsigned rbdistance>
+static void copyImage(Image const &dst, Image const &src, bool bilinearFilter) {
+	QSize const dstSize = dst.size();
+	QSize const srcSize = src.size();
+
+	if (bilinearFilter) {
+		semiLinearScale<T, rbmask, gmask, rbdistance>(
+			static_cast<T *>(src.pixels()),
+			static_cast<T *>(dst.pixels()),
+			srcSize.width(), srcSize.height(),
+			dstSize.width(), dstSize.height(), dst.pitch());
+	} else {
+		nearestNeighborScale(static_cast<T *>(src.pixels()),
+		                     static_cast<T *>(dst.pixels()),
+		                     srcSize.width(), srcSize.height(),
+		                     dstSize.width(), dstSize.height(), dst.pitch());
+	}
+}
+
+static void copyImage(Image const &dst, Image const &src, unsigned depth, bool bilinearFilter) {
+	if (depth <= 16)
+		copyImage<quint16, 0xF81F, 0x07E0, 6>(dst, src, bilinearFilter);
+	else
+		copyImage<quint32, 0xFF00FF, 0x00FF00, 8>(dst, src, bilinearFilter);
+}
+
 static x_ptr<XVisualInfo>::transfer getVisualInfo(
 		unsigned depth, int c_class,
 		unsigned long rmask, unsigned long gmask, unsigned long bmask) {
@@ -335,10 +361,14 @@ protected:
 		if (!image0_ || !image1_)
 			return;
 
+		scoped_ptr<Image> &backImage  = inBuffer().data == image0_->pixels() ? image0_ : image1_;
 		scoped_ptr<Image> &frontImage = inBuffer().data == image0_->pixels() ? image1_ : image0_;
 		frontImage.reset();
-		frontImage = createImage(size(), visualInfo_,
-		                         XShmQueryExtension(QX11Info::display()));
+		frontImage = createImage(size(), visualInfo_, XShmQueryExtension(QX11Info::display()));
+		if (isPaused()) {
+			bool const bilinearFilter = bf_.value() && size() != backImage->size();
+			copyImage(*frontImage, *backImage, visualInfo_.depth, bilinearFilter);
+		}
 	}
 
 private:
@@ -355,39 +385,11 @@ void X11Blitter::blit() {
 
 	Image const &backImage  = inBuffer().data == image0_->pixels() ? *image0_ : *image1_;
 	Image const &frontImage = inBuffer().data == image0_->pixels() ? *image1_ : *image0_;
-	QSize const inSize  = backImage.size();
-	QSize const outSize = frontImage.size();
-
-	if (inSize == outSize) {
+	if (backImage.size() == frontImage.size()) {
 		// flip
 		setPixelBuffer(frontImage.pixels(), inBuffer().pixelFormat, frontImage.pitch());
-	} else if (visualInfo_.depth <= 16) {
-		if (bf_.value()) {
-			semiLinearScale<quint16, 0xF81F, 0x07E0, 6>(
-				static_cast<quint16 *>(backImage.pixels()),
-				static_cast<quint16 *>(frontImage.pixels()),
-				inSize.width(), inSize.height(),
-				outSize.width(), outSize.height(), frontImage.pitch());
-		} else {
-			nearestNeighborScale(static_cast<quint16 *>(backImage.pixels()),
-			                     static_cast<quint16 *>(frontImage.pixels()),
-			                     inSize.width(), inSize.height(),
-			                     outSize.width(), outSize.height(), frontImage.pitch());
-		}
-	} else {
-		if (bf_.value()) {
-			semiLinearScale<quint32, 0xFF00FF, 0x00FF00, 8>(
-				static_cast<quint32 *>(backImage.pixels()),
-				static_cast<quint32 *>(frontImage.pixels()),
-				inSize.width(), inSize.height(),
-				outSize.width(), outSize.height(), frontImage.pitch());
-		} else {
-			nearestNeighborScale(static_cast<quint32 *>(backImage.pixels()),
-			                     static_cast<quint32 *>(frontImage.pixels()),
-			                     inSize.width(), inSize.height(),
-			                     outSize.width(), outSize.height(), frontImage.pitch());
-		}
-	}
+	} else
+		copyImage(frontImage, backImage, visualInfo_.depth, bf_.value());
 }
 
 } // anon ns
