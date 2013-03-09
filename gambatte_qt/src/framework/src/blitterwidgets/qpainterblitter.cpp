@@ -49,15 +49,16 @@ void QPainterBlitter::blit() {
 		setPixelBuffer(frontBuf.bits(), PixelBuffer::RGB32, frontBuf.bytesPerLine() >> 2);
 	} else if (bf_.value()) {
 		semiLinearScale<quint32, 0xFF00FF, 0x00FF00, 8>(
-			static_cast<quint32 *>(inBuffer().data),
-			reinterpret_cast<quint32 *>(frontBuf.bits()),
-			inBuffer().width, inBuffer().height,
-			frontBuf.width(), frontBuf.height(), frontBuf.bytesPerLine() >> 2);
+			reinterpret_cast<quint32 *>(frontBuf.bits()), frontBuf.bytesPerLine() >> 2,
+			frontBuf.width(), frontBuf.height(),
+			static_cast<quint32 const *>(inBuffer().data), inBuffer().pitch,
+			inBuffer().width, inBuffer().height);
 	} else {
-		nearestNeighborScale(static_cast<quint32 *>(inBuffer().data),
-		                     reinterpret_cast<quint32 *>(frontBuf.bits()),
-		                     inBuffer().width, inBuffer().height,
-		                     frontBuf.width(), frontBuf.height(), frontBuf.bytesPerLine() >> 2);
+		nearestNeighborScale(
+			reinterpret_cast<quint32 *>(frontBuf.bits()), frontBuf.bytesPerLine() >> 2,
+			frontBuf.width(), frontBuf.height(),
+			static_cast<quint32 const *>(inBuffer().data), inBuffer().pitch,
+			inBuffer().width, inBuffer().height);
 	}
 }
 

@@ -202,15 +202,15 @@ static void copyImage(Image const &dst, Image const &src, bool bilinearFilter) {
 
 	if (bilinearFilter) {
 		semiLinearScale<T, rbmask, gmask, rbdistance>(
-			static_cast<T *>(src.pixels()),
-			static_cast<T *>(dst.pixels()),
-			srcSize.width(), srcSize.height(),
-			dstSize.width(), dstSize.height(), dst.pitch());
+			static_cast<T *>(dst.pixels()), dst.pitch(),
+			dstSize.width(), dstSize.height(),
+			static_cast<T const *>(src.pixels()), src.pitch(),
+			srcSize.width(), srcSize.height());
 	} else {
-		nearestNeighborScale(static_cast<T *>(src.pixels()),
-		                     static_cast<T *>(dst.pixels()),
-		                     srcSize.width(), srcSize.height(),
-		                     dstSize.width(), dstSize.height(), dst.pitch());
+		nearestNeighborScale(static_cast<T *>(dst.pixels()), dst.pitch(),
+		                     dstSize.width(), dstSize.height(),
+		                     static_cast<T const *>(src.pixels()), src.pitch(),
+		                     srcSize.width(), srcSize.height());
 	}
 }
 
