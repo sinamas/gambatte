@@ -4,7 +4,7 @@
 #include "transfer_ptr.h"
 #include "uncopyable.h"
 
-template<class T, class Deleter = DefinedDeleter>
+template<class T, class Deleter = defined_deleter>
 class scoped_ptr : Uncopyable {
 public:
 	explicit scoped_ptr(T *p = 0) : p_(p) {}

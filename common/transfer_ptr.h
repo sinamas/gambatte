@@ -3,7 +3,7 @@
 
 #include "defined_ptr.h"
 
-template<class T, class Deleter = DefinedDeleter>
+template<class T, class Deleter = defined_deleter>
 class transfer_ptr {
 private:
 	struct released { T *p; explicit released(T *p) : p(p) {} };
