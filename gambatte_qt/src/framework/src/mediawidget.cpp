@@ -234,7 +234,7 @@ static auto_vector<BlitterWidget> makeBlitterWidgets(const VideoBufferLocker vbl
 	auto_vector<BlitterWidget> blitters;
 
 	addBlitterWidgets(blitters, vbl);
-	blitters.push_back(new QGLBlitter(vbl, hwndc));
+	blitters.push_back(createQGLBlitter(vbl, hwndc).release());
 	blitters.push_back(createQPainterBlitter(vbl).release());
 
 	for (auto_vector<BlitterWidget>::iterator it = blitters.begin(); it != blitters.end();) {

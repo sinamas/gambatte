@@ -19,54 +19,15 @@
 #ifndef QGLBLITTER_H
 #define QGLBLITTER_H
 
-#include "../blitterwidget.h"
-#include "../dwmcontrol.h"
-#include "array.h"
-#include "persistcheckbox.h"
-#include "scoped_ptr.h"
+#include "transfer_ptr.h"
 
-class QGLBlitter : public BlitterWidget {
-public:
-	QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent = 0);
-	virtual ~QGLBlitter();
-	virtual void uninit();
-	virtual bool isUnusable() const;
-	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h);
-	virtual WId hwnd() const;
-	virtual long frameTimeEst() const;
-	virtual void blit();
-	virtual void draw();
-	virtual long sync();
-	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
+class BlitterWidget;
+class DwmControlHwndChange;
+class QWidget;
+class VideoBufferLocker;
 
-	virtual void acceptSettings();
-	virtual void rejectSettings() const;
-
-	virtual void setSwapInterval(unsigned);
-	virtual void rateChange(int dhz);
-	virtual void compositionEnabledChange();
-
-protected:
-	virtual void setBufferDimensions(unsigned width, unsigned height);
-	virtual void resizeEvent(QResizeEvent *event);
-
-private:
-	class SubWidget;
-
-	DwmControlHwndChange const hwndChange_;
-	scoped_ptr<QWidget> const confWidget_;
-	PersistCheckBox vsync_;
-	PersistCheckBox bf_;
-	Array<quint32> buffer_;
-	QSize correctedSize_;
-	unsigned swapInterval_;
-	int dhz_;
-	scoped_ptr<SubWidget> subWidget_;
-
-	unsigned calcSubWidgetSwapInterval() const;
-	void createNewSubWidget(unsigned swapInterval);
-	void updateSubWidgetSwapInterval();
-	virtual void privSetPaused(bool ) {}
-};
+transfer_ptr<BlitterWidget> createQGLBlitter(VideoBufferLocker vbl,
+                                             DwmControlHwndChange hwndChange, 
+                                             QWidget *parent = 0);
 
 #endif

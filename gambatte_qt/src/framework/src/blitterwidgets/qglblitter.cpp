@@ -17,6 +17,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "qglblitter.h"
+#include "../blitterwidget.h"
+#include "../dwmcontrol.h"
+#include "array.h"
+#include "persistcheckbox.h"
+#include "scoped_ptr.h"
 
 #ifdef PLATFORM_WIN32
 #include <GL/glext.h>
@@ -31,12 +36,14 @@
 #include <cstring>
 #include <vector>
 
+namespace {
+
 enum { max_buffer_cnt = 3 };
 
-class QGLBlitter::SubWidget : public QGLWidget {
+class SubWidget : public QGLWidget {
 public:
 	SubWidget(QSize const &correctedSize, QSize const &textureSize,
-	          unsigned swapInterval, int dhzRefreshRate, bool bf, QGLBlitter *parent);
+	          unsigned swapInterval, int dhzRefreshRate, bool bf, BlitterWidget &parent);
 	long frameTimeEst() const { return ftEst_.est(); }
 	unsigned swapInterval() const { return swapInterval_; }
 	void setBilinearFiltering(bool on);
@@ -88,10 +95,10 @@ static QGLFormat const getQGLFormat(unsigned const swapInterval) {
 	return f;
 }
 
-QGLBlitter::SubWidget::SubWidget(QSize const &correctedSize, QSize const &textureSize,
-                                 unsigned swapInterval, int dhzRefreshRate, bool bf,
-                                 QGLBlitter *parent)
-: QGLWidget(getQGLFormat(swapInterval), parent)
+SubWidget::SubWidget(QSize const &correctedSize, QSize const &textureSize,
+                     unsigned swapInterval, int dhzRefreshRate, bool bf,
+                     BlitterWidget &parent)
+: QGLWidget(getQGLFormat(swapInterval), &parent)
 , ftEst_(swapInterval * 10000000 / dhzRefreshRate)
 , correctedSize_(correctedSize)
 , inSize_(textureSize)
@@ -115,11 +122,11 @@ static unsigned ceiledPow2(unsigned v) {
 	return v;
 }
 
-unsigned QGLBlitter::SubWidget::textureRes() const {
+unsigned SubWidget::textureRes() const {
 	return ceiledPow2(std::max(inSize_.width(), inSize_.height()));
 }
 
-void QGLBlitter::SubWidget::draw() {
+void SubWidget::draw() {
 	if (clear_) {
 		--clear_;
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -129,7 +136,7 @@ void QGLBlitter::SubWidget::draw() {
 	glFlush();
 }
 
-void QGLBlitter::SubWidget::initializeGL() {
+void SubWidget::initializeGL() {
 	glEnable(GL_CULL_FACE);
 	glShadeModel(GL_FLAT);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -162,16 +169,16 @@ void QGLBlitter::SubWidget::initializeGL() {
 	initialized_ = true;
 }
 
-void QGLBlitter::SubWidget::paintGL() {
+void SubWidget::paintGL() {
 	clear_ = max_buffer_cnt;
 
-	if (static_cast<QGLBlitter const *>(parentWidget())->isPaused()) {
+	if (static_cast<BlitterWidget const *>(parentWidget())->isPaused()) {
 		draw();
 		swapBuffers();
 	}
 }
 
-void QGLBlitter::SubWidget::resizeGL(int const w, int const h) {
+void SubWidget::resizeGL(int const w, int const h) {
 	clear_ = max_buffer_cnt;
 	glViewport(0, 0, w, h);
 
@@ -194,7 +201,7 @@ void QGLBlitter::SubWidget::resizeGL(int const w, int const h) {
 	glEndList();
 }
 
-void QGLBlitter::SubWidget::setBilinearFiltering(bool const on) {
+void SubWidget::setBilinearFiltering(bool const on) {
 	bool const oldbf = bf_;
 	bf_ = on;
 
@@ -205,13 +212,13 @@ void QGLBlitter::SubWidget::setBilinearFiltering(bool const on) {
 	}
 }
 
-void QGLBlitter::SubWidget::setTextureSize(QSize const &size) {
+void SubWidget::setTextureSize(QSize const &size) {
 	inSize_ = size;
 	if (initialized_)
 		glInit();
 }
 
-void QGLBlitter::SubWidget::present() {
+void SubWidget::present() {
 	swapBuffers();
 
 	if (swapInterval_)
@@ -221,7 +228,7 @@ void QGLBlitter::SubWidget::present() {
 		draw();
 }
 
-void QGLBlitter::SubWidget::updateTexture(quint32 const *data) {
+void SubWidget::updateTexture(quint32 const *data) {
 	if (!initialized_) {
 		glInit();
 	} else if (QGLContext::currentContext() != context())
@@ -231,85 +238,137 @@ void QGLBlitter::SubWidget::updateTexture(quint32 const *data) {
 	                inSize_.height(), GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, data);
 }
 
-QGLBlitter::QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent)
-: BlitterWidget(vbl, QString("OpenGL"), 2, parent)
-, hwndChange_(hwndChange)
-, confWidget_(new QWidget)
-, vsync_(new QCheckBox(QString("Wait for vertical blank")), "qglblitter/vsync", false)
-, bf_(new QCheckBox(QString("Bilinear filtering")), "qglblitter/bf", true)
-, correctedSize_(size())
-, swapInterval_(0)
-, dhz_(600)
-{
-	confWidget_->setLayout(new QVBoxLayout);
-	confWidget_->layout()->setMargin(0);
-	confWidget_->layout()->addWidget(vsync_.checkBox());
-	confWidget_->layout()->addWidget(bf_.checkBox());
-}
+class QGLBlitter : public BlitterWidget {
+public:
+	QGLBlitter(VideoBufferLocker vbl, DwmControlHwndChange hwndChange, QWidget *parent)
+	: BlitterWidget(vbl, QString("OpenGL"), 2, parent)
+	, hwndChange_(hwndChange)
+	, confWidget_(new QWidget)
+	, vsync_(new QCheckBox(QString("Wait for vertical blank")), "qglblitter/vsync", false)
+	, bf_(new QCheckBox(QString("Bilinear filtering")), "qglblitter/bf", true)
+	, correctedSize_(size())
+	, swapInterval_(0)
+	, dhz_(600)
+	{
+		confWidget_->setLayout(new QVBoxLayout);
+		confWidget_->layout()->setMargin(0);
+		confWidget_->layout()->addWidget(vsync_.checkBox());
+		confWidget_->layout()->addWidget(bf_.checkBox());
+	}
 
-QGLBlitter::~QGLBlitter() {
-}
+	virtual void uninit() {
+		subWidget_.reset();
+		buffer_.reset();
+	}
 
-void QGLBlitter::resizeEvent(QResizeEvent *) {
-	if (subWidget_)
-		subWidget_->setGeometry(rect());
-}
+	virtual bool isUnusable() const { return !QGLFormat::hasOpenGL(); }
 
-void QGLBlitter::uninit() {
-	subWidget_.reset();
-	buffer_.reset();
-}
+	virtual void setCorrectedGeometry(int w, int h, int correctedw, int correctedh) {
+		QRect const geo(0, 0, w, h);
+		correctedSize_ = QSize(correctedw, correctedh);
+		if (subWidget_)
+			subWidget_->setCorrectedSize(correctedSize_);
 
-bool QGLBlitter::isUnusable() const {
-	return !QGLFormat::hasOpenGL();
-}
+		if (geometry() != geo) {
+			setGeometry(geo);
+		} else if (subWidget_)
+			subWidget_->forcedResize();
+	}
 
-void QGLBlitter::setBufferDimensions(unsigned const width, unsigned const height) {
-	buffer_.reset(std::size_t(width) * height * 2);
-	setPixelBuffer(buffer_, PixelBuffer::RGB32, width);
+	virtual WId hwnd() const {
+		if (subWidget_)
+			return subWidget_->winId();
 
-	if (subWidget_) {
-		subWidget_->setTextureSize(QSize(width, height));
-	} else
-		createNewSubWidget(calcSubWidgetSwapInterval());
+		return BlitterWidget::hwnd();
+	}
 
-}
+	virtual long frameTimeEst() const {
+		if (subWidget_ && subWidget_->swapInterval() && swapInterval_)
+			return subWidget_->frameTimeEst();
 
-void QGLBlitter::blit() {
-	setPixelBuffer(inBuffer().data == buffer_ ? buffer_ + buffer_.size() / 2 : buffer_,
-	               inBuffer().pixelFormat, inBuffer().pitch);
-}
+		return BlitterWidget::frameTimeEst();
+	}
 
-void QGLBlitter::draw() {
-	subWidget_->updateTexture(inBuffer().data == buffer_
-	                        ? buffer_ + buffer_.size() / 2
-	                        : buffer_);
-	subWidget_->prepare();
-}
+	virtual void blit() {
+		setPixelBuffer(inBuffer().data == buffer_ ? buffer_ + buffer_.size() / 2 : buffer_,
+		               inBuffer().pixelFormat, inBuffer().pitch);
+	}
 
-void QGLBlitter::setCorrectedGeometry(int w, int h, int correctedw, int correctedh) {
-	QRect const geo(0, 0, w, h);
-	correctedSize_ = QSize(correctedw, correctedh);
-	if (subWidget_)
-		subWidget_->setCorrectedSize(correctedSize_);
+	virtual void draw() {
+		subWidget_->updateTexture(inBuffer().data == buffer_
+		                        ? buffer_ + buffer_.size() / 2
+		                        : buffer_);
+		subWidget_->prepare();
+	}
 
-	if (geometry() != geo) {
-		setGeometry(geo);
-	} else if (subWidget_)
-		subWidget_->forcedResize();
-}
+	virtual long sync() {
+		subWidget_->present();
+		return 0;
+	}
 
-long QGLBlitter::frameTimeEst() const {
-	if (subWidget_ && subWidget_->swapInterval() && swapInterval_)
-		return subWidget_->frameTimeEst();
+	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
 
-	return BlitterWidget::frameTimeEst();
-}
+	virtual void acceptSettings() {
+		bf_.accept();
+		vsync_.accept();
 
-long QGLBlitter::sync() {
-	subWidget_->present();
-	return 0;
-}
+		if (subWidget_) {
+			updateSubWidgetSwapInterval();
+			subWidget_->setBilinearFiltering(bf_.value());
+		}
+	}
+
+	virtual void rejectSettings() const {
+		vsync_.reject();
+		bf_.reject();
+	}
+
+	virtual void setSwapInterval(unsigned si) {
+		swapInterval_ = si;
+		updateSubWidgetSwapInterval();
+	}
+
+	virtual void rateChange(int const dhz) {
+		dhz_ = dhz ? dhz : 600;
+
+		if (subWidget_)
+			subWidget_->setRefreshRate(dhz_);
+	}
+
+	virtual void compositionEnabledChange() { updateSubWidgetSwapInterval(); }
+
+protected:
+	virtual void setBufferDimensions(unsigned const width, unsigned const height) {
+		buffer_.reset(std::size_t(width) * height * 2);
+		setPixelBuffer(buffer_, PixelBuffer::RGB32, width);
+
+		if (subWidget_) {
+			subWidget_->setTextureSize(QSize(width, height));
+		} else
+			createNewSubWidget(calcSubWidgetSwapInterval());
+	}
+
+	virtual void resizeEvent(QResizeEvent *) {
+		if (subWidget_)
+			subWidget_->setGeometry(rect());
+	}
+
+private:
+	DwmControlHwndChange const hwndChange_;
+	scoped_ptr<QWidget> const confWidget_;
+	PersistCheckBox vsync_;
+	PersistCheckBox bf_;
+	Array<quint32> buffer_;
+	QSize correctedSize_;
+	unsigned swapInterval_;
+	int dhz_;
+	scoped_ptr<SubWidget> subWidget_;
+
+	unsigned calcSubWidgetSwapInterval() const;
+	void createNewSubWidget(unsigned swapInterval);
+	void updateSubWidgetSwapInterval();
+	virtual void privSetPaused(bool ) {}
+};
 
 unsigned QGLBlitter::calcSubWidgetSwapInterval() const {
 	return swapInterval_
@@ -321,7 +380,7 @@ void QGLBlitter::createNewSubWidget(unsigned const swapInterval) {
 	subWidget_.reset();
 	subWidget_.reset(new SubWidget(correctedSize_,
 	                               QSize(inBuffer().width, inBuffer().height),
-	                               swapInterval, dhz_, bf_.value(), this));
+	                               swapInterval, dhz_, bf_.value(), *this));
 	subWidget_->setGeometry(rect());
 	subWidget_->show();
 	hwndChange_(this);
@@ -333,40 +392,10 @@ void QGLBlitter::updateSubWidgetSwapInterval() {
 		createNewSubWidget(swapInterval);
 }
 
-void QGLBlitter::acceptSettings() {
-	bf_.accept();
-	vsync_.accept();
+} // anon ns
 
-	if (subWidget_) {
-		updateSubWidgetSwapInterval();
-		subWidget_->setBilinearFiltering(bf_.value());
-	}
-}
-
-void QGLBlitter::rejectSettings() const {
-	vsync_.reject();
-	bf_.reject();
-}
-
-void QGLBlitter::setSwapInterval(unsigned si) {
-	swapInterval_ = si;
-	updateSubWidgetSwapInterval();
-}
-
-void QGLBlitter::compositionEnabledChange() {
-	updateSubWidgetSwapInterval();
-}
-
-void QGLBlitter::rateChange(int const dhz) {
-	dhz_ = dhz ? dhz : 600;
-
-	if (subWidget_)
-		subWidget_->setRefreshRate(dhz_);
-}
-
-WId QGLBlitter::hwnd() const {
-	if (subWidget_)
-		return subWidget_->winId();
-
-	return BlitterWidget::hwnd();
+transfer_ptr<BlitterWidget> createQGLBlitter(VideoBufferLocker vbl,
+                                             DwmControlHwndChange hwndChange,
+                                             QWidget *parent) {
+	return transfer_ptr<BlitterWidget>(new QGLBlitter(vbl, hwndChange, parent));
 }
