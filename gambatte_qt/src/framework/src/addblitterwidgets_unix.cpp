@@ -19,8 +19,9 @@
 #include "addblitterwidgets.h"
 #include "blitterwidgets/x11blitter.h"
 #include "blitterwidgets/xvblitter.h"
+#include "blitterwidget.h"
 
 void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl) {
 	blitters.push_back(createX11Blitter(vbl).release());
-	blitters.push_back(new XvBlitter(vbl));
+	blitters.push_back(createXvBlitter(vbl).release());
 }

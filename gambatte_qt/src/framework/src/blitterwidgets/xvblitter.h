@@ -19,76 +19,12 @@
 #ifndef XVBLITTER_H
 #define XVBLITTER_H
 
-#include "../blitterwidget.h"
-#include "scoped_ptr.h"
-#include <QComboBox>
-#include <X11/Xlib.h>
-#include <X11/extensions/XShm.h>
-#include <X11/extensions/Xvlib.h>
+#include "transfer_ptr.h"
 
-class XvBlitter : public BlitterWidget {
-public:
-	explicit XvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
-	virtual ~XvBlitter();
-	virtual void init();
-	virtual void uninit();
-	virtual bool isUnusable() const;
-	virtual long sync();
-	virtual void blit();
-	virtual QWidget * settingsWidget() const { return confWidget.qwidget(); }
-	virtual void acceptSettings();
-	virtual void rejectSettings() const;
-	virtual QPaintEngine * paintEngine() const { return 0; }
+class BlitterWidget;
+class QWidget;
+class VideoBufferLocker;
 
-protected:
-	virtual void paintEvent(QPaintEvent *event);
-	virtual void setBufferDimensions(unsigned int width, unsigned int height);
-
-private:
-	class SubBlitter;
-	class ShmBlitter;
-	class PlainBlitter;
-
-	class ConfWidget {
-	public:
-		ConfWidget();
-		~ConfWidget();
-		void store();
-		void restore() const;
-		XvPortID basePortId() const;
-		unsigned numPortIds() const;
-		int formatId() const;
-		int numAdapters() const;
-		QWidget * qwidget() const { return widget_.get(); }
-
-	private:
-		const scoped_ptr<QWidget> widget_;
-		QComboBox *const portSelector_;
-		unsigned portIndex_;
-	};
-
-	class PortGrabber : Uncopyable {
-	public:
-		PortGrabber();
-		~PortGrabber();
-		bool grab(XvPortID port, unsigned numPorts);
-		void ungrab();
-		bool grabbed() const { return grabbed_; }
-		XvPortID port() const { return port_; }
-
-	private:
-		XvPortID port_;
-		bool grabbed_;
-	};
-
-	ConfWidget confWidget;
-	PortGrabber portGrabber;
-	scoped_ptr<SubBlitter> subBlitter;
-	GC gc;
-	bool initialized;
-
-	void initPort();
-	virtual void privSetPaused(bool /*paused*/) {}
-};
+transfer_ptr<BlitterWidget> createXvBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 
 #endif
