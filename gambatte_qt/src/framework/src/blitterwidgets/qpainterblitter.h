@@ -19,34 +19,12 @@
 #ifndef QPAINTERBLITTER_H
 #define QPAINTERBLITTER_H
 
-#include "../blitterwidget.h"
-#include "persistcheckbox.h"
-#include "scoped_ptr.h"
+#include "transfer_ptr.h"
 
-class QImage;
+class BlitterWidget;
+class QWidget;
+class VideoBufferLocker;
 
-class QPainterBlitter : public BlitterWidget {
-public:
-	explicit QPainterBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
-	virtual ~QPainterBlitter();
-	virtual void blit();
-	virtual void draw();
-	virtual void setBufferDimensions(unsigned w, unsigned h);
-	virtual void uninit();
-	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
-	virtual void acceptSettings();
-	virtual void rejectSettings() const;
-
-protected:
-	virtual void privSetPaused(bool ) {}
-	virtual void paintEvent(QPaintEvent *event);
-	virtual void resizeEvent(QResizeEvent *event);
-
-private:
-	scoped_ptr<QWidget> const confWidget_;
-	scoped_ptr<QImage> image0_;
-	scoped_ptr<QImage> image1_;
-	PersistCheckBox bf_;
-};
+transfer_ptr<BlitterWidget> createQPainterBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
 
 #endif

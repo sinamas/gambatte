@@ -17,7 +17,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "qpainterblitter.h"
+#include "../blitterwidget.h"
 #include "../swscale.h"
+#include "persistcheckbox.h"
+#include "scoped_ptr.h"
 #include <QCheckBox>
 #include <QImage>
 #include <QPainter>
@@ -25,21 +28,80 @@
 #include <QSettings>
 #include <QVBoxLayout>
 
-QPainterBlitter::QPainterBlitter(VideoBufferLocker vbl, QWidget *parent)
-: BlitterWidget(vbl, "QPainter", false, parent)
-, confWidget_(new QWidget)
-, bf_(new QCheckBox(QString("Semi-bilinear filtering"), confWidget_.get()),
-      "qpainterblitter/bf", false)
-{
-	confWidget_->setLayout(new QVBoxLayout);
-	confWidget_->layout()->setMargin(0);
-	confWidget_->layout()->addWidget(bf_.checkBox());
+namespace {
 
-	setAttribute(Qt::WA_OpaquePaintEvent, true);
-}
+class QPainterBlitter : public BlitterWidget {
+public:
+	QPainterBlitter(VideoBufferLocker vbl, QWidget *parent)
+	: BlitterWidget(vbl, "QPainter", false, parent)
+	, confWidget_(new QWidget)
+	, bf_(new QCheckBox(QString("Semi-bilinear filtering"), confWidget_.get()),
+	      "qpainterblitter/bf", false)
+	{
+		confWidget_->setLayout(new QVBoxLayout);
+		confWidget_->layout()->setMargin(0);
+		confWidget_->layout()->addWidget(bf_.checkBox());
 
-QPainterBlitter::~QPainterBlitter() {
-}
+		setAttribute(Qt::WA_OpaquePaintEvent, true);
+	}
+
+	virtual void blit();
+	virtual void draw() { repaint(); }
+
+	virtual void setBufferDimensions(unsigned const w, unsigned const h) {
+		uninit();
+		image0_.reset(new QImage(w, h, QImage::Format_RGB32));
+		image1_.reset(new QImage(size(), QImage::Format_RGB32));
+		setPixelBuffer(image0_->bits(), PixelBuffer::RGB32,
+		               image0_->bytesPerLine() >> 2);
+	}
+
+	virtual void uninit() {
+		image0_.reset();
+		image1_.reset();
+	}
+
+	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
+	virtual void acceptSettings() { bf_.accept(); }
+	virtual void rejectSettings() const { bf_.reject(); }
+
+protected:
+	virtual void privSetPaused(bool ) {}
+
+	virtual void paintEvent(QPaintEvent *event) {
+		if (image0_ && image1_) {
+			QImage &frontImage = inBuffer().data == image0_->bits()
+			                   ? *image1_
+			                   : *image0_;
+			QPainter painter(this);
+			painter.setClipRegion(event->region());
+			painter.drawImage(rect(), frontImage);
+		}
+	}
+
+	virtual void resizeEvent(QResizeEvent *) {
+		if (!image0_ || !image1_)
+			return;
+
+		scoped_ptr<QImage> &backImage  =
+			inBuffer().data == image0_->bits() ? image0_ : image1_;
+		scoped_ptr<QImage> &frontImage =
+			inBuffer().data == image0_->bits() ? image1_ : image0_;
+		if (size() == backImage->size()) {
+			*frontImage = *backImage;
+		} else {
+			frontImage.reset();
+			frontImage.reset(new QImage(size(), QImage::Format_RGB32));
+			blit();
+		}
+	}
+
+private:
+	scoped_ptr<QWidget> const confWidget_;
+	scoped_ptr<QImage> image0_;
+	scoped_ptr<QImage> image1_;
+	PersistCheckBox bf_;
+};
 
 void QPainterBlitter::blit() {
 	QImage &frontBuf = inBuffer().data == image0_->bits() ? *image1_ : *image0_;
@@ -62,50 +124,8 @@ void QPainterBlitter::blit() {
 	}
 }
 
-void QPainterBlitter::draw() {
-	repaint();
-}
+} // anon ns
 
-void QPainterBlitter::paintEvent(QPaintEvent *const event) {
-	if (image0_ && image1_) {
-		QImage &frontImage = inBuffer().data == image0_->bits() ? *image1_ : *image0_;
-		QPainter painter(this);
-		painter.setClipRegion(event->region());
-		painter.drawImage(rect(), frontImage);
-	}
-}
-
-void QPainterBlitter::resizeEvent(QResizeEvent *) {
-	if (!image0_ || !image1_)
-		return;
-
-	scoped_ptr<QImage> &backImage  = inBuffer().data == image0_->bits() ? image0_ : image1_;
-	scoped_ptr<QImage> &frontImage = inBuffer().data == image0_->bits() ? image1_ : image0_;
-	if (size() == backImage->size()) {
-		*frontImage = *backImage;
-	} else {
-		frontImage.reset();
-		frontImage.reset(new QImage(size(), QImage::Format_RGB32));
-		blit();
-	}
-}
-
-void QPainterBlitter::setBufferDimensions(unsigned const w, unsigned const h) {
-	uninit();
-	image0_.reset(new QImage(w, h, QImage::Format_RGB32));
-	image1_.reset(new QImage(size(), QImage::Format_RGB32));
-	setPixelBuffer(image0_->bits(), PixelBuffer::RGB32, image0_->bytesPerLine() >> 2);
-}
-
-void QPainterBlitter::uninit() {
-	image0_.reset();
-	image1_.reset();
-}
-
-void QPainterBlitter::acceptSettings() {
-	bf_.accept();
-}
-
-void QPainterBlitter::rejectSettings() const {
-	bf_.reject();
+transfer_ptr<BlitterWidget> createQPainterBlitter(VideoBufferLocker vbl, QWidget *parent) {
+	return transfer_ptr<BlitterWidget>(new QPainterBlitter(vbl, parent));
 }
