@@ -18,10 +18,6 @@
  ***************************************************************************/
 #include "qglblitter.h"
 
-#ifdef PLATFORM_UNIX
-#include "../x11getprocaddress.h"
-#endif
-
 #ifdef PLATFORM_WIN32
 #include <GL/glext.h>
 #endif
@@ -141,12 +137,10 @@ void QGLBlitter::SubWidget::initializeGL() {
 	glDisable(GL_DITHER);
 
 #ifdef PLATFORM_UNIX
-	if (swapInterval_) {
-		static void (*const glXSwapIntervalSGI)(int) =
-			reinterpret_cast<void (*)(int)>(x11GetProcAddress("glXSwapIntervalSGI"));
-		if (glXSwapIntervalSGI) {
-			glXSwapIntervalSGI(swapInterval_);
-		} else
+	if (swapInterval_ && context()) {
+		static int (*const glXSwapIntervalSGI)(int) =
+			reinterpret_cast<int (*)(int)>(context()->getProcAddress("glXSwapIntervalSGI"));
+		if (!glXSwapIntervalSGI || glXSwapIntervalSGI(swapInterval_) != 0)
 			swapInterval_ = 0;
 	}
 #endif

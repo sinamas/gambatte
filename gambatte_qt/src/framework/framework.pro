@@ -77,7 +77,7 @@ macx {
 }
 else:unix { 
     DEFINES += PLATFORM_UNIX
-    SOURCES += framework/src/x11getprocaddress.cpp \
+    SOURCES += \
         framework/src/addblitterwidgets_unix.cpp \
         framework/src/getfullmodetoggler_unix.cpp \
         framework/src/audioengines/ossengine.cpp \
