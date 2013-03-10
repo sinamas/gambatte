@@ -55,15 +55,17 @@ private:
 
 	DwmControlHwndChange const hwndChange_;
 	scoped_ptr<QWidget> const confWidget_;
-	FtEst ftEst_;
 	PersistCheckBox vsync_;
 	PersistCheckBox bf_;
 	Array<quint32> buffer_;
+	QSize correctedSize_;
 	unsigned swapInterval_;
 	int dhz_;
 	scoped_ptr<SubWidget> subWidget_;
 
-	void resetSubWidget();
+	unsigned calcSubWidgetSwapInterval() const;
+	void createNewSubWidget(unsigned swapInterval);
+	void updateSubWidgetSwapInterval();
 	virtual void privSetPaused(bool ) {}
 };
 
