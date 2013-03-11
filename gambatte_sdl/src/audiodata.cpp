@@ -20,19 +20,9 @@
 #include <SDL_thread.h>
 #include <cstdio>
 
-/*static unsigned ceiledPowerOf2(unsigned t) {
-	--t;
-	t |= t >> 1;
-	t |= t >> 2;
-	t |= t >> 4;
-	t |= t >> 8;
-	t |= t >> 16;
-	++t;
+namespace {
 
-	return t;
-}*/
-
-static unsigned nearestPowerOf2(const unsigned in) {
+static unsigned nearestPowerOf2(unsigned const in) {
 	unsigned out = in;
 
 	out |= out >> 1;
@@ -48,69 +38,72 @@ static unsigned nearestPowerOf2(const unsigned in) {
 	return out;
 }
 
-AudioData::AudioData(const unsigned srate, const unsigned latency, const unsigned periods) :
-rbuf(nearestPowerOf2(srate * latency / ((periods + 1) * 1000)) * periods * 2),
-rateEst(srate),
-mut(SDL_CreateMutex()),
-bufReadyCond(SDL_CreateCond()),
-failed(false) {
-	rbuf.fill(0);
+class LockGuard {
+public:
+	explicit LockGuard(SDL_mutex *m) : m_(m) { SDL_mutexP(m); }
+private:
+	struct LockDeleter { static void del(SDL_mutex *m) { SDL_mutexV(m); } };
+	scoped_ptr<SDL_mutex, LockDeleter> const m_;
+};
+
+} // anon ns
+
+struct AudioData::SdlDeleter {
+	static void del(SDL_mutex *m) { SDL_DestroyMutex(m); }
+	static void del(SDL_cond *c) { SDL_DestroyCond(c); }
+};
+
+AudioData::AudioData(unsigned const srate, unsigned const latency, unsigned const periods)
+: rbuf_(nearestPowerOf2(srate * latency / ((periods + 1) * 1000)) * periods * 2)
+, rateEst_(srate)
+, mut_(SDL_CreateMutex())
+, bufReadyCond_(SDL_CreateCond())
+, failed_(false)
+{
+	rbuf_.fill(0);
 
 	SDL_AudioSpec spec;
 	spec.freq = srate;
 	spec.format = AUDIO_S16SYS;
 	spec.channels = 2;
-	spec.samples = (rbuf.size() / 2) / periods;
-	spec.callback = fill_buffer;
+	spec.samples = rbuf_.size() / 2 / periods;
+	spec.callback = fillBuffer;
 	spec.userdata = this;
-
-	if (SDL_OpenAudio(&spec, NULL) < 0) {
-		std::fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-		failed = true;
+	if (SDL_OpenAudio(&spec, 0) < 0) {
+		std::fprintf(stderr, "Could not open audio: %s\n", SDL_GetError());
+		failed_ = true;
 	}
 }
 
 AudioData::~AudioData() {
 	SDL_PauseAudio(1);
 	SDL_CloseAudio();
-	SDL_DestroyCond(bufReadyCond);
-	SDL_DestroyMutex(mut);
 }
 
-const AudioData::Status AudioData::write(const Sint16 *inBuf, unsigned samples) {
-	if (failed)
-		return Status(rbuf.size() >> 1, 0, rateEst.result());
+AudioData::Status AudioData::write(Sint16 const *inBuf, std::size_t samples) {
+	if (failed_)
+		return Status(rbuf_.size() / 2, 0, rateEst_.result());
 
-	SDL_mutexP(mut);
-	const Status status(rbuf.used() / 2, rbuf.avail() / 2, rateEst.result());
+	LockGuard lock(mut_.get());
+	Status const status(rbuf_.used() / 2, rbuf_.avail() / 2, rateEst_.result());
 
-	{
-		std::size_t avail;
-
-		while ((avail = rbuf.avail() / 2) < samples) {
-			rbuf.write(inBuf, avail * 2);
-			inBuf += avail * 2;
-			samples -= avail;
-			SDL_CondWait(bufReadyCond, mut);
-		}
+	for (std::size_t avail; (avail = rbuf_.avail() / 2) < samples;) {
+		rbuf_.write(inBuf, avail * 2);
+		inBuf += avail * 2;
+		samples -= avail;
+		SDL_CondWait(bufReadyCond_.get(), mut_.get());
 	}
 
-	rbuf.write(inBuf, samples * 2);
-	SDL_mutexV(mut);
-
+	rbuf_.write(inBuf, samples * 2);
 	return status;
 }
 
-void AudioData::read(Uint8 *const stream, const int len) {
-	if (failed)
+void AudioData::read(Uint8 *const stream, std::size_t const len) {
+	if (failed_)
 		return;
 
-	SDL_mutexP(mut);
-
-	rbuf.read(reinterpret_cast<Sint16*>(stream), std::min(static_cast<std::size_t>(len) / 2, rbuf.used()));
-	rateEst.feed(len / 4);
-
-	SDL_CondSignal(bufReadyCond);
-
-	SDL_mutexV(mut);
+	LockGuard lock(mut_.get());
+	rbuf_.read(reinterpret_cast<Sint16 *>(stream), std::min(len / 2, rbuf_.used()));
+	rateEst_.feed(len / 4);
+	SDL_CondSignal(bufReadyCond_.get());
 }

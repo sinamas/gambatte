@@ -19,11 +19,14 @@
 #ifndef AUDIODATA_H
 #define AUDIODATA_H
 
-#include <ringbuffer.h>
-#include <rateest.h>
+#include "ringbuffer.h"
+#include "rateest.h"
+#include "scoped_ptr.h"
 #include <SDL.h>
+#include <cstddef>
 
-struct AudioData {
+class AudioData {
+public:
 	struct Status {
 		long fromUnderrun;
 		long fromOverflow;
@@ -37,19 +40,22 @@ struct AudioData {
 
 	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);
 	~AudioData();
-	const Status write(const Sint16 *inBuf, unsigned samples);
-	void read(Uint8 *stream, int len);
+	Status write(Sint16 const *inBuf, std::size_t samples);
 
 private:
-	RingBuffer<Sint16> rbuf;
-	RateEst rateEst;
-	SDL_mutex *const mut;
-	SDL_cond *const bufReadyCond;
-	bool failed;
+	struct SdlDeleter;
 
-	static void fill_buffer(void *const data, Uint8 *const stream, const int len) {
-		reinterpret_cast<AudioData*>(data)->read(stream, len);
+	RingBuffer<Sint16> rbuf_;
+	RateEst rateEst_;
+	scoped_ptr<SDL_mutex, SdlDeleter> const mut_;
+	scoped_ptr<SDL_cond, SdlDeleter> const bufReadyCond_;
+	bool failed_;
+
+	static void fillBuffer(void *data, Uint8 *stream, int len) {
+		static_cast<AudioData *>(data)->read(stream, len);
 	}
+
+	void read(Uint8 *stream, std::size_t len);
 };
 
 #endif
