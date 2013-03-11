@@ -372,18 +372,20 @@ class GambatteSdl {
 	unsigned sampleRate;
 	unsigned latency;
 	unsigned periods;
-	bool failed;
-
-	bool init(int argc, char **argv);
 
 public:
-	GambatteSdl(int argc, char **argv);
+	GambatteSdl();
 	~GambatteSdl();
+	int init(int argc, char **argv);
 	int exec();
 };
 
-GambatteSdl::GambatteSdl(int argc, char **argv) : inBuf((35112 + 2064) * 2), sampleRate(48000) {
-	failed = init(argc, argv);
+GambatteSdl::GambatteSdl()
+: inBuf((35112 + 2064) * 2)
+, sampleRate(48000)
+, latency(133)
+, periods(4)
+{
 }
 
 GambatteSdl::~GambatteSdl() {
@@ -406,11 +408,11 @@ static void printUsage(std::vector<DescOption*> const &v) {
 	}
 }
 
-bool GambatteSdl::init(int argc, char **argv) {
+int GambatteSdl::init(int argc, char **argv) {
 	std::printf("Gambatte SDL SVN\n");
 
 	if (sdlIniter.isFailed())
-		return 1;
+		return EXIT_FAILURE;
 
 	std::vector<Uint8> jdevnums;
 
@@ -460,7 +462,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 			if (argv[i][0] == '-') {
 				if (!(i = parser.parse(argc, argv, i))) {
 					printUsage(v);
-					return 1;
+					return EXIT_FAILURE;
 				}
 			} else if (!loadIndex) {
 				loadIndex = i;
@@ -573,7 +575,7 @@ bool GambatteSdl::init(int argc, char **argv) {
 	if (!jdevnums.empty()) {
 		if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
 			std::fprintf(stderr, "Unable to init joysticks: %s\n", SDL_GetError());
-			return 1;
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -592,8 +594,8 @@ bool GambatteSdl::init(int argc, char **argv) {
 }
 
 int GambatteSdl::exec() {
-	if (failed)
-		return 1;
+	if (!gambatte.isLoaded())
+		return 0;
 
 	AudioData adata(sampleRate, latency, periods);
 	tmpBuf.reset(resampler->maxOut(inBuf.size() / 2) * 2);
@@ -736,7 +738,9 @@ int GambatteSdl::exec() {
 } // anon namespace
 
 int main(int argc, char **argv) {
-	GambatteSdl gambatteSdl(argc, argv);
+	GambatteSdl gambatteSdl;
+	if (int fail = gambatteSdl.init(argc, argv))
+		return fail;
 
 	return gambatteSdl.exec();
 }
