@@ -256,29 +256,27 @@ void VideoDialog::FullHzSelector::setRates(const std::vector<short> &rates) {
 }
 
 auto_vector<VideoDialog::FullResSelector> VideoDialog::makeFullResSelectors(
-						const QSize &sourceSize, const MainWindow *const mw)
+		const QSize &sourceSize, const MainWindow *const mw)
 {
 	auto_vector<FullResSelector> v(mw->screens());
-
 	for (std::size_t i = 0; i < v.size(); ++i) {
-		v[i] = new FullResSelector("video/fullRes" + QString::number(i),
-						mw->currentResIndex(i), sourceSize, mw->modeVector(i));
+		v.reset(i, new FullResSelector("video/fullRes" + QString::number(i),
+		                               mw->currentResIndex(i), sourceSize,
+		                               mw->modeVector(i)));
 	}
 
 	return v;
 }
 
 auto_vector<VideoDialog::FullHzSelector> VideoDialog::makeFullHzSelectors(
-					const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *const mw)
+		const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *const mw)
 {
 	auto_vector<FullHzSelector> v(fullResSelectors.size());
-
 	for (std::size_t i = 0; i < v.size(); ++i) {
 		const int index = fullResSelectors[i]->comboBox()->currentIndex();
-
-		v[i] = new FullHzSelector("video/hz" + QString::number(i),
+		v.reset(i, new FullHzSelector("video/hz" + QString::number(i),
 				index >= 0 ? mw->modeVector(i)[index].rates : std::vector<short>(),
-				index == static_cast<int>(mw->currentResIndex(i)) ? mw->currentRateIndex(i) : 0);
+				index == static_cast<int>(mw->currentResIndex(i)) ? mw->currentRateIndex(i) : 0));
 	}
 
 	return v;

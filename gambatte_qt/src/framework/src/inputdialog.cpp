@@ -58,7 +58,7 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 
 		for (std::size_t i = 0; i < buttonInfos.size(); ++i) {
 			if (!buttonInfos[i].label.isEmpty()) {
-				inputBoxPairs[i] = new InputBoxPair(new InputBox, new InputBox);
+				inputBoxPairs.reset(i, new InputBoxPair(new InputBox, new InputBox));
 
 				int j = tabw->count() - 1;
 
@@ -80,12 +80,14 @@ InputDialog::InputDialog(const std::vector<Button> &buttonInfos,
 				if (buttonInfos[i].defaultFpp) {
 					QHBoxLayout *hLayout = new QHBoxLayout;
 					hLayout->addWidget(inputBoxPairs[i]->mainBox);
-					hLayout->addWidget(fppBoxes[i * 2] = makeFppBox(buttonInfos[i].defaultFpp).release());
+					hLayout->addWidget(fppBoxes.reset(i * 2,
+						makeFppBox(buttonInfos[i].defaultFpp).release()));
 					gLayout->addLayout(hLayout, i, 1);
 
 					hLayout = new QHBoxLayout;
 					hLayout->addWidget(inputBoxPairs[i]->altBox);
-					hLayout->addWidget(fppBoxes[i * 2 + 1] = makeFppBox(buttonInfos[i].defaultFpp).release());
+					hLayout->addWidget(fppBoxes.reset(i * 2 + 1,
+						makeFppBox(buttonInfos[i].defaultFpp).release()));
 					gLayout->addLayout(hLayout, i, 2);
 				} else {
 					gLayout->addWidget(inputBoxPairs[i]->mainBox, i, 1);

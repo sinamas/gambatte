@@ -28,86 +28,90 @@ class auto_vector : private std::vector<T*, Allocator> {
 private:
 	struct released {
 		std::vector<T*, Allocator> v;
-		explicit released(const std::vector<T*, Allocator> &v): v(v) {}
+		explicit released(std::vector<T*, Allocator> const &v): v(v) {}
 	};
 
 public:
-	typedef typename std::vector<T*, Allocator>::const_iterator const_iterator;
-	typedef typename std::vector<T*, Allocator>::iterator iterator;
-	typedef typename std::vector<T*, Allocator>::size_type size_type;
+	typedef std::vector<T*, Allocator> base;
+	typedef typename base::const_iterator const_iterator;
+	typedef typename base::const_iterator iterator;
+	typedef typename base::size_type size_type;
 
-	explicit auto_vector(const Allocator &a = Allocator()) : std::vector<T*, Allocator>(a) {}
-	explicit auto_vector(size_type n, const Allocator &a = Allocator()) : std::vector<T*, Allocator>(n, 0, a) {}
-	auto_vector(auto_vector &v) : std::vector<T*, Allocator>() { swap(v); }
-	auto_vector(const released &v) : std::vector<T*, Allocator>(v.v) {}
+	explicit auto_vector(Allocator const &a = Allocator()) : base(a) {}
+	explicit auto_vector(size_type n, Allocator const &a = Allocator()) : base(n, 0, a) {}
+	auto_vector(auto_vector &v) : base() { swap(v); }
+	auto_vector(released const &v) : base(v.v) {}
 
 	template<class InputIterator>
-	auto_vector(InputIterator first, InputIterator last, const Allocator& a = Allocator())
-	: std::vector<T*, Allocator>(first, last, a)
+	auto_vector(InputIterator first, InputIterator last, Allocator const &a = Allocator())
+	: base(first, last, a)
 	{
 	}
 
 	~auto_vector() { clear(); }
 
-	using std::vector<T*, Allocator>::begin;
-	using std::vector<T*, Allocator>::end;
-	using std::vector<T*, Allocator>::rbegin;
-	using std::vector<T*, Allocator>::rend;
-	using std::vector<T*, Allocator>::size;
-	using std::vector<T*, Allocator>::max_size;
-	using std::vector<T*, Allocator>::capacity;
-	using std::vector<T*, Allocator>::empty;
-	using std::vector<T*, Allocator>::reserve;
-	using std::vector<T*, Allocator>::operator[];
-	using std::vector<T*, Allocator>::at;
-	using std::vector<T*, Allocator>::front;
-	using std::vector<T*, Allocator>::back;
-	using std::vector<T*, Allocator>::push_back;
+	using base::size;
+	using base::max_size;
+	using base::capacity;
+	using base::empty;
+	using base::reserve;
+	using base::push_back;
+
+	iterator begin() const { return base::begin(); }
+	iterator end() const { return base::end(); }
+	iterator rbegin() const { return base::rbegin(); }
+	iterator rend() const { return base::rend(); }
+	T * operator[](size_type i) const { return base::operator[](i); }
+	T * at(size_type i) const { return base::at(i); }
+	T * front() const { return base::front(); }
+	T * back() const { return base::back(); }
 
 	template<class InputIterator>
 	void assign(InputIterator first, InputIterator last) {
 		clear();
-		std::vector<T*, Allocator>::assign(first, last);
+		base::assign(first, last);
 	}
 
 	void assign(size_type n) {
 		clear();
-		std::vector<T*, Allocator>::assign(n);
+		base::assign(n);
 	}
 
 	void pop_back() {
 		if (!empty())
 			defined_delete(back());
 
-		std::vector<T*, Allocator>::pop_back();
+		base::pop_back();
 	}
 
-	iterator insert(iterator position, T *x) { return std::vector<T*, Allocator>::insert(position, x); }
+	iterator insert(iterator position, T *x) { return base::insert(baseit(position), x); }
 
 	template<class InputIterator>
 	void insert(iterator position, InputIterator first, InputIterator last) {
-		std::vector<T*, Allocator>::insert(position, first, last);
+		base::insert(baseit(position), first, last);
 	}
 
 	iterator erase(iterator position) {
 		if (position != end())
 			defined_delete(*position);
 
-		return std::vector<T*, Allocator>::erase(position);
+		return base::erase(baseit(position));
 	}
 
 	iterator erase(iterator first, iterator last) {
 		std::for_each(first, last, defined_delete<T>);
-		return std::vector<T*, Allocator>::erase(first, last);
+		return base::erase(baseit(first), baseit(last));
 	}
 
-	void swap(auto_vector &vec) { std::vector<T*, Allocator>::swap(vec); }
+	void swap(auto_vector &vec) { base::swap(vec); }
 	void clear() { erase(begin(), end()); }
-	const std::vector<T*,Allocator> get() const { return *this; }
-	operator const released() { std::vector<T*, Allocator> v; v.swap(*this); return released(v); }
+	T * reset(size_type i, T *x) { defined_delete(base::operator[](i)); return base::operator[](i) = x; }
+	base const & get() const { return *this; }
+	operator released const() { base v; v.swap(*this); return released(v); }
 
 private:
 	auto_vector& operator=(auto_vector const &v);
+	typename base::iterator baseit(iterator it) { return base::begin() + (it - begin()); }
 };
 
 #endif
