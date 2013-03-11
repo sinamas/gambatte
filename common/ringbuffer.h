@@ -61,7 +61,7 @@ public:
 
 template<typename T>
 void RingBuffer<T>::fill(const T value) {
-	std::fill(buf + 0, buf + sz, value);
+	std::fill(buf.get(), buf.get() + buf.size(), value);
 	rpos = 0;
 	wpos = sz - 1;
 }
