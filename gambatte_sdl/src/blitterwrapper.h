@@ -19,30 +19,28 @@
 #ifndef BLITTERWRAPPER_H
 #define BLITTERWRAPPER_H
 
-#include "sdlblitter.h"
 #include "gbint.h"
 #include "scoped_ptr.h"
+#include "sdlblitter.h"
 #include "videolink/videolink.h"
 
+class VfilterInfo;
+class VideoLink;
+
 class BlitterWrapper {
-	SdlBlitter blitter;
-	scoped_ptr<VideoLink> cconvert;
-	scoped_ptr<VideoLink> vfilter;
-	unsigned vsrci;
-
 public:
-	struct Buf { gambatte::uint_least32_t* pixels; std::ptrdiff_t pitch; };
-	BlitterWrapper() : vsrci(0) {}
-	const Buf inBuf() const;
-	void draw();
-	void present() { blitter.present(); }
-	void toggleFullScreen() { blitter.toggleFullScreen(); }
-	void setScale(const Uint8 scale) { blitter.setScale(scale); }
-	void setStartFull() { blitter.setStartFull(); }
-	void setYuv(const bool yuv) { blitter.setYuv(yuv); }
-	void setVideoFilter(unsigned n) { vsrci = n; }
+	struct Buf { gambatte::uint_least32_t *pixels; std::ptrdiff_t pitch; };
 
-	void init();
+	BlitterWrapper(VfilterInfo const &, int scale, bool yuv, bool full);
+	Buf const inBuf() const;
+	void draw();
+	void present() { blitter_.present(); }
+	void toggleFullScreen() { blitter_.toggleFullScreen(); }
+
+private:
+	SdlBlitter blitter_;
+	scoped_ptr<VideoLink> const cconvert_;
+	scoped_ptr<VideoLink> const vfilter_;
 };
 
 #endif

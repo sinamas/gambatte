@@ -26,6 +26,7 @@
 #include "str_to_sdlkey.h"
 #include "syncfunc.h"
 #include "videolink/vfilterinfo.h"
+#include "videolink/videolink.h"
 #include <gambatte.h>
 #include <pakinfo.h>
 #include <SDL.h>
@@ -120,21 +121,21 @@ public:
 };
 
 class ScaleOption : public DescOption {
-	Uint8 scale;
+	int scale_;
+
 public:
-	ScaleOption() : DescOption("scale", 's', 1), scale(1) {}
+	ScaleOption() : DescOption("scale", 's', 1), scale_(1) {}
 
 	void exec(const char *const *argv, int index) {
-		int tmp = std::atoi(argv[index + 1]);
-
-		if (tmp < 1 || tmp > 40)
+		int s = std::atoi(argv[index + 1]);
+		if (s < 1 || s > 40)
 			return;
 
-		scale = tmp;
+		scale_ = s;
 	}
 
 	const char* desc() const { return " N\t\t\tScale video output by an integer factor of N\n"; }
-	Uint8 getScale() const { return scale; }
+	int scale() const { return scale_; }
 };
 
 class VfOption : public DescOption {
@@ -358,16 +359,16 @@ class GambatteSdl {
 
 	Array<Sint16> inBuf;
 	Array<Sint16> tmpBuf;
-	scoped_ptr<Resampler> resampler;
 	GB gambatte;
-	SdlIniter sdlIniter;
-	BlitterWrapper blitter;
 	GetInput inputGetter;
 	SkipSched skipSched;
 	keymap_t keyMap;
 	jmap_t jbMap;
 	jmap_t jaMap;
 	jmap_t jhMap;
+	SdlIniter sdlIniter;
+	scoped_ptr<Resampler> resampler;
+	scoped_ptr<BlitterWrapper> blitter;
 	std::vector<SDL_Joystick*> joysticks;
 	unsigned sampleRate;
 	unsigned latency;
@@ -415,43 +416,43 @@ int GambatteSdl::init(int argc, char **argv) {
 		return EXIT_FAILURE;
 
 	std::vector<Uint8> jdevnums;
+	BoolOption fsOption("\t\tStart in full screen mode\n", "full-screen", 'f');
+	ScaleOption scaleOption;
+	VfOption vfOption;
+	BoolOption yuvOption("\t\tUse YUV overlay for (usually faster) scaling\n",
+	                     "yuv-overlay", 'y');
 
 	{
-		Parser parser;
-
-		std::vector<DescOption*> v;
 		BoolOption controlsOption("\t\tShow keyboard controls\n", "controls");
-		v.push_back(&controlsOption);
 		BoolOption gbaCgbOption("\t\t\tGBA CGB mode\n", "gba-cgb");
-		v.push_back(&gbaCgbOption);
 		BoolOption forceDmgOption("\t\tForce DMG mode\n", "force-dmg");
-		v.push_back(&forceDmgOption);
 		BoolOption multicartCompatOption(
 			"\tSupport certain multicart ROM images by\n"
 			"\t\t\t\tnot strictly respecting ROM header MBC type\n", "multicart-compat");
-		v.push_back(&multicartCompatOption);
-		BoolOption fsOption("\t\tStart in full screen mode\n", "full-screen", 'f');
-		v.push_back(&fsOption);
 		InputOption inputOption;
-		v.push_back(&inputOption);
 		LatencyOption latencyOption;
-		v.push_back(&latencyOption);
 		BoolOption lkOption("\t\tList valid input KEYS\n", "list-keys");
-		v.push_back(&lkOption);
 		PeriodsOption periodsOption;
-		v.push_back(&periodsOption);
 		RateOption rateOption;
-		v.push_back(&rateOption);
 		ResamplerOption resamplerOption;
+
+		std::vector<DescOption*> v;
+		v.push_back(&controlsOption);
+		v.push_back(&gbaCgbOption);
+		v.push_back(&forceDmgOption);
+		v.push_back(&multicartCompatOption);
+		v.push_back(&fsOption);
+		v.push_back(&inputOption);
+		v.push_back(&latencyOption);
+		v.push_back(&lkOption);
+		v.push_back(&periodsOption);
+		v.push_back(&rateOption);
 		v.push_back(&resamplerOption);
-		ScaleOption scaleOption;
 		v.push_back(&scaleOption);
-		VfOption vfOption;
 		v.push_back(&vfOption);
-		BoolOption yuvOption("\t\tUse YUV overlay for (usually faster) scaling\n",
-		                     "yuv-overlay", 'y');
 		v.push_back(&yuvOption);
 
+		Parser parser;
 		for (std::size_t i = 0; i < v.size(); ++i) {
 			parser.add(v[i]);
 		}
@@ -533,15 +534,10 @@ int GambatteSdl::init(int argc, char **argv) {
 			std::printf("cgb: %d\n", gambatte.isCgb());
 		}
 
-		if (fsOption.isSet())
-			blitter.setStartFull();
-
 		sampleRate = rateOption.getRate();
 		latency = latencyOption.getLatency();
 		periods = periodsOption.getPeriods();
-		blitter.setScale(scaleOption.getScale());
-		blitter.setYuv(yuvOption.isSet());
-		blitter.setVideoFilter(vfOption.filterNumber());
+
 		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, inBuf.size() / 2));
 
 		unsigned const gbbuts[8] = {
@@ -586,7 +582,9 @@ int GambatteSdl::init(int argc, char **argv) {
 
 	SDL_JoystickEventState(SDL_ENABLE);
 
-	blitter.init();
+	blitter.reset(new BlitterWrapper(VfilterInfo::get(vfOption.filterNumber()),
+	                                 scaleOption.scale(), yuvOption.isSet(),
+	                                 fsOption.isSet()));
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_WM_SetCaption("Gambatte SDL", NULL);
 
@@ -658,7 +656,7 @@ int GambatteSdl::exec() {
 					if (e.key.keysym.mod & KMOD_CTRL) {
 						switch (e.key.keysym.sym) {
 						case SDLK_f:
-							blitter.toggleFullScreen();
+							blitter->toggleFullScreen();
 							break;
 						case SDLK_r:
 							gambatte.reset();
@@ -668,7 +666,7 @@ int GambatteSdl::exec() {
 					} else {
 						switch (e.key.keysym.sym) {
 						case SDLK_ESCAPE: return 0;
-						case SDLK_F5: gambatte.saveState(blitter.inBuf().pixels, blitter.inBuf().pitch); break;
+						case SDLK_F5: gambatte.saveState(blitter->inBuf().pixels, blitter->inBuf().pitch); break;
 						case SDLK_F6: gambatte.selectState(gambatte.currentState() - 1); break;
 						case SDLK_F7: gambatte.selectState(gambatte.currentState() + 1); break;
 						case SDLK_F8: gambatte.loadState(); break;
@@ -702,7 +700,7 @@ int GambatteSdl::exec() {
 			}
 		}
 
-		const BlitterWrapper::Buf &vbuf = blitter.inBuf();
+		const BlitterWrapper::Buf &vbuf = blitter->inBuf();
 		unsigned emusamples = 35112 - samples;
 		const int ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
 				reinterpret_cast<gambatte::uint_least32_t*>(inBuf.get()) + samples, emusamples);
@@ -714,7 +712,7 @@ int GambatteSdl::exec() {
 			const bool blit = ret >= 0 && !skipSched.skipNext(audioBufLow);
 
 			if (blit)
-				blitter.draw();
+				blitter->draw();
 
 			const long outsamples = resampler->resample(tmpBuf, inBuf, insamples);
 			const AudioData::Status &status = adata.write(tmpBuf, outsamples);
@@ -722,11 +720,11 @@ int GambatteSdl::exec() {
 
 			if (blit) {
 				syncfunc((16743ul - 16743 / 1024) * sampleRate / status.rate);
-				blitter.present();
+				blitter->present();
 			}
 		} else if (ret >= 0) {
-			blitter.draw();
-			blitter.present();
+			blitter->draw();
+			blitter->present();
 		}
 
 		std::memmove(inBuf, inBuf + insamples * 2, samples * 2 * sizeof *inBuf);

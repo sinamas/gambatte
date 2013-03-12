@@ -19,8 +19,11 @@
 #ifndef SDLBLITTER_H
 #define SDLBLITTER_H
 
-#include <SDL.h>
+#include "scoped_ptr.h"
 #include <cstddef>
+
+struct SDL_Overlay;
+struct SDL_Surface;
 
 class SdlBlitter {
 public:
@@ -32,25 +35,20 @@ public:
 		PixelFormat format;
 	};
 
-	explicit SdlBlitter(bool startFull = false, Uint8 scale = 1, bool yuv = false);
+	SdlBlitter(unsigned inwidth, unsigned inheight,
+	           int scale, bool yuv, bool full);
 	~SdlBlitter();
-	void setBufferDimensions(unsigned int width, unsigned int height);
-	const PixelBuffer inBuffer() const;
+	PixelBuffer const inBuffer() const;
 	void draw();
 	void present();
 	void toggleFullScreen();
-	void setScale(const Uint8 scale) { if (!screen) this->scale = scale; }
-	void setStartFull() { startFlags |= SDL_FULLSCREEN; }
-	void setYuv(const bool yuv) { if (!screen) this->yuv = yuv; }
-// 	bool failed() const { return screen == NULL; }
 
 private:
-	SDL_Surface *screen;
-	SDL_Surface *surface;
-	SDL_Overlay *overlay;
-	Uint32 startFlags;
-	Uint8 scale;
-	bool yuv;
+	struct SurfaceDeleter;
+
+	SDL_Surface *screen_;
+	scoped_ptr<SDL_Surface, SurfaceDeleter> const surface_;
+	scoped_ptr<SDL_Overlay, SurfaceDeleter> const overlay_;
 
 	template<typename T> void swScale();
 };

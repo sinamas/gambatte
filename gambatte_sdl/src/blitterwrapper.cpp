@@ -17,18 +17,25 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "blitterwrapper.h"
-#include "videolink/vfilterinfo.h"
 #include "videolink/rgb32conv.h"
+#include "videolink/vfilterinfo.h"
 
-const BlitterWrapper::Buf BlitterWrapper::inBuf() const {
+BlitterWrapper::BlitterWrapper(VfilterInfo const &vfinfo, int scale, bool yuv, bool full)
+: blitter_(vfinfo.outWidth, vfinfo.outHeight, scale, yuv, full)
+, cconvert_(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(blitter_.inBuffer().format),
+                              vfinfo.outWidth, vfinfo.outHeight))
+, vfilter_(vfinfo.create())
+{
+}
+
+BlitterWrapper::Buf const BlitterWrapper::inBuf() const {
 	Buf buf;
-
-	if (VideoLink *const gblink = vfilter.get() ? vfilter.get() : cconvert.get()) {
-		buf.pixels = static_cast<gambatte::uint_least32_t*>(gblink->inBuf());
+	if (VideoLink *const gblink = vfilter_ ? vfilter_.get() : cconvert_.get()) {
+		buf.pixels = static_cast<gambatte::uint_least32_t *>(gblink->inBuf());
 		buf.pitch  = gblink->inPitch();
 	} else {
-		const SdlBlitter::PixelBuffer &pxbuf = blitter.inBuffer();
-		buf.pixels = static_cast<gambatte::uint_least32_t*>(pxbuf.pixels);
+		SdlBlitter::PixelBuffer const &pxbuf = blitter_.inBuffer();
+		buf.pixels = static_cast<gambatte::uint_least32_t *>(pxbuf.pixels);
 		buf.pitch = pxbuf.pitch;
 	}
 
@@ -36,27 +43,15 @@ const BlitterWrapper::Buf BlitterWrapper::inBuf() const {
 }
 
 void BlitterWrapper::draw() {
-	const SdlBlitter::PixelBuffer &pb = blitter.inBuffer();
-
-	if (void *const pbdata = pb.pixels) {
-		if (vfilter.get()) {
-			if (cconvert.get()) {
-				vfilter->draw(cconvert->inBuf(), cconvert->inPitch());
-				cconvert->draw(pbdata, pb.pitch);
-			} else
-				vfilter->draw(pbdata, pb.pitch);
-		} else if (cconvert.get())
-			cconvert->draw(pbdata, pb.pitch);
+	SdlBlitter::PixelBuffer const &pb = blitter_.inBuffer();
+	if (pb.pixels) {
+		if (vfilter_) {
+			vfilter_->draw(cconvert_ ? cconvert_->inBuf()   : pb.pixels,
+			               cconvert_ ? cconvert_->inPitch() : pb.pitch);
+		}
+		if (cconvert_)
+			cconvert_->draw(pb.pixels, pb.pitch);
 	}
 
-	blitter.draw();
-}
-
-void BlitterWrapper::init() {
-	const VfilterInfo vfinfo = VfilterInfo::get(vsrci);
-	vfilter.reset(vfinfo.create());
-	blitter.setBufferDimensions(vfinfo.outWidth, vfinfo.outHeight);
-	cconvert.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(blitter.inBuffer().format),
-			vfinfo.outWidth, vfinfo.outHeight));
-
+	blitter_.draw();
 }
