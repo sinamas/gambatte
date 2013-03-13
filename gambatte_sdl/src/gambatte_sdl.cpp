@@ -358,10 +358,8 @@ class GambatteSdl {
 	typedef std::multimap<JoyData,unsigned> jmap_t;
 
 	Array<Sint16> inBuf;
-	Array<Sint16> tmpBuf;
 	GB gambatte;
 	GetInput inputGetter;
-	SkipSched skipSched;
 	keymap_t keyMap;
 	jmap_t jbMap;
 	jmap_t jaMap;
@@ -695,8 +693,8 @@ int GambatteSdl::exec() {
 		return 0;
 
 	AudioData adata(sampleRate, latency, periods);
-	tmpBuf.reset(resampler->maxOut(inBuf.size() / 2) * 2);
-
+	Array<Sint16> const resampleBuf(resampler->maxOut(inBuf.size() / 2) * 2);
+	SkipSched skipSched;
 	Uint8 const *const keys = SDL_GetKeyState(0);
 	unsigned samples = 0;
 	bool audioBufLow = false;
@@ -721,8 +719,8 @@ int GambatteSdl::exec() {
 			if (blit)
 				blitter->draw();
 
-			const long outsamples = resampler->resample(tmpBuf, inBuf, insamples);
-			const AudioData::Status &status = adata.write(tmpBuf, outsamples);
+			const long outsamples = resampler->resample(resampleBuf, inBuf, insamples);
+			const AudioData::Status &status = adata.write(resampleBuf, outsamples);
 			audioBufLow = status.fromUnderrun + outsamples < (status.fromOverflow - outsamples) * 2;
 
 			if (blit) {
