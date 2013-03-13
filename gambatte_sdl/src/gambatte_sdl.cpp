@@ -757,15 +757,18 @@ int GambatteSdl::exec() {
 
 		BlitterWrapper::Buf const &vbuf = blitter->inBuf();
 		unsigned runsamples = 35112 - gbsamples;
-		int const ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
+		int const vidFrameDoneSampleCnt = gambatte.runFor(vbuf.pixels, vbuf.pitch,
 			reinterpret_cast<gambatte::uint_least32_t *>(gbAudioBuf.get()) + gbsamples,
 			runsamples);
-		std::size_t const insamples = ret < 0 ? gbsamples + runsamples : gbsamples + ret;
+		std::size_t const insamples = vidFrameDoneSampleCnt >= 0
+		                            ? gbsamples + vidFrameDoneSampleCnt
+		                            : gbsamples + runsamples;
 		gbsamples += runsamples;
 		gbsamples -= insamples;
 
 		if (!keys[SDLK_TAB]) {
-			bool const blit = ret >= 0 && !skipSched.skipNext(audioBufLow);
+			bool const blit = vidFrameDoneSampleCnt >= 0
+			               && !skipSched.skipNext(audioBufLow);
 			if (blit)
 				blitter->draw();
 
@@ -778,7 +781,7 @@ int GambatteSdl::exec() {
 				syncfunc((16743ul - 16743 / 1024) * sampleRate / status.rate);
 				blitter->present();
 			}
-		} else if (ret >= 0) {
+		} else if (vidFrameDoneSampleCnt >= 0) {
 			blitter->draw();
 			blitter->present();
 		}
