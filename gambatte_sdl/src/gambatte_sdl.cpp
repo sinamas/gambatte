@@ -36,6 +36,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -551,7 +552,7 @@ int GambatteSdl::init(int argc, char **argv) {
 			const InputOption::InputId &id = inputOption.getKeys()[i];
 
 			if (id.type == InputOption::InputId::KEY) {
-				keyMap.insert(std::pair<SDLKey,unsigned>(id.key, gbbuts[i]));
+				keyMap.insert(std::make_pair(id.key, gbbuts[i]));
 			} else {
 				std::pair<JoyData,unsigned> pair(id.jdata, gbbuts[i]);
 				jdevnums.push_back(id.jdata.dev_num);
