@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -766,7 +766,12 @@ int GambatteSdl::exec() {
 		gbsamples += runsamples;
 		gbsamples -= insamples;
 
-		if (!keys[SDLK_TAB]) {
+		if (bool fastForward = keys[SDLK_TAB]) {
+			if (vidFrameDoneSampleCnt >= 0) {
+				blitter->draw();
+				blitter->present();
+			}
+		} else {
 			bool const blit = vidFrameDoneSampleCnt >= 0
 			               && !skipSched.skipNext(audioBufLow);
 			if (blit)
@@ -781,9 +786,6 @@ int GambatteSdl::exec() {
 				syncfunc((16743ul - 16743 / 1024) * sampleRate / status.rate);
 				blitter->present();
 			}
-		} else if (vidFrameDoneSampleCnt >= 0) {
-			blitter->draw();
-			blitter->present();
 		}
 
 		std::memmove(gbAudioBuf, gbAudioBuf + insamples * 2,
