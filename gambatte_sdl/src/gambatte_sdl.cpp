@@ -182,13 +182,6 @@ public:
 	: DescOption("video-filter", 'v', 1)
 	, filterNo_(0)
 	{
-		std::stringstream ss;
-		ss << " N\t\tUse video filter number N\n";
-
-		for (std::size_t i = 0; i < VfilterInfo::numVfilters(); ++i)
-			ss << "\t\t\t\t    " << i << " = " << VfilterInfo::get(i).handle << "\n";
-
-		s_ = ss.str();
 	}
 
 	virtual void exec(char const *const *argv, int index) {
@@ -196,11 +189,19 @@ public:
 		                               VfilterInfo::numVfilters() - 1);
 	}
 
-	virtual std::string const desc() const { return s_; }
+	virtual std::string const desc() const {
+		std::stringstream ss;
+		ss << " N\t\tUse video filter number N\n";
+
+		for (std::size_t i = 0; i < VfilterInfo::numVfilters(); ++i)
+			ss << "\t\t\t\t    " << i << " = " << VfilterInfo::get(i).handle << "\n";
+
+		return ss.str();
+	}
+
 	unsigned filterNumber() const { return filterNo_; }
 
 private:
-	std::string s_;
 	unsigned filterNo_;
 };
 
@@ -210,6 +211,15 @@ public:
 	: DescOption("resampler", 0, 1)
 	, resamplerNo_(1)
 	{
+	}
+
+	virtual void exec(char const *const *argv, int index) {
+		unsigned n = std::atoi(argv[index + 1]);
+		if (n < ResamplerInfo::num())
+			resamplerNo_ = n;
+	}
+
+	virtual std::string const desc() const {
 		std::stringstream ss;
 		ss << " N\t\tUse audio resampler number N\n";
 
@@ -222,20 +232,12 @@ public:
 			ss << "\n";
 		}
 
-		s_ = ss.str();
+		return ss.str();
 	}
 
-	virtual void exec(char const *const *argv, int index) {
-		unsigned n = std::atoi(argv[index + 1]);
-		if (n < ResamplerInfo::num())
-			resamplerNo_ = n;
-	}
-
-	virtual std::string const desc() const { return s_; }
 	unsigned resamplerNumber() const { return resamplerNo_; }
 
 private:
-	std::string s_;
 	unsigned resamplerNo_;
 };
 
