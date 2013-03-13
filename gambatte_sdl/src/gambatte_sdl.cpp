@@ -554,7 +554,7 @@ int GambatteSdl::init(int argc, char **argv) {
 			if (id.type == InputOption::InputId::KEY) {
 				keyMap.insert(std::make_pair(id.key, gbbuts[i]));
 			} else {
-				std::pair<JoyData,unsigned> pair(id.jdata, gbbuts[i]);
+				jmap_t::value_type pair(id.jdata, gbbuts[i]);
 				jdevnums.push_back(id.jdata.dev_num);
 
 				switch (id.type) {
