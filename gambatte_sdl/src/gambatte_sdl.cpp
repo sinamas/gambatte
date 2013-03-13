@@ -397,7 +397,7 @@ GambatteSdl::~GambatteSdl() {
 }
 
 static void printUsage(std::vector<DescOption*> const &v) {
-	std::printf("Usage: gambatte_sdl [OPTION]... romfile\n\n");
+	std::puts("Usage: gambatte_sdl [OPTION]... romfile\n");
 
 	for (std::size_t i = 0; i < v.size(); ++i) {
 		std::printf("  ");
@@ -412,7 +412,7 @@ static void printUsage(std::vector<DescOption*> const &v) {
 }
 
 int GambatteSdl::init(int argc, char **argv) {
-	std::printf("Gambatte SDL SVN\n");
+	std::puts("Gambatte SDL git");
 
 	if (sdlIniter.isFailed())
 		return EXIT_FAILURE;
@@ -473,7 +473,7 @@ int GambatteSdl::init(int argc, char **argv) {
 		}
 
 		if (lkOption.isSet()) {
-			std::printf("Valid input KEYS:\n");
+			std::puts("Valid input KEYS:");
 			printStrSdlkeys();
 			static char const      jsnam[] = "jsNaM";
 			static char const      jsnhm[] = "jsNhM";
