@@ -374,6 +374,8 @@ class GambatteSdl {
 	unsigned latency;
 	unsigned periods;
 
+	bool handleEvents();
+
 public:
 	GambatteSdl();
 	~GambatteSdl();
@@ -591,6 +593,103 @@ int GambatteSdl::init(int argc, char **argv) {
 	return 0;
 }
 
+bool GambatteSdl::handleEvents() {
+	JoyData jd;
+	SDL_Event e;
+
+	while (SDL_PollEvent(&e)) switch (e.type) {
+	case SDL_JOYAXISMOTION:
+		jd.dev_num = e.jaxis.which;
+		jd.num = e.jaxis.axis;
+		jd.dir = e.jaxis.value < -8192
+		       ? JoyData::DOWN
+		       : (e.jaxis.value > 8192 ? JoyData::UP : JoyData::CENTERED);
+
+		for (std::pair<jmap_t::iterator, jmap_t::iterator> range =
+				jaMap.equal_range(jd); range.first != range.second; ++range.first) {
+			if (jd.dir == range.first->first.dir)
+				inputGetter.is |= range.first->second;
+			else
+				inputGetter.is &= ~range.first->second;
+		}
+
+		break;
+	case SDL_JOYBUTTONDOWN:
+	case SDL_JOYBUTTONUP:
+		jd.dev_num = e.jbutton.which;
+		jd.num = e.jbutton.button;
+
+		for (std::pair<jmap_t::iterator, jmap_t::iterator> range =
+				jbMap.equal_range(jd); range.first != range.second; ++range.first) {
+			if (e.jbutton.state)
+				inputGetter.is |= range.first->second;
+			else
+				inputGetter.is &= ~range.first->second;
+		}
+
+		break;
+	case SDL_JOYHATMOTION:
+		jd.dev_num = e.jhat.which;
+		jd.num = e.jhat.hat;
+
+		for (std::pair<jmap_t::iterator, jmap_t::iterator> range =
+				jaMap.equal_range(jd); range.first != range.second; ++range.first) {
+			if (e.jhat.value & range.first->first.dir)
+				inputGetter.is |= range.first->second;
+			else
+				inputGetter.is &= ~range.first->second;
+		}
+
+		break;
+	case SDL_KEYDOWN:
+		if (e.key.keysym.mod & KMOD_CTRL) {
+			switch (e.key.keysym.sym) {
+			case SDLK_f: blitter->toggleFullScreen(); break;
+			case SDLK_r: gambatte.reset(); break;
+			default: break;
+			}
+		} else {
+			switch (e.key.keysym.sym) {
+			case SDLK_ESCAPE:
+				return true;
+			case SDLK_F5:
+				gambatte.saveState(blitter->inBuf().pixels, blitter->inBuf().pitch);
+				break;
+			case SDLK_F6: gambatte.selectState(gambatte.currentState() - 1); break;
+			case SDLK_F7: gambatte.selectState(gambatte.currentState() + 1); break;
+			case SDLK_F8: gambatte.loadState(); break;
+			case SDLK_0: gambatte.selectState(0); break;
+			case SDLK_1: gambatte.selectState(1); break;
+			case SDLK_2: gambatte.selectState(2); break;
+			case SDLK_3: gambatte.selectState(3); break;
+			case SDLK_4: gambatte.selectState(4); break;
+			case SDLK_5: gambatte.selectState(5); break;
+			case SDLK_6: gambatte.selectState(6); break;
+			case SDLK_7: gambatte.selectState(7); break;
+			case SDLK_8: gambatte.selectState(8); break;
+			case SDLK_9: gambatte.selectState(9); break;
+			default: break;
+			}
+		}
+		// fallthrough
+	case SDL_KEYUP:
+		for (std::pair<keymap_t::iterator, keymap_t::iterator> range =
+				keyMap.equal_range(e.key.keysym.sym);
+				range.first != range.second; ++range.first) {
+			if (e.key.state)
+				inputGetter.is |= range.first->second;
+			else
+				inputGetter.is &= ~range.first->second;
+		}
+
+		break;
+	case SDL_QUIT:
+		return true;
+	}
+
+	return false;
+}
+
 int GambatteSdl::exec() {
 	if (!gambatte.isLoaded())
 		return 0;
@@ -605,100 +704,8 @@ int GambatteSdl::exec() {
 	SDL_PauseAudio(0);
 
 	for (;;) {
-		{
-			JoyData jd;
-			SDL_Event e;
-
-			while (SDL_PollEvent(&e)) {
-				switch (e.type) {
-				case SDL_JOYAXISMOTION:
-					jd.dev_num = e.jaxis.which;
-					jd.num = e.jaxis.axis;
-					jd.dir = e.jaxis.value < -8192 ? JoyData::DOWN : (e.jaxis.value > 8192 ? JoyData::UP : JoyData::CENTERED);
-
-					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
-							range.first != range.second; ++range.first) {
-						if (jd.dir == range.first->first.dir)
-							inputGetter.is |= range.first->second;
-						else
-							inputGetter.is &= ~range.first->second;
-					}
-
-					break;
-				case SDL_JOYBUTTONDOWN:
-				case SDL_JOYBUTTONUP:
-					jd.dev_num = e.jbutton.which;
-					jd.num = e.jbutton.button;
-
-					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jbMap.equal_range(jd));
-								range.first != range.second; ++range.first) {
-						if (e.jbutton.state)
-							inputGetter.is |= range.first->second;
-						else
-							inputGetter.is &= ~range.first->second;
-					}
-
-					break;
-				case SDL_JOYHATMOTION:
-					jd.dev_num = e.jhat.which;
-					jd.num = e.jhat.hat;
-
-					for (std::pair<jmap_t::iterator,jmap_t::iterator> range(jaMap.equal_range(jd));
-								range.first != range.second; ++range.first) {
-						if (e.jhat.value & range.first->first.dir)
-							inputGetter.is |= range.first->second;
-						else
-							inputGetter.is &= ~range.first->second;
-					}
-
-					break;
-				case SDL_KEYDOWN:
-					if (e.key.keysym.mod & KMOD_CTRL) {
-						switch (e.key.keysym.sym) {
-						case SDLK_f:
-							blitter->toggleFullScreen();
-							break;
-						case SDLK_r:
-							gambatte.reset();
-							break;
-						default: break;
-						}
-					} else {
-						switch (e.key.keysym.sym) {
-						case SDLK_ESCAPE: return 0;
-						case SDLK_F5: gambatte.saveState(blitter->inBuf().pixels, blitter->inBuf().pitch); break;
-						case SDLK_F6: gambatte.selectState(gambatte.currentState() - 1); break;
-						case SDLK_F7: gambatte.selectState(gambatte.currentState() + 1); break;
-						case SDLK_F8: gambatte.loadState(); break;
-						case SDLK_0: gambatte.selectState(0); break;
-						case SDLK_1: gambatte.selectState(1); break;
-						case SDLK_2: gambatte.selectState(2); break;
-						case SDLK_3: gambatte.selectState(3); break;
-						case SDLK_4: gambatte.selectState(4); break;
-						case SDLK_5: gambatte.selectState(5); break;
-						case SDLK_6: gambatte.selectState(6); break;
-						case SDLK_7: gambatte.selectState(7); break;
-						case SDLK_8: gambatte.selectState(8); break;
-						case SDLK_9: gambatte.selectState(9); break;
-						default: break;
-						}
-					}
-					// fallthrough
-				case SDL_KEYUP:
-					for (std::pair<keymap_t::iterator,keymap_t::iterator> range(keyMap.equal_range(e.key.keysym.sym));
-								range.first != range.second; ++range.first) {
-						if (e.key.state)
-							inputGetter.is |= range.first->second;
-						else
-							inputGetter.is &= ~range.first->second;
-					}
-
-					break;
-				case SDL_QUIT:
-					return 0;
-				}
-			}
-		}
+		if (bool done = handleEvents())
+			return 0;
 
 		const BlitterWrapper::Buf &vbuf = blitter->inBuf();
 		unsigned emusamples = 35112 - samples;
