@@ -34,6 +34,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -391,8 +392,7 @@ GambatteSdl::GambatteSdl()
 }
 
 GambatteSdl::~GambatteSdl() {
-	for (std::size_t i = 0; i < joysticks.size(); ++i)
-		SDL_JoystickClose(joysticks[i]);
+	std::for_each(joysticks.begin(), joysticks.end(), SDL_JoystickClose);
 }
 
 static void printUsage(std::vector<DescOption*> const &v) {
@@ -454,9 +454,8 @@ int GambatteSdl::init(int argc, char **argv) {
 		v.push_back(&yuvOption);
 
 		Parser parser;
-		for (std::size_t i = 0; i < v.size(); ++i) {
-			parser.add(v[i]);
-		}
+		std::for_each(v.begin(), v.end(),
+			std::bind1st(std::mem_fun(&Parser::add), &parser));
 
 		unsigned loadIndex = 0;
 
