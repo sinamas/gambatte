@@ -588,7 +588,7 @@ int GambatteSdl::init(int argc, char **argv) {
 	                                 scaleOption.scale(), yuvOption.isSet(),
 	                                 fsOption.isSet()));
 	SDL_ShowCursor(SDL_DISABLE);
-	SDL_WM_SetCaption("Gambatte SDL", NULL);
+	SDL_WM_SetCaption("Gambatte SDL", 0);
 
 	return 0;
 }
@@ -697,7 +697,7 @@ int GambatteSdl::exec() {
 	AudioData adata(sampleRate, latency, periods);
 	tmpBuf.reset(resampler->maxOut(inBuf.size() / 2) * 2);
 
-	Uint8 const *const keys = SDL_GetKeyState(NULL);
+	Uint8 const *const keys = SDL_GetKeyState(0);
 	unsigned samples = 0;
 	bool audioBufLow = false;
 
