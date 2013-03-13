@@ -16,7 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "array.h"
 #include "audiodata.h"
 #include "blitterwrapper.h"
 #include "parser.h"
@@ -26,7 +25,6 @@
 #include "str_to_sdlkey.h"
 #include "syncfunc.h"
 #include "videolink/vfilterinfo.h"
-#include "videolink/videolink.h"
 #include <gambatte.h>
 #include <pakinfo.h>
 #include <SDL.h>
@@ -44,19 +42,18 @@ namespace {
 
 using namespace gambatte;
 
-struct DescOption : Parser::Option {
-	explicit DescOption(const char *s, char c = 0, int nArgs = 0)
+class DescOption : public Parser::Option {
+public:
+	explicit DescOption(char const *s, char c = 0, int nArgs = 0)
 	: Option(s, c, nArgs)
 	{
 	}
 
 	virtual ~DescOption() {}
-	virtual const char* desc() const = 0;
+	virtual char const * desc() const = 0;
 };
 
 class BoolOption : public DescOption {
-	char const *const desc_;
-	bool isSet_;
 public:
 	BoolOption(char const *desc, char const *s, char c = 0)
 	: DescOption(s, c), desc_(desc), isSet_(false)
@@ -66,69 +63,102 @@ public:
 	virtual void exec(char const *const *, int) { isSet_ = true; }
 	virtual char const * desc() const { return desc_; }
 	bool isSet() const { return isSet_; }
+
+private:
+	char const *const desc_;
+	bool isSet_;
 };
 
 class RateOption : public DescOption {
-	unsigned rate;
 public:
-	RateOption() : DescOption("sample-rate", 'r', 1), rate(48000) {}
-
-	void exec(const char *const *argv, int index) {
-		int tmp = std::atoi(argv[index + 1]);
-
-		if (tmp < 4000 || tmp > 192000)
-			return;
-
-		rate = tmp;
+	RateOption()
+	: DescOption("sample-rate", 'r', 1)
+	, rate_(48000)
+	{
 	}
 
-	const char* desc() const { return " N\t\tUse audio sample rate of N Hz\n\t\t\t\t    4000 <= N <= 192000, default: 48000\n"; }
-	unsigned getRate() const { return rate; }
+	virtual void exec(char const *const *argv, int index) {
+		int r = std::atoi(argv[index + 1]);
+		if (r < 4000 || r > 192000)
+			return;
+
+		rate_ = r;
+	}
+
+	virtual char const * desc() const {
+		return " N\t\tUse audio sample rate of N Hz\n"
+		       "\t\t\t\t    4000 <= N <= 192000, default: 48000\n";
+	}
+
+	unsigned rate() const { return rate_; }
+
+private:
+	unsigned rate_;
 };
 
 class LatencyOption : public DescOption {
-	unsigned latency;
 public:
-	LatencyOption() : DescOption("latency", 'l', 1), latency(133) {}
-
-	void exec(const char *const *argv, int index) {
-		int tmp = std::atoi(argv[index + 1]);
-
-		if (tmp < 16 || tmp > 5000)
-			return;
-
-		latency = tmp;
+	LatencyOption()
+	: DescOption("latency", 'l', 1)
+	, latency_(133)
+	{
 	}
 
-	const char* desc() const { return " N\t\tUse audio buffer latency of N ms\n\t\t\t\t    16 <= N <= 5000, default: 133\n"; }
-	unsigned getLatency() const { return latency; }
+	virtual void exec(char const *const *argv, int index) {
+		int l = std::atoi(argv[index + 1]);
+		if (l < 16 || l > 5000)
+			return;
+
+		latency_ = l;
+	}
+
+	virtual char const * desc() const {
+		return " N\t\tUse audio buffer latency of N ms\n"
+		       "\t\t\t\t    16 <= N <= 5000, default: 133\n";
+	}
+
+	unsigned latency() const { return latency_; }
+
+private:
+	unsigned latency_;
 };
 
 class PeriodsOption : public DescOption {
-	unsigned periods;
 public:
-	PeriodsOption() : DescOption("periods", 'p', 1), periods(4) {}
-
-	void exec(const char *const *argv, int index) {
-		int tmp = std::atoi(argv[index + 1]);
-
-		if (tmp < 1 || tmp > 32)
-			return;
-
-		periods = tmp;
+	PeriodsOption()
+	: DescOption("periods", 'p', 1)
+	, periods_(4)
+	{
 	}
 
-	const char* desc() const { return " N\t\tUse N audio buffer periods\n\t\t\t\t    1 <= N <= 32, default: 4\n"; }
-	unsigned getPeriods() const { return periods; }
+	virtual void exec(char const *const *argv, int index) {
+		int p = std::atoi(argv[index + 1]);
+		if (p < 1 || p > 32)
+			return;
+
+		periods_ = p;
+	}
+
+	virtual char const * desc() const {
+		return " N\t\tUse N audio buffer periods\n"
+		       "\t\t\t\t    1 <= N <= 32, default: 4\n";
+	}
+
+	unsigned periods() const { return periods_; }
+
+private:
+	unsigned periods_;
 };
 
 class ScaleOption : public DescOption {
-	int scale_;
-
 public:
-	ScaleOption() : DescOption("scale", 's', 1), scale_(1) {}
+	ScaleOption()
+	: DescOption("scale", 's', 1)
+	, scale_(1)
+	{
+	}
 
-	void exec(const char *const *argv, int index) {
+	virtual void exec(char const *const *argv, int index) {
 		int s = std::atoi(argv[index + 1]);
 		if (s < 1 || s > 40)
 			return;
@@ -136,68 +166,85 @@ public:
 		scale_ = s;
 	}
 
-	const char* desc() const { return " N\t\t\tScale video output by an integer factor of N\n"; }
+	virtual char const * desc() const {
+		return " N\t\t\tScale video output by an integer factor of N\n";
+	}
+
 	int scale() const { return scale_; }
+
+private:
+	int scale_;
 };
 
 class VfOption : public DescOption {
-	std::string s;
-	unsigned filterNr;
 public:
-	VfOption();
-	void exec(const char *const *argv, int index) {
-		filterNr = std::min<unsigned>(std::max(std::atoi(argv[index + 1]), 0), VfilterInfo::numVfilters() - 1);
+	VfOption()
+	: DescOption("video-filter", 'v', 1)
+	, filterNo_(0)
+	{
+		std::stringstream ss;
+		ss << " N\t\tUse video filter number N\n";
+
+		for (std::size_t i = 0; i < VfilterInfo::numVfilters(); ++i)
+			ss << "\t\t\t\t    " << i << " = " << VfilterInfo::get(i).handle << "\n";
+
+		s_ = ss.str();
 	}
-	const char* desc() const { return s.c_str(); }
-	unsigned filterNumber() const { return filterNr; }
+
+	virtual void exec(char const *const *argv, int index) {
+		filterNo_ = std::min<unsigned>(std::max(std::atoi(argv[index + 1]), 0),
+		                               VfilterInfo::numVfilters() - 1);
+	}
+
+	virtual char const * desc() const { return s_.c_str(); }
+	unsigned filterNumber() const { return filterNo_; }
+
+private:
+	std::string s_;
+	unsigned filterNo_;
 };
-
-VfOption::VfOption() : DescOption("video-filter", 'v', 1), filterNr(0) {
-	std::stringstream ss;
-	ss << " N\t\tUse video filter number N\n";
-
-	for (std::size_t i = 0; i < VfilterInfo::numVfilters(); ++i) {
-		ss << "\t\t\t\t    " << i << " = " << VfilterInfo::get(i).handle << "\n";
-	}
-
-	s = ss.str();
-}
 
 class ResamplerOption : public DescOption {
-	std::string s;
-	unsigned resamplerNo;
 public:
-	ResamplerOption();
+	ResamplerOption()
+	: DescOption("resampler", 0, 1)
+	, resamplerNo_(1)
+	{
+		std::stringstream ss;
+		ss << " N\t\tUse audio resampler number N\n";
 
-	void exec(const char *const *argv, int index) {
-		const unsigned tmp = std::atoi(argv[index + 1]);
+		for (std::size_t i = 0; i < ResamplerInfo::num(); ++i) {
+			ss << "\t\t\t\t    " << i << " = " << ResamplerInfo::get(i).desc;
 
-		if (tmp < ResamplerInfo::num())
-			resamplerNo = tmp;
+			if (i == resamplerNo_)
+				ss << " [default]";
+
+			ss << "\n";
+		}
+
+		s_ = ss.str();
 	}
 
-	const char* desc() const { return s.c_str(); }
-	unsigned resamplerNumber() const { return resamplerNo; }
+	virtual void exec(char const *const *argv, int index) {
+		unsigned n = std::atoi(argv[index + 1]);
+		if (n < ResamplerInfo::num())
+			resamplerNo_ = n;
+	}
+
+	virtual char const * desc() const { return s_.c_str(); }
+	unsigned resamplerNumber() const { return resamplerNo_; }
+
+private:
+	std::string s_;
+	unsigned resamplerNo_;
 };
 
-ResamplerOption::ResamplerOption() : DescOption("resampler", 0, 1), resamplerNo(1) {
-	std::stringstream ss;
-	ss << " N\t\tUse audio resampler number N\n";
-
-	for (std::size_t i = 0; i < ResamplerInfo::num(); ++i) {
-		ss << "\t\t\t\t    " << i << " = " << ResamplerInfo::get(i).desc;
-
-		if (i == resamplerNo)
-			ss << " [default]";
-
-		ss << "\n";
-	}
-
-	s = ss.str();
-}
-
 struct JoyData {
-	enum { CENTERED = SDL_HAT_CENTERED, LEFT = SDL_HAT_LEFT, RIGHT = SDL_HAT_RIGHT, UP = SDL_HAT_UP, DOWN = SDL_HAT_DOWN };
+	enum { CENTERED = SDL_HAT_CENTERED,
+	       LEFT = SDL_HAT_LEFT,
+	       RIGHT = SDL_HAT_RIGHT,
+	       UP = SDL_HAT_UP,
+	       DOWN = SDL_HAT_DOWN };
 
 	union {
 		struct {
@@ -211,7 +258,7 @@ struct JoyData {
 	Sint16 dir;
 };
 
-static inline bool operator<(const JoyData &l, const JoyData &r) {
+static inline bool operator<(JoyData const &l, JoyData const &r) {
 	return l.id < r.id;
 }
 
@@ -228,53 +275,54 @@ public:
 		InputId() : type(KEY) {}
 	};
 
-private:
-	InputId keys[8];
+	InputOption()
+	: DescOption("input", 'i', 8)
+	{
+		keys_[0].key = SDLK_RETURN;
+		keys_[1].key = SDLK_RSHIFT;
+		keys_[2].key = SDLK_d;
+		keys_[3].key = SDLK_c;
+		keys_[4].key = SDLK_UP;
+		keys_[5].key = SDLK_DOWN;
+		keys_[6].key = SDLK_LEFT;
+		keys_[7].key = SDLK_RIGHT;
+	}
 
-public:
-	InputOption();
-	void exec(const char *const *argv, int index);
-	const char* desc() const { return " KEYS\t\tUse the 8 given input KEYS for respectively\n\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n"; }
-	const InputId* getKeys() const { return keys; }
+	virtual void exec(char const *const *argv, int index);
+
+	virtual char const * desc() const {
+		return " KEYS\t\tUse the 8 given input KEYS for respectively\n"
+		       "\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n";
+	}
+
+	InputId const * keys() const { return keys_; }
+
+private:
+	InputId keys_[8];
 };
 
-InputOption::InputOption() : DescOption("input", 'i', 8) {
-	keys[0].key = SDLK_RETURN;
-	keys[1].key = SDLK_RSHIFT;
-	keys[2].key = SDLK_d;
-	keys[3].key = SDLK_c;
-	keys[4].key = SDLK_UP;
-	keys[5].key = SDLK_DOWN;
-	keys[6].key = SDLK_LEFT;
-	keys[7].key = SDLK_RIGHT;
-}
-
-void InputOption::exec(const char *const *argv, int index) {
+void InputOption::exec(char const *const *argv, int index) {
 	++index;
 
-	for (unsigned i = 0; i < 8; ++i) {
-		const char *s = argv[index + i];
+	for (std::size_t i = 0; i < sizeof keys_ / sizeof *keys_; ++i) {
+		char const *s = argv[index + i];
 
 		if (s[0] == 'j' && s[1] == 's') {
 			s += 2;
-			const char *const send = s + std::strlen(s);
-
+			char const *const send = s + std::strlen(s);
 			if (send - s < 3)
 				continue;
 
-			const int dev_num = std::atoi(s++);
-
+			int const dev_num = std::atoi(s++);
 			if (dev_num < 0 || dev_num > 255)
 				continue;
 
 			s += (dev_num > 9) + (dev_num > 99);
-
 			if (send - s < 2)
 				continue;
 
-			const char type = *s++;
-			const int num = std::atoi(s++);
-
+			char const type = *s++;
+			int const num = std::atoi(s++);
 			if (num < 0 || num > 255)
 				continue;
 
@@ -293,7 +341,7 @@ void InputOption::exec(const char *const *argv, int index) {
 				if (send - s != 1)
 					continue;
 
-				const char dir = *s;
+				char const dir = *s;
 
 				switch (type) {
 				case 'a':
@@ -320,10 +368,10 @@ void InputOption::exec(const char *const *argv, int index) {
 				}
 			}
 
-			keys[i] = id;
-		} else if (SDLKey const *const k = strToSdlkey(s)) {
-			keys[i].type = InputId::KEY;
-			keys[i].key = *k;
+			keys_[i] = id;
+		} else if (SDLKey const *k = strToSdlkey(s)) {
+			keys_[i].type = InputId::KEY;
+			keys_[i].key = *k;
 		}
 	}
 }
@@ -333,33 +381,50 @@ public:
 	unsigned is;
 
 	GetInput() : is(0) {}
-	unsigned operator()() { return is; }
+	virtual unsigned operator()() { return is; }
 };
 
 class SdlIniter {
-	bool failed;
 public:
-	SdlIniter();
-	~SdlIniter();
-	bool isFailed() const { return failed; }
+	SdlIniter()
+	: failed_(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0)
+	{
+		if (failed_)
+			std::fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+	}
+
+	~SdlIniter() {
+		SDL_Quit();
+	}
+
+	bool isFailed() const { return failed_; }
+
+private:
+	bool const failed_;
 };
 
-SdlIniter::SdlIniter() : failed(false) {
-	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0) {
-		std::fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
-		failed = true;
-	}
-}
-
-SdlIniter::~SdlIniter() {
-	SDL_Quit();
-}
-
 class GambatteSdl {
-	typedef std::multimap<SDLKey,unsigned> keymap_t;
-	typedef std::multimap<JoyData,unsigned> jmap_t;
+public:
+	GambatteSdl()
+	: gbAudioBuf(std::size_t(35112 + 2064) * 2)
+	, sampleRate(48000)
+	, latency(133)
+	, periods(4)
+	{
+	}
 
-	Array<Sint16> inBuf;
+	~GambatteSdl() {
+		std::for_each(joysticks.begin(), joysticks.end(), SDL_JoystickClose);
+	}
+
+	int init(int argc, char const *const argv[]);
+	int exec();
+
+private:
+	typedef std::multimap<SDLKey, unsigned> keymap_t;
+	typedef std::multimap<JoyData, unsigned> jmap_t;
+
+	Array<Sint16> gbAudioBuf;
 	GB gambatte;
 	GetInput inputGetter;
 	keymap_t keyMap;
@@ -375,25 +440,7 @@ class GambatteSdl {
 	unsigned periods;
 
 	bool handleEvents();
-
-public:
-	GambatteSdl();
-	~GambatteSdl();
-	int init(int argc, char **argv);
-	int exec();
 };
-
-GambatteSdl::GambatteSdl()
-: inBuf((35112 + 2064) * 2)
-, sampleRate(48000)
-, latency(133)
-, periods(4)
-{
-}
-
-GambatteSdl::~GambatteSdl() {
-	std::for_each(joysticks.begin(), joysticks.end(), SDL_JoystickClose);
-}
 
 static void printUsage(std::vector<DescOption*> const &v) {
 	std::puts("Usage: gambatte_sdl [OPTION]... romfile\n");
@@ -410,7 +457,7 @@ static void printUsage(std::vector<DescOption*> const &v) {
 	}
 }
 
-int GambatteSdl::init(int argc, char **argv) {
+int GambatteSdl::init(int const argc, char const *const argv[]) {
 	std::puts("Gambatte SDL git");
 
 	if (sdlIniter.isFailed())
@@ -457,7 +504,7 @@ int GambatteSdl::init(int argc, char **argv) {
 		std::for_each(v.begin(), v.end(),
 			std::bind1st(std::mem_fun(&Parser::add), &parser));
 
-		unsigned loadIndex = 0;
+		int loadIndex = 0;
 
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '-') {
@@ -522,7 +569,7 @@ int GambatteSdl::init(int argc, char **argv) {
 				              + forceDmgOption.isSet()        * GB::FORCE_DMG
 				              + multicartCompatOption.isSet() * GB::MULTICART_COMPAT)) {
 			std::printf("failed to load ROM %s: %s\n", argv[loadIndex], to_string(error).c_str());
-			return error;
+			return EXIT_FAILURE;
 		}
 
 		{
@@ -534,11 +581,12 @@ int GambatteSdl::init(int argc, char **argv) {
 			std::printf("cgb: %d\n", gambatte.isCgb());
 		}
 
-		sampleRate = rateOption.getRate();
-		latency = latencyOption.getLatency();
-		periods = periodsOption.getPeriods();
+		sampleRate = rateOption.rate();
+		latency = latencyOption.latency();
+		periods = periodsOption.periods();
 
-		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, inBuf.size() / 2));
+		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(
+			2097152, sampleRate, gbAudioBuf.size() / 2));
 
 		unsigned const gbbuts[] = {
 			InputGetter::START, InputGetter::SELECT,
@@ -548,7 +596,7 @@ int GambatteSdl::init(int argc, char **argv) {
 		};
 
 		for (std::size_t i = 0; i < sizeof gbbuts / sizeof *gbbuts; ++i) {
-			const InputOption::InputId &id = inputOption.getKeys()[i];
+			InputOption::InputId const &id = inputOption.keys()[i];
 
 			if (id.type == InputOption::InputId::KEY) {
 				keyMap.insert(std::make_pair(id.key, gbbuts[i]));
@@ -693,10 +741,10 @@ int GambatteSdl::exec() {
 		return 0;
 
 	AudioData adata(sampleRate, latency, periods);
-	Array<Sint16> const resampleBuf(resampler->maxOut(inBuf.size() / 2) * 2);
+	Array<Sint16> const resampleBuf(resampler->maxOut(gbAudioBuf.size() / 2) * 2);
 	SkipSched skipSched;
 	Uint8 const *const keys = SDL_GetKeyState(0);
-	unsigned samples = 0;
+	std::size_t gbsamples = 0;
 	bool audioBufLow = false;
 
 	SDL_PauseAudio(0);
@@ -705,23 +753,24 @@ int GambatteSdl::exec() {
 		if (bool done = handleEvents())
 			return 0;
 
-		const BlitterWrapper::Buf &vbuf = blitter->inBuf();
-		unsigned emusamples = 35112 - samples;
-		const int ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
-				reinterpret_cast<gambatte::uint_least32_t*>(inBuf.get()) + samples, emusamples);
-		const unsigned insamples = ret < 0 ? samples + emusamples : samples + ret;
-		samples += emusamples;
-		samples -= insamples;
+		BlitterWrapper::Buf const &vbuf = blitter->inBuf();
+		unsigned runsamples = 35112 - gbsamples;
+		int const ret = gambatte.runFor(vbuf.pixels, vbuf.pitch,
+			reinterpret_cast<gambatte::uint_least32_t *>(gbAudioBuf.get()) + gbsamples,
+			runsamples);
+		std::size_t const insamples = ret < 0 ? gbsamples + runsamples : gbsamples + ret;
+		gbsamples += runsamples;
+		gbsamples -= insamples;
 
 		if (!keys[SDLK_TAB]) {
-			const bool blit = ret >= 0 && !skipSched.skipNext(audioBufLow);
-
+			bool const blit = ret >= 0 && !skipSched.skipNext(audioBufLow);
 			if (blit)
 				blitter->draw();
 
-			const long outsamples = resampler->resample(resampleBuf, inBuf, insamples);
-			const AudioData::Status &status = adata.write(resampleBuf, outsamples);
-			audioBufLow = status.fromUnderrun + outsamples < (status.fromOverflow - outsamples) * 2;
+			long const outsamples = resampler->resample(resampleBuf, gbAudioBuf, insamples);
+			AudioData::Status const &status = adata.write(resampleBuf, outsamples);
+			audioBufLow = status.fromUnderrun + outsamples
+			            < (status.fromOverflow - outsamples) * 2;
 
 			if (blit) {
 				syncfunc((16743ul - 16743 / 1024) * sampleRate / status.rate);
@@ -732,7 +781,8 @@ int GambatteSdl::exec() {
 			blitter->present();
 		}
 
-		std::memmove(inBuf, inBuf + insamples * 2, samples * 2 * sizeof *inBuf);
+		std::memmove(gbAudioBuf, gbAudioBuf + insamples * 2,
+		             gbsamples * 2 * sizeof *gbAudioBuf);
 	}
 
 	return 0;
