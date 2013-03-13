@@ -50,7 +50,7 @@ public:
 	}
 
 	virtual ~DescOption() {}
-	virtual char const * desc() const = 0;
+	virtual std::string const desc() const = 0;
 };
 
 class BoolOption : public DescOption {
@@ -61,7 +61,7 @@ public:
 	}
 
 	virtual void exec(char const *const *, int) { isSet_ = true; }
-	virtual char const * desc() const { return desc_; }
+	virtual std::string const desc() const { return desc_; }
 	bool isSet() const { return isSet_; }
 
 private:
@@ -85,7 +85,7 @@ public:
 		rate_ = r;
 	}
 
-	virtual char const * desc() const {
+	virtual std::string const desc() const {
 		return " N\t\tUse audio sample rate of N Hz\n"
 		       "\t\t\t\t    4000 <= N <= 192000, default: 48000\n";
 	}
@@ -112,7 +112,7 @@ public:
 		latency_ = l;
 	}
 
-	virtual char const * desc() const {
+	virtual std::string const desc() const {
 		return " N\t\tUse audio buffer latency of N ms\n"
 		       "\t\t\t\t    16 <= N <= 5000, default: 133\n";
 	}
@@ -139,7 +139,7 @@ public:
 		periods_ = p;
 	}
 
-	virtual char const * desc() const {
+	virtual std::string const desc() const {
 		return " N\t\tUse N audio buffer periods\n"
 		       "\t\t\t\t    1 <= N <= 32, default: 4\n";
 	}
@@ -166,7 +166,7 @@ public:
 		scale_ = s;
 	}
 
-	virtual char const * desc() const {
+	virtual std::string const desc() const {
 		return " N\t\t\tScale video output by an integer factor of N\n";
 	}
 
@@ -196,7 +196,7 @@ public:
 		                               VfilterInfo::numVfilters() - 1);
 	}
 
-	virtual char const * desc() const { return s_.c_str(); }
+	virtual std::string const desc() const { return s_; }
 	unsigned filterNumber() const { return filterNo_; }
 
 private:
@@ -231,7 +231,7 @@ public:
 			resamplerNo_ = n;
 	}
 
-	virtual char const * desc() const { return s_.c_str(); }
+	virtual std::string const desc() const { return s_; }
 	unsigned resamplerNumber() const { return resamplerNo_; }
 
 private:
@@ -290,7 +290,7 @@ public:
 
 	virtual void exec(char const *const *argv, int index);
 
-	virtual char const * desc() const {
+	virtual std::string const desc() const {
 		return " KEYS\t\tUse the 8 given input KEYS for respectively\n"
 		       "\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n";
 	}
@@ -453,7 +453,7 @@ static void printUsage(std::vector<DescOption*> const &v) {
 		else
 			std::printf("    ");
 
-		std::printf("--%s%s\n", v[i]->str(), v[i]->desc());
+		std::printf("--%s%s\n", v[i]->str(), v[i]->desc().c_str());
 	}
 }
 
