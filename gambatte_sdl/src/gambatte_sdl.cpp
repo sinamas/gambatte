@@ -540,14 +540,14 @@ int GambatteSdl::init(int argc, char **argv) {
 
 		resampler.reset(ResamplerInfo::get(resamplerOption.resamplerNumber()).create(2097152, sampleRate, inBuf.size() / 2));
 
-		unsigned const gbbuts[8] = {
+		unsigned const gbbuts[] = {
 			InputGetter::START, InputGetter::SELECT,
 			InputGetter::A, InputGetter::B,
 			InputGetter::UP, InputGetter::DOWN,
-			InputGetter::LEFT, InputGetter::RIGHT
+			InputGetter::LEFT, InputGetter::RIGHT,
 		};
 
-		for (unsigned i = 0; i < 8; ++i) {
+		for (std::size_t i = 0; i < sizeof gbbuts / sizeof *gbbuts; ++i) {
 			const InputOption::InputId &id = inputOption.getKeys()[i];
 
 			if (id.type == InputOption::InputId::KEY) {
