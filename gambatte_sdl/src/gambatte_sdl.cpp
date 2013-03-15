@@ -760,9 +760,12 @@ bool GambatteSdl::handleEvents(BlitterWrapper &blitter) {
 	return false;
 }
 
+static std::size_t const gb_samples_per_frame = 35112;
+static std::size_t const gambatte_max_overproduction = 2064;
+
 int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned const periods,
                      ResamplerInfo const &resamplerInfo, BlitterWrapper &blitter) {
-	Array<Uint32> const audioBuf(35112 + 2064);
+	Array<Uint32> const audioBuf(gb_samples_per_frame + gambatte_max_overproduction);
 	AudioOut aout(sampleRate, latency, periods, resamplerInfo, audioBuf.size());
 	SkipSched skipSched;
 	Uint8 const *const keys = SDL_GetKeyState(0);
@@ -776,7 +779,7 @@ int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned
 			return 0;
 
 		BlitterWrapper::Buf const &vbuf = blitter.inBuf();
-		unsigned runsamples = 35112 - bufsamples;
+		unsigned runsamples = gb_samples_per_frame - bufsamples;
 		long const vidFrameDoneSampleCnt = gambatte.runFor(
 			vbuf.pixels, vbuf.pitch, audioBuf + bufsamples, runsamples);
 		std::size_t const outsamples = vidFrameDoneSampleCnt >= 0
