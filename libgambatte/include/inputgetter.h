@@ -20,14 +20,18 @@
 #define GAMBATTE_INPUTGETTER_H
 
 namespace gambatte {
+
 class InputGetter {
 public:
-	enum { A = 0x01, B = 0x02, SELECT = 0x04, START = 0x08, RIGHT = 0x10, LEFT = 0x20, UP = 0x40, DOWN = 0x80 };
+	enum Button { A     = 0x01, B    = 0x02, SELECT = 0x04, START = 0x08,
+	              RIGHT = 0x10, LEFT = 0x20, UP     = 0x40, DOWN  = 0x80 };
+
 	virtual ~InputGetter() {};
 
 	/** @return A|B|SELECT|START|RIGHT|LEFT|UP|DOWN if those buttons are pressed. */
 	virtual unsigned operator()() = 0;
 };
+
 }
 
 #endif
