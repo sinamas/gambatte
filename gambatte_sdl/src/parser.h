@@ -40,7 +40,7 @@ public:
 	};
 
 	void add(Option *o);
-	int parse(int argc, char const *const *argv, int index);
+	int parse(int argc, char const *const *argv, int index) const;
 
 private:
 	struct StrLess {
@@ -57,8 +57,8 @@ private:
 
 	void addLong(Option *o);
 	void addShort(Option *o);
-	int parseLong(int argc, char const *const *argv, int index);
-	int parseShort(int argc, char const *const *argv, int index);
+	int parseLong(int argc, char const *const *argv, int index) const;
+	int parseShort(int argc, char const *const *argv, int index) const;
 };
 
 #endif

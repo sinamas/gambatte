@@ -29,8 +29,8 @@ void Parser::addLong(Option *o) {
 	lMap.insert(std::pair<char const *, Option *>(o->str(), o));
 }
 
-int Parser::parseLong(int const argc, char const *const argv[], int const index) {
-	lmap_t::iterator it = lMap.find(argv[index] + 2);
+int Parser::parseLong(int const argc, char const *const argv[], int const index) const {
+	lmap_t::const_iterator it = lMap.find(argv[index] + 2);
 	if (it == lMap.end())
 		return 0;
 
@@ -46,7 +46,7 @@ void Parser::addShort(Option *o) {
 	sMap.insert(std::pair<char, Option *>(o->character(), o));
 }
 
-int Parser::parseShort(int const argc, char const *const argv[], int const index) {
+int Parser::parseShort(int const argc, char const *const argv[], int const index) const {
 	char const *s = argv[index];
 	++s;
 
@@ -54,7 +54,7 @@ int Parser::parseShort(int const argc, char const *const argv[], int const index
 		return 0;
 
 	do {
-		smap_t::iterator const it = sMap.find(*s);
+		smap_t::const_iterator const it = sMap.find(*s);
 		if (it == sMap.end())
 			return 0;
 
@@ -80,7 +80,7 @@ void Parser::add(Option *o) {
 		addShort(o);
 }
 
-int Parser::parse(int argc, char const *const *argv, int index) {
+int Parser::parse(int argc, char const *const *argv, int index) const {
 	return argv[index][1] == '-'
 	     ? parseLong(argc, argv, index)
 	     : parseShort(argc, argv, index);
