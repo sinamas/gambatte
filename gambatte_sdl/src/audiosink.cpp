@@ -38,6 +38,26 @@ static unsigned nearestPowerOf2(unsigned const in) {
 	return out;
 }
 
+static int openAudio(unsigned srate, std::size_t samples,
+		void (*callback)(void *userdata, Uint8 *stream, int len),
+		void *userdata)
+{
+	SDL_AudioSpec spec;
+	spec.freq = srate;
+	spec.format = AUDIO_S16SYS;
+	spec.channels = 2;
+	spec.samples = samples;
+	spec.callback = callback;
+	spec.userdata = userdata;
+
+	if (SDL_OpenAudio(&spec, 0) < 0) {
+		std::fprintf(stderr, "Could not open audio: %s\n", SDL_GetError());
+		return -1;
+	}
+
+	return 0;
+}
+
 class LockGuard {
 public:
 	explicit LockGuard(SDL_mutex *m) : m_(m) { SDL_mutexP(m); }
@@ -58,21 +78,9 @@ AudioSink::AudioSink(unsigned const srate, unsigned const latency, unsigned cons
 , rateEst_(srate)
 , mut_(SDL_CreateMutex())
 , bufReadyCond_(SDL_CreateCond())
-, failed_(false)
+, failed_(openAudio(srate, rbuf_.size() / 2 / periods, fillBuffer, this) < 0)
 {
 	rbuf_.fill(0);
-
-	SDL_AudioSpec spec;
-	spec.freq = srate;
-	spec.format = AUDIO_S16SYS;
-	spec.channels = 2;
-	spec.samples = rbuf_.size() / 2 / periods;
-	spec.callback = fillBuffer;
-	spec.userdata = this;
-	if (SDL_OpenAudio(&spec, 0) < 0) {
-		std::fprintf(stderr, "Could not open audio: %s\n", SDL_GetError());
-		failed_ = true;
-	}
 }
 
 AudioSink::~AudioSink() {

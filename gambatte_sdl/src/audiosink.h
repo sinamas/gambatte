@@ -49,7 +49,7 @@ private:
 	RateEst rateEst_;
 	scoped_ptr<SDL_mutex, SdlDeleter> const mut_;
 	scoped_ptr<SDL_cond, SdlDeleter> const bufReadyCond_;
-	bool failed_;
+	bool const failed_;
 
 	static void fillBuffer(void *data, Uint8 *stream, int len) {
 		static_cast<AudioSink *>(data)->read(stream, len);
