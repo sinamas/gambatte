@@ -16,13 +16,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "adaptivesleep.h"
 #include "audiodata.h"
 #include "blitterwrapper.h"
 #include "parser.h"
 #include "resample/resamplerinfo.h"
 #include "skipsched.h"
 #include "str_to_sdlkey.h"
-#include "syncfunc.h"
 #include "videolink/vfilterinfo.h"
 #include <gambatte.h>
 #include <pakinfo.h>
@@ -420,6 +420,20 @@ private:
 	AudioData sink_;
 };
 
+class FrameWait {
+public:
+	FrameWait() : last_() {}
+
+	void waitForNextFrameTime(usec_t frametime) {
+		last_ += asleep_.sleepUntil(last_, frametime);
+		last_ += frametime;
+	}
+
+private:
+	AdaptiveSleep asleep_;
+	usec_t last_;
+};
+
 class GetInput : public InputGetter {
 public:
 	unsigned is;
@@ -768,6 +782,7 @@ int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned
                      ResamplerInfo const &resamplerInfo, BlitterWrapper &blitter) {
 	Array<Uint32> const audioBuf(gb_samples_per_frame + gambatte_max_overproduction);
 	AudioOut aout(sampleRate, latency, periods, resamplerInfo, audioBuf.size());
+	FrameWait frameWait;
 	SkipSched skipSched;
 	Uint8 const *const keys = SDL_GetKeyState(0);
 	std::size_t bufsamples = 0;
@@ -803,7 +818,8 @@ int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned
 			AudioOut::Status const &astatus = aout.write(audioBuf, outsamples);
 			audioOutBufLow = astatus.low;
 			if (blit) {
-				syncfunc((16743ul - 16743 / 1024) * sampleRate / astatus.rate);
+				usec_t ft = (16743ul - 16743 / 1024) * sampleRate / astatus.rate;
+				frameWait.waitForNextFrameTime(ft);
 				blitter.present();
 			}
 		}

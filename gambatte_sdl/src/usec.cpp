@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,10 +15,14 @@
  *   version 2 along with this program; if not, write to the               *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
-#ifndef SYNCFUNC_H
-#define SYNCFUNC_H
+ ***************************************************************************/
+#include "usec.h"
+#include <SDL.h>
 
-void syncfunc(long inc);
+usec_t getusecs() {
+	return SDL_GetTicks() * usec_t(1000);
+}
 
-#endif
+void usecsleep(usec_t usecs) {
+	SDL_Delay((usecs + 999) / 1000);
+}

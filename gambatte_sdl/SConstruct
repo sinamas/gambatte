@@ -19,7 +19,7 @@ sourceFiles = Split('''
 			src/parser.cpp
 			src/sdlblitter.cpp
 			src/str_to_sdlkey.cpp
-			src/syncfunc.cpp
+			src/usec.cpp
 			../common/adaptivesleep.cpp
 			../common/resample/src/chainresampler.cpp
 			../common/resample/src/i0.cpp
