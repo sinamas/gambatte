@@ -14,7 +14,7 @@ env.ParseConfig('sdl-config --cflags --libs')
 
 sourceFiles = Split('''
 			src/gambatte_sdl.cpp
-			src/audiodata.cpp
+			src/audiosink.cpp
 			src/blitterwrapper.cpp
 			src/parser.cpp
 			src/sdlblitter.cpp

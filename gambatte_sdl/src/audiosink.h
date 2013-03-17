@@ -16,8 +16,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef AUDIODATA_H
-#define AUDIODATA_H
+#ifndef AUDIOSINK_H
+#define AUDIOSINK_H
 
 #include "ringbuffer.h"
 #include "rateest.h"
@@ -25,7 +25,7 @@
 #include <SDL.h>
 #include <cstddef>
 
-class AudioData {
+class AudioSink {
 public:
 	struct Status {
 		long fromUnderrun;
@@ -38,8 +38,8 @@ public:
 		}
 	};
 
-	AudioData(unsigned sampleRate, unsigned latency, unsigned periods);
-	~AudioData();
+	AudioSink(unsigned sampleRate, unsigned latency, unsigned periods);
+	~AudioSink();
 	Status write(Sint16 const *inBuf, std::size_t samples);
 
 private:
@@ -52,7 +52,7 @@ private:
 	bool failed_;
 
 	static void fillBuffer(void *data, Uint8 *stream, int len) {
-		static_cast<AudioData *>(data)->read(stream, len);
+		static_cast<AudioSink *>(data)->read(stream, len);
 	}
 
 	void read(Uint8 *stream, std::size_t len);

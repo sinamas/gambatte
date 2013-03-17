@@ -17,7 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "adaptivesleep.h"
-#include "audiodata.h"
+#include "audiosink.h"
 #include "blitterwrapper.h"
 #include "parser.h"
 #include "resample/resamplerinfo.h"
@@ -409,7 +409,7 @@ public:
 	Status write(Uint32 const *data, std::size_t samples) {
 		long const outsamples = resampler_->resample(
 			resampleBuf_, reinterpret_cast<Sint16 const *>(data), samples);
-		AudioData::Status const &stat = sink_.write(resampleBuf_, outsamples);
+		AudioSink::Status const &stat = sink_.write(resampleBuf_, outsamples);
 		bool low = stat.fromUnderrun + outsamples < (stat.fromOverflow - outsamples) * 2;
 		return Status(stat.rate, low);
 	}
@@ -417,7 +417,7 @@ public:
 private:
 	scoped_ptr<Resampler> const resampler_;
 	Array<Sint16> const resampleBuf_;
-	AudioData sink_;
+	AudioSink sink_;
 };
 
 class FrameWait {

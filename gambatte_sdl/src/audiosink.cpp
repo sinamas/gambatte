@@ -16,7 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "audiodata.h"
+#include "audiosink.h"
 #include <SDL_thread.h>
 #include <cstdio>
 
@@ -48,12 +48,12 @@ private:
 
 } // anon ns
 
-struct AudioData::SdlDeleter {
+struct AudioSink::SdlDeleter {
 	static void del(SDL_mutex *m) { SDL_DestroyMutex(m); }
 	static void del(SDL_cond *c) { SDL_DestroyCond(c); }
 };
 
-AudioData::AudioData(unsigned const srate, unsigned const latency, unsigned const periods)
+AudioSink::AudioSink(unsigned const srate, unsigned const latency, unsigned const periods)
 : rbuf_(nearestPowerOf2(srate * latency / ((periods + 1) * 1000)) * periods * 2)
 , rateEst_(srate)
 , mut_(SDL_CreateMutex())
@@ -75,12 +75,12 @@ AudioData::AudioData(unsigned const srate, unsigned const latency, unsigned cons
 	}
 }
 
-AudioData::~AudioData() {
+AudioSink::~AudioSink() {
 	SDL_PauseAudio(1);
 	SDL_CloseAudio();
 }
 
-AudioData::Status AudioData::write(Sint16 const *inBuf, std::size_t samples) {
+AudioSink::Status AudioSink::write(Sint16 const *inBuf, std::size_t samples) {
 	if (failed_)
 		return Status(rbuf_.size() / 2, 0, rateEst_.result());
 
@@ -98,7 +98,7 @@ AudioData::Status AudioData::write(Sint16 const *inBuf, std::size_t samples) {
 	return status;
 }
 
-void AudioData::read(Uint8 *const stream, std::size_t const len) {
+void AudioSink::read(Uint8 *const stream, std::size_t const len) {
 	if (failed_)
 		return;
 
