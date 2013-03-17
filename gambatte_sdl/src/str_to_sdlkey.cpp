@@ -30,9 +30,8 @@ struct StrLess {
 };
 
 typedef std::map<char const *, SDLKey, StrLess> map_t;
-static map_t m;
 
-static void init() {
+static void initStrKeyMap(map_t &m) {
 	m.insert(std::make_pair("backspace", SDLK_BACKSPACE));
 	m.insert(std::make_pair("tab", SDLK_TAB));
 	m.insert(std::make_pair("clear", SDLK_CLEAR));
@@ -266,20 +265,22 @@ static void init() {
 	m.insert(std::make_pair("undo", SDLK_UNDO));
 }
 
+static map_t makeStrKeyMap() {
+	map_t m;
+	initStrKeyMap(m);
+	return m;
+}
+
+static map_t const m = makeStrKeyMap();
+
 } // anon ns
 
 void printStrSdlkeys() {
-	if (m.empty())
-		init();
-
-	for (map_t::iterator it = m.begin(); it != m.end(); ++it)
+	for (map_t::const_iterator it = m.begin(); it != m.end(); ++it)
 		printf("%s\n", it->first);
 }
 
 SDLKey const * strToSdlkey(char const *str) {
-	if (m.empty())
-		init();
-
-	map_t::iterator it = m.find(str);
+	map_t::const_iterator it = m.find(str);
 	return it == m.end() ? 0 : &it->second;
 }
