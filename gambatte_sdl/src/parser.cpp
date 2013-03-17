@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "parser.h"
+#include <utility>
 
 Parser::Option::Option(char const *s, char c, int nArgs)
 : s_(s)
@@ -26,7 +27,7 @@ Parser::Option::Option(char const *s, char c, int nArgs)
 }
 
 void Parser::addLong(Option *o) {
-	lMap.insert(std::pair<char const *, Option *>(o->str(), o));
+	lMap.insert(std::make_pair(o->str(), o));
 }
 
 int Parser::parseLong(int const argc, char const *const argv[], int const index) const {
@@ -43,7 +44,7 @@ int Parser::parseLong(int const argc, char const *const argv[], int const index)
 }
 
 void Parser::addShort(Option *o) {
-	sMap.insert(std::pair<char, Option *>(o->character(), o));
+	sMap.insert(std::make_pair(o->character(), o));
 }
 
 int Parser::parseShort(int const argc, char const *const argv[], int const index) const {
