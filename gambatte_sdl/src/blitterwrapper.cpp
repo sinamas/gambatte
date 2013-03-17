@@ -19,6 +19,7 @@
 #include "blitterwrapper.h"
 #include "videolink/rgb32conv.h"
 #include "videolink/vfilterinfo.h"
+#include "videolink/videolink.h"
 
 BlitterWrapper::BlitterWrapper(VfilterInfo const &vfinfo, int scale, bool yuv, bool full)
 : blitter_(vfinfo.outWidth, vfinfo.outHeight, scale, yuv, full)
@@ -26,6 +27,9 @@ BlitterWrapper::BlitterWrapper(VfilterInfo const &vfinfo, int scale, bool yuv, b
                               vfinfo.outWidth, vfinfo.outHeight))
 , vfilter_(vfinfo.create())
 {
+}
+
+BlitterWrapper::~BlitterWrapper() {
 }
 
 BlitterWrapper::Buf const BlitterWrapper::inBuf() const {

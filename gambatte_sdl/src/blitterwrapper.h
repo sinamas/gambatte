@@ -22,7 +22,6 @@
 #include "gbint.h"
 #include "scoped_ptr.h"
 #include "sdlblitter.h"
-#include "videolink/videolink.h"
 
 class VfilterInfo;
 class VideoLink;
@@ -32,6 +31,7 @@ public:
 	struct Buf { gambatte::uint_least32_t *pixels; std::ptrdiff_t pitch; };
 
 	BlitterWrapper(VfilterInfo const &, int scale, bool yuv, bool full);
+	~BlitterWrapper();
 	Buf const inBuf() const;
 	void draw();
 	void present() { blitter_.present(); }
