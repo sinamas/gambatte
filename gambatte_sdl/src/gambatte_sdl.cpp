@@ -778,6 +778,10 @@ bool GambatteSdl::handleEvents(BlitterWrapper &blitter) {
 static std::size_t const gb_samples_per_frame = 35112;
 static std::size_t const gambatte_max_overproduction = 2064;
 
+static bool isFastForward(Uint8 const *keys) {
+	return keys[SDLK_TAB];
+}
+
 int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned const periods,
                      ResamplerInfo const &resamplerInfo, BlitterWrapper &blitter) {
 	Array<Uint32> const audioBuf(gb_samples_per_frame + gambatte_max_overproduction);
@@ -791,7 +795,7 @@ int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned
 	SDL_PauseAudio(0);
 
 	for (;;) {
-		if (bool done = handleEvents(blitter))
+		if (handleEvents(blitter))
 			return 0;
 
 		BlitterWrapper::Buf const &vbuf = blitter.inBuf();
@@ -804,7 +808,7 @@ int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned
 		bufsamples += runsamples;
 		bufsamples -= outsamples;
 
-		if (bool fastForward = keys[SDLK_TAB]) {
+		if (isFastForward(keys)) {
 			if (vidFrameDoneSampleCnt >= 0) {
 				blitter.draw();
 				blitter.present();
