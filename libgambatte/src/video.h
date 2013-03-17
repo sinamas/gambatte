@@ -136,16 +136,18 @@ class LCD {
 
 	static void setDmgPalette(unsigned long palette[], const unsigned long dmgColors[], unsigned data);
 	void setDmgPaletteColor(unsigned index, unsigned long rgb32);
-
 	void refreshPalettes();
 	void setDBuffer();
-
 	void doMode2IrqEvent();
 	void event();
-
 	unsigned long m0TimeOfCurrentLine(unsigned long cc);
 	bool cgbpAccessible(unsigned long cycleCounter);
-
+	bool lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned long cc);
+	bool lycRegChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc);
+	bool statChangeTriggersM0LycOrM1StatIrqCgb(unsigned old, unsigned data, unsigned long cc);
+	bool statChangeTriggersStatIrqCgb(unsigned old, unsigned data, unsigned long cc);
+	bool statChangeTriggersStatIrqDmg(unsigned old, unsigned long cc);
+	bool statChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc);
 	void mode3CyclesChange();
 	void doCgbBgColorChange(unsigned index, unsigned data, unsigned long cycleCounter);
 	void doCgbSpColorChange(unsigned index, unsigned data, unsigned long cycleCounter);
