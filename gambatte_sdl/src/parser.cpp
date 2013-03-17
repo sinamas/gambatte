@@ -18,47 +18,47 @@
  ***************************************************************************/
 #include "parser.h"
 
-Parser::Option::Option(const char *const s, const char c, const int nArgs) : s(s), nArgs(nArgs), c(c) {}
-
-void Parser::addLong(Option *const o) {
-	lMap.insert(std::pair<const char*,Option*>(o->str(), o));
+Parser::Option::Option(char const *s, char c, int nArgs)
+: s_(s)
+, nArgs_(nArgs)
+, c_(c)
+{
 }
 
-int Parser::parseLong(const int argc, const char *const *const argv, const int index) {
-	lmap_t::iterator it = lMap.find(argv[index] + 2);
+void Parser::addLong(Option *o) {
+	lMap.insert(std::pair<char const *, Option *>(o->str(), o));
+}
 
+int Parser::parseLong(int const argc, char const *const argv[], int const index) {
+	lmap_t::iterator it = lMap.find(argv[index] + 2);
 	if (it == lMap.end())
 		return 0;
 
 	Option &e = *(it->second);
-
 	if (e.neededArgs() >= argc - index)
 		return 0;
 
 	e.exec(argv, index);
-
 	return index + e.neededArgs();
 }
 
-void Parser::addShort(Option *const o) {
-	sMap.insert(std::pair<char,Option*>(o->character(), o));
+void Parser::addShort(Option *o) {
+	sMap.insert(std::pair<char, Option *>(o->character(), o));
 }
 
-int Parser::parseShort(const int argc, const char *const *const argv, const int index) {
-	const char *s = argv[index];
+int Parser::parseShort(int const argc, char const *const argv[], int const index) {
+	char const *s = argv[index];
 	++s;
 
 	if (!(*s))
 		return 0;
 
 	do {
-		const smap_t::iterator it = sMap.find(*s);
-
+		smap_t::iterator const it = sMap.find(*s);
 		if (it == sMap.end())
 			return 0;
 
 		Option &e = *(it->second);
-
 		if (e.neededArgs()) {
 			if (s[1] || e.neededArgs() >= argc - index)
 				return 0;
@@ -73,13 +73,15 @@ int Parser::parseShort(const int argc, const char *const *const argv, const int 
 	return index;
 }
 
-void Parser::add(Option *const o) {
+void Parser::add(Option *o) {
 	addLong(o);
 
 	if (o->character())
 		addShort(o);
 }
 
-int Parser::parse(const int argc, const char *const *const argv, const int index) {
-	return (argv[index][1] == '-') ? parseLong(argc, argv, index) : parseShort(argc, argv, index);
+int Parser::parse(int argc, char const *const *argv, int index) {
+	return argv[index][1] == '-'
+	     ? parseLong(argc, argv, index)
+	     : parseShort(argc, argv, index);
 }

@@ -19,46 +19,46 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <map>
 #include <cstring>
+#include <map>
 
 class Parser {
 public:
 	class Option {
-		const char *const s;
-		const int nArgs;
-		const char c;
-
 	public:
-		explicit Option(const char *s, char c = 0, int nArgs = 0);
+		explicit Option(char const *s, char c = 0, int nArgs = 0);
 		virtual ~Option() {}
-		char character() const { return c; }
-		const char* str() const { return s; }
-		int neededArgs() const { return nArgs; }
-		virtual void exec(const char *const */*argv*/, int /*index*/) = 0;
+		virtual void exec(char const *const *argv, int index) = 0;
+		char character() const { return c_; }
+		char const * str() const { return s_; }
+		int neededArgs() const { return nArgs_; }
+
+	private:
+		char const *const s_;
+		int const nArgs_;
+		char const c_;
 	};
+
+	void add(Option *o);
+	int parse(int argc, char const *const *argv, int index);
 
 private:
 	struct StrLess {
-		bool operator()(const char *const l, const char *const r) const {
+		bool operator()(char const *l, char const *r) const {
 			return std::strcmp(l, r) < 0;
 		}
 	};
 
-	typedef std::map<char,Option*> smap_t;
-	typedef std::map<const char*,Option*,StrLess> lmap_t;
+	typedef std::map<char, Option *> smap_t;
+	typedef std::map<char const *, Option *, StrLess> lmap_t;
 
 	smap_t sMap;
 	lmap_t lMap;
 
 	void addLong(Option *o);
 	void addShort(Option *o);
-	int parseLong(int argc, const char *const *argv, int index);
-	int parseShort(int argc, const char *const *argv, int index);
-
-public:
-	void add(Option *o);
-	int parse(int argc, const char *const *argv, int index);
+	int parseLong(int argc, char const *const *argv, int index);
+	int parseShort(int argc, char const *const *argv, int index);
 };
 
 #endif
