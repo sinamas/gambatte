@@ -243,11 +243,11 @@ private:
 };
 
 struct JoyData {
-	enum { CENTERED = SDL_HAT_CENTERED,
-	       LEFT = SDL_HAT_LEFT,
-	       RIGHT = SDL_HAT_RIGHT,
-	       UP = SDL_HAT_UP,
-	       DOWN = SDL_HAT_DOWN };
+	enum { dir_centered = SDL_HAT_CENTERED,
+	       dir_left     = SDL_HAT_LEFT,
+	       dir_right    = SDL_HAT_RIGHT,
+	       dir_up       = SDL_HAT_UP,
+	       dir_down     = SDL_HAT_DOWN };
 
 	union {
 		struct {
@@ -266,14 +266,13 @@ static inline bool operator<(JoyData const &l, JoyData const &r) {
 }
 
 struct InputId {
-	enum { KEY, JOYBUT, JOYAX, JOYHAT } type;
-
+	enum { type_key, type_jbutton, type_jaxis, type_jhat } type;
 	union {
 		JoyData jdata;
-		SDLKey key;
+		SDLKey keydata;
 	};
 
-	InputId() : type(KEY), key() {}
+	InputId() : type(type_key), keydata() {}
 };
 
 class InputOption : public DescOption {
@@ -281,14 +280,14 @@ public:
 	InputOption()
 	: DescOption("input", 'i', 8)
 	{
-		ids_[0].key = SDLK_RETURN;
-		ids_[1].key = SDLK_RSHIFT;
-		ids_[2].key = SDLK_d;
-		ids_[3].key = SDLK_c;
-		ids_[4].key = SDLK_UP;
-		ids_[5].key = SDLK_DOWN;
-		ids_[6].key = SDLK_LEFT;
-		ids_[7].key = SDLK_RIGHT;
+		ids_[0].keydata = SDLK_RETURN;
+		ids_[1].keydata = SDLK_RSHIFT;
+		ids_[2].keydata = SDLK_d;
+		ids_[3].keydata = SDLK_c;
+		ids_[4].keydata = SDLK_UP;
+		ids_[5].keydata = SDLK_DOWN;
+		ids_[6].keydata = SDLK_LEFT;
+		ids_[7].keydata = SDLK_RIGHT;
 	}
 
 	virtual void exec(char const *const *argv, int index);
@@ -350,7 +349,7 @@ void InputOption::exec(char const *const *argv, int index) {
 				if (send - s != 0)
 					continue;
 
-				id.type = InputId::JOYBUT;
+				id.type = InputId::type_jbutton;
 			} else {
 				if (send - s != 1)
 					continue;
@@ -360,23 +359,23 @@ void InputOption::exec(char const *const *argv, int index) {
 				switch (type) {
 				case 'a':
 					switch (dir) {
-					case '+': id.jdata.dir = JoyData::UP; break;
-					case '-': id.jdata.dir = JoyData::DOWN; break;
+					case '+': id.jdata.dir = JoyData::dir_up; break;
+					case '-': id.jdata.dir = JoyData::dir_down; break;
 					default: continue;
 					}
 
-					id.type = InputId::JOYAX;
+					id.type = InputId::type_jaxis;
 					break;
 				case 'h':
 					switch (dir) {
-					case 'u': id.jdata.dir = JoyData::UP;
-					case 'd': id.jdata.dir = JoyData::DOWN;
-					case 'l': id.jdata.dir = JoyData::LEFT;
-					case 'r': id.jdata.dir = JoyData::RIGHT;
+					case 'u': id.jdata.dir = JoyData::dir_up;
+					case 'd': id.jdata.dir = JoyData::dir_down;
+					case 'l': id.jdata.dir = JoyData::dir_left;
+					case 'r': id.jdata.dir = JoyData::dir_right;
 					default: continue;
 					}
 
-					id.type = InputId::JOYHAT;
+					id.type = InputId::type_jhat;
 					break;
 				default: continue;
 				}
@@ -384,8 +383,8 @@ void InputOption::exec(char const *const *argv, int index) {
 
 			ids_[i] = id;
 		} else if (SDLKey const *k = strToSdlkey(s)) {
-			ids_[i].type = InputId::KEY;
-			ids_[i].key = *k;
+			ids_[i].type = InputId::type_key;
+			ids_[i].keydata = *k;
 		}
 	}
 }
@@ -610,16 +609,16 @@ int GambatteSdl::exec(int const argc, char const *const argv[]) {
 
 	for (std::size_t i = 0; i < inputOption.numMappings(); ++i) {
 		std::pair<InputId, InputGetter::Button> const m = inputOption.mapping(i);
-		if (m.first.type == InputId::KEY) {
-			keyMap.insert(std::make_pair(m.first.key, m.second));
+		if (m.first.type == InputId::type_key) {
+			keyMap.insert(std::make_pair(m.first.keydata, m.second));
 		} else {
 			jmap_t::value_type pair(m.first.jdata, m.second);
 			jdevnums.insert(m.first.jdata.dev_num);
 
 			switch (m.first.type) {
-			case InputId::JOYBUT: jbMap.insert(pair); break;
-			case InputId::JOYAX: jaMap.insert(pair); break;
-			case InputId::JOYHAT: jhMap.insert(pair); break;
+			case InputId::type_jbutton: jbMap.insert(pair); break;
+			case InputId::type_jaxis:   jaMap.insert(pair); break;
+			case InputId::type_jhat:    jhMap.insert(pair); break;
 			default: break;
 			}
 		}
@@ -674,8 +673,8 @@ bool GambatteSdl::handleEvents(BlitterWrapper &blitter) {
 		jd.dev_num = e.jaxis.which;
 		jd.num = e.jaxis.axis;
 		jd.dir = e.jaxis.value < -8192
-		       ? JoyData::DOWN
-		       : (e.jaxis.value > 8192 ? JoyData::UP : JoyData::CENTERED);
+		       ? JoyData::dir_down
+		       : (e.jaxis.value > 8192 ? JoyData::dir_up : JoyData::dir_centered);
 
 		for (std::pair<jmap_t::iterator, jmap_t::iterator> range =
 				jaMap.equal_range(jd); range.first != range.second; ++range.first) {
