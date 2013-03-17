@@ -16,13 +16,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #ifndef STR_TO_SDLKEY_H
 #define STR_TO_SDLKEY_H
 
 #include <SDL.h>
 
-const SDLKey* strToSdlkey(const char *str);
+SDLKey const * strToSdlkey(char const *str);
 void printStrSdlkeys();
 
 #endif
