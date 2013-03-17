@@ -265,30 +265,30 @@ static inline bool operator<(JoyData const &l, JoyData const &r) {
 	return l.id < r.id;
 }
 
-class InputOption : public DescOption {
-public:
-	struct InputId {
-		enum { KEY, JOYBUT, JOYAX, JOYHAT } type;
+struct InputId {
+	enum { KEY, JOYBUT, JOYAX, JOYHAT } type;
 
-		union {
-			JoyData jdata;
-			SDLKey key;
-		};
-
-		InputId() : type(KEY) {}
+	union {
+		JoyData jdata;
+		SDLKey key;
 	};
 
+	InputId() : type(KEY), key() {}
+};
+
+class InputOption : public DescOption {
+public:
 	InputOption()
 	: DescOption("input", 'i', 8)
 	{
-		keys_[0].key = SDLK_RETURN;
-		keys_[1].key = SDLK_RSHIFT;
-		keys_[2].key = SDLK_d;
-		keys_[3].key = SDLK_c;
-		keys_[4].key = SDLK_UP;
-		keys_[5].key = SDLK_DOWN;
-		keys_[6].key = SDLK_LEFT;
-		keys_[7].key = SDLK_RIGHT;
+		ids_[0].key = SDLK_RETURN;
+		ids_[1].key = SDLK_RSHIFT;
+		ids_[2].key = SDLK_d;
+		ids_[3].key = SDLK_c;
+		ids_[4].key = SDLK_UP;
+		ids_[5].key = SDLK_DOWN;
+		ids_[6].key = SDLK_LEFT;
+		ids_[7].key = SDLK_RIGHT;
 	}
 
 	virtual void exec(char const *const *argv, int index);
@@ -298,16 +298,27 @@ public:
 		       "\t\t\t\t    START SELECT A B UP DOWN LEFT RIGHT\n";
 	}
 
-	InputId const * keys() const { return keys_; }
+	std::pair<InputId, InputGetter::Button> mapping(std::size_t i) const {
+		static InputGetter::Button const gbbuts[] = {
+			InputGetter::START, InputGetter::SELECT,
+			InputGetter::A,     InputGetter::B,
+			InputGetter::UP,    InputGetter::DOWN,
+			InputGetter::LEFT,  InputGetter::RIGHT,
+		};
+
+		return std::make_pair(ids_[i], gbbuts[i]);
+	}
+
+	std::size_t numMappings() const { return sizeof ids_ / sizeof *ids_; }
 
 private:
-	InputId keys_[8];
+	InputId ids_[8];
 };
 
 void InputOption::exec(char const *const *argv, int index) {
 	++index;
 
-	for (std::size_t i = 0; i < sizeof keys_ / sizeof *keys_; ++i) {
+	for (std::size_t i = 0; i < sizeof ids_ / sizeof *ids_; ++i) {
 		char const *s = argv[index + i];
 
 		if (s[0] == 'j' && s[1] == 's') {
@@ -371,10 +382,10 @@ void InputOption::exec(char const *const *argv, int index) {
 				}
 			}
 
-			keys_[i] = id;
+			ids_[i] = id;
 		} else if (SDLKey const *k = strToSdlkey(s)) {
-			keys_[i].type = InputId::KEY;
-			keys_[i].key = *k;
+			ids_[i].type = InputId::KEY;
+			ids_[i].key = *k;
 		}
 	}
 }
@@ -459,8 +470,8 @@ public:
 	int exec(int argc, char const *const argv[]);
 
 private:
-	typedef std::multimap<SDLKey, unsigned> keymap_t;
-	typedef std::multimap<JoyData, unsigned> jmap_t;
+	typedef std::multimap<SDLKey,  InputGetter::Button> keymap_t;
+	typedef std::multimap<JoyData, InputGetter::Button> jmap_t;
 
 	GetInput inputGetter;
 	GB gambatte;
@@ -596,29 +607,19 @@ int GambatteSdl::exec(int const argc, char const *const argv[]) {
 		}
 	}
 
-	{
-		unsigned const gbbuts[] = {
-			InputGetter::START, InputGetter::SELECT,
-			InputGetter::A, InputGetter::B,
-			InputGetter::UP, InputGetter::DOWN,
-			InputGetter::LEFT, InputGetter::RIGHT,
-		};
+	for (std::size_t i = 0; i < inputOption.numMappings(); ++i) {
+		std::pair<InputId, InputGetter::Button> const m = inputOption.mapping(i);
+		if (m.first.type == InputId::KEY) {
+			keyMap.insert(std::make_pair(m.first.key, m.second));
+		} else {
+			jmap_t::value_type pair(m.first.jdata, m.second);
+			jdevnums.insert(m.first.jdata.dev_num);
 
-		for (std::size_t i = 0; i < sizeof gbbuts / sizeof *gbbuts; ++i) {
-			InputOption::InputId const &id = inputOption.keys()[i];
-
-			if (id.type == InputOption::InputId::KEY) {
-				keyMap.insert(std::make_pair(id.key, gbbuts[i]));
-			} else {
-				jmap_t::value_type pair(id.jdata, gbbuts[i]);
-				jdevnums.insert(id.jdata.dev_num);
-
-				switch (id.type) {
-				case InputOption::InputId::JOYBUT: jbMap.insert(pair); break;
-				case InputOption::InputId::JOYAX: jaMap.insert(pair); break;
-				case InputOption::InputId::JOYHAT: jhMap.insert(pair); break;
-				default: break;
-				}
+			switch (m.first.type) {
+			case InputId::JOYBUT: jbMap.insert(pair); break;
+			case InputId::JOYAX: jaMap.insert(pair); break;
+			case InputId::JOYHAT: jhMap.insert(pair); break;
+			default: break;
 			}
 		}
 	}
