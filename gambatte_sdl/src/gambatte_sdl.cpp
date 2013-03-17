@@ -485,19 +485,20 @@ private:
 	        ResamplerInfo const &resamplerInfo, BlitterWrapper &blitter);
 };
 
-static void printUsage(std::vector<DescOption*> const &v) {
+static void printOptionUsage(DescOption const *const o) {
+	std::printf("  ");
+
+	if (char c = o->character())
+		std::printf("-%c, ", c);
+	else
+		std::printf("    ");
+
+	std::printf("--%s%s\n", o->str(), o->desc().c_str());
+}
+
+static void printUsage(std::vector<DescOption *> const &v) {
 	std::puts("Usage: gambatte_sdl [OPTION]... romfile\n");
-
-	for (std::size_t i = 0; i < v.size(); ++i) {
-		std::printf("  ");
-
-		if (v[i]->character())
-			std::printf("-%c, ", v[i]->character());
-		else
-			std::printf("    ");
-
-		std::printf("--%s%s\n", v[i]->str(), v[i]->desc().c_str());
-	}
+	std::for_each(v.begin(), v.end(), printOptionUsage);
 }
 
 static void printValidInputKeys() {
