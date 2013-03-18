@@ -32,17 +32,17 @@ namespace gambatte {
 
 class VideoInterruptRequester {
 public:
-	explicit VideoInterruptRequester(InterruptRequester *intreq)
+	explicit VideoInterruptRequester(InterruptRequester &intreq)
 	: intreq_(intreq)
 	{
 	}
 
 	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq_); }
-	void flagIrq(unsigned bit) const { intreq_->flagIrq(bit); }
-	void setNextEventTime(unsigned long time) const { intreq_->setEventTime<VIDEO>(time); }
+	void flagIrq(unsigned bit) const { intreq_.flagIrq(bit); }
+	void setNextEventTime(unsigned long time) const { intreq_.setEventTime<VIDEO>(time); }
 
 private:
-	InterruptRequester *const intreq_;
+	InterruptRequester &intreq_;
 };
 
 class LCD {

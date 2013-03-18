@@ -29,7 +29,7 @@ Memory::Memory(const Interrupter &interrupter_in)
 : getInput(0),
   divLastUpdate(0),
   lastOamDmaUpdate(DISABLED_TIME),
-  display(ioamhram, 0, VideoInterruptRequester(&intreq)),
+  display(ioamhram, 0, VideoInterruptRequester(intreq)),
   interrupter(interrupter_in),
   dmaSource(0),
   dmaDestination(0),
@@ -205,7 +205,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 			unsigned dmaLength = ((ioamhram[0x155] & 0x7F) + 0x1) * 0x10;
 			unsigned length = hdmaReqFlagged(intreq) ? 0x10 : dmaLength;
 
-			ackDmaReq(&intreq);
+			ackDmaReq(intreq);
 
 			if ((static_cast<unsigned long>(dmaDest) + length) & 0x10000) {
 				length = 0x10000 - dmaDest;
@@ -802,7 +802,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 					intreq.setEventTime<BLIT>(cycleCounter + (456 * 4 << isDoubleSpeed()));
 
 					if (hdmaEnabled)
-						flagHdmaReq(&intreq);
+						flagHdmaReq(intreq);
 				}
 			} else
 				display.lcdcChange(data, cycleCounter);
@@ -891,9 +891,9 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 					if (ioamhram[0x140] & 0x80) {
 						display.enableHdma(cycleCounter);
 					} else
-						flagHdmaReq(&intreq);
+						flagHdmaReq(intreq);
 				} else
-					flagGdmaReq(&intreq);
+					flagGdmaReq(intreq);
 			}
 		}
 
