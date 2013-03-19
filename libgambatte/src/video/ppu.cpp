@@ -227,7 +227,7 @@ namespace M3Start {
 	static void f0(PPUPriv &p) {
 		p.xpos = 0;
 
-		if (p.winDrawState & p.lcdc >> 5 & win_draw_start) {
+		if ((p.winDrawState & win_draw_start) && lcdcWinEn(p)) {
 			p.winDrawState = win_draw_started;
 			p.wscx = 8 + (p.scx & 7);
 			++p.winYPos;
@@ -1191,7 +1191,7 @@ static unsigned predictCyclesUntilXposNextLine(
 		PPUPriv const &p, unsigned winDrawState, int const targetx) {
 	if (p.wx == 166 && !p.cgb && p.xpos < 167
 			&& (p.weMaster || (p.wy2 == p.lyCounter.ly() && lcdcWinEn(p)))) {
-		winDrawState = win_draw_start | (win_draw_started & p.lcdc >> 4);
+		winDrawState = win_draw_start | (lcdcWinEn(p) ? win_draw_started : 0);
 	}
 
 	unsigned const cycles = (nextM2Time(p) - p.now) >> p.lyCounter.isDoubleSpeed();
@@ -1238,8 +1238,8 @@ namespace Tile {
 			int const targetx, unsigned cycles) {
 		if ((winDrawState & win_draw_start)
 				&& handleWinDrawStartReq(p, xpos, winDrawState)) {
-			return StartWindowDraw::predictCyclesUntilXpos_fn(p, xpos, endx, ly,
-				nextSprite, weMaster, win_draw_started & p.lcdc >> 4, 0, targetx, cycles);
+			return StartWindowDraw::predictCyclesUntilXpos_fn(p, xpos, endx,
+				ly, nextSprite, weMaster, winDrawState, 0, targetx, cycles);
 		}
 
 		if (xpos > targetx)
@@ -1420,7 +1420,7 @@ namespace M3Start {
 
 	static unsigned predictCyclesUntilXpos_f0(PPUPriv const &p, unsigned ly,
 			bool weMaster, unsigned winDrawState, int targetx, unsigned cycles) {
-		winDrawState = (winDrawState & p.lcdc >> 5 & win_draw_start) ? win_draw_started : 0;
+		winDrawState = (winDrawState & win_draw_start) && lcdcWinEn(p) ? win_draw_started : 0;
 		return predictCyclesUntilXpos_f1(p, 0, ly, weMaster, winDrawState, targetx, cycles);
 	}
 
