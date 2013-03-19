@@ -29,12 +29,6 @@ namespace gambatte {
 struct PPUPriv;
 
 class PPUFrameBuf {
-	uint_least32_t *buf_;
-	uint_least32_t *fbline_;
-	std::ptrdiff_t pitch_;
-
-	static uint_least32_t * nullfbline() { static uint_least32_t nullfbline_[160]; return nullfbline_; }
-
 public:
 	PPUFrameBuf() : buf_(0), fbline_(nullfbline()), pitch_(0) {}
 	uint_least32_t * fb() const { return buf_; }
@@ -42,6 +36,13 @@ public:
 	std::ptrdiff_t pitch() const { return pitch_; }
 	void setBuf(uint_least32_t *buf, std::ptrdiff_t pitch) { buf_ = buf; pitch_ = pitch; fbline_ = nullfbline(); }
 	void setFbline(unsigned ly) { fbline_ = buf_ ? buf_ + std::ptrdiff_t(ly) * pitch_ : nullfbline(); }
+
+private:
+	uint_least32_t *buf_;
+	uint_least32_t *fbline_;
+	std::ptrdiff_t pitch_;
+
+	static uint_least32_t * nullfbline() { static uint_least32_t nullfbline_[160]; return nullfbline_; }
 };
 
 struct PPUState {
@@ -50,7 +51,6 @@ struct PPUState {
 	unsigned char id;
 };
 
-// The PPU loop accesses a lot of state at once, so it's difficult to split this up much beyond grouping stuff into smaller structs.
 struct PPUPriv {
 	unsigned long bgPalette[8 * 4];
 	unsigned long spPalette[8 * 4];
@@ -96,7 +96,6 @@ struct PPUPriv {
 };
 
 class PPU {
-	PPUPriv p_;
 public:
 	PPU(NextM0Time &nextM0Time, unsigned char const *oamram, unsigned char const *vram)
 	: p_(nextM0Time, oamram, vram)
@@ -135,6 +134,9 @@ public:
 	void speedChange(unsigned long cycleCounter);
 	unsigned long * spPalette() { return p_.spPalette; }
 	void update(unsigned long cc);
+
+private:
+	PPUPriv p_;
 };
 
 }
