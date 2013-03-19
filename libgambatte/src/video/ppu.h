@@ -26,6 +26,8 @@
 
 namespace gambatte {
 
+struct PPUPriv;
+
 class PPUFrameBuf {
 	uint_least32_t *buf_;
 	uint_least32_t *fbline_;
@@ -43,8 +45,8 @@ public:
 };
 
 struct PPUState {
-	void (*f)(struct PPUPriv &v);
-	unsigned (*predictCyclesUntilXpos_f)(const struct PPUPriv &v, int targetxpos, unsigned cycles);
+	void (*f)(PPUPriv &v);
+	unsigned (*predictCyclesUntilXpos_f)(PPUPriv const &v, int targetxpos, unsigned cycles);
 	unsigned char id;
 };
 
@@ -57,8 +59,8 @@ struct PPUPriv {
 	unsigned char nextSprite;
 	unsigned char currentSprite;
 
-	const unsigned char *vram;
-	const PPUState *nextCallPtr;
+	unsigned char const *vram;
+	PPUState const *nextCallPtr;
 
 	unsigned long now;
 	unsigned long lastM0Time;
@@ -90,13 +92,13 @@ struct PPUPriv {
 	bool cgb;
 	bool weMaster;
 
-	PPUPriv(NextM0Time &nextM0Time, const unsigned char *oamram, const unsigned char *vram);
+	PPUPriv(NextM0Time &nextM0Time, unsigned char const *oamram, unsigned char const *vram);
 };
 
 class PPU {
 	PPUPriv p_;
 public:
-	PPU(NextM0Time &nextM0Time, const unsigned char *oamram, const unsigned char *vram)
+	PPU(NextM0Time &nextM0Time, unsigned char const *oamram, unsigned char const *vram)
 	: p_(nextM0Time, oamram, vram)
 	{
 	}
@@ -105,26 +107,30 @@ public:
 	bool cgb() const { return p_.cgb; }
 	void doLyCountEvent() { p_.lyCounter.doEvent(); }
 	unsigned long doSpriteMapEvent(unsigned long time) { return p_.spriteMapper.doEvent(time); }
-	const PPUFrameBuf & frameBuf() const { return p_.framebuf; }
-	bool inactivePeriodAfterDisplayEnable(unsigned long cc) const { return p_.spriteMapper.inactivePeriodAfterDisplayEnable(cc); }
+	PPUFrameBuf const & frameBuf() const { return p_.framebuf; }
+
+	bool inactivePeriodAfterDisplayEnable(unsigned long cc) const {
+		return p_.spriteMapper.inactivePeriodAfterDisplayEnable(cc);
+	}
+
 	unsigned long lastM0Time() const { return p_.lastM0Time; }
 	unsigned lcdc() const { return p_.lcdc; }
-	void loadState(const SaveState &state, const unsigned char *oamram);
-	const LyCounter & lyCounter() const { return p_.lyCounter; }
+	void loadState(SaveState const &state, unsigned char const *oamram);
+	LyCounter const & lyCounter() const { return p_.lyCounter; }
 	unsigned long now() const { return p_.now; }
 	void oamChange(unsigned long cc) { p_.spriteMapper.oamChange(cc); }
-	void oamChange(const unsigned char *oamram, unsigned long cc) { p_.spriteMapper.oamChange(oamram, cc); }
+	void oamChange(unsigned char const *oamram, unsigned long cc) { p_.spriteMapper.oamChange(oamram, cc); }
 	unsigned long predictedNextXposTime(unsigned xpos) const;
-	void reset(const unsigned char *oamram, const unsigned char *vram, bool cgb);
+	void reset(unsigned char const *oamram, unsigned char const *vram, bool cgb);
 	void resetCc(unsigned long oldCc, unsigned long newCc);
 	void saveState(SaveState &ss) const;
 	void setFrameBuf(uint_least32_t *buf, std::ptrdiff_t pitch) { p_.framebuf.setBuf(buf, pitch); }
 	void setLcdc(unsigned lcdc, unsigned long cc);
-	void setScx(const unsigned scx) { p_.scx = scx; }
-	void setScy(const unsigned scy) { p_.scy = scy; }
+	void setScx(unsigned scx) { p_.scx = scx; }
+	void setScy(unsigned scy) { p_.scy = scy; }
 	void setStatePtrs(SaveState &ss) { p_.spriteMapper.setStatePtrs(ss); }
-	void setWx(const unsigned wx) { p_.wx = wx; }
-	void setWy(const unsigned wy) { p_.wy = wy; }
+	void setWx(unsigned wx) { p_.wx = wx; }
+	void setWy(unsigned wy) { p_.wy = wy; }
 	void updateWy2() { p_.wy2 = p_.wy; }
 	void speedChange(unsigned long cycleCounter);
 	unsigned long * spPalette() { return p_.spPalette; }
