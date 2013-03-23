@@ -23,8 +23,8 @@
 #include "scoped_ptr.h"
 #include "sdlblitter.h"
 
-class VfilterInfo;
 class VideoLink;
+struct VfilterInfo;
 
 class BlitterWrapper {
 public:
