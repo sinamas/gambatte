@@ -156,21 +156,25 @@ unsigned PSG::fillBuffer() {
 	return bufferPos;
 }
 
-#ifdef WORDS_BIGENDIAN
-static const unsigned long so1Mul = 0x00000001;
-static const unsigned long so2Mul = 0x00010000;
-#else
-static const unsigned long so1Mul = 0x00010000;
-static const unsigned long so2Mul = 0x00000001;
-#endif
+static bool isBigEndianSampleOrder() {
+	union {
+		uint_least32_t ul32;
+		unsigned char uc[sizeof(uint_least32_t)];
+	} u;
+	u.ul32 = -0x10000;
+	return u.uc[0];
+}
+
+static unsigned long so1Mul() { return isBigEndianSampleOrder() ? 0x00000001 : 0x00010000; }
+static unsigned long so2Mul() { return isBigEndianSampleOrder() ? 0x00010000 : 0x00000001; }
 
 void PSG::set_so_volume(const unsigned nr50) {
-	soVol = ((nr50      & 0x7) + 1) * so1Mul * 64
-	      + ((nr50 >> 4 & 0x7) + 1) * so2Mul * 64;
+	soVol = ((nr50      & 0x7) + 1) * so1Mul() * 64
+	      + ((nr50 >> 4 & 0x7) + 1) * so2Mul() * 64;
 }
 
 void PSG::map_so(const unsigned nr51) {
-	const unsigned long tmp = nr51 * so1Mul + (nr51 >> 4) * so2Mul;
+	const unsigned long tmp = nr51 * so1Mul() + (nr51 >> 4) * so2Mul();
 
 	ch1.setSo((tmp      & 0x00010001) * 0xFFFF);
 	ch2.setSo((tmp >> 1 & 0x00010001) * 0xFFFF);
