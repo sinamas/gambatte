@@ -24,6 +24,15 @@
 
 namespace {
 
+static bool isBigEndian() {
+	union {
+		gambatte::uint_least32_t ul32;
+		unsigned char uc[sizeof(gambatte::uint_least32_t)];
+	} u;
+	u.ul32 = -0x10000;
+	return u.uc[0];
+}
+
 class Rgb32ToUyvy {
 	struct CacheUnit {
 		gambatte::uint_least32_t rgb32;
@@ -42,12 +51,13 @@ public:
 };
 
 Rgb32ToUyvy::Rgb32ToUyvy() {
-#ifdef WORDS_BIGENDIAN
-	const CacheUnit c = { 0, 128ul << 24 | 16ul << 16 | 128 << 8 | 16 };
-#else
-	const CacheUnit c = { 0, 16ul << 24 | 128ul << 16 | 16 << 8 | 128 };
-#endif
-	std::fill(cache, cache + cache_size, c);
+	if (isBigEndian()) {
+		CacheUnit c = { 0, 128ul << 24 | 16ul << 16 | 128 << 8 | 16 };
+		std::fill(cache, cache + cache_size, c);
+	} else {
+		CacheUnit c = { 0, 16ul << 24 | 128ul << 16 | 16 << 8 | 128 };
+		std::fill(cache, cache + cache_size, c);
+	}
 }
 
 void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s, gambatte::uint_least32_t *d,
@@ -69,19 +79,25 @@ void Rgb32ToUyvy::operator()(const gambatte::uint_least32_t *s, gambatte::uint_l
 				const unsigned long u = b * 112 - r *  38 - g * 74 + (128 * 256 + 128) * 0x00010001ul;
 				const unsigned long v = r * 112 - g *  94 - b * 18 + (128 * 256 + 128) * 0x00010001ul;
 
-#ifdef WORDS_BIGENDIAN
-				cache[s[0] & cache_mask].uyvy = (u << 16 & 0xFF000000) | (y <<  8 & 0x00FF0000)
-				                              | (v       & 0x0000FF00) | (y >>  8 & 0x000000FF);
-
-				cache[s[1] & cache_mask].uyvy = (u       & 0xFF000000) | (y >>  8 & 0x00FF0000)
-				                              | (v >> 16 & 0x0000FF00) |  y >> 24              ;
-#else
-				cache[s[0] & cache_mask].uyvy = (y << 16 & 0xFF000000) | (v <<  8 & 0x00FF0000)
-				                              | (y       & 0x0000FF00) | (u >>  8 & 0x000000FF);
-
-				cache[s[1] & cache_mask].uyvy = (y       & 0xFF000000) | (v >>  8 & 0x00FF0000)
-				                              | (y >> 16 & 0x0000FF00) |  u >> 24              ;
-#endif
+				if (isBigEndian()) {
+					cache[s[0] & cache_mask].uyvy = (u << 16 & 0xFF000000)
+					                              | (y <<  8 & 0x00FF0000)
+					                              | (v       & 0x0000FF00)
+					                              | (y >>  8 & 0x000000FF);
+					cache[s[1] & cache_mask].uyvy = (u       & 0xFF000000)
+					                              | (y >>  8 & 0x00FF0000)
+					                              | (v >> 16 & 0x0000FF00)
+					                              |  y >> 24              ;
+				} else {
+					cache[s[0] & cache_mask].uyvy = (y << 16 & 0xFF000000)
+					                              | (v <<  8 & 0x00FF0000)
+					                              | (y       & 0x0000FF00)
+					                              | (u >>  8 & 0x000000FF);
+					cache[s[1] & cache_mask].uyvy = (y       & 0xFF000000)
+					                              | (v >>  8 & 0x00FF0000)
+					                              | (y >> 16 & 0x0000FF00)
+					                              |  u >> 24              ;
+				}
 			}
 
 			d[0] = cache[s[0] & cache_mask].uyvy;
