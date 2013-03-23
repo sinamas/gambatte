@@ -1388,7 +1388,7 @@ namespace LoadSprites {
 			nextSprite, p.weMaster, p.winDrawState, 5, targetx, cycles);
 	}
 
- 		static unsigned predictCyclesUntilXpos_f0(PPUPriv const &p, int targetx, unsigned cycles) {
+	static unsigned predictCyclesUntilXpos_f0(PPUPriv const &p, int targetx, unsigned cycles) {
 		return predictCyclesUntilXpos_fn(p, 0, targetx, cycles);
 	}
 	static unsigned predictCyclesUntilXpos_f1(PPUPriv const &p, int targetx, unsigned cycles) {
