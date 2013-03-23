@@ -19,14 +19,13 @@
 #ifndef PPU_H
 #define PPU_H
 
-#include "video/ly_counter.h"
-#include "video/sprite_mapper.h"
+#include "lcddef.h"
+#include "ly_counter.h"
+#include "sprite_mapper.h"
 #include "gbint.h"
 #include <cstddef>
 
 namespace gambatte {
-
-struct PPUPriv;
 
 class PPUFrameBuf {
 public:
@@ -44,6 +43,8 @@ private:
 
 	static uint_least32_t * nullfbline() { static uint_least32_t nullfbline_[160]; return nullfbline_; }
 };
+
+struct PPUPriv;
 
 struct PPUState {
 	void (*f)(PPUPriv &v);

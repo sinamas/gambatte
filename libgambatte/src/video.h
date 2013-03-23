@@ -111,7 +111,7 @@ public:
 	unsigned getLyReg(unsigned long const cc) {
 		unsigned lyReg = 0;
 
-		if (ppu_.lcdc() & 0x80) {
+		if (ppu_.lcdc() & lcdc_en) {
 			if (cc >= ppu_.lyCounter().time())
 				update(cc);
 

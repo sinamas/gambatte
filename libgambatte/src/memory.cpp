@@ -109,7 +109,7 @@ void Memory::loadState(const SaveState &state) {
 		intreq.setEventTime<OAM>(lastOamDmaUpdate + (oamEventPos - oamDmaPos) * 4);
 	}
 
-	intreq.setEventTime<BLIT>(ioamhram[0x140] & 0x80
+	intreq.setEventTime<BLIT>(ioamhram[0x140] & lcdc_en
 	                        ? display.nextMode1IrqTime()
 	                        : state.cpu.cycleCounter);
 	blanklcd = false;
@@ -172,7 +172,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 		break;
 	case BLIT:
 		{
-			const bool lcden = ioamhram[0x140] >> 7 & 1;
+			const bool lcden = ioamhram[0x140] & lcdc_en;
 			unsigned long blitTime = intreq.eventTime(BLIT);
 
 			if (lcden | blanklcd) {
@@ -214,7 +214,7 @@ unsigned long Memory::event(unsigned long cycleCounter) {
 
 			dmaLength -= length;
 
-			if (!(ioamhram[0x140] & 0x80))
+			if (!(ioamhram[0x140] & lcdc_en))
 				dmaLength = 0;
 
 			{
@@ -310,7 +310,7 @@ unsigned long Memory::stop(unsigned long cycleCounter) {
 		display.speedChange(cycleCounter);
 		ioamhram[0x14D] = ~ioamhram[0x14D] & 0x80;
 
-		intreq.setEventTime<BLIT>(ioamhram[0x140] & 0x80
+		intreq.setEventTime<BLIT>(ioamhram[0x140] & lcdc_en
 			? display.nextMode1IrqTime()
 			: cycleCounter + (70224 << isDoubleSpeed()));
 
@@ -785,15 +785,16 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		break;
 	case 0x40:
 		if (ioamhram[0x140] != data) {
-			if ((ioamhram[0x140] ^ data) & 0x80) {
-				const unsigned lyc = display.getStat(ioamhram[0x145], cycleCounter) & 4;
+			if ((ioamhram[0x140] ^ data) & lcdc_en) {
+				const unsigned lyc = display.getStat(ioamhram[0x145], cycleCounter)
+				                     & lcdstat_lycflag;
 				const bool hdmaEnabled = display.hdmaIsEnabled();
 
 				display.lcdcChange(data, cycleCounter);
 				ioamhram[0x144] = 0;
 				ioamhram[0x141] &= 0xF8;
 
-				if (data & 0x80) {
+				if (data & lcdc_en) {
 					intreq.setEventTime<BLIT>(blanklcd
 						? display.nextMode1IrqTime()
 						: display.nextMode1IrqTime() + (70224 << isDoubleSpeed()));
@@ -888,7 +889,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 				}
 			} else {
 				if (data & 0x80) {
-					if (ioamhram[0x140] & 0x80) {
+					if (ioamhram[0x140] & lcdc_en) {
 						display.enableHdma(cycleCounter);
 					} else
 						flagHdmaReq(intreq);

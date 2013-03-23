@@ -1,6 +1,7 @@
 #ifndef M0_IRQ_H
 #define M0_IRQ_H
 
+#include "lcddef.h"
 #include "../savestate.h"
 
 namespace gambatte {
@@ -32,8 +33,10 @@ public:
 	}
 
 	void doEvent(unsigned char *ifreg, unsigned ly, unsigned statReg, unsigned lycReg) {
-		if (((statReg_ | statReg) & 0x08) && (!(statReg_ & 0x40) || ly != lycReg_))
+		if (((statReg_ | statReg) & lcdstat_m0irqen)
+				&& (!(statReg_ & lcdstat_lycirqen) || ly != lycReg_)) {
 			*ifreg |= 2;
+		}
 
 		statReg_ = statReg;
 		 lycReg_ =  lycReg;

@@ -99,7 +99,7 @@ namespace StartWindowDraw {
 enum { win_draw_start = 1, win_draw_started = 2 };
 enum { m2_ds_offset = 3 };
 enum { max_m3start_cycles = 80 };
-enum { lcdc_bgen = 0x01, lcdc_objen = 0x02, lcdc_obj2x = 0x04, lcdc_we = 0x20, lcdc_en = 0x80 };
+enum { attr_yflip = 0x40, attr_bgpriority = 0x80 };
 
 static inline int lcdcEn(   PPUPriv const &p) { return p.lcdc & lcdc_en;    }
 static inline int lcdcWinEn(PPUPriv const &p) { return p.lcdc & lcdc_we;    }
@@ -344,7 +344,7 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *c
 					unsigned char const *const oam = p.spriteMapper.oamram();
 					unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * 16;
 					unsigned const attrib = oam[p.spriteList[nextSprite].oampos + 3];
-					unsigned const spline = (  attrib & 0x40
+					unsigned const spline = (  attrib & attr_yflip
 					                         ? p.spriteList[nextSprite].line ^ 15
 					                         : p.spriteList[nextSprite].line     ) * 2;
 
@@ -452,7 +452,7 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *c
 					unsigned long const *const spPalette = p.spPalette + (attrib >> 2 & 4);
 					uint_least32_t *d = dst + pos;
 
-					if (!(attrib & 0x80)) {
+					if (!(attrib & attr_bgpriority)) {
 						switch (n) {
 						case 8: if (spword >> 14    ) { d[7] = spPalette[spword >> 14    ]; }
 						case 7: if (spword >> 12 & 3) { d[6] = spPalette[spword >> 12 & 3]; }
@@ -532,7 +532,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 				unsigned char const *const oam = p.spriteMapper.oamram();
 				unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * 16;
 				unsigned const attrib = oam[p.spriteList[nextSprite].oampos + 3];
-				unsigned const spline = (  attrib & 0x40
+				unsigned const spline = (  attrib & attr_yflip
 				                         ? p.spriteList[nextSprite].line ^ 15
 				                         : p.spriteList[nextSprite].line     ) * 2;
 
@@ -581,7 +581,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 
 				unsigned const tdo = tdoffset & ~(tno << 5);
 				unsigned char const *const td = vram + tno * 16
-				                                     + (nattrib & 0x40 ? tdo ^ 14 : tdo)
+				                                     + (nattrib & attr_yflip ? tdo ^ 14 : tdo)
 				                                     + (nattrib << 10 & 0x2000);
 				unsigned short const *const explut = expand_lut + (nattrib << 3 & 0x100);
 				ntileword = explut[td[0]] + explut[td[1]] * 2;
@@ -624,7 +624,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 				} while (i >= 0 && int(p.spriteList[i].spx) > xpos - 8);
 			} else {
 				unsigned char idtab[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-				unsigned const bgenmask = p.lcdc << 7;
+				unsigned const bgprioritymask = p.lcdc << 7;
 
 				do {
 					int n;
@@ -641,7 +641,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 					unsigned spword        = p.spwordList[i];
 					unsigned long const *const spPalette = p.spPalette + (sattrib & 7) * 4;
 
-					if (!((attrib | sattrib) & bgenmask)) {
+					if (!((attrib | sattrib) & bgprioritymask)) {
 						unsigned char  *const idt = idtab + pos;
 						uint_least32_t *const   d =   dst + pos;
 
@@ -721,7 +721,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 
 			unsigned const tdo = tdoffset & ~(tno << 5);
 			unsigned char const *const td = vram + tno * 16
-			                                     + (nattrib & 0x40 ? tdo ^ 14 : tdo)
+			                                     + (nattrib & attr_yflip ? tdo ^ 14 : tdo)
 			                                     + (nattrib << 10 & 0x2000);
 			unsigned short const *const explut = expand_lut + (nattrib << 3 & 0x100);
 			p.ntileword = explut[td[0]] + explut[td[1]] * 2;
@@ -826,8 +826,10 @@ static void plotPixel(PPUPriv &p) {
 				--i;
 			} while (i >= 0 && int(p.spriteList[i].spx) > xpos - 8);
 
-			if (spdata && lcdcObjEn(p) && (!((attrib | p.attrib) & 0x80) || !twdata || !lcdcBgEn(p)))
+			if (spdata && lcdcObjEn(p)
+					&& (!((attrib | p.attrib) & attr_bgpriority) || !twdata || !lcdcBgEn(p))) {
 				pixel = p.spPalette[(attrib & 7) * 4 + spdata];
+			}
 		} else {
 			do {
 				if (p.spwordList[i] & 3) {
@@ -839,7 +841,7 @@ static void plotPixel(PPUPriv &p) {
 				--i;
 			} while (i >= 0 && int(p.spriteList[i].spx) > xpos - 8);
 
-			if (spdata && lcdcObjEn(p) && (!(attrib & 0x80) || !twdata))
+			if (spdata && lcdcObjEn(p) && (!(attrib & attr_bgpriority) || !twdata))
 				pixel = p.spPalette[(attrib >> 2 & 4) + spdata];
 		}
 	}
@@ -1000,7 +1002,7 @@ namespace LoadSprites {
 			return StartWindowDraw::f0(p);
 
 		unsigned const spline =
-			(  p.spriteList[p.currentSprite].attrib & 0x40
+			(  p.spriteList[p.currentSprite].attrib & attr_yflip
 			 ? p.spriteList[p.currentSprite].line ^ 15
 			 : p.spriteList[p.currentSprite].line         ) * 2;
 		p.reg0 = p.vram[(p.spriteList[p.currentSprite].attrib << 10 & p.cgb * 0x2000)
@@ -1020,7 +1022,7 @@ namespace LoadSprites {
 			return StartWindowDraw::f0(p);
 
 		unsigned const spline =
-			(  p.spriteList[p.currentSprite].attrib & 0x40
+			(  p.spriteList[p.currentSprite].attrib & attr_yflip
 			 ? p.spriteList[p.currentSprite].line ^ 15
 			 : p.spriteList[p.currentSprite].line         ) * 2;
 		p.reg1 = p.vram[(p.spriteList[p.currentSprite].attrib << 10 & p.cgb * 0x2000)
