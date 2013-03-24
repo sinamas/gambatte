@@ -36,31 +36,28 @@ public:
 	void setNr2(unsigned data);
 	void setNr3(unsigned data);
 	void setNr4(unsigned data);
-
 	void setSo(unsigned long soMask);
-	bool isActive() const { return master; }
-
+	bool isActive() const { return master_; }
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
-
 	void reset();
 	void init(bool cgb);
 	void saveState(SaveState &state);
-	void loadState(const SaveState &state);
+	void loadState(SaveState const &state);
 
 private:
-	friend class StaticOutputTester<Channel2,DutyUnit>;
+	friend class StaticOutputTester<Channel2, DutyUnit>;
 
-	StaticOutputTester<Channel2,DutyUnit> staticOutputTest;
-	DutyMasterDisabler disableMaster;
-	LengthCounter lengthCounter;
-	DutyUnit dutyUnit;
-	EnvelopeUnit envelopeUnit;
+	StaticOutputTester<Channel2, DutyUnit> staticOutputTest_;
+	DutyMasterDisabler disableMaster_;
+	LengthCounter lengthCounter_;
+	DutyUnit dutyUnit_;
+	EnvelopeUnit envelopeUnit_;
 	SoundUnit *nextEventUnit;
-	unsigned long cycleCounter;
-	unsigned long soMask;
-	unsigned long prevOut;
-	unsigned char nr4;
-	bool master;
+	unsigned long cycleCounter_;
+	unsigned long soMask_;
+	unsigned long prevOut_;
+	unsigned char nr4_;
+	bool master_;
 
 	void setEvent();
 };

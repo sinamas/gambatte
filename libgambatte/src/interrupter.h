@@ -30,16 +30,20 @@ struct GsCode {
 	unsigned char type;
 };
 
-class Interrupter {
-	unsigned short &SP;
-	unsigned short &PC;
-	std::vector<GsCode> gsCodes;
+class Memory;
 
-	void applyVblankCheats(unsigned long cc, class Memory &mem);
+class Interrupter {
 public:
-	Interrupter(unsigned short &SP, unsigned short &PC);
-	unsigned long interrupt(const unsigned address, unsigned long cycleCounter, class Memory &memory);
-	void setGameShark(const std::string &codes);
+	Interrupter(unsigned short &sp, unsigned short &pc);
+	unsigned long interrupt(unsigned address, unsigned long cycleCounter, Memory &memory);
+	void setGameShark(std::string const &codes);
+
+private:
+	unsigned short &sp_;
+	unsigned short &pc_;
+	std::vector<GsCode> gsCodes_;
+
+	void applyVblankCheats(unsigned long cc, Memory &mem);
 };
 
 }

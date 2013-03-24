@@ -21,51 +21,69 @@
 
 namespace gambatte {
 
-EnvelopeUnit::VolOnOffEvent EnvelopeUnit::nullEvent;
+EnvelopeUnit::VolOnOffEvent EnvelopeUnit::nullEvent_;
+
+EnvelopeUnit::EnvelopeUnit(VolOnOffEvent &volOnOffEvent)
+: volOnOffEvent_(volOnOffEvent)
+, nr2_(0)
+, volume_(0)
+{
+}
+
+void EnvelopeUnit::reset() {
+	counter_ = counter_disabled;
+}
+
+void EnvelopeUnit::saveState(SaveState::SPU::Env &estate) const {
+	estate.counter = counter_;
+	estate.volume = volume_;
+}
+
+void EnvelopeUnit::loadState(SaveState::SPU::Env const &estate, unsigned nr2, unsigned long cc) {
+	counter_ = std::max(estate.counter, cc);
+	volume_ = estate.volume;
+	nr2_ = nr2;
+}
 
 void EnvelopeUnit::event() {
-	const unsigned long period = nr2 & 7;
+	unsigned long const period = nr2_ & 7;
 
 	if (period) {
-		unsigned newVol = volume;
-
-		if (nr2 & 8)
+		unsigned newVol = volume_;
+		if (nr2_ & 8)
 			++newVol;
 		else
 			--newVol;
 
 		if (newVol < 0x10U) {
-			volume = newVol;
+			volume_ = newVol;
+			if (volume_ < 2)
+				volOnOffEvent_(counter_);
 
-			if (volume < 2)
-				volOnOffEvent(counter);
-
-			counter += period << 15;
+			counter_ += period << 15;
 		} else
-			counter = COUNTER_DISABLED;
+			counter_ = counter_disabled;
 	} else
-		counter += 8ul << 15;
+		counter_ += 8ul << 15;
 }
 
-bool EnvelopeUnit::nr2Change(const unsigned newNr2) {
-	if (!(nr2 & 7) && counter != COUNTER_DISABLED)
-		++volume;
-	else if (!(nr2 & 8))
-		volume += 2;
+bool EnvelopeUnit::nr2Change(unsigned const newNr2) {
+	if (!(nr2_ & 7) && counter_ != counter_disabled)
+		++volume_;
+	else if (!(nr2_ & 8))
+		volume_ += 2;
 
-	if ((nr2 ^ newNr2) & 8)
-		volume = 0x10 - volume;
+	if ((nr2_ ^ newNr2) & 8)
+		volume_ = 0x10 - volume_;
 
-	volume &= 0xF;
-
-	nr2 = newNr2;
-
+	volume_ &= 0xF;
+	nr2_ = newNr2;
 	return !(newNr2 & 0xF8);
 }
 
-bool EnvelopeUnit::nr4Init(const unsigned long cc) {
+bool EnvelopeUnit::nr4Init(unsigned long const cc) {
 	{
-		unsigned long period = nr2 & 7;
+		unsigned long period = nr2_ & 7;
 
 		if (!period)
 			period = 8;
@@ -73,34 +91,11 @@ bool EnvelopeUnit::nr4Init(const unsigned long cc) {
 		if (!(cc & 0x7000))
 			++period;
 
-		counter = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
+		counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
 	}
 
-	volume = nr2 >> 4;
-
-	return !(nr2 & 0xF8);
-}
-
-EnvelopeUnit::EnvelopeUnit(VolOnOffEvent &volOnOffEvent)
-: volOnOffEvent(volOnOffEvent),
-  nr2(0),
-  volume(0)
-{
-}
-
-void EnvelopeUnit::reset() {
-	counter = COUNTER_DISABLED;
-}
-
-void EnvelopeUnit::saveState(SaveState::SPU::Env &estate) const {
-	estate.counter = counter;
-	estate.volume = volume;
-}
-
-void EnvelopeUnit::loadState(const SaveState::SPU::Env &estate, const unsigned nr2, const unsigned long cc) {
-	counter = std::max(estate.counter, cc);
-	volume = estate.volume;
-	this->nr2 = nr2;
+	volume_ = nr2_ >> 4;
+	return !(nr2_ & 0xF8);
 }
 
 }

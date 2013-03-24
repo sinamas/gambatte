@@ -16,7 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #ifndef INSERTION_SORT_H
 #define INSERTION_SORT_H
 
@@ -30,8 +29,7 @@ void insertionSort(T *const start, T *const end, Less less) {
 	T *a = start;
 
 	while (++a < end) {
-		const T e = *a;
-
+		T const e = *a;
 		T *b = a;
 
 		while (b != start && less(e, *(b - 1))) {
@@ -44,7 +42,7 @@ void insertionSort(T *const start, T *const end, Less less) {
 }
 
 template<typename T>
-inline void insertionSort(T *const start, T *const end) {
+inline void insertionSort(T *start, T *end) {
 	insertionSort(start, end, std::less<T>());
 }
 

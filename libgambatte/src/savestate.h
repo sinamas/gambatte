@@ -19,6 +19,8 @@
 #ifndef SAVESTATE_H
 #define SAVESTATE_H
 
+#include <cstddef>
+
 namespace gambatte {
 
 class SaverList;
@@ -26,31 +28,32 @@ class SaverList;
 struct SaveState {
 	template<typename T>
 	class Ptr {
-		T *ptr;
-		unsigned long sz;
-
 	public:
-		Ptr() : ptr(0), sz(0) {}
-		const T* get() const { return ptr; }
-		unsigned long getSz() const { return sz; }
-		void set(T *ptr, const unsigned long sz) { this->ptr = ptr; this->sz = sz; }
+		Ptr() : ptr(0), size_(0) {}
+		T const * get() const { return ptr; }
+		std::size_t size() const { return size_; }
+		void set(T *p, std::size_t size) { ptr = p; size_ = size; }
 
 		friend class SaverList;
 		friend void setInitState(SaveState &, bool, bool);
+
+	private:
+		T *ptr;
+		std::size_t size_;
 	};
 
 	struct CPU {
 		unsigned long cycleCounter;
-		unsigned short PC;
-		unsigned short SP;
-		unsigned char A;
-		unsigned char B;
-		unsigned char C;
-		unsigned char D;
-		unsigned char E;
-		unsigned char F;
-		unsigned char H;
-		unsigned char L;
+		unsigned short pc;
+		unsigned short sp;
+		unsigned char a;
+		unsigned char b;
+		unsigned char c;
+		unsigned char d;
+		unsigned char e;
+		unsigned char f;
+		unsigned char h;
+		unsigned char l;
 		bool skip;
 	} cpu;
 

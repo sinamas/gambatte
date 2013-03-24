@@ -21,6 +21,6 @@ Free Software Foundation, Inc.,
 ***************************************************************************/
 #include "stdfile.h"
 
-transfer_ptr<gambatte::File> gambatte::newFileInstance(const std::string &filepath) {
+transfer_ptr<gambatte::File> gambatte::newFileInstance(std::string const &filepath) {
 	return transfer_ptr<File>(new StdFile(filepath.c_str()));
 }

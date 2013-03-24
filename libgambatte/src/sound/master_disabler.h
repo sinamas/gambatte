@@ -20,14 +20,17 @@
 #define MASTER_DISABLER_H
 
 namespace gambatte {
-class MasterDisabler {
-	bool &master;
 
+class MasterDisabler {
 public:
-	MasterDisabler(bool &m) : master(m) {}
+	explicit MasterDisabler(bool &master) : master_(master) {}
 	virtual ~MasterDisabler() {}
-	virtual void operator()() { master = false; }
+	virtual void operator()() { master_ = false; }
+
+private:
+	bool &master_;
 };
+
 }
 
 #endif

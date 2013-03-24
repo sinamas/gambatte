@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,7 +20,9 @@
 #define INITSTATE_H
 
 namespace gambatte {
+
 void setInitState(struct SaveState &state, bool cgb, bool gbaCgbMode);
+
 }
 
 #endif

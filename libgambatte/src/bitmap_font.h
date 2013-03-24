@@ -23,6 +23,7 @@
 #include <cstddef>
 
 namespace bitmapfont {
+
 enum Char {
 	NUL,
 	N0, N1, N2, N3, N4, N5, N6, N7, N8, N9,
@@ -37,27 +38,26 @@ enum { HEIGHT = 10 };
 enum { MAX_WIDTH = 9 };
 enum { NUMBER_WIDTH = 6 };
 
-std::size_t getWidth(const char *chars);
+std::size_t getWidth(char const *chars);
 
 // struct Fill { void operator()(RandomAccessIterator dest, std::ptrdiff_t pitch) { fill pixels at dest } }
 template<class RandomAccessIterator, class Fill>
-void print(RandomAccessIterator dest, std::ptrdiff_t pitch, Fill fill, const char *chars);
+void print(RandomAccessIterator dest, std::ptrdiff_t pitch, Fill fill, char const *chars);
 
-void print(gambatte::uint_least32_t *dest, std::ptrdiff_t pitch, unsigned long color, const char *chars);
+void print(gambatte::uint_least32_t *dest, std::ptrdiff_t pitch, unsigned long color, char const *chars);
 void utoa(unsigned u, char *a);
 
 // --- INTERFACE END ---
 
 
-
-extern const unsigned char *const font[];
+extern unsigned char const *const font[];
 
 template<class RandomAccessIterator, class Fill>
-void print(RandomAccessIterator dest, const std::ptrdiff_t pitch, Fill fill, const char *chars) {
-	while (const int character = *chars++) {
+void print(RandomAccessIterator dest, std::ptrdiff_t const pitch, Fill fill, char const *chars) {
+	while (int const character = *chars++) {
 		RandomAccessIterator dst = dest;
-		const unsigned char *s = font[character];
-		const unsigned width = *s >> 4;
+		unsigned char const *s = font[character];
+		unsigned const width = *s >> 4;
 		unsigned h = *s++ & 0xF;
 
 		while (h--) {
@@ -81,6 +81,7 @@ void print(RandomAccessIterator dest, const std::ptrdiff_t pitch, Fill fill, con
 		dest += width;
 	}
 }
+
 }
 
 #endif

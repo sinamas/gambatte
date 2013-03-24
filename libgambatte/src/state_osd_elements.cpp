@@ -55,7 +55,7 @@ public:
 
 ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
 : OsdElement(bitmapfont::MAX_WIDTH, 144 - bitmapfont::HEIGHT * 2,
-             width + 2, bitmapfont::HEIGHT + 2, THREE_FOURTHS)
+             width + 2, bitmapfont::HEIGHT + 2, three_fourths)
 , pixels(std::size_t(w()) * h())
 , life(4 * 60)
 {
@@ -107,7 +107,7 @@ const uint_least32_t* FramedTextOsdElment::update() {
 }*/
 
 class SaveStateOsdElement : public OsdElement {
-	uint_least32_t pixels[StateSaver::SS_WIDTH * StateSaver::SS_HEIGHT];
+	uint_least32_t pixels[StateSaver::ss_width * StateSaver::ss_height];
 	unsigned life;
 
 public:
@@ -116,9 +116,9 @@ public:
 };
 
 SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned stateNo)
-: OsdElement(  (stateNo ? stateNo - 1 : 9) * ((160 - StateSaver::SS_WIDTH) / 10)
-               + (160 - StateSaver::SS_WIDTH) / 10 / 2,
-             4, StateSaver::SS_WIDTH, StateSaver::SS_HEIGHT)
+: OsdElement(  (stateNo ? stateNo - 1 : 9) * ((160 - StateSaver::ss_width) / 10)
+               + (160 - StateSaver::ss_width) / 10 / 2,
+             4, StateSaver::ss_width, StateSaver::ss_height)
 , life(4 * 60)
 {
 	std::ifstream file(fileName.c_str(), std::ios_base::binary);
@@ -131,8 +131,8 @@ SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned s
 
 		using namespace bitmapfont;
 		static const char txt[] = { E,m,p,t,bitmapfont::y,0 };
-		print(pixels + 3 + (StateSaver::SS_HEIGHT / 2 - bitmapfont::HEIGHT / 2) * StateSaver::SS_WIDTH,
-		      StateSaver::SS_WIDTH, 0x808080ul, txt);
+		print(pixels + 3 + (StateSaver::ss_height / 2 - bitmapfont::HEIGHT / 2) * StateSaver::ss_width,
+		      StateSaver::ss_width, 0x808080ul, txt);
 	}
 }
 

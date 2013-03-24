@@ -36,7 +36,7 @@ public:
 	virtual bool fail() const = 0;
 };
 
-transfer_ptr<File> newFileInstance(const std::string &filepath);
+transfer_ptr<File> newFileInstance(std::string const &filepath);
 
 }
 

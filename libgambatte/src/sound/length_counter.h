@@ -34,13 +34,13 @@ public:
 	void nr4Change(unsigned oldNr4, unsigned newNr4, unsigned long cc);
 	void init(bool cgb);
 	void saveState(SaveState::SPU::LCounter &lstate) const;
-	void loadState(const SaveState::SPU::LCounter &lstate, unsigned long cc);
+	void loadState(SaveState::SPU::LCounter const &lstate, unsigned long cc);
 
 private:
-	MasterDisabler &disableMaster;
-	unsigned short lengthCounter;
-	const unsigned char lengthMask;
-	bool cgb;
+	MasterDisabler &disableMaster_;
+	unsigned short lengthCounter_;
+	unsigned char const lengthMask_;
+	bool cgb_;
 };
 
 }

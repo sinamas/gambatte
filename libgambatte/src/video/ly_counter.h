@@ -24,21 +24,16 @@ namespace gambatte {
 struct SaveState;
 
 class LyCounter {
-	unsigned long time_;
-	unsigned short lineTime_;
-	unsigned char ly_;
-	bool ds;
-
 public:
 	LyCounter();
 	void doEvent();
-	bool isDoubleSpeed() const { return ds; }
+	bool isDoubleSpeed() const { return ds_; }
 
-	unsigned long frameCycles(const unsigned long cc) const {
+	unsigned long frameCycles(unsigned long cc) const {
 		return ly_ * 456ul + lineCycles(cc);
 	}
 
-	unsigned lineCycles(const unsigned long cc) const {
+	unsigned lineCycles(unsigned long cc) const {
 		return 456u - ((time_ - cc) >> isDoubleSpeed());
 	}
 
@@ -47,8 +42,14 @@ public:
 	unsigned long nextLineCycle(unsigned lineCycle, unsigned long cycleCounter) const;
 	unsigned long nextFrameCycle(unsigned long frameCycle, unsigned long cycleCounter) const;
 	void reset(unsigned long videoCycles, unsigned long lastUpdate);
-	void setDoubleSpeed(bool ds_in);
+	void setDoubleSpeed(bool ds);
 	unsigned long time() const { return time_; }
+
+private:
+	unsigned long time_;
+	unsigned short lineTime_;
+	unsigned char ly_;
+	bool ds_;
 };
 
 }

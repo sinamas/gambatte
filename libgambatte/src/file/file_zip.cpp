@@ -147,15 +147,10 @@ void ZipFile::read(char *buffer, size_t amount)
 }
 
 class GzFile : public gambatte::File {
-	gzFile file_;
-	std::size_t fsize_;
-
-	void close();
-	GzFile(const GzFile &);
-	GzFile& operator=(const GzFile &);
 public:
-	explicit GzFile(const char *filename)
-	: file_(gzopen(filename, "rb")), fsize_(0)
+	explicit GzFile(char const *filename)
+	: file_(gzopen(filename, "rb"))
+	, fsize_(0)
 	{
 		if (file_) {
 			char buf[256];
@@ -188,6 +183,14 @@ public:
 	}
 
 	virtual bool fail() const { return !file_; }
+
+private:
+	gzFile file_;
+	std::size_t fsize_;
+
+	GzFile(GzFile const &);
+	GzFile & operator=(GzFile const &);
+	void close();
 };
 
 void GzFile::close() {
@@ -200,14 +203,16 @@ void GzFile::close() {
 }
 
 // Avoid checking magic header values, because there are no values that cannot occur in a GB ROM.
-transfer_ptr<gambatte::File> gambatte::newFileInstance(const std::string &filepath) {
-	const std::size_t extpos = filepath.rfind(".");
+transfer_ptr<gambatte::File> gambatte::newFileInstance(std::string const &filepath) {
+	std::size_t const extpos = filepath.rfind('.');
 
 	if (extpos != std::string::npos) {
-		const std::string &ext = filepath.substr(extpos + 1);
+		std::string const &ext = filepath.substr(extpos + 1);
 
-		if (ext.length() == 3 && std::tolower(ext[0]) == 'z' && std::tolower(ext[1]) == 'i'&& std::tolower(ext[2]) == 'p')
+		if (ext.length() == 3 && std::tolower(ext[0]) == 'z'
+				&& std::tolower(ext[1]) == 'i' && std::tolower(ext[2]) == 'p') {
 			return transfer_ptr<File>(new ZipFile(filepath.c_str()));
+		}
 
 		if (!ext.empty() && std::tolower(ext[ext.length() - 1]) == 'z')
 			return transfer_ptr<File>(new GzFile(filepath.c_str()));

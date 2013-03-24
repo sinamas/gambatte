@@ -22,16 +22,22 @@
 namespace gambatte {
 
 class SoundUnit {
-protected:
-	unsigned long counter;
 public:
-	enum { COUNTER_MAX = 0x80000000u, COUNTER_DISABLED = 0xFFFFFFFFu };
+	enum { counter_max = 0x80000000u, counter_disabled = 0xFFFFFFFFu };
 
-	SoundUnit() : counter(COUNTER_DISABLED) {}
 	virtual ~SoundUnit() {}
 	virtual void event() = 0;
-	unsigned long getCounter() const { return counter; }
-	virtual void resetCounters(unsigned long /*oldCc*/) { if (counter != COUNTER_DISABLED) counter -= COUNTER_MAX; }
+
+	virtual void resetCounters(unsigned long /*oldCc*/) {
+		if (counter_ != counter_disabled)
+			counter_ -= counter_max;
+	}
+
+	unsigned long counter() const { return counter_; }
+
+protected:
+	SoundUnit() : counter_(counter_disabled) {}
+	unsigned long counter_;
 };
 
 }

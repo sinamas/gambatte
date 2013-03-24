@@ -39,7 +39,7 @@ public:
 
 	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq_); }
 	void flagIrq(unsigned bit) const { intreq_.flagIrq(bit); }
-	void setNextEventTime(unsigned long time) const { intreq_.setEventTime<VIDEO>(time); }
+	void setNextEventTime(unsigned long time) const { intreq_.setEventTime<intevent_video>(time); }
 
 private:
 	InterruptRequester &intreq_;
@@ -136,7 +136,7 @@ public:
 	void lycRegChange(unsigned data, unsigned long cycleCounter);
 	void enableHdma(unsigned long cycleCounter);
 	void disableHdma(unsigned long cycleCounter);
-	bool hdmaIsEnabled() const { return eventTimes_(memevent_hdma) != DISABLED_TIME; }
+	bool hdmaIsEnabled() const { return eventTimes_(memevent_hdma) != disabled_time; }
 	void update(unsigned long cycleCounter);
 	bool isCgb() const { return ppu_.cgb(); }
 	bool isDoubleSpeed() const { return ppu_.lyCounter().isDoubleSpeed(); }

@@ -50,7 +50,7 @@ public:
 	  * @param flags    ORed combination of LoadFlags.
 	  * @return 0 on success, negative value on failure.
 	  */
-	LoadRes load(const std::string &romfile, unsigned flags = 0);
+	LoadRes load(std::string const &romfile, unsigned flags = 0);
 
 	/**
 	  * Emulates until at least 'samples' stereo sound samples are produced in the
@@ -99,7 +99,7 @@ public:
 	  * Sets the directory used for storing save data. The default is the same directory as
 	  * the ROM Image file.
 	  */
-	void setSaveDir(const std::string &sdir);
+	void setSaveDir(std::string const &sdir);
 
 	/** Returns true if the currently loaded ROM image is treated as having CGB support. */
 	bool isCgb() const;
@@ -120,7 +120,7 @@ public:
 	  *               to the next in videoBuf.
 	  * @return success
 	  */
-	bool saveState(const gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch);
+	bool saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch);
 
 	/**
 	  * Loads emulator state from the state slot selected with selectState().
@@ -137,14 +137,14 @@ public:
 	  *               to the next in videoBuf.
 	  * @return success
 	  */
-	bool saveState(const gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
-	               const std::string &filepath);
+	bool saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
+	               std::string const &filepath);
 
 	/**
 	  * Loads emulator state from the file given by 'filepath'.
 	  * @return success
 	  */
-	bool loadState(const std::string &filepath);
+	bool loadState(std::string const &filepath);
 
 	/**
 	  * Selects which state slot to save state to or load state from.
@@ -169,20 +169,20 @@ public:
 	  * @param codes Game Genie codes in format HHH-HHH-HHH;HHH-HHH-HHH;... where
 	  *              H is [0-9]|[A-F]
 	  */
-	void setGameGenie(const std::string &codes);
+	void setGameGenie(std::string const &codes);
 
 	/**
 	  * Set Game Shark codes to apply to currently loaded ROM image. Cleared on ROM load.
 	  * @param codes Game Shark codes in format 01HHHHHH;01HHHHHH;... where H is [0-9]|[A-F]
 	  */
-	void setGameShark(const std::string &codes);
+	void setGameShark(std::string const &codes);
 
 private:
 	struct Priv;
 	Priv *const p_;
 
-	GB(const GB &);
-	GB & operator=(const GB &);
+	GB(GB const &);
+	GB & operator=(GB const &);
 };
 
 }

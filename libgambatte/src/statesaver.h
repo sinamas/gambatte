@@ -29,15 +29,15 @@ struct SaveState;
 
 class StateSaver {
 public:
-	enum { SS_SHIFT = 2 };
-	enum { SS_DIV = 1 << 2 };
-	enum { SS_WIDTH = 160 >> SS_SHIFT };
-	enum { SS_HEIGHT = 144 >> SS_SHIFT };
+	enum { ss_shift = 2 };
+	enum { ss_div = 1 << 2 };
+	enum { ss_width = 160 >> ss_shift };
+	enum { ss_height = 144 >> ss_shift };
 
-	static bool saveState(const SaveState &state,
-			const uint_least32_t *videoBuf, std::ptrdiff_t pitch,
-			const std::string &filename);
-	static bool loadState(SaveState &state, const std::string &filename);
+	static bool saveState(SaveState const &state,
+			uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
+			std::string const &filename);
+	static bool loadState(SaveState &state, std::string const &filename);
 
 private:
 	StateSaver();

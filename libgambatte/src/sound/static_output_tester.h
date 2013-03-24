@@ -25,19 +25,21 @@ namespace gambatte {
 
 template<class Channel, class Unit>
 class StaticOutputTester : public EnvelopeUnit::VolOnOffEvent {
-	const Channel &ch;
-	Unit &unit;
 public:
-	StaticOutputTester(const Channel &ch, Unit &unit) : ch(ch), unit(unit) {}
+	StaticOutputTester(Channel const &ch, Unit &unit) : ch_(ch), unit_(unit) {}
 	void operator()(unsigned long cc);
+
+private:
+	Channel const &ch_;
+	Unit &unit_;
 };
 
 template<class Channel, class Unit>
-void StaticOutputTester<Channel, Unit>::operator()(const unsigned long cc) {
-	if (ch.soMask && ch.master && ch.envelopeUnit.getVolume())
-		unit.reviveCounter(cc);
+void StaticOutputTester<Channel, Unit>::operator()(unsigned long cc) {
+	if (ch_.soMask_ && ch_.master_ && ch_.envelopeUnit_.getVolume())
+		unit_.reviveCounter(cc);
 	else
-		unit.killCounter();
+		unit_.killCounter();
 }
 
 }

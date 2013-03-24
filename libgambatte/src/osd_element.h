@@ -25,17 +25,20 @@ namespace gambatte {
 
 class OsdElement {
 public:
-	enum Opacity { SEVEN_EIGHTHS, THREE_FOURTHS };
+	enum Opacity { seven_eighths, three_fourths };
+	enum { pixel_transparent = 0xfffffffful };
 
-private:
-	Opacity opacity_;
-	unsigned x_;
-	unsigned y_;
-	unsigned w_;
-	unsigned h_;
+	virtual ~OsdElement() {}
+	unsigned x() const { return x_; }
+	unsigned y() const { return y_; }
+	unsigned w() const { return w_; }
+	unsigned h() const { return h_; }
+	Opacity opacity() const { return opacity_; }
+	virtual uint_least32_t const * update() = 0;
 
 protected:
-	explicit OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0, Opacity opacity = SEVEN_EIGHTHS)
+	explicit OsdElement(unsigned x = 0, unsigned y = 0, unsigned w = 0, unsigned h = 0,
+	                    Opacity opacity = seven_eighths)
 	: opacity_(opacity), x_(x), y_(y), w_(w), h_(h)
 	{
 	}
@@ -52,15 +55,12 @@ protected:
 
 	void setOpacity(Opacity opacity) { opacity_ = opacity; }
 
-public:
-	virtual ~OsdElement() {}
-	unsigned x() const { return x_; }
-	unsigned y() const { return y_; }
-	unsigned w() const { return w_; }
-	unsigned h() const { return h_; }
-	Opacity opacity() const { return opacity_; }
-
-	virtual const uint_least32_t* update() = 0;
+private:
+	Opacity opacity_;
+	unsigned x_;
+	unsigned y_;
+	unsigned w_;
+	unsigned h_;
 };
 
 }
