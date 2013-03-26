@@ -51,9 +51,9 @@ void Memory::setStatePtrs(SaveState &state) {
 
 unsigned long Memory::saveState(SaveState &state, unsigned long cc) {
 	cc = resetCounters(cc);
-	nontrivial_ff_read(0xFF05, cc);
-	nontrivial_ff_read(0xFF0F, cc);
-	nontrivial_ff_read(0xFF26, cc);
+	nontrivial_ff_read(0x05, cc);
+	nontrivial_ff_read(0x0F, cc);
+	nontrivial_ff_read(0x26, cc);
 
 	state.mem.divLastUpdate = divLastUpdate_;
 	state.mem.nextSerialtime = intreq_.eventTime(intevent_serial);
@@ -455,7 +455,7 @@ unsigned Memory::nontrivial_ff_read(unsigned const p, unsigned long const cc) {
 	if (lastOamDmaUpdate_ != disabled_time)
 		updateOamDma(cc);
 
-	switch (p & 0x7F) {
+	switch (p) {
 	case 0x00:
 		updateInput();
 		break;
@@ -516,7 +516,7 @@ unsigned Memory::nontrivial_ff_read(unsigned const p, unsigned long const cc) {
 		break;
 	}
 
-	return ioamhram_[p - 0xFE00];
+	return ioamhram_[p + 0x100];
 }
 
 static bool isInOamDmaConflictArea(OamDmaSrc const oamDmaSrc, unsigned const p, bool const cgb) {
@@ -574,8 +574,9 @@ unsigned Memory::nontrivial_read(unsigned const p, unsigned long const cc) {
 		if (p < 0xFE00)
 			return cart_.wramdata(p >> 12 & 1)[p & 0xFFF];
 
-		if (p >= 0xFF00)
-			return nontrivial_ff_read(p, cc);
+		long const ffp = long(p) - 0xFF00;
+		if (ffp >= 0)
+			return nontrivial_ff_read(ffp, cc);
 
 		if (!lcd_.oamReadable(cc) || oamDmaPos_ < 0xA0)
 			return 0xFF;
@@ -788,7 +789,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 			psg_.generateSamples(cc, isDoubleSpeed());
 
 			if (!(data & 0x80)) {
-				for (unsigned i = 0xFF10; i < 0xFF26; ++i)
+				for (unsigned i = 0x10; i < 0x26; ++i)
 					ff_write(i, 0, cc);
 
 				psg_.setEnabled(false);
@@ -1001,7 +1002,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		return;
 	}
 
-	ioamhram_[p - 0xFE00] = data;
+	ioamhram_[p + 0x100] = data;
 }
 
 void Memory::nontrivial_write(unsigned const p, unsigned const data, unsigned long const cc) {
@@ -1030,13 +1031,14 @@ void Memory::nontrivial_write(unsigned const p, unsigned const data, unsigned lo
 		} else
 			cart_.wramdata(p >> 12 & 1)[p & 0xFFF] = data;
 	} else if (p - 0xFF80u >= 0x7Fu) {
-		if (p < 0xFF00) {
+		long const ffp = long(p) - 0xFF00;
+		if (ffp < 0) {
 			if (lcd_.oamWritable(cc) && oamDmaPos_ >= 0xA0 && (p < 0xFEA0 || isCgb())) {
 				lcd_.oamChange(cc);
 				ioamhram_[p - 0xFE00] = data;
 			}
 		} else
-			nontrivial_ff_write(p, data, cc);
+			nontrivial_ff_write(ffp, data, cc);
 	} else
 		ioamhram_[p - 0xFE00] = data;
 }

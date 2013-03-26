@@ -67,7 +67,7 @@ public:
 	void di() { intreq_.di(); }
 
 	unsigned ff_read(unsigned p, unsigned long cc) {
-		return p < 0xFF80 ? nontrivial_ff_read(p, cc) : ioamhram_[p - 0xFE00];
+		return p < 0x80 ? nontrivial_ff_read(p, cc) : ioamhram_[p + 0x100];
 	}
 
 	unsigned read(unsigned p, unsigned long cc) {
@@ -82,8 +82,8 @@ public:
 	}
 
 	void ff_write(unsigned p, unsigned data, unsigned long cc) {
-		if (p - 0xFF80u < 0x7Fu) {
-			ioamhram_[p - 0xFE00] = data;
+		if (p - 0x80u < 0x7Fu) {
+			ioamhram_[p + 0x100] = data;
 		} else
 			nontrivial_ff_write(p, data, cc);
 	}

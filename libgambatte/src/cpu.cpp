@@ -995,8 +995,8 @@ void CPU::process(unsigned long const cycles) {
 				// halt (4 cycles):
 			case 0x76:
 				if (!mem_.ime()
-					&& (   mem_.ff_read(0xFF0F, cycleCounter)
-					     & mem_.ff_read(0xFFFF, cycleCounter) & 0x1F)) {
+					&& (   mem_.ff_read(0x0F, cycleCounter)
+					     & mem_.ff_read(0xFF, cycleCounter) & 0x1F)) {
 					if (mem_.isCgb())
 						cycleCounter += 4;
 					else
@@ -1779,7 +1779,7 @@ void CPU::process(unsigned long const cycles) {
 				{
 					unsigned imm;
 					PC_READ(imm);
-					FF_WRITE(0xFF00 | imm, a);
+					FF_WRITE(imm, a);
 				}
 
 				break;
@@ -1791,7 +1791,7 @@ void CPU::process(unsigned long const cycles) {
 				// ld ($FF00+C),a (8 ycles):
 				// Put A into address (0xFF00 + register C):
 			case 0xE2:
-				FF_WRITE(0xFF00 | c, a);
+				FF_WRITE(c, a);
 				break;
 
 			case 0xE3: // not specified. should freeze.
@@ -1868,7 +1868,7 @@ void CPU::process(unsigned long const cycles) {
 				{
 					unsigned imm;
 					PC_READ(imm);
-					FF_READ(a, 0xFF00 | imm);
+					FF_READ(a, imm);
 				}
 
 				break;
@@ -1887,7 +1887,7 @@ void CPU::process(unsigned long const cycles) {
 				// ld a,($FF00+C) (8 cycles):
 				// Put value at address (0xFF00 + register C) into A:
 			case 0xF2:
-				FF_READ(a, 0xFF00 | c);
+				FF_READ(a, c);
 				break;
 
 				// di (4 cycles):
