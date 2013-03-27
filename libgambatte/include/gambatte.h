@@ -59,9 +59,11 @@ public:
 	  * There are 35112 stereo sound samples in a video frame.
 	  * May run for up to 2064 stereo samples too long.
 	  * A stereo sample consists of two native endian 2s complement 16-bit PCM samples,
-	  * with the left sample preceding the right one. Usually casting soundBuf to/from
-	  * short* is OK and recommended. The reason for not using a short* in the interface
-	  * is to avoid implementation-defined behaviour without compromising performance.
+	  * with the left sample preceding the right one. Usually casting soundBuf to
+	  * short/int16_t* is OK. The reason for not using a short* in the interface is to
+	  * avoid implementation-defined behaviour without compromising performance.
+	  * libgambatte is strictly c++98, so fixed-width types are not an option (and even
+	  * c99/c++11 _cannot_ guarantee their availability).
 	  *
 	  * Returns early when a new video frame has finished drawing in the video buffer,
 	  * such that the caller may update the video output before the frame is overwritten.
