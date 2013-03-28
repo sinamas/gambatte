@@ -32,7 +32,7 @@ public:
 
 	BlitterWrapper(VfilterInfo const &, int scale, bool yuv, bool full);
 	~BlitterWrapper();
-	Buf const inBuf() const;
+	Buf inBuf() const;
 	void draw();
 	void present() { blitter_.present(); }
 	void toggleFullScreen() { blitter_.toggleFullScreen(); }

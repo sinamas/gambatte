@@ -32,7 +32,7 @@ BlitterWrapper::BlitterWrapper(VfilterInfo const &vfinfo, int scale, bool yuv, b
 BlitterWrapper::~BlitterWrapper() {
 }
 
-BlitterWrapper::Buf const BlitterWrapper::inBuf() const {
+BlitterWrapper::Buf BlitterWrapper::inBuf() const {
 	Buf buf;
 	if (VideoLink *const gblink = vfilter_ ? vfilter_.get() : cconvert_.get()) {
 		buf.pixels = static_cast<gambatte::uint_least32_t *>(gblink->inBuf());

@@ -38,7 +38,7 @@ public:
 	SdlBlitter(unsigned inwidth, unsigned inheight,
 	           int scale, bool yuv, bool full);
 	~SdlBlitter();
-	PixelBuffer const inBuffer() const;
+	PixelBuffer inBuffer() const;
 	void draw();
 	void present();
 	void toggleFullScreen();

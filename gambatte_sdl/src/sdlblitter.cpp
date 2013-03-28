@@ -50,7 +50,7 @@ SdlBlitter::SdlBlitter(unsigned inwidth, unsigned inheight,
 SdlBlitter::~SdlBlitter() {
 }
 
-const SdlBlitter::PixelBuffer SdlBlitter::inBuffer() const {
+SdlBlitter::PixelBuffer SdlBlitter::inBuffer() const {
 	PixelBuffer pb = { 0, 0, RGB32 };
 
 	if (overlay_) {
