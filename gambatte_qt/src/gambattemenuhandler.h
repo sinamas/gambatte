@@ -20,8 +20,8 @@
 #define GAMBATTEMENUHANDLER_H
 
 #include "scalingmethod.h"
-#include <QObject>
 #include <QList>
+#include <QObject>
 #include <QSize>
 
 class MainWindow;
@@ -37,6 +37,17 @@ class MiscDialog;
 class CheatDialog;
 
 class FrameRateAdjuster : public QObject {
+public:
+	FrameRateAdjuster(MiscDialog const &miscDialog, MainWindow &mw, QObject *parent = 0);
+	QList<QAction *> const actions();
+
+public slots:
+	void setDisabled(bool disabled);
+	void decFrameRate();
+	void incFrameRate();
+	void resetFrameRate();
+
+private:
 	Q_OBJECT
 
 	class FrameTime {
@@ -47,36 +58,32 @@ class FrameRateAdjuster : public QObject {
 			Rational(unsigned num = 0, unsigned denom = 1) : num(num), denom(denom) {}
 		};
 
-	private:
-		enum { STEPS = 16 };
-
-		Rational frameTimes[STEPS * 2 + 1];
-		unsigned index;
-
-	public:
 		FrameTime(unsigned baseNum, unsigned baseDenom);
 		void setBaseFrameTime(unsigned baseNum, unsigned baseDenom);
-
-		bool incPossible() const { return index < STEPS * 2; }
-		bool decPossible() const { return index; }
-		bool resetPossible() const { return index != STEPS; }
+		bool incPossible() const { return index_ < num_steps * 2; }
+		bool decPossible() const { return index_; }
+		bool resetPossible() const { return index_ != num_steps; }
 
 		void inc() {
-			if (index < STEPS * 2)
-				++index;
+			if (index_ < num_steps * 2)
+				++index_;
 		}
 
 		void dec() {
-			if (index)
-				--index;
+			if (index_)
+				--index_;
 		}
 
-		void reset() { index = STEPS; }
-		const Rational& get() const { return frameTimes[index]; }
-		const Rational& base() const { return frameTimes[STEPS]; }
-	} frameTime_;
+		void reset() { index_ = num_steps; }
+		Rational const & get() const { return frameTimes_[index_]; }
+		Rational const & base() const { return frameTimes_[num_steps]; }
 
-	const MiscDialog &miscDialog_;
+	private:
+		enum { num_steps = 16 };
+		Rational frameTimes_[num_steps * 2 + 1];
+		unsigned index_;
+	} frameTime_;
+	MiscDialog const &miscDialog_;
 	MainWindow &mw_;
 	QAction *const decFrameRateAction_;
 	QAction *const incFrameRateAction_;
@@ -87,68 +94,63 @@ class FrameRateAdjuster : public QObject {
 
 private slots:
 	void miscDialogChange();
-
-public:
-	FrameRateAdjuster(const MiscDialog &miscDialog, MainWindow &mw, QObject *parent = 0);
-	const QList<QAction*> actions();
-
-public slots:
-	void setDisabled(bool disabled);
-	void decFrameRate();
-	void incFrameRate();
-	void resetFrameRate();
 };
 
 class WindowSizeMenu : public QObject {
+public:
+	WindowSizeMenu(MainWindow &mw, VideoDialog const &videoDialog);
+	~WindowSizeMenu();
+	QMenu * menu() const { return menu_; }
+	void videoDialogChange(VideoDialog const &vd);
+
+private:
 	Q_OBJECT
 
-	MainWindow *const mw_;
+	MainWindow &mw_;
 	QMenu *const menu_;
 	QActionGroup *group_;
-	const QSize maxSize_;
+	QSize const maxSize_;
 
-	void fillMenu(const QSize &sourceSize, ScalingMethod scalingMethod);
-	void setCheckedSize(const QSize &size);
-	const QSize checkedSize() const;
+	void fillMenu(QSize const &sourceSize, ScalingMethod scalingMethod);
+	void setCheckedSize(QSize const &size);
+	QSize const checkedSize() const;
 
 private slots:
-	void triggered(QAction*);
-
-public:
-	WindowSizeMenu(MainWindow *mw, const VideoDialog *videoDialog);
-	~WindowSizeMenu();
-	QMenu* menu() const { return menu_; }
-	void videoDialogChange(const VideoDialog *vd);
+	void triggered(QAction *);
 };
 
 class GambatteMenuHandler : public QObject {
+public:
+	GambatteMenuHandler(MainWindow *mw, GambatteSource *source,
+	                    int argc, char const *const argv[]);
+	~GambatteMenuHandler();
+
+private:
 	Q_OBJECT
 
-	enum { MaxRecentFiles = 9 };
+	enum { max_recent_files = 9 };
 
-	MainWindow *const mw;
-	GambatteSource *const source;
-	SoundDialog *const soundDialog;
-	VideoDialog *const videoDialog;
-	MiscDialog *const miscDialog;
-	CheatDialog *const cheatDialog;
-	QAction *recentFileActs[MaxRecentFiles];
-	QAction *pauseAction;
-	QAction *syncFrameRateAction;
-	QAction *gbaCgbAction;
-	QAction *forceDmgAction;
-#ifdef Q_WS_MAC
-	QAction *fsAct;
-#endif
-	QMenu *recentMenu;
-	PaletteDialog *globalPaletteDialog;
-	PaletteDialog *romPaletteDialog;
-	QActionGroup *const stateSlotGroup;
-	WindowSizeMenu windowSizeMenu;
-	unsigned pauseInc;
+	MainWindow *const mw_;
+	GambatteSource *const source_;
+	SoundDialog *const soundDialog_;
+	VideoDialog *const videoDialog_;
+	MiscDialog *const miscDialog_;
+	CheatDialog *const cheatDialog_;
+	QAction *recentFileActs_[max_recent_files];
+	QAction *pauseAction_;
+	QAction *syncFrameRateAction_;
+	QAction *gbaCgbAction_;
+	QAction *forceDmgAction_;
+	QAction *fsAct_;
+	QMenu *recentMenu_;
+	PaletteDialog *globalPaletteDialog_;
+	PaletteDialog *romPaletteDialog_;
+	QActionGroup *const stateSlotGroup_;
+	WindowSizeMenu windowSizeMenu_;
+	unsigned pauseInc_;
 
-	void loadFile(const QString &fileName);
-	void setCurrentFile(const QString &fileName);
+	void loadFile(QString const &fileName);
+	void setCurrentFile(QString const &fileName);
 	void setDmgPaletteColors();
 	void updateRecentFileActions();
 
@@ -188,10 +190,6 @@ private slots:
 	void audioEngineFailure();
 	void toggleFullScreen();
 	void saveWindowSizeIfNotFullScreen();
-
-public:
-	GambatteMenuHandler(MainWindow *mw, GambatteSource *source, int argc, const char *const argv[]);
-	~GambatteMenuHandler();
 };
 
 #endif

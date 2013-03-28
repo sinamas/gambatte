@@ -22,18 +22,16 @@
 #include <QFileDialog>
 #include <QSettings>
 
-static int getCustomIndex(const QComboBox *const comboBox) {
+static int getCustomIndex(QComboBox const *comboBox) {
 	return comboBox->findText(QObject::tr("Other..."));
 }
 
-static void setPath(QComboBox *const comboBox, const QString &value) {
-	const int valueIndex = comboBox->findData(value);
-
+static void setPath(QComboBox *const comboBox, QString const &value) {
+	int const valueIndex = comboBox->findData(value);
 	if (valueIndex < 0) {
 		comboBox->addItem(QDir::toNativeSeparators(value), value);
 
-		const int customIndex = getCustomIndex(comboBox);
-
+		int const customIndex = getCustomIndex(comboBox);
 		if (comboBox->count() > customIndex + 2)
 			comboBox->removeItem(customIndex + 1);
 
@@ -42,15 +40,16 @@ static void setPath(QComboBox *const comboBox, const QString &value) {
 		comboBox->setCurrentIndex(valueIndex);
 }
 
-PathSelector::PathSelector(const QString &caption, const QString &settingskey,
-                           const Mapping &default1, const Mapping &default2)
-: comboBox_(new QComboBox),
-  value_(default1.second),
-  caption_(caption),
-  key_(settingskey)
+PathSelector::PathSelector(QString const &caption,
+                           QString const &settingskey,
+                           Mapping const &default1,
+                           Mapping const &default2)
+: comboBox_(new QComboBox)
+, value_(default1.second)
+, caption_(caption)
+, key_(settingskey)
 {
 	comboBox_->addItem(default1.first, default1.second);
-
 	if (default2 != Mapping())
 		comboBox_->addItem(default2.first, default2.second);
 
@@ -58,7 +57,6 @@ PathSelector::PathSelector(const QString &caption, const QString &settingskey,
 
 	value_ = QSettings().value(key_, value_).toString();
 	reject();
-
 	connect(comboBox_, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChanged(int)));
 }
 
@@ -79,9 +77,9 @@ QWidget * PathSelector::widget() const {
 	return comboBox_;
 }
 
-void PathSelector::indexChanged(const int index) {
+void PathSelector::indexChanged(int const index) {
 	if (getCustomIndex(comboBox_) == index) {
-		const QString &dir = QFileDialog::getExistingDirectory(comboBox_, caption_, value_);
+		QString const &dir = QFileDialog::getExistingDirectory(comboBox_, caption_, value_);
 		setPath(comboBox_, dir.isEmpty() ? value_ : dir);
 	}
 }

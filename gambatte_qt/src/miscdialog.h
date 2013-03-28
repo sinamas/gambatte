@@ -19,14 +19,30 @@
 #ifndef MISCDIALOG_H
 #define MISCDIALOG_H
 
-class QSpinBox;
-
 #include "fpsselector.h"
 #include "pathselector.h"
 #include "persistcheckbox.h"
 #include <QDialog>
 
+class QSpinBox;
+
 class MiscDialog : public QDialog {
+public:
+	explicit MiscDialog(QString const &savePath, QWidget *parent = 0);
+	virtual ~MiscDialog();
+	int turboSpeed() const { return turboSpeed_; }
+	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
+	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
+	bool dwmTripleBuf() const { return dwmTripleBuf_.value(); }
+	bool multicartCompat() const { return multicartCompat_.value(); }
+	QSize const baseFps() const { return fpsSelector_.value(); }
+	QString const & savePath() const { return savepathSelector_.value(); }
+
+public slots:
+	virtual void accept();
+	virtual void reject();
+
+private:
 	QSpinBox *const turboSpeedBox;
 	FpsSelector fpsSelector_;
 	PathSelector savepathSelector_;
@@ -38,21 +54,6 @@ class MiscDialog : public QDialog {
 
 	void store();
 	void restore();
-
-public:
-	explicit MiscDialog(const QString &savePath, QWidget *parent = 0);
-	~MiscDialog();
-	int turboSpeed() const { return turboSpeed_; }
-	bool pauseOnDialogs() const { return pauseOnDialogs_.value() | pauseOnFocusOut_.value(); }
-	bool pauseOnFocusOut() const { return pauseOnFocusOut_.value(); }
-	bool dwmTripleBuf() const { return dwmTripleBuf_.value(); }
-	bool multicartCompat() const { return multicartCompat_.value(); }
-	const QSize & baseFps() const { return fpsSelector_.value(); }
-	const QString & savePath() const { return savepathSelector_.value(); }
-
-public slots:
-	void accept();
-	void reject();
 };
 
 #endif

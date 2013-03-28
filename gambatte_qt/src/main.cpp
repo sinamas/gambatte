@@ -16,22 +16,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
+#include "gambattemenuhandler.h"
+#include "gambattesource.h"
+#include "mainwindow.h"
 #include <QApplication>
 #include <QSize>
-#include "mainwindow.h"
-#include "gambattesource.h"
-#include "gambattemenuhandler.h"
 
 int main(int argc, char *argv[]) {
-// 	Q_INIT_RESOURCE(application);
 	QApplication app(argc, argv);
 	QCoreApplication::setOrganizationName("gambatte");
 	QCoreApplication::setApplicationName("gambatte_qt");
+
 	GambatteSource source;
 	MainWindow mw(&source);
 	GambatteMenuHandler mh(&mw, &source, argc, argv);
-
 	mw.show();
 	return app.exec();
 }

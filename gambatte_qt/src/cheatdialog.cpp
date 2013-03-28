@@ -37,40 +37,44 @@
 namespace {
 
 struct CheatItemLess {
-	bool operator()(const CheatListItem &lhs, const CheatListItem &rhs) const {
+	bool operator()(CheatListItem const &lhs, CheatListItem const &rhs) const {
 		return lhs.label + lhs.code < rhs.label + rhs.code;
 	}
 };
 
 class CheatListModel : public QAbstractListModel {
-	std::vector<CheatListItem> items_;
-
 public:
 	explicit CheatListModel(QObject *parent = 0) : QAbstractListModel(parent) {}
-	explicit CheatListModel(const std::vector<CheatListItem> &items, QObject *parent = 0)
+	explicit CheatListModel(std::vector<CheatListItem> const &items, QObject *parent = 0)
 	: QAbstractListModel(parent), items_(items)
 	{
 	}
 
-	virtual int rowCount(const QModelIndex&) const { return items_.size(); }
+	virtual int rowCount(QModelIndex const &) const { return items_.size(); }
 
-	virtual Qt::ItemFlags flags(const QModelIndex &index) const {
+	virtual Qt::ItemFlags flags(QModelIndex const &index) const {
 		return QAbstractListModel::flags(index) | Qt::ItemIsUserCheckable;
 	}
 
-	virtual QVariant data(const QModelIndex &index, const int role) const {
+	virtual QVariant data(QModelIndex const &index, int const role) const {
 		if (static_cast<std::size_t>(index.row()) < items_.size()) {
 			switch (role) {
-			case Qt::DisplayRole: return items_[index.row()].label + " (" + items_[index.row()].code + ")";
-			case Qt::CheckStateRole: return items_[index.row()].checked ? Qt::Checked : Qt::Unchecked;
+			case Qt::DisplayRole:
+				return items_[index.row()].label
+				     + " (" + items_[index.row()].code + ')';
+			case Qt::CheckStateRole:
+				return items_[index.row()].checked
+				     ? Qt::Checked
+				     : Qt::Unchecked;
 			}
 		}
 
 		return QVariant();
 	}
 
-	virtual bool setData(const QModelIndex &index, const QVariant &value, const int role) {
-		if (static_cast<std::size_t>(index.row()) < items_.size() && role == Qt::CheckStateRole) {
+	virtual bool setData(QModelIndex const &index, QVariant const &value, int role) {
+		if (static_cast<std::size_t>(index.row()) < items_.size()
+				&& role == Qt::CheckStateRole) {
 			items_[index.row()].checked = value.toBool();
 			return true;
 		}
@@ -78,16 +82,19 @@ public:
 		return false;
 	}
 
-	const std::vector<CheatListItem> & items() const { return items_; }
+	std::vector<CheatListItem> const & items() const { return items_; }
+
+private:
+	std::vector<CheatListItem> items_;
 };
 
 }
 
-GetCheatInput::GetCheatInput(const QString &desc, const QString &code, QWidget *const parent)
-: QDialog(parent),
-  codeEdit_(new QLineEdit(code)),
-  descEdit_(new QLineEdit(desc)),
-  okButton_(new QPushButton(tr("OK")))
+GetCheatInput::GetCheatInput(QString const &desc, QString const &code, QWidget *parent)
+: QDialog(parent)
+, codeEdit_(new QLineEdit(code))
+, descEdit_(new QLineEdit(desc))
+, okButton_(new QPushButton(tr("OK")))
 {
 	QVBoxLayout *const l = new QVBoxLayout;
 	setLayout(l);
@@ -96,8 +103,9 @@ GetCheatInput::GetCheatInput(const QString &desc, const QString &code, QWidget *
 	l->addWidget(new QLabel(tr("GG/GS Code:")));
 	l->addWidget(codeEdit_);
 
-	const QString cheatre("((01[0-9a-fA-F]{6,6})|([0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}(-[0-9a-fA-F]{3,3})?))");
-	codeEdit_->setValidator(new QRegExpValidator(QRegExp(cheatre + "(;" + cheatre + ")*"), codeEdit_));
+	QString const cheatre("((01[0-9a-fA-F]{6,6})|([0-9a-fA-F]{3,3}-[0-9a-fA-F]{3,3}(-[0-9a-fA-F]{3,3})?))");
+	codeEdit_->setValidator(new QRegExpValidator(QRegExp(cheatre + "(;" + cheatre + ")*"),
+	                                             codeEdit_));
 	codeEdit_->setToolTip(tr("Game Genie: hhh-hhh-hhh;...\nGame Shark: 01hhhhhh;..."));
 	codeEdit_->setWhatsThis(codeEdit_->toolTip());
 
@@ -109,29 +117,30 @@ GetCheatInput::GetCheatInput(const QString &desc, const QString &code, QWidget *
 	hl->addWidget(cancelButton);
 
 	okButton_->setEnabled(codeEdit_->hasAcceptableInput());
-	connect(codeEdit_, SIGNAL(textChanged(const QString&)), this, SLOT(codeTextEdited(const QString&)));
+	connect(codeEdit_, SIGNAL(textChanged(QString const &)),
+	        this, SLOT(codeTextEdited(QString const &)));
 	connect(okButton_, SIGNAL(clicked()), this, SLOT(accept()));
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 }
 
-void GetCheatInput::codeTextEdited(const QString&) {
+void GetCheatInput::codeTextEdited(QString const &) {
 	okButton_->setEnabled(codeEdit_->hasAcceptableInput());
 }
 
-const QString GetCheatInput::codeText() const {
+QString const GetCheatInput::codeText() const {
 	return codeEdit_->text().toUpper();
 }
 
-const QString GetCheatInput::descText() const {
+QString const GetCheatInput::descText() const {
 	return descEdit_->text();
 }
 
-CheatDialog::CheatDialog(const QString &savefile, QWidget *const parent)
-: QDialog(parent),
-  view_(new QListView()),
-  editButton_(new QPushButton(tr("Edit..."))),
-  rmButton_(new QPushButton(tr("Remove"))),
-  savefile_(savefile)
+CheatDialog::CheatDialog(QString const &savefile, QWidget *parent)
+: QDialog(parent)
+, view_(new QListView())
+, editButton_(new QPushButton(tr("Edit...")))
+, rmButton_(new QPushButton(tr("Remove")))
+, savefile_(savefile)
 {
 	setWindowTitle("Cheats");
 
@@ -150,16 +159,13 @@ CheatDialog::CheatDialog(const QString &savefile, QWidget *const parent)
 
 	viewLayout->addWidget(editButton_);
 	connect(editButton_, SIGNAL(clicked()), this, SLOT(editCheat()));
-
 	viewLayout->addWidget(rmButton_);
 	connect(rmButton_, SIGNAL(clicked()), this, SLOT(removeCheat()));
 
 	{
 		QPushButton *const okButton = new QPushButton(tr("OK"));
 		QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
-
 		okButton->setDefault(true);
-
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 
@@ -182,11 +188,13 @@ void CheatDialog::loadFromSettingsFile() {
 		QSettings settings(savefile_, QSettings::IniFormat);
 		settings.beginGroup(gamename_);
 
-		foreach (const QString &key, settings.childKeys()) {
-			const QStringList &l = settings.value(key).toStringList();
-
-			if (1 < l.size())
-				items_.push_back(CheatListItem(l[0], l[1], 2 < l.size() && l[2] == "on"));
+		foreach (QString const &key, settings.childKeys()) {
+			QStringList const &l = settings.value(key).toStringList();
+			if (1 < l.size()) {
+				CheatListItem item(l[0], l[1],
+				                   2 < l.size() && l[2] == "on");
+				items_.push_back(item);
+			}
 		}
 
 		std::sort(items_.begin(), items_.end(), CheatItemLess());
@@ -205,7 +213,6 @@ void CheatDialog::saveToSettingsFile() {
 			QStringList l;
 			l.append(items_[i].label);
 			l.append(items_[i].code);
-
 			if (items_[i].checked)
 				l.append("on");
 
@@ -214,49 +221,57 @@ void CheatDialog::saveToSettingsFile() {
 	}
 }
 
-void CheatDialog::resetViewModel(const std::vector<CheatListItem> &items) {
+void CheatDialog::resetViewModel(std::vector<CheatListItem> const &items) {
 	resetViewModel(items, view_->currentIndex().row());
 }
 
-void CheatDialog::resetViewModel(const std::vector<CheatListItem> &items, const int newCurRow) {
-	const scoped_ptr<QAbstractItemModel> oldModel(view_->model());
+void CheatDialog::resetViewModel(std::vector<CheatListItem> const &items, int const newCurRow) {
+	scoped_ptr<QAbstractItemModel> const oldModel(view_->model());
 	view_->setModel(new CheatListModel(items, this));
 	view_->setCurrentIndex(view_->model()->index(newCurRow, 0, QModelIndex()));
 	selectionChanged(view_->selectionModel()->currentIndex(), QModelIndex());
-	connect(view_->selectionModel(), SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)),
-					this, SLOT(selectionChanged(const QModelIndex&, const QModelIndex&)));
+	connect(view_->selectionModel(),
+	        SIGNAL(currentChanged(QModelIndex const &, QModelIndex const &)),
+	        this, SLOT(selectionChanged(QModelIndex const &, QModelIndex const &)));
 }
 
 void CheatDialog::addCheat() {
-	const scoped_ptr<GetCheatInput> getCheatDialog(new GetCheatInput(QString(), QString(), this));
+	scoped_ptr<GetCheatInput> const getCheatDialog(new GetCheatInput(QString(), QString(), this));
 	getCheatDialog->setWindowTitle(tr("Add Cheat"));
 
 	if (getCheatDialog->exec()) {
-		std::vector<CheatListItem> items = reinterpret_cast<CheatListModel*>(view_->model())->items();
-		const CheatListItem item(getCheatDialog->descText(), getCheatDialog->codeText(), false);
-		const std::vector<CheatListItem>::iterator it =
-				items.insert(std::lower_bound(items.begin(), items.end(), item, CheatItemLess()), item);
-
+		std::vector<CheatListItem> items =
+			static_cast<CheatListModel *>(view_->model())->items();
+		CheatListItem const item(getCheatDialog->descText(),
+		                         getCheatDialog->codeText(),
+		                         false);
+		std::vector<CheatListItem>::iterator it =
+			items.insert(std::lower_bound(items.begin(), items.end(), item,
+			                              CheatItemLess()),
+			             item);
 		resetViewModel(items, it - items.begin());
 	}
 }
 
 void CheatDialog::editCheat() {
-	const std::size_t row = view_->selectionModel()->currentIndex().row();
-	std::vector<CheatListItem> items = reinterpret_cast<CheatListModel*>(view_->model())->items();
+	std::size_t const row = view_->selectionModel()->currentIndex().row();
+	std::vector<CheatListItem> items = static_cast<CheatListModel *>(view_->model())->items();
 
 	if (row < items.size()) {
-		const scoped_ptr<GetCheatInput> getCheatDialog(
+		scoped_ptr<GetCheatInput> const getCheatDialog(
 			new GetCheatInput(items[row].label, items[row].code, this));
 		getCheatDialog->setWindowTitle(tr("Edit Cheat"));
 
 		if (getCheatDialog->exec()) {
-			const CheatListItem item(getCheatDialog->descText(), getCheatDialog->codeText(), items[row].checked);
+			CheatListItem const item(getCheatDialog->descText(),
+			                         getCheatDialog->codeText(),
+			                         items[row].checked);
 			items.erase(items.begin() + row);
 
-			const std::vector<CheatListItem>::iterator it =
-					items.insert(std::lower_bound(items.begin(), items.end(), item, CheatItemLess()), item);
-
+			std::vector<CheatListItem>::iterator it =
+				items.insert(std::lower_bound(items.begin(), items.end(), item,
+				                              CheatItemLess()),
+				             item);
 			resetViewModel(items, it - items.begin());
 		}
 	}
@@ -264,9 +279,9 @@ void CheatDialog::editCheat() {
 
 void CheatDialog::removeCheat() {
 	if (view_->selectionModel()->currentIndex().isValid()) {
-		const std::size_t row = view_->selectionModel()->currentIndex().row();
-		std::vector<CheatListItem> items = reinterpret_cast<CheatListModel*>(view_->model())->items();
-
+		std::size_t const row = view_->selectionModel()->currentIndex().row();
+		std::vector<CheatListItem> items =
+			static_cast<CheatListModel *>(view_->model())->items();
 		if (row < items.size()) {
 			items.erase(items.begin() + row);
 			resetViewModel(items, row);
@@ -274,14 +289,13 @@ void CheatDialog::removeCheat() {
 	}
 }
 
-void CheatDialog::selectionChanged(const QModelIndex &current, const QModelIndex&) {
+void CheatDialog::selectionChanged(QModelIndex const &current, QModelIndex const &) {
 	editButton_->setEnabled(current.isValid());
 	rmButton_->setEnabled(current.isValid());
 }
 
-const QString CheatDialog::cheats() const {
+QString const CheatDialog::cheats() const {
 	QString s;
-
 	for (std::size_t i = 0; i < items_.size(); ++i) {
 		if (items_[i].checked)
 			s += items_[i].code + ";";
@@ -290,14 +304,14 @@ const QString CheatDialog::cheats() const {
 	return s;
 }
 
-void CheatDialog::setGameName(const QString &name) {
+void CheatDialog::setGameName(QString const &name) {
 	saveToSettingsFile();
 	gamename_ = name;
 	loadFromSettingsFile();
 }
 
 void CheatDialog::accept() {
-	items_ = reinterpret_cast<CheatListModel*>(view_->model())->items();
+	items_ = static_cast<CheatListModel *>(view_->model())->items();
 	QDialog::accept();
 }
 

@@ -28,13 +28,19 @@ struct CheatListItem {
 	QString code;
 	bool checked;
 
-	CheatListItem(const QString &label, const QString &code, const bool checked)
+	CheatListItem(QString const &label, QString const &code, bool checked)
 	: label(label), code(code), checked(checked)
 	{
 	}
 };
 
 class GetCheatInput : public QDialog {
+public:
+	explicit GetCheatInput(QString const &desc, QString const &code, QWidget *parent);
+	QString const codeText() const;
+	QString const descText() const;
+
+private:
 	Q_OBJECT
 
 	class QLineEdit *const codeEdit_;
@@ -42,44 +48,40 @@ class GetCheatInput : public QDialog {
 	class QPushButton *const okButton_;
 
 private slots:
-	void codeTextEdited(const QString&);
-
-public:
-	explicit GetCheatInput(const QString &desc, const QString &code, QWidget *parent);
-	const QString codeText() const;
-	const QString descText() const;
+	void codeTextEdited(QString const &);
 };
 
 class CheatDialog : public QDialog {
+public:
+	explicit CheatDialog(QString const &savefile, QWidget *parent = 0);
+	~CheatDialog();
+	QString const cheats() const;
+	void setGameName(QString const &name);
+
+public slots:
+	virtual void accept();
+	virtual void reject();
+
+private:
 	Q_OBJECT
 
 	class QListView *const view_;
 	class QPushButton *const editButton_;
 	class QPushButton *const rmButton_;
 	std::vector<CheatListItem> items_;
-	const QString savefile_;
+	QString const savefile_;
 	QString gamename_;
 
 	void loadFromSettingsFile();
 	void saveToSettingsFile();
-	void resetViewModel(const std::vector<CheatListItem> &items);
-	void resetViewModel(const std::vector<CheatListItem> &items, int newCurRow);
+	void resetViewModel(std::vector<CheatListItem> const &items);
+	void resetViewModel(std::vector<CheatListItem> const &items, int newCurRow);
 
 private slots:
 	void addCheat();
 	void editCheat();
 	void removeCheat();
-	void selectionChanged(const class QModelIndex &current, const class QModelIndex &last);
-
-public:
-	explicit CheatDialog(const QString &savefile, QWidget *parent = 0);
-	~CheatDialog();
-	const QString cheats() const;
-	void setGameName(const QString &name);
-
-public slots:
-	virtual void accept();
-	virtual void reject();
+	void selectionChanged(class QModelIndex const &current, class QModelIndex const &last);
 };
 
 #endif

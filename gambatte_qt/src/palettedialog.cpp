@@ -17,28 +17,29 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "palettedialog.h"
-#include <QColor>
-#include <QPalette>
-#include <QColorDialog>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QPushButton>
-#include <QKeyEvent>
-#include <QMouseEvent>
 #include <QApplication>
-#include <QDropEvent>
-#include <QDragEnterEvent>
-#include <QMimeData>
 #include <QByteArray>
+#include <QColor>
+#include <QColorDialog>
 #include <QDataStream>
-#include <QListView>
-#include <QStringListModel>
 #include <QDir>
-#include <QSettings>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QHBoxLayout>
 #include <QInputDialog>
+#include <QKeyEvent>
+#include <QListView>
 #include <QMessageBox>
+#include <QMimeData>
+#include <QMouseEvent>
+#include <QPalette>
+#include <QPushButton>
+#include <QSettings>
+#include <QStringListModel>
+#include <QVBoxLayout>
 #include <algorithm>
 #include <cstring>
+#include <functional>
 
 namespace {
 
@@ -47,307 +48,307 @@ namespace {
 #define PACK15_4(c0, c1, c2, c3) \
 	PACK15_1(c0), PACK15_1(c1), PACK15_1(c2), PACK15_1(c3)
 
-static const unsigned short p005[] = {
+static unsigned short const p005[] = {
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000)
 };
 
-static const unsigned short p006[] = {
+static unsigned short const p006[] = {
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000)
 };
 
-static const unsigned short p007[] = {
+static unsigned short const p007[] = {
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000)
 };
 
-static const unsigned short p008[] = {
+static unsigned short const p008[] = {
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000)
 };
 
-static const unsigned short p012[] = {
+static unsigned short const p012[] = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static const unsigned short p013[] = {
+static unsigned short const p013[] = {
 	PACK15_4(0x000000, 0x008484, 0xFFDE00, 0xFFFFFF),
 	PACK15_4(0x000000, 0x008484, 0xFFDE00, 0xFFFFFF),
 	PACK15_4(0x000000, 0x008484, 0xFFDE00, 0xFFFFFF)
 };
 
-static const unsigned short p016[] = {
+static unsigned short const p016[] = {
 	PACK15_4(0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000),
 	PACK15_4(0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000),
 	PACK15_4(0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000)
 };
 
-static const unsigned short p017[] = {
+static unsigned short const p017[] = {
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000),
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000),
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000)
 };
 
-static const unsigned short p01B[] = {
+static unsigned short const p01B[] = {
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000)
 };
 
-static const unsigned short p100[] = {
+static unsigned short const p100[] = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000)
 };
 
-static const unsigned short p10B[] = {
+static unsigned short const p10B[] = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p10D[] = {
+static unsigned short const p10D[] = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000)
 };
 
-static const unsigned short p110[] = {
+static unsigned short const p110[] = {
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p11C[] = {
+static unsigned short const p11C[] = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000)
 };
 
-static const unsigned short p20B[] = {
+static unsigned short const p20B[] = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p20C[] = {
+static unsigned short const p20C[] = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000)
 };
 
-static const unsigned short p300[] = {
+static unsigned short const p300[] = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000)
 };
 
-static const unsigned short p304[] = {
+static unsigned short const p304[] = {
 	PACK15_4(0xFFFFFF, 0x7BFF00, 0xB57300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p305[] = {
+static unsigned short const p305[] = {
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p306[] = {
+static unsigned short const p306[] = {
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p308[] = {
+static unsigned short const p308[] = {
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xFF6352, 0xD60000, 0x630000, 0x000000),
 	PACK15_4(0xFF6352, 0xD60000, 0x630000, 0x000000)
 };
 
-static const unsigned short p30A[] = {
+static unsigned short const p30A[] = {
 	PACK15_4(0xB5B5FF, 0xFFFF94, 0xAD5A42, 0x000000),
 	PACK15_4(0x000000, 0xFFFFFF, 0xFF8484, 0x943A3A),
 	PACK15_4(0x000000, 0xFFFFFF, 0xFF8484, 0x943A3A)
 };
 
-static const unsigned short p30C[] = {
+static unsigned short const p30C[] = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000)
 };
 
-static const unsigned short p30D[] = {
+static unsigned short const p30D[] = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p30E[] = {
+static unsigned short const p30E[] = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p30F[] = {
+static unsigned short const p30F[] = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p312[] = {
+static unsigned short const p312[] = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static const unsigned short p319[] = {
+static unsigned short const p319[] = {
 	PACK15_4(0xFFE6C5, 0xCE9C84, 0x846B29, 0x5A3108),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static const unsigned short p31C[] = {
+static unsigned short const p31C[] = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p405[] = {
+static unsigned short const p405[] = {
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static const unsigned short p406[] = {
+static unsigned short const p406[] = {
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF )
 };
 
-static const unsigned short p407[] = {
+static unsigned short const p407[] = {
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static const unsigned short p500[] = {
+static unsigned short const p500[] = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static const unsigned short p501[] = {
+static unsigned short const p501[] = {
 	PACK15_4(0xFFFF9C, 0x94B5FF, 0x639473, 0x003A3A),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p502[] = {
+static unsigned short const p502[] = {
 	PACK15_4(0x6BFF00, 0xFFFFFF, 0xFF524A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFFFF, 0x63A5FF, 0x0000FF),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static const unsigned short p503[] = {
+static unsigned short const p503[] = {
 	PACK15_4(0x52DE00, 0xFF8400, 0xFFFF00, 0xFFFFFF),
 	PACK15_4(0xFFFFFF, 0xFFFFFF, 0x63A5FF, 0x0000FF),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static const unsigned short p508[] = {
+static unsigned short const p508[] = {
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xFF6352, 0xD60000, 0x630000, 0x000000),
 	PACK15_4(0x0000FF, 0xFFFFFF, 0xFFFF7B, 0x0084FF)
 };
 
-static const unsigned short p509[] = {
+static unsigned short const p509[] = {
 	PACK15_4(0xFFFFCE, 0x63EFEF, 0x9C8431, 0x5A5A5A),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p50B[] = {
+static unsigned short const p50B[] = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF7B, 0x0084FF, 0xFF0000)
 };
 
-static const unsigned short p50C[] = {
+static unsigned short const p50C[] = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static const unsigned short p50D[] = {
+static unsigned short const p50D[] = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static const unsigned short p50E[] = {
+static unsigned short const p50E[] = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p50F[] = {
+static unsigned short const p50F[] = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static const unsigned short p510[] = {
+static unsigned short const p510[] = {
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p511[] = {
+static unsigned short const p511[] = {
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x00FF00, 0x318400, 0x004A00),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p512[] = {
+static unsigned short const p512[] = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p514[] = {
+static unsigned short const p514[] = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFF00, 0xFF0000, 0x630000, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static const unsigned short p515[] = {
+static unsigned short const p515[] = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static const unsigned short p518[] = {
+static unsigned short const p518[] = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static const unsigned short p51A[] = {
+static unsigned short const p51A[] = {
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0x7B4A00, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static const unsigned short p51C[] = {
+static unsigned short const p51C[] = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
@@ -357,9 +358,9 @@ static const unsigned short p51C[] = {
 #undef PACK15_1
 #undef TO5BIT
 
-struct GbcPaletteEntry { const char *title; const unsigned short *p; };
+struct GbcPaletteEntry { char const *title; unsigned short const *p; };
 
-static const GbcPaletteEntry gbcDirPalettes[] = {
+static GbcPaletteEntry const gbcDirPalettes[] = {
 	{ "GBC - Blue", p518 },
 	{ "GBC - Brown", p012 },
 	{ "GBC - Dark Blue", p50D },
@@ -374,7 +375,7 @@ static const GbcPaletteEntry gbcDirPalettes[] = {
 	{ "GBC - Yellow", p51A },
 };
 
-static const GbcPaletteEntry gbcTitlePalettes[] = {
+static GbcPaletteEntry const gbcTitlePalettes[] = {
 	{ "ALLEY WAY", p008 },
 	{ "ASTEROIDS/MISCMD", p30E },
 	{ "BA.TOSHINDEN", p50F },
@@ -481,52 +482,61 @@ static const GbcPaletteEntry gbcTitlePalettes[] = {
 };
 
 static inline std::size_t gbcDirPalettesSize() { return sizeof gbcDirPalettes / sizeof gbcDirPalettes[0]; }
-static inline const struct GbcPaletteEntry * gbcDirPalettesEnd() { return gbcDirPalettes + gbcDirPalettesSize(); }
+static inline GbcPaletteEntry const * gbcDirPalettesEnd() { return gbcDirPalettes + gbcDirPalettesSize(); }
 static inline std::size_t gbcTitlePalettesSize() { return sizeof gbcTitlePalettes / sizeof gbcTitlePalettes[0]; }
-static inline const struct GbcPaletteEntry * gbcTitlePalettesEnd() { return gbcTitlePalettes + gbcTitlePalettesSize(); }
+static inline GbcPaletteEntry const * gbcTitlePalettesEnd() { return gbcTitlePalettes + gbcTitlePalettesSize(); }
 
 struct GbcPaletteEntryLess {
-	bool operator()(const GbcPaletteEntry &lhs, const char *const rhstitle) const {
+	bool operator()(GbcPaletteEntry const &lhs, char const *rhstitle) const {
 		return std::strcmp(lhs.title, rhstitle) < 0;
 	}
 };
 
-static const unsigned short * findGbcDirPal(const char *const title) {
-	const GbcPaletteEntry *const r = std::lower_bound(gbcDirPalettes, gbcDirPalettesEnd(), title, GbcPaletteEntryLess());
-	return r < gbcDirPalettesEnd() && !std::strcmp(r->title, title) ? r->p : 0;
+static unsigned short const * findGbcDirPal(char const *title) {
+	GbcPaletteEntry const *r = std::lower_bound(gbcDirPalettes, gbcDirPalettesEnd(),
+	                                            title, GbcPaletteEntryLess());
+	return r < gbcDirPalettesEnd() && !std::strcmp(r->title, title)
+	     ? r->p
+	     : 0;
 }
 
-static const unsigned short * findGbcTitlePal(const char *const title) {
-	const GbcPaletteEntry *const r = std::lower_bound(gbcTitlePalettes, gbcTitlePalettesEnd(), title, GbcPaletteEntryLess());
-	return r < gbcTitlePalettesEnd() && !std::strcmp(r->title, title) ? r->p : 0;
+static unsigned short const * findGbcTitlePal(char const *title) {
+	GbcPaletteEntry const *r = std::lower_bound(gbcTitlePalettes, gbcTitlePalettesEnd(),
+	                                            title, GbcPaletteEntryLess());
+	return r < gbcTitlePalettesEnd() && !std::strcmp(r->title, title)
+	     ? r->p
+	     : 0;
 }
 
-static const unsigned short * findGbcPal(const char *const title) {
-	if (const unsigned short *const pal = findGbcDirPal(title))
+static unsigned short const * findGbcPal(char const *title) {
+	if (unsigned short const *pal = findGbcDirPal(title))
 		return pal;
 
 	return findGbcTitlePal(title);
 }
 
-static unsigned long gbcToRgb32(const unsigned rgb15) {
-	const unsigned long r = rgb15 >> 10 & 0x1F;
-	const unsigned long g = rgb15 >>  5 & 0x1F;
-	const unsigned long b = rgb15       & 0x1F;
+static unsigned long gbcToRgb32(unsigned const rgb15) {
+	unsigned long r = rgb15 >> 10 & 0x1F;
+	unsigned long g = rgb15 >>  5 & 0x1F;
+	unsigned long b = rgb15       & 0x1F;
 
-	return ((r * 13 + g * 2 + b) >> 1) << 16 | (g * 3 + b) << 9 | (r * 3 + g * 2 + b * 11) >> 1;
+	return ((r * 13 + g * 2 + b) >> 1) << 16
+	     | (g * 3 + b) << 9
+	     | (r * 3 + g * 2 + b * 11) >> 1;
 }
 
-}
+} // anon ns
 
 ColorPicker::ColorPicker(QRgb color, QWidget *parent)
-: QFrame(parent), w(new QWidget)
+: QFrame(parent)
+, w_(new QWidget)
 {
 	setAcceptDrops(true);
-	w->setAutoFillBackground(true);
+	w_->setAutoFillBackground(true);
 
 	setLayout(new QVBoxLayout);
 	layout()->setMargin(0);
-	layout()->addWidget(w);
+	layout()->addWidget(w_);
 
 	setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 	setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
@@ -534,23 +544,22 @@ ColorPicker::ColorPicker(QRgb color, QWidget *parent)
 	setColor(color);
 }
 
-const QColor& ColorPicker::getQColor() const {
-	return w->palette().color(QPalette::Background);
+QColor const & ColorPicker::getQColor() const {
+	return w_->palette().color(QPalette::Background);
 }
 
 void ColorPicker::requestColor() {
-	QColor c = QColorDialog::getColor(QColor(getColor()), this);
-
+	QColor c = QColorDialog::getColor(QColor(color()), this);
 	if (c.isValid()) {
 		setColor(c);
 		emit colorChanged();
 	}
 }
 
-void ColorPicker::setColor(const QColor &color) {
-	QPalette p(w->palette());
+void ColorPicker::setColor(QColor const &color) {
+	QPalette p(w_->palette());
 	p.setColor(QPalette::Background, color);
-	w->setPalette(p);
+	w_->setPalette(p);
 }
 
 void ColorPicker::dragEnterEvent(QDragEnterEvent *e) {
@@ -566,11 +575,11 @@ void ColorPicker::dropEvent(QDropEvent *e) {
 }
 
 void ColorPicker::mousePressEvent(QMouseEvent *e) {
-	dragStartPosition = e->pos();
+	dragStartPosition_ = e->pos();
 }
 
 void ColorPicker::mouseMoveEvent(QMouseEvent *e) {
-	if ((e->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+	if ((e->pos() - dragStartPosition_).manhattanLength() < QApplication::startDragDistance())
 		return;
 
 	QDrag *const drag = new QDrag(this);
@@ -598,7 +607,7 @@ void ColorPicker::keyReleaseEvent(QKeyEvent *e) {
 	}
 }
 
-QRgb ColorPicker::getColor() const {
+QRgb ColorPicker::color() const {
 	return getQColor().rgb() & 0xFFFFFF;
 }
 
@@ -606,18 +615,16 @@ void ColorPicker::setColor(QRgb rgb32) {
 	setColor(QColor(rgb32));
 }
 
-ColorQuad::ColorQuad(const QString &label, QWidget *parent)
+ColorQuad::ColorQuad(QString const &label, QWidget *parent)
 : QGroupBox(label, parent)
 {
 	setAcceptDrops(true);
 	setLayout(new QHBoxLayout);
 
-	for (int i = 0; i < 4; ++i) {
-		layout()->addWidget(picker[i] = new ColorPicker);
-		connect(picker[i], SIGNAL(colorChanged()), this, SLOT(pickerChanged()));
+	for (std::size_t i = 0; i < sizeof picker_ / sizeof *picker_; ++i) {
+		layout()->addWidget(picker_[i] = new ColorPicker);
+		connect(picker_[i], SIGNAL(colorChanged()), this, SLOT(pickerChanged()));
 	}
-
-// 	setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
 }
 
 void ColorQuad::pickerChanged() {
@@ -635,8 +642,7 @@ void ColorQuad::dropEvent(QDropEvent *e) {
 
 	QDataStream dataStream(e->mimeData()->data("application/x-colorquad"));
 	QRgb color;
-
-	for (int i = 0; i < 4; ++i) {
+	for (std::size_t i = 0; i < sizeof picker_ / sizeof *picker_; ++i) {
 		dataStream >> color;
 		setColor(i, color);
 	}
@@ -644,12 +650,11 @@ void ColorQuad::dropEvent(QDropEvent *e) {
 	pickerChanged();
 }
 
-void ColorQuad::mousePressEvent(QMouseEvent */*e*/) {
+void ColorQuad::mousePressEvent(QMouseEvent *) {
 	QByteArray itemData;
 	QDataStream dataStream(&itemData, QIODevice::WriteOnly);
-
-	for (int i = 0; i < 4; ++i)
-		dataStream << getColor(i);
+	for (std::size_t i = 0; i < sizeof picker_ / sizeof *picker_; ++i)
+		dataStream << color(i);
 
 	QMimeData *const mimeData = new QMimeData;
 	mimeData->setData("application/x-colorquad", itemData);
@@ -663,66 +668,76 @@ namespace {
 
 class ImmutableStringListModel : public QStringListModel {
 public:
-	ImmutableStringListModel(QObject *parent = 0) : QStringListModel(parent) {}
-	ImmutableStringListModel(const QStringList &strings, QObject *parent = 0) : QStringListModel(strings, parent) {}
-	Qt::ItemFlags flags(const QModelIndex &index) const { return QStringListModel::flags(index) & ~Qt::ItemIsEditable; }
+	explicit ImmutableStringListModel(QObject *parent = 0)
+	: QStringListModel(parent)
+	{
+	}
+
+	explicit ImmutableStringListModel(QStringList const &strings, QObject *parent = 0)
+	: QStringListModel(strings, parent)
+	{
+	}
+
+	Qt::ItemFlags flags(QModelIndex const &index) const {
+		return QStringListModel::flags(index) & ~Qt::ItemIsEditable;
+	}
 };
 
-static const QStringList makeStaticStringList(const bool hasGlobal) {
+static QStringList const makeStaticStringList(bool const hasGlobal) {
 	QStringList sl;
-
 	if (hasGlobal)
 		sl.append("Global Palette");
 
 	sl.append("Current Scheme");
 	sl.append("Default Gray");
-
 	for (std::size_t i = 0; i < gbcDirPalettesSize(); ++i)
 		sl.append(gbcDirPalettes[i].title);
-
 	for (std::size_t i = 0; i < gbcTitlePalettesSize(); ++i)
 		sl.append(gbcTitlePalettes[i].title);
 
 	return sl;
 }
 
-static void setSchemeList(const QString &savedir, const bool hasGlobal, QStringListModel *const model) {
-	QDir dir(savedir, "*.pal", QDir::Name | QDir::IgnoreCase, QDir::Files | QDir::Readable);
+static void setSchemeList(QStringListModel &model, QString const &savedir, bool hasGlobal) {
+	QDir dir(savedir, "*.pal",
+	         QDir::Name | QDir::IgnoreCase,
+	         QDir::Files | QDir::Readable);
 	QStringList dirlisting(dir.entryList());
-
-	for (QStringList::iterator it = dirlisting.begin(); it != dirlisting.end(); ++it)
-		it->chop(4);
-
-	model->setStringList(makeStaticStringList(hasGlobal) + dirlisting);
+	std::for_each(dirlisting.begin(), dirlisting.end(), 
+	              std::bind2nd(std::mem_fun_ref(&QString::chop), 4));
+	model.setStringList(makeStaticStringList(hasGlobal) + dirlisting);
 }
 
-static const QModelIndex schemeIndexOf(const QAbstractItemModel *const model, const QString &schemeStr) {
-	const int rows = model->rowCount();
+static QModelIndex schemeIndexOf(QAbstractItemModel const &model, QString const &schemeStr) {
+	int const rows = model.rowCount();
 
 	for (int i = 0; i < rows; ++i) {
-		if (model->index(i, 0).data().toString() == schemeStr)
-			return model->index(i, 0);
+		if (model.index(i, 0).data().toString() == schemeStr)
+			return model.index(i, 0);
 	}
 
 	for (int i = 0; i < rows; ++i) {
-		if (model->index(i, 0).data().toString() == "Current Scheme")
-			return model->index(i, 0);
+		if (model.index(i, 0).data().toString() == "Current Scheme")
+			return model.index(i, 0);
 	}
 
 	return QModelIndex();
 }
 
-}
+} // anon ns
 
-PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *global, QWidget *parent)
-: QDialog(parent),
-  global(global),
-  listView(new QListView),
-  rmSchemeButton(new QPushButton("Remove Scheme")),
-  defaultScheme(global ? "Global Palette" : "Default Gray"),
-  schemeString(defaultScheme)
+PaletteDialog::PaletteDialog(QString const &savepath,
+                             PaletteDialog const *const global,
+                             QWidget *const parent)
+: QDialog(parent)
+, global_(global)
+, listView_(new QListView)
+, rmSchemeButton_(new QPushButton("Remove Scheme"))
+, quads_()
+, currentColors_()
+, defaultScheme_(global ? "Global Palette" : "Default Gray")
+, schemeString_(defaultScheme_)
 {
-	std::memset(currentColors, 0, sizeof currentColors);
 	setWindowTitle(global ? "Current ROM Palette" : "Global Palette");
 
 	QBoxLayout *const mainLayout = new QVBoxLayout;
@@ -733,32 +748,30 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 		{
 			QGroupBox *const lframe = new QGroupBox("Scheme");
 			QBoxLayout *const frameLayout = new QVBoxLayout;
-			savedir = savepath + "/";
-			QDir::root().mkpath(savedir + "stored/");
-			listView->setModel(new ImmutableStringListModel(this));
+			savedir_ = savepath + "/";
+			QDir::root().mkpath(savedir_ + "stored/");
+			listView_->setModel(new ImmutableStringListModel(this));
 			setSchemeList();
-			frameLayout->addWidget(listView);
+			frameLayout->addWidget(listView_);
 
 			{
-				QPushButton *const saveButton = new QPushButton("Save Scheme...");
+				QPushButton *saveButton = new QPushButton("Save Scheme...");
 				connect(saveButton, SIGNAL(clicked()), this, SLOT(saveScheme()));
 				frameLayout->addWidget(saveButton);
 			}
 
-			connect(rmSchemeButton, SIGNAL(clicked()), this, SLOT(rmScheme()));
-			frameLayout->addWidget(rmSchemeButton);
-
+			connect(rmSchemeButton_, SIGNAL(clicked()), this, SLOT(rmScheme()));
+			frameLayout->addWidget(rmSchemeButton_);
 			lframe->setLayout(frameLayout);
 			topLayout->addWidget(lframe);
 		}
 
 		{
-			QBoxLayout *const vLayout = new QVBoxLayout;
-			vLayout->addWidget(quads[0] = new ColorQuad("Background"));
-			vLayout->addWidget(quads[1] = new ColorQuad("Sprite 1"));
-			vLayout->addWidget(quads[2] = new ColorQuad("Sprite 2"));
+			QBoxLayout *vLayout = new QVBoxLayout;
+			vLayout->addWidget(quads_[0] = new ColorQuad("Background"));
+			vLayout->addWidget(quads_[1] = new ColorQuad("Sprite 1"));
+			vLayout->addWidget(quads_[2] = new ColorQuad("Sprite 2"));
 			topLayout->addLayout(vLayout);
-// 			topLayout->setAlignment(vLayout, Qt::AlignTop);
 		}
 
 		mainLayout->addLayout(topLayout);
@@ -767,9 +780,7 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 	{
 		QPushButton *const okButton = new QPushButton(tr("OK"));
 		QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
-
 		okButton->setDefault(true);
-
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 
@@ -782,10 +793,12 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 
 	setLayout(mainLayout);
 
-	for (int i = 0; i < 3; ++i)
-		connect(quads[i], SIGNAL(colorChanged()), listView->selectionModel(), SLOT(clear()));
+	for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
+		connect(quads_[i], SIGNAL(colorChanged()), listView_->selectionModel(), SLOT(clear()));
 
-	connect(listView->selectionModel(), SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this, SLOT(schemeChanged(const QModelIndex&, const QModelIndex&)));
+	connect(listView_->selectionModel(),
+	        SIGNAL(currentChanged(QModelIndex const &, QModelIndex const &)),
+	        this, SLOT(schemeChanged(QModelIndex const &, QModelIndex const &)));
 
 	if (global) {
 		restore();
@@ -799,7 +812,7 @@ PaletteDialog::PaletteDialog(const QString &savepath, const PaletteDialog *globa
 }
 
 PaletteDialog::~PaletteDialog() {
-	if (global) {
+	if (global_) {
 		saveToSettingsFile();
 	} else {
 		QSettings settings;
@@ -810,123 +823,126 @@ PaletteDialog::~PaletteDialog() {
 }
 
 void PaletteDialog::saveSettings(QSettings &settings) {
-	settings.setValue("slectedScheme", schemeString);
+	settings.setValue("slectedScheme", schemeString_);
 
-	for (unsigned i = 0; i < 3; ++i)
-		for (unsigned j = 0; j < 4; ++j)
-			settings.setValue(quads[i]->title() + QString::number(j), currentColors[i][j]);
+	for (std::size_t i = 0; i < sizeof currentColors_ / sizeof *currentColors_; ++i)
+	for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+		settings.setValue(quads_[i]->title() + QString::number(j), currentColors_[i][j]);
 }
 
 void PaletteDialog::loadSettings(QSettings &settings) {
-	schemeString = settings.value("slectedScheme", defaultScheme).toString();
+	schemeString_ = settings.value("slectedScheme", defaultScheme_).toString();
 
-	for (unsigned i = 0; i < 3; ++i)
-		for (unsigned j = 0; j < 4; ++j)
-			currentColors[i][j] = qvariant_cast<QRgb>(settings.value(quads[i]->title() + QString::number(j), (3 - (j & 3)) * 85 * 0x010101));
+	for (std::size_t i = 0; i < sizeof currentColors_ / sizeof *currentColors_; ++i)
+	for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j) {
+		currentColors_[i][j] = qvariant_cast<QRgb>(
+			settings.value(quads_[i]->title() + QString::number(j),
+			               (3 - (j & 3)) * 85 * 0x010101));
+	}
 
 	restore();
 	store();
 }
 
 void PaletteDialog::saveToSettingsFile() {
-	if (!settingsFile.isEmpty()) {
-		if (schemeString == defaultScheme) {
-			QDir(savedir).remove(settingsFile);
+	if (!settingsFile_.isEmpty()) {
+		if (schemeString_ == defaultScheme_) {
+			QDir(savedir_).remove(settingsFile_);
 		} else {
-			QSettings settings(savedir + settingsFile, QSettings::IniFormat);
+			QSettings settings(savedir_ + settingsFile_, QSettings::IniFormat);
 			saveSettings(settings);
 		}
 	}
 }
 
 void PaletteDialog::setSchemeList() {
-	::setSchemeList(savedir + "stored/", global, reinterpret_cast<QStringListModel*>(listView->model()));
+	::setSchemeList(*static_cast<QStringListModel *>(listView_->model()),
+	                savedir_ + "stored/", global_);
 }
 
 void PaletteDialog::rmScheme() {
-	{
-		QDir(savedir + "stored/").remove(listView->currentIndex().data().toString() + ".pal");
-	}
-
-	listView->selectionModel()->clear();
+	{ QDir(savedir_ + "stored/").remove(listView_->currentIndex().data().toString() + ".pal"); }
+	listView_->selectionModel()->clear();
 	setSchemeList();
 }
 
 void PaletteDialog::saveScheme() {
 	bool ok;
-	const QString &text = QInputDialog::getText(this, "Save Scheme", "Scheme name:",
+	QString const &text = QInputDialog::getText(this, "Save Scheme", "Scheme name:",
 	                                            QLineEdit::Normal, QString(), &ok);
-
 	if (!ok)
 		return;
 
-	if (text.isEmpty() || makeStaticStringList(true).contains(text)
-			|| text.size() > 200 || text.contains(QRegExp("[" + QRegExp::escape("<>:\"/\\|?*") + "]"))) {
+	if (text.isEmpty()
+			|| makeStaticStringList(true).contains(text)
+			|| text.size() > 200
+			|| text.contains(QRegExp("[" + QRegExp::escape("<>:\"/\\|?*") + "]"))) {
 		QMessageBox::information(this, "Invalid scheme name", "Invalid scheme name.");
 		return;
 	}
 
 	{
-		QSettings settings(savedir + "stored/" + text + ".pal", QSettings::IniFormat);
+		QSettings settings(savedir_ + "stored/" + text + ".pal", QSettings::IniFormat);
 
-		for (unsigned i = 0; i < 3; ++i)
-			for (unsigned j = 0; j < 4; ++j)
-				settings.setValue(quads[i]->title() + QString::number(j), quads[i]->getColor(j));
+		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
+		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+			settings.setValue(quads_[i]->title() + QString::number(j), quads_[i]->color(j));
 	}
 
 	setSchemeList();
-
-	listView->setCurrentIndex(schemeIndexOf(listView->model(), text));
+	listView_->setCurrentIndex(schemeIndexOf(*listView_->model(), text));
 }
 
-void PaletteDialog::schemeChanged(const QModelIndex &current, const QModelIndex &/*previous*/) {
-	rmSchemeButton->setEnabled(false);
-
+void PaletteDialog::schemeChanged(QModelIndex const &current, QModelIndex const &/*previous*/) {
+	rmSchemeButton_->setEnabled(false);
 	if (!current.isValid())
 		return;
 
-	const QString &str = current.data().toString();
-
+	QString const &str = current.data().toString();
 	if ("Global Palette" == str) {
-		for (unsigned i = 0; i < 3; ++i)
-			for (unsigned j = 0; j < 4; ++j)
-				quads[i]->setColor(j, global->getColor(i, j));
+		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
+		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+			quads_[i]->setColor(j, global_->color(i, j));
 	} else if ("Current Scheme" == str) {
-		for (unsigned i = 0; i < 3; ++i)
-			for (unsigned j = 0; j < 4; ++j)
-				quads[i]->setColor(j, currentColors[i][j]);
+		for (std::size_t i = 0; i < sizeof currentColors_ / sizeof *currentColors_; ++i)
+		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+			quads_[i]->setColor(j, currentColors_[i][j]);
 	} else if ("Default Gray" == str) {
-		for (unsigned i = 0; i < 3; ++i)
-			for (unsigned j = 0; j < 4; ++j)
-				quads[i]->setColor(j, (3 - (j & 3)) * 85 * 0x010101);
-	} else if (const unsigned short *const gbcpal = findGbcPal(str.toAscii().data())) {
-		for (unsigned i = 0; i < 3; ++i)
-			for (unsigned j = 0; j < 4; ++j)
-				quads[i]->setColor(j, gbcToRgb32(gbcpal[i * 4 + j]));
+		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
+		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+			quads_[i]->setColor(j, (3 - (j & 3)) * 85 * 0x010101);
+	} else if (unsigned short const *gbcpal = findGbcPal(str.toAscii().data())) {
+		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
+		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+			quads_[i]->setColor(j, gbcToRgb32(gbcpal[i * 4 + j]));
 	} else {
-		QSettings settings(savedir + "stored/" + str + ".pal", QSettings::IniFormat);
+		QSettings settings(savedir_ + "stored/" + str + ".pal", QSettings::IniFormat);
 
-		for (unsigned i = 0; i < 3; ++i)
-			for (unsigned j = 0; j < 4; ++j)
-				quads[i]->setColor(j, qvariant_cast<QRgb>(settings.value(quads[i]->title() + QString::number(j), 0)));
+		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
+		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j) {
+			QVariant v = settings.value(quads_[i]->title() + QString::number(j), 0);
+			quads_[i]->setColor(j, qvariant_cast<QRgb>(v));
+		}
 
-		rmSchemeButton->setEnabled(true);
+		rmSchemeButton_->setEnabled(true);
 	}
 }
 
 void PaletteDialog::store() {
-	for (unsigned i = 0; i < 3; ++i)
-		for (unsigned j = 0; j < 4; ++j)
-			currentColors[i][j] = quads[i]->getColor(j);
+	for (std::size_t i = 0; i < sizeof currentColors_ / sizeof *currentColors_; ++i)
+	for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
+		currentColors_[i][j] = quads_[i]->color(j);
 
-	if (!listView->currentIndex().isValid())
-		listView->setCurrentIndex(schemeIndexOf(listView->model(), "Current Scheme")); //obs: will emit currentChanged()
+	if (!listView_->currentIndex().isValid()) {
+		// obs: will emit currentChanged()
+		listView_->setCurrentIndex(schemeIndexOf(*listView_->model(), "Current Scheme"));
+	}
 
-	schemeString = listView->currentIndex().data().toString();
+	schemeString_ = listView_->currentIndex().data().toString();
 }
 
 void PaletteDialog::restore() {
-	listView->setCurrentIndex(schemeIndexOf(listView->model(), schemeString));
+	listView_->setCurrentIndex(schemeIndexOf(*listView_->model(), schemeString_));
 }
 
 void PaletteDialog::externalChange() {
@@ -935,13 +951,13 @@ void PaletteDialog::externalChange() {
 	store();
 }
 
-void PaletteDialog::setSettingsFile(const QString &filename, const QString &romTitle) {
+void PaletteDialog::setSettingsFile(QString const &filename, QString const &romTitle) {
 	saveToSettingsFile();
-
-	settingsFile = filename;
-	defaultScheme = findGbcTitlePal(romTitle.toAscii().data()) ? romTitle : QString("Global Palette");
-
-	QSettings settings(savedir + settingsFile, QSettings::IniFormat);
+	settingsFile_ = filename;
+	defaultScheme_ = findGbcTitlePal(romTitle.toAscii().data())
+	               ? romTitle
+	               : QString("Global Palette");
+	QSettings settings(savedir_ + settingsFile_, QSettings::IniFormat);
 	loadSettings(settings);
 }
 

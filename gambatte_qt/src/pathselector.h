@@ -27,26 +27,29 @@ class QComboBox;
 class QWidget;
 
 class PathSelector : public QObject {
+public:
+	typedef std::pair<QString, QString> Mapping;
+
+	PathSelector(QString const &caption,
+	             QString const &settingskey,
+	             Mapping const &default1,
+	             Mapping const &default2 = Mapping());
+	~PathSelector();
+	void accept();
+	void reject();
+	QString const & value() const { return value_; }
+	QWidget * widget() const;
+
+private:
 	Q_OBJECT
 
 	QComboBox *const comboBox_;
 	QString value_;
-	const QString caption_;
-	const QString key_;
+	QString const caption_;
+	QString const key_;
 
 private slots:
 	void indexChanged(int index);
-
-public:
-	typedef std::pair<QString, QString> Mapping;
-
-	PathSelector(const QString &caption, const QString &settingskey,
-	             const Mapping &default1, const Mapping &default2 = Mapping());
-	~PathSelector();
-	void accept();
-	void reject();
-	const QString & value() const { return value_; }
-	QWidget * widget() const;
 };
 
 #endif

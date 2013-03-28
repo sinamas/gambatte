@@ -19,32 +19,15 @@
 #include "gambattesource.h"
 #include "videolink/rgb32conv.h"
 #include "videolink/vfilterinfo.h"
-#include <cstring>
-
-using namespace gambatte;
-
-GambatteSource::GambatteSource()
-: MediaSource(2064),
-  inputDialog_(createInputDialog()),
-  pxformat(PixelBuffer::RGB32),
-  vsrci(0),
-  dpadUp(false),
-  dpadDown(false),
-  dpadLeft(false),
-  dpadRight(false),
-  dpadUpLast(false),
-  dpadLeftLast(false)
-{
-	gb.setInputGetter(&inputGetter);
-	std::memset(inputState, 0, sizeof inputState);
-}
 
 namespace {
 
-static const InputDialog::Button makeButtonInfo(InputDialog::Button::Action *action, const char *label,
-		const char *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown,
+using namespace gambatte;
+
+static InputDialog::Button makeButtonInfo(InputDialog::Button::Action *action, char const *label,
+		char const *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown,
 		unsigned char defaultFpp = 0) {
-	const InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
+	InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
 	                          defaultAltKey: defaultAltKey, action: action, defaultFpp: defaultFpp };
 	return b;
 }
@@ -52,7 +35,7 @@ static const InputDialog::Button makeButtonInfo(InputDialog::Button::Action *act
 template<void (GambatteSource::*fun)()>
 struct CallAct : InputDialog::Button::Action {
 	GambatteSource *const source;
-	explicit CallAct(GambatteSource *const source) : source(source) {}
+	explicit CallAct(GambatteSource *source) : source(source) {}
 	virtual void buttonPressed() { (source->*fun)(); }
 };
 
@@ -64,13 +47,27 @@ struct GbDirAct : InputDialog::Button::Action {
 	virtual void buttonReleased() { a = false; }
 };
 
-enum { A_BUT, B_BUT, SELECT_BUT, START_BUT, RIGHT_BUT, LEFT_BUT, UP_BUT, DOWN_BUT };
+enum { a_but, b_but, select_but, start_but, right_but, left_but, up_but, down_but };
 
+} // anon ns
+
+GambatteSource::GambatteSource()
+: MediaSource(2064)
+, inputDialog_(createInputDialog())
+, pxformat_(PixelBuffer::RGB32)
+, vsrci_(0)
+, inputState_()
+, dpadUp_(false)
+, dpadDown_(false)
+, dpadLeft_(false)
+, dpadRight_(false)
+, dpadUpLast_(false)
+, dpadLeftLast_(false)
+{
+	gb_.setInputGetter(&inputGetter_);
 }
 
-InputDialog* GambatteSource::createInputDialog() {
-	std::vector<InputDialog::Button> v;
-
+InputDialog * GambatteSource::createInputDialog() {
 	struct GbButAct : InputDialog::Button::Action {
 		bool &a;
 		explicit GbButAct(bool &a) : a(a) {}
@@ -80,19 +77,20 @@ InputDialog* GambatteSource::createInputDialog() {
 
 	struct FastForwardAct : InputDialog::Button::Action {
 		GambatteSource *const source;
-		explicit FastForwardAct(GambatteSource *const source) : source(source) {}
+		explicit FastForwardAct(GambatteSource *source) : source(source) {}
 		virtual void buttonPressed() { source->emitSetTurbo(true); }
 		virtual void buttonReleased() { source->emitSetTurbo(false); }
 	};
 
-	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadUp, dpadUpLast), "Up", "Game", Qt::Key_Up));
-	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadDown, dpadUpLast), "Down", "Game", Qt::Key_Down));
-	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadLeft, dpadLeftLast), "Left", "Game", Qt::Key_Left));
-	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadRight, dpadLeftLast), "Right", "Game", Qt::Key_Right));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[A_BUT]), "A", "Game", Qt::Key_D));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[B_BUT]), "B", "Game", Qt::Key_C));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[START_BUT]), "Start", "Game", Qt::Key_Return));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[SELECT_BUT]), "Select", "Game", Qt::Key_Shift));
+	std::vector<InputDialog::Button> v;
+	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadUp_, dpadUpLast_), "Up", "Game", Qt::Key_Up));
+	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadDown_, dpadUpLast_), "Down", "Game", Qt::Key_Down));
+	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadLeft_, dpadLeftLast_), "Left", "Game", Qt::Key_Left));
+	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadRight_, dpadLeftLast_), "Right", "Game", Qt::Key_Right));
+	v.push_back(makeButtonInfo(new GbButAct(inputState_[a_but]), "A", "Game", Qt::Key_D));
+	v.push_back(makeButtonInfo(new GbButAct(inputState_[b_but]), "B", "Game", Qt::Key_C));
+	v.push_back(makeButtonInfo(new GbButAct(inputState_[start_but]), "Start", "Game", Qt::Key_Return));
+	v.push_back(makeButtonInfo(new GbButAct(inputState_[select_but]), "Select", "Game", Qt::Key_Shift));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPause>(this), "Pause", "Play", Qt::Key_Pause));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitFrameStep>(this), "Frame step", "Play", Qt::Key_F1));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitDecFrameRate>(this),
@@ -108,21 +106,20 @@ InputDialog* GambatteSource::createInputDialog() {
 	                           "Previous state slot", "State", Qt::Key_F6));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitNextStateSlot>(this),
 	                           "Next state slot", "State", Qt::Key_F7));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + A_BUT]), "Turbo A", "Other",
+	v.push_back(makeButtonInfo(new GbButAct(inputState_[8 + a_but]), "Turbo A", "Other",
 	                           Qt::Key_unknown, Qt::Key_unknown, 1));
-	v.push_back(makeButtonInfo(new GbButAct(inputState[8 + B_BUT]), "Turbo B", "Other",
+	v.push_back(makeButtonInfo(new GbButAct(inputState_[8 + b_but]), "Turbo B", "Other",
 	                           Qt::Key_unknown, Qt::Key_unknown, 1));
 	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitQuit>(this), "Quit", "Other"));
 
 	return new InputDialog(v);
 }
 
-const std::vector<VideoDialog::VideoSourceInfo> GambatteSource::generateVideoSourceInfos() {
+std::vector<VideoDialog::VideoSourceInfo> const GambatteSource::generateVideoSourceInfos() {
 	std::vector<VideoDialog::VideoSourceInfo> v(VfilterInfo::numVfilters());
-
 	for (std::size_t i = 0; i < v.size(); ++i) {
-		const VideoDialog::VideoSourceInfo vsi = { label: VfilterInfo::get(i).handle,
-				width: VfilterInfo::get(i).outWidth, height: VfilterInfo::get(i).outHeight };
+		VideoDialog::VideoSourceInfo vsi = { label: VfilterInfo::get(i).handle,
+			width: VfilterInfo::get(i).outWidth, height: VfilterInfo::get(i).outHeight };
 
 		v[i] = vsi;
 	}
@@ -130,15 +127,15 @@ const std::vector<VideoDialog::VideoSourceInfo> GambatteSource::generateVideoSou
 	return v;
 }
 
-void GambatteSource::keyPressEvent(const QKeyEvent *e) {
+void GambatteSource::keyPressEvent(QKeyEvent const *e) {
 	inputDialog_->keyPressEvent(e);
 }
 
-void GambatteSource::keyReleaseEvent(const QKeyEvent *e) {
+void GambatteSource::keyReleaseEvent(QKeyEvent const *e) {
 	inputDialog_->keyReleaseEvent(e);
 }
 
-void GambatteSource::joystickEvent(const SDL_Event &e) {
+void GambatteSource::joystickEvent(SDL_Event const &e) {
 	inputDialog_->joystickEvent(e);
 }
 
@@ -147,22 +144,23 @@ struct GambatteSource::GbVidBuf {
 	GbVidBuf(uint_least32_t *pixels, std::ptrdiff_t pitch) : pixels(pixels), pitch(pitch) {}
 };
 
-const GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(
+GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(
 		void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch) {
-	if (pxformat != format && pixels) {
-		pxformat = format;
-		cconvert.reset();
-		cconvert.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(pxformat),
-				VfilterInfo::get(vsrci).outWidth, VfilterInfo::get(vsrci).outHeight));
+	if (pxformat_ != format && pixels) {
+		pxformat_ = format;
+		cconvert_.reset();
+		cconvert_.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(pxformat_),
+		                                  VfilterInfo::get(vsrci_).outWidth,
+		                                  VfilterInfo::get(vsrci_).outHeight));
 	}
 
-	if (VideoLink *const gblink = vfilter.get() ? vfilter.get() : cconvert.get())
-		return GbVidBuf(static_cast<uint_least32_t*>(gblink->inBuf()), gblink->inPitch());
+	if (VideoLink *gblink = vfilter_ ? vfilter_.get() : cconvert_.get())
+		return GbVidBuf(static_cast<uint_least32_t *>(gblink->inBuf()), gblink->inPitch());
 
-	return GbVidBuf(static_cast<uint_least32_t*>(pixels), pitch);
+	return GbVidBuf(static_cast<uint_least32_t *>(pixels), pitch);
 }
 
-static void setGbDir(bool &a, bool &b, const bool aPressed, const bool bPressed, const bool preferA) {
+static void setGbDir(bool &a, bool &b, bool const aPressed, bool const bPressed, bool const preferA) {
 	if (aPressed & bPressed) {
 		a =  aPressed & preferA;
 		b = (aPressed & preferA) ^ 1;
@@ -172,38 +170,36 @@ static void setGbDir(bool &a, bool &b, const bool aPressed, const bool bPressed,
 	}
 }
 
-static unsigned packedInputState(const bool inputState[], const std::size_t len) {
+static unsigned packedInputState(bool const inputState[], std::size_t const len) {
 	unsigned is = 0;
-
 	for (std::size_t i = 0; i < len; ++i)
 		is |= inputState[i] << (i & 7);
 
 	return is;
 }
 
-static void* getpbdata(const PixelBuffer &pb, const unsigned vsrci) {
+static void * getpbdata(PixelBuffer const &pb, unsigned vsrci) {
 	return    pb.width  == VfilterInfo::get(vsrci).outWidth
 	       && pb.height == VfilterInfo::get(vsrci).outHeight
 	     ? pb.data
 	     : 0;
 }
 
-long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long &samples) {
-	const GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
+long GambatteSource::update(PixelBuffer const &pb, qint16 *const soundBuf, long &samples) {
+	GbVidBuf const gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci_), pb.pixelFormat, pb.pitch);
 	samples -= overupdate;
-
 	if (samples < 0) {
 		samples = 0;
 		return -1;
 	}
 
-	setGbDir(inputState[UP_BUT], inputState[DOWN_BUT], dpadUp, dpadDown, dpadUpLast);
-	setGbDir(inputState[LEFT_BUT], inputState[RIGHT_BUT], dpadLeft, dpadRight, dpadLeftLast);
-	inputGetter.is = packedInputState(inputState, sizeof inputState / sizeof inputState[0]);
+	setGbDir(inputState_[up_but], inputState_[down_but], dpadUp_, dpadDown_, dpadUpLast_);
+	setGbDir(inputState_[left_but], inputState_[right_but], dpadLeft_, dpadRight_, dpadLeftLast_);
+	inputGetter_.is = packedInputState(inputState_, sizeof inputState_ / sizeof inputState_[0]);
 
 	unsigned usamples = samples;
-	const long retval = gb.runFor(gbvidbuf.pixels, gbvidbuf.pitch,
-	                              reinterpret_cast<uint_least32_t*>(soundBuf), usamples);
+	long const retval = gb_.runFor(gbvidbuf.pixels, gbvidbuf.pitch,
+	                               reinterpret_cast<quint32 *>(soundBuf), usamples);
 	samples = usamples;
 
 	if (retval >= 0)
@@ -212,38 +208,39 @@ long GambatteSource::update(const PixelBuffer &pb, qint16 *const soundBuf, long 
 	return retval;
 }
 
-void GambatteSource::generateVideoFrame(const PixelBuffer &pb) {
-	if (void *const pbdata = getpbdata(pb, vsrci)) {
+void GambatteSource::generateVideoFrame(PixelBuffer const &pb) {
+	if (void *const pbdata = getpbdata(pb, vsrci_)) {
 		setPixelBuffer(pbdata, pb.pixelFormat, pb.pitch);
 
-		if (vfilter.get()) {
-			if (cconvert.get()) {
-				vfilter->draw(cconvert->inBuf(), cconvert->inPitch());
-				cconvert->draw(pbdata, pb.pitch);
+		if (vfilter_) {
+			if (cconvert_) {
+				vfilter_->draw(cconvert_->inBuf(), cconvert_->inPitch());
+				cconvert_->draw(pbdata, pb.pitch);
 			} else
-				vfilter->draw(pbdata, pb.pitch);
-		} else if (cconvert.get())
-			cconvert->draw(pbdata, pb.pitch);
+				vfilter_->draw(pbdata, pb.pitch);
+		} else if (cconvert_)
+			cconvert_->draw(pbdata, pb.pitch);
 	}
 }
 
-void GambatteSource::setVideoSource(unsigned videoSourceIndex) {
-	if (videoSourceIndex != vsrci) {
-		vsrci = videoSourceIndex;
-		vfilter.reset();
-		cconvert.reset();
-		vfilter.reset(VfilterInfo::get(vsrci).create());
-		cconvert.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(pxformat),
-				VfilterInfo::get(vsrci).outWidth, VfilterInfo::get(vsrci).outHeight));
+void GambatteSource::setVideoSource(unsigned const videoSourceIndex) {
+	if (videoSourceIndex != vsrci_) {
+		vsrci_ = videoSourceIndex;
+		vfilter_.reset();
+		cconvert_.reset();
+		vfilter_.reset(VfilterInfo::get(vsrci_).create());
+		cconvert_.reset(Rgb32Conv::create(static_cast<Rgb32Conv::PixelFormat>(pxformat_),
+		                                  VfilterInfo::get(vsrci_).outWidth,
+		                                  VfilterInfo::get(vsrci_).outHeight));
 	}
 }
 
-void GambatteSource::saveState(const PixelBuffer &pb) {
-	const GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
-	gb.saveState(gbvidbuf.pixels, gbvidbuf.pitch);
+void GambatteSource::saveState(PixelBuffer const &pb) {
+	GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci_), pb.pixelFormat, pb.pitch);
+	gb_.saveState(gbvidbuf.pixels, gbvidbuf.pitch);
 }
 
-void GambatteSource::saveState(const PixelBuffer &pb, const std::string &filepath) {
-	const GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci), pb.pixelFormat, pb.pitch);
-	gb.saveState(gbvidbuf.pixels, gbvidbuf.pitch, filepath);
+void GambatteSource::saveState(PixelBuffer const &pb, std::string const &filepath) {
+	GbVidBuf gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci_), pb.pixelFormat, pb.pitch);
+	gb_.saveState(gbvidbuf.pixels, gbvidbuf.pitch, filepath);
 }

@@ -31,76 +31,36 @@
 #include <cstring>
 
 class GambatteSource : public QObject, public MediaSource {
-	Q_OBJECT
-
-	struct GbVidBuf;
-	struct GetInput : public gambatte::InputGetter {
-		unsigned is;
-		GetInput() : is(0) {}
-		unsigned operator()() { return is; }
-	};
-
-	gambatte::GB gb;
-	GetInput inputGetter;
-	InputDialog *const inputDialog_;
-	scoped_ptr<VideoLink> cconvert;
-	scoped_ptr<VideoLink> vfilter;
-	PixelBuffer::PixelFormat pxformat;
-	unsigned vsrci;
-	bool inputState[10];
-	bool dpadUp, dpadDown;
-	bool dpadLeft, dpadRight;
-	bool dpadUpLast, dpadLeftLast;
-
-	InputDialog* createInputDialog();
-	const GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch);
-
-	void emitSetTurbo(bool on) { emit setTurbo(on); }
-	void emitPause() { emit togglePause(); }
-	void emitFrameStep() { emit frameStep(); }
-	void emitDecFrameRate() { emit decFrameRate(); }
-	void emitIncFrameRate() { emit incFrameRate(); }
-	void emitResetFrameRate() { emit resetFrameRate(); }
-	void emitPrevStateSlot() { emit prevStateSlot(); }
-	void emitNextStateSlot() { emit nextStateSlot(); }
-	void emitSaveState() { emit saveStateSignal(); }
-	void emitLoadState() { emit loadStateSignal(); }
-	void emitQuit() { emit quit(); }
-
 public:
 	GambatteSource();
-
-	const std::vector<VideoDialog::VideoSourceInfo> generateVideoSourceInfos();
-
-	gambatte::LoadRes load(std::string const &romfile, unsigned flags) { return gb.load(romfile, flags); }
-	void setGameGenie(const std::string &codes) { gb.setGameGenie(codes); }
-	void setGameShark(const std::string &codes) { gb.setGameShark(codes); }
-	void reset() { gb.reset(); }
+	std::vector<VideoDialog::VideoSourceInfo> const generateVideoSourceInfos();
+	gambatte::LoadRes load(std::string const &romfile, unsigned flags) { return gb_.load(romfile, flags); }
+	void setGameGenie(std::string const &codes) { gb_.setGameGenie(codes); }
+	void setGameShark(std::string const &codes) { gb_.setGameShark(codes); }
+	void reset() { gb_.reset(); }
 
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
-		gb.setDmgPaletteColor(palNum, colorNum, rgb32);
+		gb_.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 
-	void setSavedir(const std::string &sdir) { gb.setSaveDir(sdir); }
+	void setSavedir(std::string const &sdir) { gb_.setSaveDir(sdir); }
 	void setVideoSource(unsigned videoSourceIndex);
-	bool isCgb() const { return gb.isCgb(); }
-	const std::string romTitle() const { return gb.romTitle(); }
-	gambatte::PakInfo const pakInfo() const { return gb.pakInfo(); }
-	void selectState(int n) { gb.selectState(n); }
-	int currentState() const { return gb.currentState(); }
-	void saveState(const PixelBuffer &fb, const std::string &filepath);
-	void loadState(const std::string &filepath) { gb.loadState(filepath); }
-	QDialog* inputDialog() const { return inputDialog_; }
+	bool isCgb() const { return gb_.isCgb(); }
+	std::string const romTitle() const { return gb_.romTitle(); }
+	gambatte::PakInfo pakInfo() const { return gb_.pakInfo(); }
+	void selectState(int n) { gb_.selectState(n); }
+	int currentState() const { return gb_.currentState(); }
+	void saveState(PixelBuffer const &fb, std::string const &filepath);
+	void loadState(std::string const &filepath) { gb_.loadState(filepath); }
+	QDialog * inputDialog() const { return inputDialog_; }
+	void saveState(PixelBuffer const &fb);
+	void loadState() { gb_.loadState(); }
 
-	//overrides
-	virtual void keyPressEvent(const QKeyEvent *);
-	virtual void keyReleaseEvent(const QKeyEvent *);
-	virtual void joystickEvent(const SDL_Event&);
-	virtual long update(const PixelBuffer &fb, qint16 *soundBuf, long &samples);
-	virtual void generateVideoFrame(const PixelBuffer &fb);
-
-	void saveState(const PixelBuffer &fb);
-	void loadState() { gb.loadState(); }
+	virtual void keyPressEvent(QKeyEvent const *);
+	virtual void keyReleaseEvent(QKeyEvent const *);
+	virtual void joystickEvent(SDL_Event const &);
+	virtual long update(PixelBuffer const &fb, qint16 *soundBuf, long &samples);
+	virtual void generateVideoFrame(PixelBuffer const &fb);
 
 signals:
 	void setTurbo(bool on);
@@ -114,6 +74,42 @@ signals:
 	void saveStateSignal();
 	void loadStateSignal();
 	void quit();
+
+private:
+	Q_OBJECT
+
+	struct GbVidBuf;
+	struct GetInput : gambatte::InputGetter {
+		unsigned is;
+		GetInput() : is(0) {}
+		virtual unsigned operator()() { return is; }
+	};
+
+	gambatte::GB gb_;
+	GetInput inputGetter_;
+	InputDialog *const inputDialog_;
+	scoped_ptr<VideoLink> cconvert_;
+	scoped_ptr<VideoLink> vfilter_;
+	PixelBuffer::PixelFormat pxformat_;
+	unsigned vsrci_;
+	bool inputState_[10];
+	bool dpadUp_, dpadDown_;
+	bool dpadLeft_, dpadRight_;
+	bool dpadUpLast_, dpadLeftLast_;
+
+	InputDialog * createInputDialog();
+	GbVidBuf setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch);
+	void emitSetTurbo(bool on) { emit setTurbo(on); }
+	void emitPause() { emit togglePause(); }
+	void emitFrameStep() { emit frameStep(); }
+	void emitDecFrameRate() { emit decFrameRate(); }
+	void emitIncFrameRate() { emit incFrameRate(); }
+	void emitResetFrameRate() { emit resetFrameRate(); }
+	void emitPrevStateSlot() { emit prevStateSlot(); }
+	void emitNextStateSlot() { emit nextStateSlot(); }
+	void emitSaveState() { emit saveStateSignal(); }
+	void emitLoadState() { emit loadStateSignal(); }
+	void emitQuit() { emit quit(); }
 };
 
 #endif

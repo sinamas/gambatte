@@ -19,81 +19,102 @@
 #ifndef PALETTEDIALOG_H
 #define PALETTEDIALOG_H
 
+#include <QColor>
+#include <QDialog>
+#include <QFrame>
+#include <QGroupBox>
+#include <QModelIndex>
+#include <QPoint>
+#include <QSize>
+#include <QString>
+#include <algorithm>
+
 class QListView;
 class QPushButton;
 class QSettings;
 
-#include <QDialog>
-#include <QColor>
-#include <QFrame>
-#include <QPoint>
-#include <QSize>
-#include <QGroupBox>
-#include <QModelIndex>
-#include <QString>
-
 class ColorPicker : public QFrame {
-	Q_OBJECT
-
-	QWidget *const w;
-	QPoint dragStartPosition;
-
-	const QColor& getQColor() const;
-	void requestColor();
-	void setColor(const QColor &color);
-
-protected:
-	void dragEnterEvent(QDragEnterEvent *e);
-	void dropEvent(QDropEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void mousePressEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
-	void keyReleaseEvent(QKeyEvent *e);
-
 public:
-	ColorPicker(QRgb color = 0xFFFFFF, QWidget *parent = 0);
-	QRgb getColor() const;
+	explicit ColorPicker(QRgb color = 0xFFFFFF, QWidget *parent = 0);
+	QRgb color() const;
 	void setColor(QRgb rgb32);
-	QSize sizeHint() const { return QSize(4*6, 3*6); }
+	virtual QSize sizeHint() const { return QSize(4 * 6, 3 * 6); }
 
 signals:
 	void colorChanged();
+
+protected:
+	virtual void dragEnterEvent(QDragEnterEvent *e);
+	virtual void dropEvent(QDropEvent *e);
+	virtual void mouseMoveEvent(QMouseEvent *e);
+	virtual void mousePressEvent(QMouseEvent *e);
+	virtual void mouseReleaseEvent(QMouseEvent *e);
+	virtual void keyReleaseEvent(QKeyEvent *e);
+
+private:
+	Q_OBJECT
+
+	QWidget *const w_;
+	QPoint dragStartPosition_;
+
+	QColor const & getQColor() const;
+	void requestColor();
+	void setColor(QColor const &color);
 };
 
 class ColorQuad : public QGroupBox {
-	Q_OBJECT
-
-	ColorPicker* picker[4];
-
-private slots:
-	void pickerChanged();
-
-protected:
-	void dragEnterEvent(QDragEnterEvent *e);
-	void dropEvent(QDropEvent *e);
-	void mousePressEvent(QMouseEvent *e);
-
 public:
-	ColorQuad(const QString &label, QWidget *parent = 0);
-	QRgb getColor(unsigned index) const { return picker[index & 3]->getColor(); }
-	void setColor(unsigned index, QRgb color) { picker[index & 3]->setColor(color); }
+	explicit ColorQuad(QString const &label, QWidget *parent = 0);
+	QRgb color(unsigned index) const { return picker_[index & 3]->color(); }
+	void setColor(unsigned index, QRgb color) { picker_[index & 3]->setColor(color); }
 
 signals:
 	void colorChanged();
+
+protected:
+	virtual void dragEnterEvent(QDragEnterEvent *e);
+	virtual void dropEvent(QDropEvent *e);
+	virtual void mousePressEvent(QMouseEvent *e);
+
+private:
+	Q_OBJECT
+
+	ColorPicker * picker_[4];
+
+private slots:
+	void pickerChanged();
 };
 
 class PaletteDialog : public QDialog {
+public:
+	explicit PaletteDialog(QString const &savepath,
+	                       PaletteDialog const *global = 0,
+	                       QWidget *parent = 0);
+	virtual ~PaletteDialog();
+
+	QRgb color(unsigned palnum, unsigned colornum) const {
+		return currentColors_[std::min(palnum, 2u)][colornum & 3];
+	}
+
+	void externalChange();
+	void setSettingsFile(QString const &filename, QString const &romTitle);
+
+public slots:
+	virtual void accept();
+	virtual void reject();
+
+private:
 	Q_OBJECT
 
-	const PaletteDialog *const global;
-	QListView *const listView;
-	QPushButton *const rmSchemeButton;
-	ColorQuad *quads[3];
-	QRgb currentColors[3][4];
-	QString defaultScheme;
-	QString schemeString;
-	QString savedir;
-	QString settingsFile;
+	PaletteDialog const *const global_;
+	QListView *const listView_;
+	QPushButton *const rmSchemeButton_;
+	ColorQuad *quads_[3];
+	QRgb currentColors_[3][4];
+	QString defaultScheme_;
+	QString schemeString_;
+	QString savedir_;
+	QString settingsFile_;
 
 	void saveSettings(QSettings &settings);
 	void loadSettings(QSettings &settings);
@@ -105,18 +126,7 @@ class PaletteDialog : public QDialog {
 private slots:
 	void rmScheme();
 	void saveScheme();
-	void schemeChanged(const QModelIndex &current, const QModelIndex &previous);
-
-public:
-	explicit PaletteDialog(const QString &savepath, const PaletteDialog *global = 0, QWidget *parent = 0);
-	~PaletteDialog();
-	QRgb getColor(unsigned palnum, unsigned colornum) const { return currentColors[palnum < 3 ? palnum : 2][colornum & 3]; }
-	void externalChange();
-	void setSettingsFile(const QString &filename, const QString &romTitle);
-
-public slots:
-	void accept();
-	void reject();
+	void schemeChanged(QModelIndex const &current, QModelIndex const &previous);
 };
 
 #endif

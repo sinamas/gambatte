@@ -26,6 +26,15 @@ class QComboBox;
 class QWidget;
 
 class FpsSelector : public QObject {
+public:
+	FpsSelector();
+	~FpsSelector();
+	void accept();
+	void reject();
+	QSize const value() const { return value_; }
+	QWidget * widget() const;
+
+private:
 	Q_OBJECT
 
 	QComboBox *const comboBox_;
@@ -33,14 +42,6 @@ class FpsSelector : public QObject {
 
 private slots:
 	void indexChanged(int index);
-
-public:
-	FpsSelector();
-	~FpsSelector();
-	void accept();
-	void reject();
-	const QSize & value() const { return value_; }
-	QWidget * widget() const;
 };
 
 #endif
