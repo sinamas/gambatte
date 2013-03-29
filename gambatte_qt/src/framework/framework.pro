@@ -50,6 +50,7 @@ INCLUDEPATH += framework/include
 INCLUDEPATH += framework/src/SDL_Joystick/include
 INCLUDEPATH += $$COMMONPATH
 DEPENDPATH  += $$COMMONPATH
+DEPENDPATH  += framework/include
 DEFINES += HAVE_STDINT_H
 
 macx {
