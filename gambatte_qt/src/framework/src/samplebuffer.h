@@ -30,33 +30,47 @@ struct PixelBuffer;
 
 class SampleBuffer : Uncopyable {
 	MediaSource *const source_;
-	scoped_ptr<Resampler> resampler;
-	Array<qint16> sndInBuffer;
+	scoped_ptr<Resampler> resampler_;
+	Array<quint32> sndInBuffer_;
 	long samplesBuffered_;
 	Rational spf_;
 	Rational ft_;
-	int outsrate;
-	unsigned resamplerNo_;
+	long outsrate_;
+	std::size_t resamplerNo_;
 
-	unsigned size() const { return sndInBuffer.size() >> 1; }
 	void reset();
 
 public:
-	explicit SampleBuffer(MediaSource *source) : source_(source), spf_(0), ft_(1, 0), outsrate(0), resamplerNo_(1) { reset(); }
+	explicit SampleBuffer(MediaSource *source)
+	: source_(source)
+	, spf_(0)
+	, ft_(1, 0)
+	, outsrate_(0)
+	, resamplerNo_(1)
+	{
+		reset();
+	}
+
 	long update(const PixelBuffer &pb);
 	long read(long insamples, qint16 *out, bool alwaysResample);
 	long samplesBuffered() const { return samplesBuffered_; }
 	void setSpf(const Rational &spf) { spf_ = spf; reset(); }
 	void setFt(const Rational &ft) { ft_ = ft; reset(); }
-	void setOutSampleRate(int outsrate, unsigned resamplerNo) { this->outsrate = outsrate; resamplerNo_ = resamplerNo; reset(); }
-	void setOutSampleRate(int outsrate) { setOutSampleRate(outsrate, resamplerNo_); }
-	long maxOut() const { return resampler.get() ? resampler->maxOut(size()) : 0; }
+
+	void setOutSampleRate(long outsrate, std::size_t resamplerNo) {
+		outsrate_ = outsrate;
+		resamplerNo_ = resamplerNo;
+		reset();
+	}
+
+	void setOutSampleRate(long outsrate) { setOutSampleRate(outsrate, resamplerNo_); }
+	long maxOut() const { return resampler_ ? resampler_->maxOut(sndInBuffer_.size()) : 0; }
 	MediaSource* source() { return source_; }
 	const MediaSource* source() const { return source_; }
 	const Rational& spf() const { return spf_; }
 	const Rational& ft() const { return ft_; }
-	long resamplerOutRate() const { return resampler->outRate(); }
-	void adjustResamplerOutRate(long outRate) { resampler->adjustRate(resampler->inRate(), outRate); }
+	long resamplerOutRate() const { return resampler_->outRate(); }
+	void adjustResamplerOutRate(long outRate) { resampler_->adjustRate(resampler_->inRate(), outRate); }
 };
 
 #endif

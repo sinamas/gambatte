@@ -17,28 +17,31 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "samplebuffer.h"
-#include "resample/resamplerinfo.h"
-#include "resample/resampler.h"
 #include "mediasource.h"
+#include "resample/resamplerinfo.h"
 #include <cstring>
+
+template<class T>
+static T * ptr_cast(void *p) { return static_cast<T *>(p); }
 
 void SampleBuffer::reset() {
 	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
 	const long maxin = spf_.ceiled() + source_->overupdate;
 
-	sndInBuffer.reset(0);
-	resampler.reset();
+	sndInBuffer_.reset(0);
+	resampler_.reset();
 	samplesBuffered_ = 0;
 
-	if (insrate > 0 && outsrate > 0) {
-		sndInBuffer.reset(maxin * 2);
-		resampler.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate, maxin));
+	if (insrate > 0 && outsrate_ > 0) {
+		sndInBuffer_.reset(maxin);
+		resampler_.reset(ResamplerInfo::get(resamplerNo_).create(insrate, outsrate_, maxin));
 	}
 }
 
 long SampleBuffer::update(const PixelBuffer &pb) {
-	long insamples = size() - samplesBuffered_;
-	const long res = source_->update(pb, sndInBuffer + samplesBuffered_ * 2, insamples);
+	long insamples = sndInBuffer_.size() - samplesBuffered_;
+	const long res = source_->update(pb, ptr_cast<qint16>(sndInBuffer_ + samplesBuffered_),
+	                                 insamples);
 	samplesBuffered_ += insamples;
 	return res < 0 ? res : samplesBuffered_ - insamples + res;
 }
@@ -48,13 +51,16 @@ long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwa
 	samplesBuffered_ -= insamples;
 
 	if (out) {
-		if (resampler->inRate() == resampler->outRate() && !alwaysResample) {
-			std::memcpy(out, sndInBuffer, insamples * 2 * sizeof *out);
+		if (resampler_->inRate() == resampler_->outRate() && !alwaysResample) {
+			std::memcpy(out, sndInBuffer_, insamples * sizeof *sndInBuffer_);
 			outsamples = insamples;
-		} else
-			outsamples = resampler->resample(out, sndInBuffer, insamples);
+		} else {
+			outsamples = resampler_->resample(out, ptr_cast<qint16>(sndInBuffer_),
+			                                  insamples);
+		}
 	}
 
-	std::memmove(sndInBuffer, sndInBuffer + insamples * 2, samplesBuffered_ * 2 * sizeof *sndInBuffer);
+	std::memmove(sndInBuffer_, sndInBuffer_ + insamples,
+	             samplesBuffered_ * sizeof *sndInBuffer_);
 	return outsamples;
 }
