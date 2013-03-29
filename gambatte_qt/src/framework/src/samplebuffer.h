@@ -19,17 +19,17 @@
 #ifndef SAMPLEBUFFER_H
 #define SAMPLEBUFFER_H
 
-class MediaSource;
-struct PixelBuffer;
-
 #include "array.h"
 #include "rational.h"
 #include "resample/resampler.h"
 #include "scoped_ptr.h"
 #include <QtGlobal>
 
+class MediaSource;
+struct PixelBuffer;
+
 class SampleBuffer : Uncopyable {
-	MediaSource *const source_;
+	MediaSource &source_;
 	scoped_ptr<Resampler> resampler_;
 	Array<quint32> sndInBuffer_;
 	long samplesBuffered_;
@@ -41,7 +41,7 @@ class SampleBuffer : Uncopyable {
 	void reset();
 
 public:
-	explicit SampleBuffer(MediaSource *source)
+	explicit SampleBuffer(MediaSource &source)
 	: source_(source)
 	, spf_(0)
 	, ft_(1, 0)
@@ -65,10 +65,9 @@ public:
 
 	void setOutSampleRate(long outsrate) { setOutSampleRate(outsrate, resamplerNo_); }
 	long maxOut() const { return resampler_ ? resampler_->maxOut(sndInBuffer_.size()) : 0; }
-	MediaSource* source() { return source_; }
-	const MediaSource* source() const { return source_; }
-	const Rational& spf() const { return spf_; }
-	const Rational& ft() const { return ft_; }
+	MediaSource & source() const { return source_; }
+	Rational spf() const { return spf_; }
+	Rational ft() const { return ft_; }
 	long resamplerOutRate() const { return resampler_->outRate(); }
 	void adjustResamplerOutRate(long outRate) { resampler_->adjustRate(resampler_->inRate(), outRate); }
 };

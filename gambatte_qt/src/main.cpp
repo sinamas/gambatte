@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
 	QCoreApplication::setApplicationName("gambatte_qt");
 
 	GambatteSource source;
-	MainWindow mw(&source);
-	GambatteMenuHandler mh(&mw, &source, argc, argv);
+	MainWindow mw(source);
+	GambatteMenuHandler mh(mw, source, argc, argv);
 	mw.show();
 	return app.exec();
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,18 +17,18 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "sounddialog.h"
-#include "mainwindow.h"
 #include "audioengineconf.h"
+#include "mainwindow.h"
 #include "resample/resamplerinfo.h"
 #include <QComboBox>
-#include <QSpinBox>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QLabel>
 #include <QPushButton>
 #include <QSettings>
 #include <QSize>
-#include <QInputDialog>
+#include <QSpinBox>
+#include <QVBoxLayout>
 #include <cassert>
 
 namespace {
@@ -114,19 +114,19 @@ static void setRate(QComboBox *rateSelector, const int r) {
 
 }
 
-SoundDialog::SoundDialog(const MainWindow *const mw, QWidget *const parent) :
-	QDialog(parent),
-	mw(mw),
-	topLayout(new QVBoxLayout),
-	engineSelector(new QComboBox(this)),
-	resamplerSelector(new QComboBox(this)),
-	rateSelector(new QComboBox(this)),
-	latencySelector(new QSpinBox(this)),
-	engineWidget(NULL),
-	engineIndex_(0),
-	resamplerNum(1),
-	rate_(0),
-	latency_(68)
+SoundDialog::SoundDialog(MainWindow const &mw, QWidget *const parent)
+: QDialog(parent)
+, mw_(mw)
+, topLayout(new QVBoxLayout)
+, engineSelector(new QComboBox(this))
+, resamplerSelector(new QComboBox(this))
+, rateSelector(new QComboBox(this))
+, latencySelector(new QSpinBox(this))
+, engineWidget()
+, engineIndex_(0)
+, resamplerNum(1)
+, rate_(0)
+, latency_(68)
 {
 	setWindowTitle(tr("Sound Settings"));
 
@@ -136,8 +136,8 @@ SoundDialog::SoundDialog(const MainWindow *const mw, QWidget *const parent) :
 		QHBoxLayout *const hLayout = new QHBoxLayout;
 		hLayout->addWidget(new QLabel(tr("Sound engine:")));
 
-		for (std::size_t i = 0; i < mw->numAudioEngines(); ++i)
-			engineSelector->addItem(mw->audioEngineConf(i).nameString());
+		for (std::size_t i = 0; i < mw.numAudioEngines(); ++i)
+			engineSelector->addItem(mw.audioEngineConf(i).nameString());
 
 		hLayout->addWidget(engineSelector);
 		topLayout->addLayout(hLayout);
@@ -227,7 +227,7 @@ void SoundDialog::engineChange(int index) {
 		engineWidget->setParent(NULL);
 	}
 
-	if ((engineWidget = mw->audioEngineConf(index).settingsWidget()))
+	if ((engineWidget = mw_.audioEngineConf(index).settingsWidget()))
 		topLayout->insertWidget(1, engineWidget);
 }
 
@@ -255,8 +255,8 @@ void SoundDialog::store() {
 }
 
 void SoundDialog::restore() {
-	for (std::size_t i = 0; i < mw->numAudioEngines(); ++i)
-		mw->audioEngineConf(i).rejectSettings();
+	for (std::size_t i = 0; i < mw_.numAudioEngines(); ++i)
+		mw_.audioEngineConf(i).rejectSettings();
 
 	engineSelector->setCurrentIndex(engineIndex_);
 	resamplerSelector->setCurrentIndex(resamplerNum);
@@ -274,9 +274,9 @@ void SoundDialog::reject() {
 	QDialog::reject();
 }
 
-void SoundDialog::applySettings(MainWindow *const mw, const SoundDialog *const sd) {
-	for (std::size_t i = 0; i < mw->numAudioEngines(); ++i)
-		mw->audioEngineConf(i).acceptSettings();
+void applySettings(MainWindow &mw, SoundDialog const &sd) {
+	for (std::size_t i = 0; i < mw.numAudioEngines(); ++i)
+		mw.audioEngineConf(i).acceptSettings();
 
-	mw->setAudioOut(sd->engineIndex(), sd->rate(), sd->latency(), sd->resamplerNo());
+	mw.setAudioOut(sd.engineIndex(), sd.rate(), sd.latency(), sd.resamplerNo());
 }

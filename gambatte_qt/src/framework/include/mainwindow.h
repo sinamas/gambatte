@@ -19,13 +19,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <vector>
+#include "callqueue.h"
+#include "pixelbuffer.h"
 #include "resinfo.h"
 #include "scalingmethod.h"
 #include "uncopyable.h"
-#include "callqueue.h"
-#include "pixelbuffer.h"
+#include <QMainWindow>
+#include <vector>
 
 class AudioEngineConf;
 class BlitterConf;
@@ -37,9 +37,8 @@ class MediaWorker;
 class QSize;
 
 /**
-  * The MainWindow is one of the two main classes in this framework.
-  * It takes a MediaSource and presents the audio/video content produced
-  * by it to the user.
+  * The MainWindow takes a MediaSource and presents the audio/video content
+  * produced by it to the user.
   *
   * It calls MediaSource::update to request production of more audio/video content.
   * This happens in a worker thread that is separate from the main (GUI) thread.
@@ -47,25 +46,33 @@ class QSize;
 class MainWindow : public QMainWindow {
 	Q_OBJECT
 public:
-	/** Can be used to gain frame buffer access outside the MediaSource
+	/**
+	  * Can be used to gain frame buffer access outside the MediaSource
 	  * methods that take the frame buffer as argument.
 	  */
 	class FrameBuffer {
-		MediaWidget *const mw;
 	public:
-		explicit FrameBuffer(MainWindow *const mw) : mw(mw->w_) {}
+		explicit FrameBuffer(MainWindow &mw)
+		: mw_(mw.w_)
+		{
+		}
 
 		class Locked : Uncopyable {
-			MediaWidget *mw;
-			PixelBuffer pb;
 		public:
 			Locked(FrameBuffer fb);
 			~Locked();
-			const PixelBuffer& get() const { return pb; }
+			PixelBuffer const & get() const { return pb_; }
+
+		private:
+			MediaWidget *mw_;
+			PixelBuffer pb_;
 		};
+
+	private:
+		MediaWidget *const mw_;
 	};
 
-	explicit MainWindow(MediaSource *source);
+	explicit MainWindow(MediaSource &source);
 
 	/** Sets the duration in seconds of each video frame.
 	  * Eg. use setFrameTime(1, 60) for 60 fps video.
@@ -117,12 +124,16 @@ public:
 	void setAspectRatio(const QSize &ar);
 	void setScalingMethod(ScalingMethod smet);
 
-	/** Sets the size of the video area of the MainWindow when not full screen.
-	  * Should be used in place of methods like QMainWindow::resize, because this one doesn't screw up full screen.
-	  * Pass sz = QSize(-1,-1) for a variable size, such that the user may adjust the window size.
-	  * Otherwise a fixed window size equal to sz will be used. This window size does not include window borders or menus.
+	/**
+	  * Sets the size of the video area of the MainWindow when not full screen.
+	  * Should be used in place of methods like QMainWindow::resize, because this
+	  * one does not screw up full screen.
+	  *
+	  * Pass size = QSize(-1, -1) for a variable size, such that the user may adjust
+	  * the window size. Otherwise a fixed window size equal to size will be used.
+	  * This window size does not include window borders or menus.
 	  */
-	void setWindowSize(const QSize &sz);
+	void setWindowSize(QSize const &size);
 
 	/** Each blitter has some properties that can be accessed through its BlitterConf. */
 	const BlitterConf blitterConf(std::size_t blitterNo);

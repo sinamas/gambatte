@@ -24,17 +24,17 @@
 #include <QObject>
 #include <QSize>
 
-class MainWindow;
+class CheatDialog;
 class GambatteSource;
-class QAction;
+class MainWindow;
+class MiscDialog;
 class PaletteDialog;
-class QString;
+class QAction;
 class QActionGroup;
 class QMenu;
+class QString;
 class SoundDialog;
 class VideoDialog;
-class MiscDialog;
-class CheatDialog;
 
 class FrameRateAdjuster : public QObject {
 public:
@@ -121,7 +121,7 @@ private slots:
 
 class GambatteMenuHandler : public QObject {
 public:
-	GambatteMenuHandler(MainWindow *mw, GambatteSource *source,
+	GambatteMenuHandler(MainWindow &mw, GambatteSource &source,
 	                    int argc, char const *const argv[]);
 	~GambatteMenuHandler();
 
@@ -130,8 +130,8 @@ private:
 
 	enum { max_recent_files = 9 };
 
-	MainWindow *const mw_;
-	GambatteSource *const source_;
+	MainWindow &mw_;
+	GambatteSource &source_;
 	SoundDialog *const soundDialog_;
 	VideoDialog *const videoDialog_;
 	MiscDialog *const miscDialog_;

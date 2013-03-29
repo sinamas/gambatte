@@ -209,7 +209,7 @@ void MediaWidget::WorkerCallback::consumeBlitRequest() {
 		BlitterWidget *const blitter = mw.blitterContainer->blitter();
 		MediaWorker *const worker = mw.worker;
 
-		worker->source()->generateVideoFrame(blitter->inBuffer());
+		worker->source().generateVideoFrame(blitter->inBuffer());
 		blitter->blit();
 
 		base = synctimebase;
@@ -256,7 +256,7 @@ static auto_vector<AudioEngine> makeAudioEngines(const WId winId) {
 	return audioEngines;
 }
 
-MediaWidget::MediaWidget(MediaSource *const source, QWidget &parent)
+MediaWidget::MediaWidget(MediaSource &source, QWidget &parent)
 : QObject(&parent),
   vbmut(),
   blitterContainer(new BlitterContainer(&parent)),
@@ -264,7 +264,7 @@ MediaWidget::MediaWidget(MediaSource *const source, QWidget &parent)
   blitters(makeBlitterWidgets(VideoBufferLocker(vbmut), DwmControlHwndChange(dwmControl_))),
   fullModeToggler(getFullModeToggler(parent.winId())),
   workerCallback_(new WorkerCallback(*this)),
-  worker(new MediaWorker(source, audioEngines.back(), 48000, 100, 1,
+  worker(new MediaWorker(source, *audioEngines.back(), 48000, 100, 1,
                          *workerCallback_, this)),
   frameRateControl(*worker, blitters.back()),
   cursorTimer(new QTimer(this)),
@@ -446,7 +446,7 @@ void MediaWidget::keyPressEvent(QKeyEvent *e) {
 	e->ignore();
 
 	if (running && !e->isAutoRepeat()) {
-		worker->source()->keyPressEvent(e);
+		worker->source().keyPressEvent(e);
 		blitterContainer->hideCursor();
 	}
 }
@@ -455,7 +455,7 @@ void MediaWidget::keyReleaseEvent(QKeyEvent *e) {
 	e->ignore();
 
 	if (running && !e->isAutoRepeat())
-		worker->source()->keyReleaseEvent(e);
+		worker->source().keyReleaseEvent(e);
 }
 
 void MediaWidget::setFrameTime(long num, long denom) {
@@ -491,7 +491,7 @@ struct MediaWidget::FrameStepFun {
 		if (mw.running && mw.worker->frameStep()) {
 			BlitterWidget *const blitter = mw.blitterContainer->blitter();
 
-			mw.worker->source()->generateVideoFrame(blitter->inBuffer());
+			mw.worker->source().generateVideoFrame(blitter->inBuffer());
 			blitter->blit();
 			blitter->draw();
 

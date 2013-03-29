@@ -128,15 +128,18 @@ void MediaWorker::PauseVar::waitWhilePaused(MediaWorker::Callback &cb, AudioOut 
 	waiting = false;
 }
 
-MediaWorker::MediaWorker(MediaSource *source, AudioEngine *ae, int aerate,
-		int aelatency, std::size_t resamplerNo, Callback &callback, QObject *parent)
+MediaWorker::MediaWorker(MediaSource &source,
+                         AudioEngine &ae, int aerate, int aelatency,
+                         std::size_t resamplerNo,
+                         Callback &callback,
+                         QObject *parent)
 : QThread(parent),
   callback(callback),
   meanQueue(0, 0),
   frameTimeEst(0),
   doneVar(true),
   sampleBuffer(source),
-  ao_(new AudioOut(*ae, aerate, aelatency, resamplerNo)),
+  ao_(new AudioOut(ae, aerate, aelatency, resamplerNo)),
   usecft(0)
 {
 }
@@ -191,19 +194,19 @@ void MediaWorker::resetAudio() {
 }
 
 struct MediaWorker::SetAudioOut {
-	MediaWorker &w; AudioEngine *const ae; const int rate; const int latency;
+	MediaWorker &w; AudioEngine &ae; const int rate; const int latency;
 	const std::size_t resamplerNo;
 	void operator()() const {
 		const bool inited = w.ao_->initialized();
 		w.ao_.reset();
-		w.ao_.reset(new AudioOut(*ae, rate, latency, resamplerNo));
+		w.ao_.reset(new AudioOut(ae, rate, latency, resamplerNo));
 
 		if (inited)
 			w.initAudioEngine();
 	}
 };
 
-void MediaWorker::setAudioOut(AudioEngine *newAe, int rate, int latency, std::size_t resamplerNo) {
+void MediaWorker::setAudioOut(AudioEngine &newAe, int rate, int latency, std::size_t resamplerNo) {
 	const SetAudioOut setAudioOutStruct = { *this, newAe, rate, latency, resamplerNo };
 	pushCall(setAudioOutStruct);
 }
@@ -255,7 +258,7 @@ void MediaWorker::updateJoysticks() {
 
 		SDL_Event ev;
 		while (pollJsEvent(&ev))
-			source()->joystickEvent(ev);
+			source().joystickEvent(ev);
 
 		JoystickLock::unlock();
 	}

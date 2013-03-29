@@ -23,18 +23,22 @@
 #include <QLayout>
 #include <QtGlobal> // for Q_WS_WIN define
 
-MainWindow::FrameBuffer::Locked::Locked(FrameBuffer fb) : mw(0), pb() {
-	if (fb.mw->tryLockFrameBuf(pb))
-		mw = fb.mw;
+MainWindow::FrameBuffer::Locked::Locked(FrameBuffer fb)
+: mw_(), pb_()
+{
+	if (fb.mw_->tryLockFrameBuf(pb_))
+		mw_ = fb.mw_;
 }
 
 MainWindow::FrameBuffer::Locked::~Locked() {
-	if (mw)
-		mw->unlockFrameBuf();
+	if (mw_)
+		mw_->unlockFrameBuf();
 }
 
-MainWindow::MainWindow(MediaSource *const source)
-: w_(new MediaWidget(source, *this)), winSize_(-1, -1), fullscreen_(false)
+MainWindow::MainWindow(MediaSource &source)
+: w_(new MediaWidget(source, *this))
+, winSize_(-1, -1)
+, fullscreen_(false)
 {
 	setFocusPolicy(Qt::StrongFocus);
 	setCentralWidget(w_->widget());

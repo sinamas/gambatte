@@ -17,23 +17,22 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "videodialog.h"
-#include "mainwindow.h"
 #include "blitterconf.h"
-
-#include <QPushButton>
-#include <QComboBox>
-#include <QRadioButton>
-#include <QString>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QSettings>
-#include <QGroupBox>
+#include "mainwindow.h"
 #include <QApplication>
+#include <QComboBox>
 #include <QDesktopWidget>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QSettings>
+#include <QString>
+#include <QVBoxLayout>
 #include <functional>
 
-static int filterValue(const int value, const int upper, const int lower = 0, const int fallback = 0) {
+static int filterValue(int value, int upper, int lower = 0, int fallback = 0) {
 	if (value >= upper || value < lower)
 		return fallback;
 
@@ -50,11 +49,12 @@ VideoDialog::PersistInt::~PersistInt() {
 	settings.setValue(key_, i_);
 }
 
-VideoDialog::EngineSelector::EngineSelector(const MainWindow *const mw)
-: comboBox_(new QComboBox), index_("video/engineIndex", mw->numBlitters())
+VideoDialog::EngineSelector::EngineSelector(MainWindow const &mw)
+: comboBox_(new QComboBox)
+, index_("video/engineIndex", mw.numBlitters())
 {
-	for (std::size_t i = 0; i < mw->numBlitters(); ++i)
-		comboBox_->addItem(mw->blitterConf(i).nameString());
+	for (std::size_t i = 0; i < mw.numBlitters(); ++i)
+		comboBox_->addItem(mw.blitterConf(i).nameString());
 
 	restore();
 }
@@ -150,61 +150,82 @@ void VideoDialog::SourceSelector::setVideoSources(const std::vector<VideoSourceI
 	}
 }
 
-VideoDialog::FullResSelector::FullResSelector(
-	const QString &key, const int defaultIndex,
-	const QSize &sourceSize, const std::vector<ResInfo> &resVector)
-: comboBox_(new QComboBox), key_(key), index_(defaultIndex)
-{
-	fillComboBox(sourceSize, resVector);
+class VideoDialog::FullResSelector {
+public:
+	~FullResSelector();
+	QWidget * widget() const { return comboBox_; }
+	QComboBox const * comboBox() const { return comboBox_; }
+	void store() { index_ = comboBox_->currentIndex(); }
+	void restore() { comboBox_->setCurrentIndex(index_); }
+	void setSourceSize(QSize const &sourceSize, std::vector<ResInfo> const &resVector);
+	int index() const { return index_; }
 
-	index_ = filterValue(comboBox_->findText(QSettings().value(key).toString()),
-	                     comboBox_->count(), 0, index_);
+	static auto_vector<FullResSelector> createSelectors(QSize const &sourceSize,
+	                                                    MainWindow const &mw)
+	{
+		auto_vector<FullResSelector> v(mw.screens());
+		for (std::size_t i = 0; i < v.size(); ++i) {
+			v.reset(i, new FullResSelector("video/fullRes" + QString::number(i),
+			                               mw.currentResIndex(i), sourceSize,
+			                               mw.modeVector(i)));
+		}
 
-	restore();
-}
+		return v;
+	}
+
+private:
+	QComboBox *const comboBox_;
+	QString const key_;
+	int index_;
+
+	FullResSelector(QString const &key,
+	                int const defaultIndex,
+	                QSize const &sourceSize,
+	                std::vector<ResInfo> const &resVector)
+	: comboBox_(new QComboBox)
+	, key_(key)
+	, index_(defaultIndex)
+	{
+		fillComboBox(sourceSize, resVector);
+		index_ = filterValue(comboBox_->findText(QSettings().value(key).toString()),
+		                     comboBox_->count(), 0, index_);
+		restore();
+	}
+
+	void fillComboBox(QSize const &sourceSize, std::vector<ResInfo> const &resVector);
+};
 
 VideoDialog::FullResSelector::~FullResSelector() {
 	QSettings settings;
 	settings.setValue(key_, comboBox_->itemText(index_));
 }
 
-QWidget* VideoDialog::FullResSelector::widget() {
-	return comboBox_;
-}
-
-void VideoDialog::FullResSelector::store() {
-	index_ = comboBox_->currentIndex();
-}
-
-void VideoDialog::FullResSelector::restore() {
-	comboBox_->setCurrentIndex(index_);
-}
-
-void VideoDialog::FullResSelector::setSourceSize(const QSize &sourceSize, const std::vector<ResInfo> &resVector) {
-	const QString oldtext(comboBox_->itemText(comboBox_->currentIndex()));
-
+void VideoDialog::FullResSelector::setSourceSize(
+		QSize const &sourceSize, std::vector<ResInfo> const &resVector) {
+	QString const oldtext(comboBox_->itemText(comboBox_->currentIndex()));
 	comboBox_->clear();
 	fillComboBox(sourceSize, resVector);
 
-	const int newIndex = comboBox_->findText(oldtext);
-
+	int newIndex = comboBox_->findText(oldtext);
 	if (newIndex >= 0)
 		comboBox_->setCurrentIndex(newIndex);
 }
 
-void VideoDialog::FullResSelector::fillComboBox(const QSize &sourceSize, const std::vector<ResInfo> &resVector) {
+void VideoDialog::FullResSelector::fillComboBox(
+		QSize const &sourceSize, std::vector<ResInfo> const &resVector) {
 	long maxArea = 0;
 	std::size_t maxAreaI = 0;
 
 	for (std::size_t i = 0; i < resVector.size(); ++i) {
-		const int hres = resVector[i].w;
-		const int vres = resVector[i].h;
+		int const hres = resVector[i].w;
+		int const vres = resVector[i].h;
 
 		if (hres >= sourceSize.width() && vres >= sourceSize.height()) {
-			comboBox_->addItem(QString::number(hres) + QString("x") + QString::number(vres), static_cast<uint>(i));
+			comboBox_->addItem(QString::number(hres) + QString("x") + QString::number(vres),
+			                   static_cast<uint>(i));
 		} else {
-			const long area = static_cast<long>(std::min(hres, sourceSize.width())) * std::min(vres, sourceSize.height());
-
+			long area = long(std::min(hres, sourceSize.width()))
+			            * std::min(vres, sourceSize.height());
 			if (area > maxArea) {
 				maxArea = area;
 				maxAreaI = i;
@@ -212,100 +233,104 @@ void VideoDialog::FullResSelector::fillComboBox(const QSize &sourceSize, const s
 		}
 	}
 
-	//add resolution giving maximal area if all resolutions are too small.
-	if (comboBox_->count() < 1 && maxArea)
-		comboBox_->addItem(QString::number(resVector[maxAreaI].w) + "x" + QString::number(resVector[maxAreaI].h), static_cast<uint>(maxAreaI));
+	// add resolution giving maximal area if all resolutions are too small.
+	if (comboBox_->count() < 1 && maxArea) {
+		comboBox_->addItem(QString::number(resVector[maxAreaI].w)
+		                     + "x" + QString::number(resVector[maxAreaI].h),
+		                   static_cast<uint>(maxAreaI));
+	}
 }
 
-VideoDialog::FullHzSelector::FullHzSelector(const QString &key, const std::vector<short> &rates, const int defaultIndex)
-: comboBox_(new QComboBox), key_(key), index_(0)
-{
-	setRates(rates);
+class VideoDialog::FullHzSelector {
+public:
+	~FullHzSelector();
+	QWidget * widget() const { return comboBox_; }
+	QComboBox const * comboBox() const { return comboBox_; }
+	void store() { index_ = comboBox_->currentIndex(); }
+	void restore() { comboBox_->setCurrentIndex(index_); }
+	void setRates(std::vector<short> const &rates);
+	int index() const { return index_; }
 
-	index_ = filterValue(
-			comboBox_->findText(QSettings().value(key).toString()),
-			comboBox_->count(),
-			0,
-			defaultIndex);
+	static auto_vector<FullHzSelector> createSelectors(
+			auto_vector<FullResSelector> const &fullResSelectors,
+			MainWindow const &mw)
+	{
+		auto_vector<FullHzSelector> v(fullResSelectors.size());
+		for (std::size_t i = 0; i < v.size(); ++i) {
+			int const resindex = fullResSelectors[i]->comboBox()->currentIndex();
+			std::vector<short> const &rates = resindex >= 0
+			                                ? mw.modeVector(i)[resindex].rates
+			                                : std::vector<short>();
+			int defaultRateIndex = resindex == static_cast<int>(mw.currentResIndex(i))
+			                     ? mw.currentRateIndex(i)
+			                     : 0;
+			v.reset(i, new FullHzSelector("video/hz" + QString::number(i),
+			                              rates, defaultRateIndex));
+		}
 
-	restore();
-}
+		return v;
+	}
+
+private:
+	QComboBox *const comboBox_;
+	QString const key_;
+	int index_;
+
+	FullHzSelector(QString const &key,
+	               std::vector<short> const &rates,
+	               int const defaultIndex)
+	: comboBox_(new QComboBox)
+	, key_(key)
+	, index_(0)
+	{
+		setRates(rates);
+		index_ = filterValue(comboBox_->findText(QSettings().value(key).toString()),
+		                     comboBox_->count(),
+		                     0,
+		                     defaultIndex);
+		restore();
+	}
+};
 
 VideoDialog::FullHzSelector::~FullHzSelector() {
 	QSettings settings;
 	settings.setValue(key_, comboBox_->itemText(index_));
 }
 
-QWidget* VideoDialog::FullHzSelector::widget() {
-	return comboBox_;
-}
-
-void VideoDialog::FullHzSelector::store() {
-	index_ = comboBox_->currentIndex();
-}
-
-void VideoDialog::FullHzSelector::restore() {
-	comboBox_->setCurrentIndex(index_);
-}
-
-void VideoDialog::FullHzSelector::setRates(const std::vector<short> &rates) {
+void VideoDialog::FullHzSelector::setRates(std::vector<short> const &rates) {
 	comboBox_->clear();
-
-	for (std::size_t i = 0; i < rates.size(); ++i)
-		comboBox_->addItem(QString::number(rates[i] / 10.0) + QString(" Hz"), static_cast<uint>(i));
-}
-
-auto_vector<VideoDialog::FullResSelector> VideoDialog::makeFullResSelectors(
-		const QSize &sourceSize, const MainWindow *const mw)
-{
-	auto_vector<FullResSelector> v(mw->screens());
-	for (std::size_t i = 0; i < v.size(); ++i) {
-		v.reset(i, new FullResSelector("video/fullRes" + QString::number(i),
-		                               mw->currentResIndex(i), sourceSize,
-		                               mw->modeVector(i)));
+	for (std::size_t i = 0; i < rates.size(); ++i) {
+		comboBox_->addItem(QString::number(rates[i] / 10.0) + QString(" Hz"),
+		                   static_cast<uint>(i));
 	}
-
-	return v;
 }
 
-auto_vector<VideoDialog::FullHzSelector> VideoDialog::makeFullHzSelectors(
-		const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *const mw)
-{
-	auto_vector<FullHzSelector> v(fullResSelectors.size());
-	for (std::size_t i = 0; i < v.size(); ++i) {
-		const int index = fullResSelectors[i]->comboBox()->currentIndex();
-		v.reset(i, new FullHzSelector("video/hz" + QString::number(i),
-				index >= 0 ? mw->modeVector(i)[index].rates : std::vector<short>(),
-				index == static_cast<int>(mw->currentResIndex(i)) ? mw->currentRateIndex(i) : 0));
-	}
-
-	return v;
-}
-
-VideoDialog::VideoDialog(const MainWindow *const mw,
-                         const std::vector<VideoSourceInfo> &sourceInfos,
-                         const QString &sourcesLabel,
+VideoDialog::VideoDialog(MainWindow const &mw,
+                         std::vector<VideoSourceInfo> const &sourceInfos,
+                         QString const &sourcesLabel,
                          QWidget *parent)
-: QDialog(parent),
-  mw(mw),
-  topLayout(new QVBoxLayout),
-  engineWidget(0),
-  engineSelector(mw),
-  sourceSelector(sourcesLabel, sourceInfos),
-  fullResSelectors(makeFullResSelectors(sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(), mw)),
-  fullHzSelectors(makeFullHzSelectors(fullResSelectors, mw))
+: QDialog(parent)
+, mw_(mw)
+, topLayout(new QVBoxLayout)
+, engineWidget(0)
+, engineSelector(mw)
+, sourceSelector(sourcesLabel, sourceInfos)
+, fullResSelectors(FullResSelector::createSelectors(
+	sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize(),
+	mw))
+, fullHzSelectors(FullHzSelector::createSelectors(fullResSelectors, mw))
 {
 	QVBoxLayout *mainLayout = new QVBoxLayout;
 	setLayout(mainLayout);
 
 	engineSelector.addToLayout(topLayout);
 
-	if ((engineWidget = mw->blitterConf(engineSelector.comboBox()->currentIndex()).settingsWidget()))
+	if ((engineWidget = mw.blitterConf(engineSelector.comboBox()->currentIndex()).settingsWidget()))
 		topLayout->addWidget(engineWidget);
 
 	for (std::size_t i = 0; i < fullResSelectors.size(); ++i) {
 		QHBoxLayout *const hLayout = new QHBoxLayout;
-		QLabel *const label = new QLabel("Full screen mode (" + mw->screenName(i) + "):");
+		QLabel *const label = new QLabel("Full screen mode (" + mw.screenName(i) + "):");
 		hLayout->addWidget(label);
 
 		QHBoxLayout *const hhLayout = new QHBoxLayout;
@@ -314,7 +339,7 @@ VideoDialog::VideoDialog(const MainWindow *const mw,
 		hLayout->addLayout(hhLayout);
 		topLayout->addLayout(hLayout);
 
-		if (mw->modeVector(i).empty()) {
+		if (mw.modeVector(i).empty()) {
 			label->hide();
 			fullResSelectors[i]->widget()->hide();
 			fullHzSelectors[i]->widget()->hide();
@@ -339,7 +364,8 @@ VideoDialog::VideoDialog(const MainWindow *const mw,
 	connect(engineSelector.comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(engineChange(int)));
 
 	for (std::size_t i = 0; i < fullResSelectors.size(); ++i) {
-		connect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(fullresChange(int)));
+		connect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)),
+		        this, SLOT(fullresChange(int)));
 	}
 
 	connect(sourceSelector.comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChange(int)));
@@ -349,27 +375,31 @@ VideoDialog::VideoDialog(const MainWindow *const mw,
 	setWindowTitle(tr("Video Settings"));
 }
 
+VideoDialog::~VideoDialog() {
+}
+
 void VideoDialog::fillFullResSelectors() {
-	const QSize &sourceSize = sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize();
-
+	QSize const &sourceSize =
+		sourceSelector.comboBox()->itemData(sourceSelector.comboBox()->currentIndex()).toSize();
 	for (std::size_t i = 0; i < fullResSelectors.size(); ++i) {
-		const int oldResIndex = fullResSelectors[i]->comboBox()->currentIndex();
+		int const oldResIndex = fullResSelectors[i]->comboBox()->currentIndex();
 
-		disconnect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(fullresChange(int)));
-		fullResSelectors[i]->setSourceSize(sourceSize, mw->modeVector(i));
-		connect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)), this, SLOT(fullresChange(int)));
+		disconnect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)),
+		           this, SLOT(fullresChange(int)));
+		fullResSelectors[i]->setSourceSize(sourceSize, mw_.modeVector(i));
+		connect(fullResSelectors[i]->comboBox(), SIGNAL(currentIndexChanged(int)),
+		        this, SLOT(fullresChange(int)));
 
-		const int newResIndex = fullResSelectors[i]->comboBox()->currentIndex();
-
-		if (newResIndex != oldResIndex)
-			fullHzSelectors[i]->setRates(newResIndex >= 0 ? mw->modeVector(i)[newResIndex].rates : std::vector<short>());
+		int const newResIndex = fullResSelectors[i]->comboBox()->currentIndex();
+		if (newResIndex != oldResIndex) {
+			fullHzSelectors[i]->setRates(newResIndex >= 0
+				? mw_.modeVector(i)[newResIndex].rates
+				: std::vector<short>());
+		}
 	}
 }
 
 void VideoDialog::store() {
-// 	for (std::size_t i = 0; i < mw->numBlitters(); ++i)
-// 		mw->blitterConf(i).acceptSettings();
-
 	engineSelector.store();
 	scalingMethodSelector.store();
 	sourceSelector.store();
@@ -378,8 +408,8 @@ void VideoDialog::store() {
 }
 
 void VideoDialog::restore() {
-	for (std::size_t i = 0; i < mw->numBlitters(); ++i)
-		mw->blitterConf(i).rejectSettings();
+	for (std::size_t i = 0; i < mw_.numBlitters(); ++i)
+		mw_.blitterConf(i).rejectSettings();
 
 	engineSelector.restore();
 	scalingMethodSelector.restore();
@@ -394,14 +424,16 @@ void VideoDialog::engineChange(int index) {
 		engineWidget->setParent(0);
 	}
 
-	if ((engineWidget = mw->blitterConf(index).settingsWidget()))
+	if ((engineWidget = mw_.blitterConf(index).settingsWidget()))
 		topLayout->insertWidget(1, engineWidget);
 }
 
-void VideoDialog::fullresChange(const int index) {
+void VideoDialog::fullresChange(int const index) {
 	for (std::size_t i = 0; i < fullResSelectors.size(); ++i) {
 		if (sender() == fullResSelectors[i]->comboBox()) {
-			fullHzSelectors[i]->setRates(index >= 0 ? mw->modeVector(i)[index].rates : std::vector<short>());
+			fullHzSelectors[i]->setRates(index >= 0
+				? mw_.modeVector(i)[index].rates
+				: std::vector<short>());
 			break;
 		}
 	}
@@ -447,22 +479,21 @@ void VideoDialog::reject() {
 	QDialog::reject();
 }
 
-void applySettings(MainWindow *const mw, const VideoDialog *const vd) {
+void applySettings(MainWindow &mw, VideoDialog const &vd) {
 	{
-		const BlitterConf curBlitter = mw->currentBlitterConf();
-
-		for (std::size_t i = 0; i < mw->numBlitters(); ++i) {
-			if (mw->blitterConf(i) != curBlitter)
-				mw->blitterConf(i).acceptSettings();
+		BlitterConf const curBlitter = mw.currentBlitterConf();
+		for (std::size_t i = 0; i < mw.numBlitters(); ++i) {
+			if (mw.blitterConf(i) != curBlitter)
+				mw.blitterConf(i).acceptSettings();
 		}
 
-		const QSize &srcSz = vd->sourceSize();
-		mw->setVideoFormatAndBlitter(srcSz.width(), srcSz.height(), vd->blitterNo());
+		QSize const srcSz = vd.sourceSize();
+		mw.setVideoFormatAndBlitter(srcSz.width(), srcSz.height(), vd.blitterNo());
 		curBlitter.acceptSettings();
 	}
 
-	mw->setScalingMethod(vd->scalingMethod());
+	mw.setScalingMethod(vd.scalingMethod());
 
-	for (std::size_t i = 0; i < mw->screens(); ++i)
-		mw->setFullScreenMode(i, vd->fullResIndex(i), vd->fullRateIndex(i));
+	for (std::size_t i = 0; i < mw.screens(); ++i)
+		mw.setFullScreenMode(i, vd.fullResIndex(i), vd.fullRateIndex(i));
 }

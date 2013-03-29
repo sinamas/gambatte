@@ -35,7 +35,8 @@ class QRadioButton;
 class QLabel;
 class QBoxLayout;
 
-/** A utility class that can optionally be used to provide a GUI for
+/**
+  * A utility class that can optionally be used to provide a GUI for
   * configuring video settings.
   */
 class VideoDialog : public QDialog {
@@ -66,7 +67,7 @@ private:
 		PersistInt index_;
 
 	public:
-		explicit EngineSelector(const MainWindow *mw);
+		explicit EngineSelector(MainWindow const &mw);
 		void addToLayout(QBoxLayout *topLayout);
 		const QComboBox * comboBox() const { return comboBox_; }
 		void store();
@@ -104,52 +105,18 @@ private:
 		int index() const { return index_; }
 	};
 
-	class FullResSelector {
-		QComboBox *const comboBox_;
-		const QString key_;
-		int index_;
+	class FullResSelector;
+	class FullHzSelector;
 
-		void fillComboBox(const QSize &sourceSize, const std::vector<ResInfo> &resVector);
-	public:
-		FullResSelector(const QString &key, int defaultIndex,
-				const QSize &sourceSize, const std::vector<ResInfo> &resVector);
-		~FullResSelector();
-		QWidget * widget();
-		const QComboBox * comboBox() const { return comboBox_; }
-		void store();
-		void restore();
-		void setSourceSize(const QSize &sourceSize, const std::vector<ResInfo> &resVector);
-		int index() const { return index_; }
-	};
-
-	class FullHzSelector {
-		QComboBox *const comboBox_;
-		const QString key_;
-		int index_;
-
-	public:
-		FullHzSelector(const QString &key, const std::vector<short> &rates, int defaultIndex);
-		~FullHzSelector();
-		QWidget * widget();
-		const QComboBox * comboBox() const { return comboBox_; }
-		void store();
-		void restore();
-		void setRates(const std::vector<short> &rates);
-		int index() const { return index_; }
-	};
-
-	const MainWindow *const mw;
+	MainWindow const &mw_;
 	QVBoxLayout *const topLayout;
 	QWidget *engineWidget;
 	EngineSelector engineSelector;
 	ScalingMethodSelector scalingMethodSelector;
 	SourceSelector sourceSelector;
-	const auto_vector<FullResSelector> fullResSelectors;
-	const auto_vector<FullHzSelector> fullHzSelectors;
+	auto_vector<FullResSelector> const fullResSelectors;
+	auto_vector<FullHzSelector> const fullHzSelectors;
 
-	static auto_vector<FullResSelector> makeFullResSelectors(const QSize &sourceSize, const MainWindow *mw);
-	static auto_vector<FullHzSelector> makeFullHzSelectors(
-			const auto_vector<FullResSelector> &fullResSelectors, const MainWindow *mw);
 	void fillFullResSelectors();
 	void store();
 	void restore();
@@ -160,17 +127,18 @@ private slots:
 	void sourceChange(int index);
 
 public:
-	VideoDialog(const MainWindow *mw,
-	            const std::vector<VideoSourceInfo> &sourceInfos,
-	            const QString &sourcesLabel,
+	VideoDialog(MainWindow const &mw,
+	            std::vector<VideoSourceInfo> const &sourceInfos,
+	            QString const &sourcesLabel,
 	            QWidget *parent = 0);
+	~VideoDialog();
 	int blitterNo() const;
 	unsigned fullResIndex(unsigned screen) const;
 	unsigned fullRateIndex(unsigned screen) const;
 	unsigned sourceIndex() const { return sourceSelector.index(); }
-	const QSize sourceSize() const;
-	void setVideoSources(const std::vector<VideoSourceInfo> &sourceInfos);
-	void setSourceSize(const QSize &sourceSize);
+	QSize const sourceSize() const;
+	void setVideoSources(std::vector<VideoSourceInfo> const &sourceInfos);
+	void setSourceSize(QSize const &sourceSize);
 	ScalingMethod scalingMethod() const { return scalingMethodSelector.scalingMethod(); }
 
 public slots:
@@ -178,6 +146,6 @@ public slots:
 	void reject();
 };
 
-void applySettings(MainWindow *mw, const VideoDialog *vd);
+void applySettings(MainWindow &mw, VideoDialog const &vd);
 
 #endif

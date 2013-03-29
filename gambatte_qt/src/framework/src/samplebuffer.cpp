@@ -26,7 +26,7 @@ static T * ptr_cast(void *p) { return static_cast<T *>(p); }
 
 void SampleBuffer::reset() {
 	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
-	const long maxin = spf_.ceiled() + source_->overupdate;
+	const long maxin = spf_.ceiled() + source_.overupdate;
 
 	sndInBuffer_.reset(0);
 	resampler_.reset();
@@ -40,8 +40,8 @@ void SampleBuffer::reset() {
 
 long SampleBuffer::update(const PixelBuffer &pb) {
 	long insamples = sndInBuffer_.size() - samplesBuffered_;
-	const long res = source_->update(pb, ptr_cast<qint16>(sndInBuffer_ + samplesBuffered_),
-	                                 insamples);
+	const long res = source_.update(pb, ptr_cast<qint16>(sndInBuffer_ + samplesBuffered_),
+	                                insamples);
 	samplesBuffered_ += insamples;
 	return res < 0 ? res : samplesBuffered_ - insamples + res;
 }

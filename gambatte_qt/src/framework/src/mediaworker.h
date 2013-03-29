@@ -32,6 +32,8 @@
 #include <QWaitCondition>
 #include <deque>
 
+class AudioEngine;
+
 class MediaWorker : private QThread {
 public:
 	class Callback {
@@ -39,7 +41,6 @@ public:
 		virtual void paused() = 0;
 		virtual void blit(usec_t synctimebase, usec_t synctimeinc) = 0;
 		virtual bool cancelBlit() = 0;
-// 		virtual void sync() = 0;
 		virtual void audioEngineFailure() = 0;
 		virtual bool tryLockVideoBuffer(PixelBuffer &pb) = 0;
 		virtual void unlockVideoBuffer() = 0;
@@ -139,10 +140,10 @@ protected:
 	void run();
 
 public:
-	MediaWorker(MediaSource *source, class AudioEngine *ae, int aerate, int aelatency,
-			std::size_t resamplerNo, Callback &callback, QObject *parent = 0);
-	MediaSource* source() /*const */{ return sampleBuffer.source(); }
-	SyncVar& waitingForSync() /*const */{ return waitingForSync_; }
+	MediaWorker(MediaSource &source, AudioEngine &ae, int aerate, int aelatency,
+	            std::size_t resamplerNo, Callback &callback, QObject *parent = 0);
+	MediaSource & source() const { return sampleBuffer.source(); }
+	SyncVar & waitingForSync() { return waitingForSync_; }
 	void start();
 	void stop();
 	void pause();
@@ -153,11 +154,11 @@ public:
 	bool paused() const { return pauseVar.waitingForUnpause(); }
 
 	void resetAudio();
-	void setAudioOut(class AudioEngine *newAe, int rate, int latency, std::size_t resamplerNo);
+	void setAudioOut(AudioEngine &newAe, int rate, int latency, std::size_t resamplerNo);
 	void setFrameTime(Rational ft);
 	void setSamplesPerFrame(Rational spf);
 
-	void setFrameTimeEstimate(const long ftest) { AtomicVar<long>::Locked(frameTimeEst).set(ftest); }
+	void setFrameTimeEstimate(long ftest) { AtomicVar<long>::Locked(frameTimeEst).set(ftest); }
 	bool frameStep();
 
 	void setFastForwardSpeed(unsigned speed) { turboSkip.setSpeed(speed); }

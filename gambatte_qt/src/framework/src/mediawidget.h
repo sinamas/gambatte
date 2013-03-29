@@ -102,7 +102,7 @@ private slots:
 	void updateJoysticks();
 
 public:
-	MediaWidget(MediaSource *source, QWidget &parent);
+	MediaWidget(MediaSource &source, QWidget &parent);
 	~MediaWidget();
 
 	QWidget* widget() const { return blitterContainer; }
@@ -130,7 +130,7 @@ public:
 
 	void unlockFrameBuf() { vbmut.unlock(); }
 
-	const QSize& videoSize() const { return blitterContainer->sourceSize(); }
+	QSize const videoSize() const { return blitterContainer->sourceSize(); }
 
 	void setFrameTime(long num, long denom);
 	void setSamplesPerFrame(long num, long denom = 1) { worker->setSamplesPerFrame(Rational(num, denom)); }
@@ -187,7 +187,7 @@ public:
 	std::size_t numAudioEngines() const { return audioEngines.size(); }
 
 	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo) {
-		worker->setAudioOut(audioEngines[engineNo], srateHz, msecLatency, resamplerNo);
+		worker->setAudioOut(*audioEngines[engineNo], srateHz, msecLatency, resamplerNo);
 	}
 
 	std::size_t numResamplers() const { return ResamplerInfo::num(); }
