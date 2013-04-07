@@ -837,7 +837,7 @@ void PaletteDialog::loadSettings(QSettings &settings) {
 	for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j) {
 		currentColors_[i][j] = qvariant_cast<QRgb>(
 			settings.value(quads_[i]->title() + QString::number(j),
-			               (3 - (j & 3)) * 85 * 0x010101));
+			               QRgb((3 - (j & 3)) * 85 * 0x010101)));
 	}
 
 	restore();
