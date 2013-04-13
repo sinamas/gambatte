@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,37 +19,10 @@
 #ifndef OPENALENGINE_H
 #define OPENALENGINE_H
 
-#include "../audioengine.h"
+#include "transfer_ptr.h"
 
-#ifdef Q_WS_MAC
-#include <OpenAL/alc.h>
-#include <OpenAL/al.h>
-#else
-#include <AL/alc.h>
-#include <AL/al.h>
-#endif
+class AudioEngine;
 
-#include <QtGlobal>
-
-template<typename T> class RingBuffer;
-
-class OpenAlEngine : public AudioEngine {
-	qint16 *buf;
-	ALCdevice *device;
-	ALCcontext *context;
-	ALuint source;
-	unsigned buffers;
-	unsigned bufPos;
-
-	void deleteProcessedBufs() const;
-	int doInit(int rate, unsigned latency);
-
-public:
-	OpenAlEngine();
-	~OpenAlEngine();
-	void uninit();
-	int write(void *buffer, unsigned samples);
-	const BufferState bufferState() const;
-};
+transfer_ptr<AudioEngine> createOpenAlEngine();
 
 #endif

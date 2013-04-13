@@ -19,38 +19,38 @@
 #include "blitterconf.h"
 #include "blitterwidget.h"
 
-const QString& ConstBlitterConf::nameString() const {
-	return blitter->nameString();
+QString const & ConstBlitterConf::nameString() const {
+	return blitter_->nameString();
 }
 
 unsigned ConstBlitterConf::maxSwapInterval() const {
-	return blitter->maxSwapInterval();
+	return blitter_->maxSwapInterval();
 }
 
-QWidget* ConstBlitterConf::settingsWidget() const {
-	return blitter->settingsWidget();
+QWidget * ConstBlitterConf::settingsWidget() const {
+	return blitter_->settingsWidget();
 }
 
 void ConstBlitterConf::rejectSettings() const {
-	blitter->rejectSettings();
+	blitter_->rejectSettings();
 }
 
-const QString& BlitterConf::nameString() const {
-	return blitter->nameString();
+QString const & BlitterConf::nameString() const {
+	return blitter_->nameString();
 }
 
 unsigned BlitterConf::maxSwapInterval() const {
-	return blitter->maxSwapInterval();
+	return blitter_->maxSwapInterval();
 }
 
-QWidget* BlitterConf::settingsWidget() const {
-	return blitter->settingsWidget();
+QWidget * BlitterConf::settingsWidget() const {
+	return blitter_->settingsWidget();
 }
 
 void BlitterConf::acceptSettings() const {
-	blitter->acceptSettings();
+	blitter_->acceptSettings();
 }
 
 void BlitterConf::rejectSettings() const {
-	blitter->rejectSettings();
+	blitter_->rejectSettings();
 }

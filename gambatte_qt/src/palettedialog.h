@@ -23,13 +23,13 @@
 #include <QDialog>
 #include <QFrame>
 #include <QGroupBox>
-#include <QModelIndex>
 #include <QPoint>
 #include <QSize>
 #include <QString>
 #include <algorithm>
 
 class QListView;
+class QModelIndex;
 class QPushButton;
 class QSettings;
 
@@ -65,8 +65,8 @@ private:
 class ColorQuad : public QGroupBox {
 public:
 	explicit ColorQuad(QString const &label, QWidget *parent = 0);
-	QRgb color(unsigned index) const { return picker_[index & 3]->color(); }
-	void setColor(unsigned index, QRgb color) { picker_[index & 3]->setColor(color); }
+	QRgb color(int index) const { return picker_[index & 3]->color(); }
+	void setColor(int index, QRgb color) { picker_[index & 3]->setColor(color); }
 
 signals:
 	void colorChanged();
@@ -92,8 +92,8 @@ public:
 	                       QWidget *parent = 0);
 	virtual ~PaletteDialog();
 
-	QRgb color(unsigned palnum, unsigned colornum) const {
-		return currentColors_[std::min(palnum, 2u)][colornum & 3];
+	QRgb color(int palnum, int colornum) const {
+		return currentColors_[std::min(palnum, 2)][colornum & 3];
 	}
 
 	void externalChange();
@@ -106,6 +106,7 @@ public slots:
 private:
 	Q_OBJECT
 
+	QString const savedir_;
 	PaletteDialog const *const global_;
 	QListView *const listView_;
 	QPushButton *const rmSchemeButton_;
@@ -113,7 +114,6 @@ private:
 	QRgb currentColors_[3][4];
 	QString defaultScheme_;
 	QString schemeString_;
-	QString savedir_;
 	QString settingsFile_;
 
 	void saveSettings(QSettings &settings);
@@ -126,7 +126,7 @@ private:
 private slots:
 	void rmScheme();
 	void saveScheme();
-	void schemeChanged(QModelIndex const &current, QModelIndex const &previous);
+	void schemeChanged(QModelIndex const &current);
 };
 
 #endif

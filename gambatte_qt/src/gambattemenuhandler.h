@@ -81,7 +81,7 @@ private:
 	private:
 		enum { num_steps = 16 };
 		Rational frameTimes_[num_steps * 2 + 1];
-		unsigned index_;
+		std::size_t index_;
 	} frameTime_;
 	MiscDialog const &miscDialog_;
 	MainWindow &mw_;
@@ -96,7 +96,7 @@ private slots:
 	void miscDialogChange();
 };
 
-class WindowSizeMenu : public QObject {
+class WindowSizeMenu : private QObject {
 public:
 	WindowSizeMenu(MainWindow &mw, VideoDialog const &videoDialog);
 	~WindowSizeMenu();
@@ -116,10 +116,10 @@ private:
 	QSize const checkedSize() const;
 
 private slots:
-	void triggered(QAction *);
+	void triggered();
 };
 
-class GambatteMenuHandler : public QObject {
+class GambatteMenuHandler : private QObject {
 public:
 	GambatteMenuHandler(MainWindow &mw, GambatteSource &source,
 	                    int argc, char const *const argv[]);
@@ -147,7 +147,7 @@ private:
 	PaletteDialog *romPaletteDialog_;
 	QActionGroup *const stateSlotGroup_;
 	WindowSizeMenu windowSizeMenu_;
-	unsigned pauseInc_;
+	int pauseInc_;
 
 	void loadFile(QString const &fileName);
 	void setCurrentFile(QString const &fileName);

@@ -23,6 +23,11 @@
 #include <QString>
 #include <vector>
 
+class QLineEdit;
+class QListView;
+class QModelIndex;
+class QPushButton;
+
 struct CheatListItem {
 	QString label;
 	QString code;
@@ -36,25 +41,25 @@ struct CheatListItem {
 
 class GetCheatInput : public QDialog {
 public:
-	explicit GetCheatInput(QString const &desc, QString const &code, QWidget *parent);
+	GetCheatInput(QString const &desc, QString const &code, QWidget *parent);
 	QString const codeText() const;
 	QString const descText() const;
 
 private:
 	Q_OBJECT
 
-	class QLineEdit *const codeEdit_;
-	class QLineEdit *const descEdit_;
-	class QPushButton *const okButton_;
+	QLineEdit *const descEdit_;
+	QLineEdit *const codeEdit_;
+	QPushButton *const okButton_;
 
 private slots:
-	void codeTextEdited(QString const &);
+	void codeTextEdited();
 };
 
 class CheatDialog : public QDialog {
 public:
 	explicit CheatDialog(QString const &savefile, QWidget *parent = 0);
-	~CheatDialog();
+	virtual ~CheatDialog();
 	QString const cheats() const;
 	void setGameName(QString const &name);
 
@@ -65,9 +70,9 @@ public slots:
 private:
 	Q_OBJECT
 
-	class QListView *const view_;
-	class QPushButton *const editButton_;
-	class QPushButton *const rmButton_;
+	QListView *const view_;
+	QPushButton *const editButton_;
+	QPushButton *const rmButton_;
 	std::vector<CheatListItem> items_;
 	QString const savefile_;
 	QString gamename_;
@@ -81,7 +86,7 @@ private slots:
 	void addCheat();
 	void editCheat();
 	void removeCheat();
-	void selectionChanged(class QModelIndex const &current, class QModelIndex const &last);
+	void selectionChanged(QModelIndex const &current);
 };
 
 #endif

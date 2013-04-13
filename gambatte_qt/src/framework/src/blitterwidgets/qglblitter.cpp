@@ -20,7 +20,7 @@
 #include "../blitterwidget.h"
 #include "../dwmcontrol.h"
 #include "array.h"
-#include "persistcheckbox.h"
+#include "dialoghelpers.h"
 #include "scoped_ptr.h"
 
 #ifdef PLATFORM_WIN32
@@ -49,7 +49,7 @@ public:
 	void setBilinearFiltering(bool on);
 	void setTextureSize(QSize const &size);
 	void setCorrectedSize(QSize const &size) { correctedSize_ = size; }
-	void setRefreshRate(int dhz) { ftEst_.init(swapInterval_ * 10000000 / dhz); }
+	void setRefreshRate(int dhz) { ftEst_ = FtEst(swapInterval_ * 10000000 / dhz); }
 
 	void forcedResize() {
 		if (initialized_) {
@@ -244,16 +244,18 @@ public:
 	: BlitterWidget(vbl, QString("OpenGL"), 2, parent)
 	, hwndChange_(hwndChange)
 	, confWidget_(new QWidget)
-	, vsync_(new QCheckBox(QString("Wait for vertical blank")), "qglblitter/vsync", false)
-	, bf_(new QCheckBox(QString("Bilinear filtering")), "qglblitter/bf", true)
+	, vsync_(new QCheckBox(tr("Wait for vertical blank"), confWidget_.get()),
+	         "qglblitter/vsync", false)
+	, bf_(new QCheckBox(tr("Bilinear filtering"), confWidget_.get()),
+	      "qglblitter/bf", true)
 	, correctedSize_(size())
 	, swapInterval_(0)
 	, dhz_(600)
 	{
-		confWidget_->setLayout(new QVBoxLayout);
-		confWidget_->layout()->setMargin(0);
-		confWidget_->layout()->addWidget(vsync_.checkBox());
-		confWidget_->layout()->addWidget(bf_.checkBox());
+		QVBoxLayout *l = new QVBoxLayout(confWidget_.get());
+		l->setMargin(0);
+		l->addWidget(vsync_.checkBox());
+		l->addWidget(bf_.checkBox());
 	}
 
 	virtual void uninit() {
@@ -289,11 +291,6 @@ public:
 		return BlitterWidget::frameTimeEst();
 	}
 
-	virtual void blit() {
-		setPixelBuffer(inBuffer().data == buffer_ ? buffer_ + buffer_.size() / 2 : buffer_,
-		               inBuffer().pixelFormat, inBuffer().pitch);
-	}
-
 	virtual void draw() {
 		subWidget_->updateTexture(inBuffer().data == buffer_
 		                        ? buffer_ + buffer_.size() / 2
@@ -301,7 +298,7 @@ public:
 		subWidget_->prepare();
 	}
 
-	virtual long sync() {
+	virtual int present() {
 		subWidget_->present();
 		return 0;
 	}
@@ -338,9 +335,16 @@ public:
 	virtual void compositionEnabledChange() { updateSubWidgetSwapInterval(); }
 
 protected:
-	virtual void setBufferDimensions(unsigned const width, unsigned const height) {
+	virtual void consumeBuffer(SetBuffer setInputBuffer) {
+		setInputBuffer(inBuffer().data == buffer_ ? buffer_ + buffer_.size() / 2 : buffer_,
+		               inBuffer().pixelFormat, inBuffer().pitch);
+	}
+
+	virtual void setBufferDimensions(unsigned const width, unsigned const height,
+	                                 SetBuffer setInputBuffer)
+	{
 		buffer_.reset(std::size_t(width) * height * 2);
-		setPixelBuffer(buffer_, PixelBuffer::RGB32, width);
+		setInputBuffer(buffer_, PixelBuffer::RGB32, width);
 
 		if (subWidget_) {
 			subWidget_->setTextureSize(QSize(width, height));

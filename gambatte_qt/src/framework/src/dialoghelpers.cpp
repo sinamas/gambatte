@@ -16,11 +16,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "persistcheckbox.h"
+#include "dialoghelpers.h"
 #include <QCheckBox>
+#include <QComboBox>
 #include <QSettings>
+#include <algorithm>
 
-PersistCheckBox::PersistCheckBox(QCheckBox *const checkBox, const QString &key, const bool defaultValue)
+PersistCheckBox::PersistCheckBox(QCheckBox *const checkBox, QString const &key, bool defaultValue)
 : checkBox_(checkBox), key_(key), value_(defaultValue)
 {
 	value_ = QSettings().value(key, defaultValue).toBool();
@@ -38,4 +40,27 @@ void PersistCheckBox::accept() {
 
 void PersistCheckBox::reject() const {
 	checkBox_->setChecked(value_);
+}
+
+PersistComboBox::PersistComboBox(QString const &key, QComboBox *box)
+: key_(key)
+, box_(box)
+, index_(std::max(0, box->currentIndex()))
+{
+	index_ = filterValue(box->findText(QSettings().value(key, box->itemText(index_)).toString()),
+	                     box->count(), 0, index_);
+	box->setCurrentIndex(index_);
+}
+
+PersistComboBox::~PersistComboBox() {
+	QSettings settings;
+	settings.setValue(key_, box_->itemText(index_));
+}
+
+void PersistComboBox::accept() {
+	index_ = box_->currentIndex();
+}
+
+void PersistComboBox::reject() const {
+	box_->setCurrentIndex(index_);
 }

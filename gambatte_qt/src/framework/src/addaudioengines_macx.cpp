@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre AamÂs                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,11 +17,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "addaudioengines.h"
-
 //#include "audioengines/openalengine.h"
 #include "audioengines/coreaudioengine.h"
 
 void addAudioEngines(auto_vector<AudioEngine> &audioEngines, WId /*winId*/) {
 	audioEngines.push_back(new CoreAudioEngine);
-//	audioEngines.push_back(new OpenAlEngine);
+//	audioEngines.push_back(createOpenAlEngine().release());
 }

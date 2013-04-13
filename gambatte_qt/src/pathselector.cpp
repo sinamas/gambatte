@@ -43,11 +43,12 @@ static void setPath(QComboBox *const comboBox, QString const &value) {
 PathSelector::PathSelector(QString const &caption,
                            QString const &settingskey,
                            Mapping const &default1,
-                           Mapping const &default2)
-: comboBox_(new QComboBox)
-, value_(default1.second)
+                           Mapping const &default2,
+                           QWidget *widgetParent)
+: comboBox_(new QComboBox(widgetParent))
 , caption_(caption)
 , key_(settingskey)
+, value_(QSettings().value(key_, default1.second).toString())
 {
 	comboBox_->addItem(default1.first, default1.second);
 	if (default2 != Mapping())
@@ -55,7 +56,6 @@ PathSelector::PathSelector(QString const &caption,
 
 	comboBox_->addItem(tr("Other..."));
 
-	value_ = QSettings().value(key_, value_).toString();
 	reject();
 	connect(comboBox_, SIGNAL(currentIndexChanged(int)), this, SLOT(indexChanged(int)));
 }

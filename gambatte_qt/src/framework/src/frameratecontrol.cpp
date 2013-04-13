@@ -32,7 +32,7 @@ void FrameRateControl::setBlitter(BlitterWidget *const blitter) {
 	update();
 }
 
-void FrameRateControl::setFrameTime(const Rational frameTime) {
+void FrameRateControl::setFrameTime(Rational const frameTime) {
 	if (frameTime_ != frameTime) {
 		frameTime_ = frameTime;
 		update();
@@ -53,7 +53,6 @@ void FrameRateControl::update() {
 
 	if (refreshRateSync_) {
 		si = (frameTime_.num * refreshRate_ + (frameTime_.denom * 10 >> 1)) / (frameTime_.denom * 10);
-
 		if (si < 1)
 			si = 1;
 

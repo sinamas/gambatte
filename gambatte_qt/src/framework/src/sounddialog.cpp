@@ -29,239 +29,194 @@
 #include <QSize>
 #include <QSpinBox>
 #include <QVBoxLayout>
-#include <cassert>
 
 namespace {
 
-struct SampleRateInfo {
-	enum { NOT_SUPPORTED = -1 };
-
-	// Distinct sample rate (stereo samples per second) alternatives selectable in the sound settings dialog.
-	std::vector<int> rates;
-
-	// The index of the rate in the rates list to be selected by default.
-	std::size_t defaultRateIndex;
-
-	// Minimum and maximum custom sample rates selectable in the sound settings dialog.
-	// Set to NOT_SUPPORTED if you don't want to allow custom sample rates.
-	int minCustomRate;
-	int maxCustomRate;
-};
-
-static SampleRateInfo generateSampleRateInfo() {
-	SampleRateInfo srinfo;
-
-	srinfo.rates.push_back(48000);
-	srinfo.rates.push_back(44100);
-	srinfo.rates.push_back(96000);
-	srinfo.defaultRateIndex = 0;
-	srinfo.minCustomRate = 8000;
-	srinfo.maxCustomRate = 192000;
-
+static QComboBox * createRateBox(QWidget *parent) {
+	enum { custom_rate_min =   8000,
+	       custom_rate_max = 192000 };
+	static int const rates[] = {
 #ifdef Q_WS_MAC
-	srinfo.defaultRateIndex = 1;
+		44100, 48000, 96000,
+#else
+		48000, 44100, 96000,
 #endif
+	};
 
-	return srinfo;
+	QComboBox *const box = new QComboBox(parent);
+	for (std::size_t i = 0; i < sizeof rates / sizeof *rates; ++i)
+		box->addItem(QString::number(rates[i]) + " Hz", rates[i]);
+
+	box->addItem(QObject::tr("Other..."),
+	             QSize(custom_rate_min, custom_rate_max));
+	box->setCurrentIndex(0);
+
+	return box;
 }
 
-static int filterValue(const int value, const int upper, const int lower = 0, const int fallback = 0) {
-	if (value >= upper || value < lower)
-		return fallback;
-
-	return value;
-}
-
-static void populateRateSelector(QComboBox *rateSelector, const SampleRateInfo &rateInfo) {
-	assert(!rateInfo.rates.empty());
-	assert(rateInfo.defaultRateIndex < rateInfo.rates.size());
-
-	for (std::size_t i = 0; i < rateInfo.rates.size(); ++i)
-		rateSelector->addItem(QString::number(rateInfo.rates[i]) + " Hz", rateInfo.rates[i]);
-
-	if (rateInfo.minCustomRate > 0 && rateInfo.maxCustomRate > rateInfo.minCustomRate) {
-		rateSelector->addItem(SoundDialog::tr("Other..."), QSize(rateInfo.minCustomRate, rateInfo.maxCustomRate));
-	}
-
-	rateSelector->setCurrentIndex(rateInfo.defaultRateIndex);
-}
-
-static int getCustomIndex(const QComboBox *rateSelector) {
-	int i = rateSelector->count() - 2;
-
-	while (i < rateSelector->count() && rateSelector->itemText(i).at(0).isNumber())
+static int getCustomIndex(QComboBox const *rateBox) {
+	int i = rateBox->count() - 2;
+	while (i < rateBox->count() && rateBox->itemText(i).at(0).isNumber())
 		++i;
 
 	return i;
 }
 
-static void setRate(QComboBox *rateSelector, const int r) {
-	const int customIndex = getCustomIndex(rateSelector);
-	const int newIndex = rateSelector->findData(r);
-
+static void setRate(QComboBox *const rateBox, int const r) {
+	int const customIndex = getCustomIndex(rateBox);
+	int const newIndex = rateBox->findData(r);
 	if (newIndex < 0) {
-		if (customIndex < rateSelector->count()) {
-			rateSelector->addItem(QString::number(r) + " Hz", r);
+		if (customIndex < rateBox->count()) {
+			rateBox->addItem(QString::number(r) + " Hz", r);
+			if (customIndex + 2 != rateBox->count())
+				rateBox->removeItem(customIndex + 1);
 
-			if (customIndex + 2 != rateSelector->count())
-				rateSelector->removeItem(customIndex + 1);
-
-			rateSelector->setCurrentIndex(customIndex + 1);
+			rateBox->setCurrentIndex(customIndex + 1);
 		}
 	} else
-		rateSelector->setCurrentIndex(newIndex);
+		rateBox->setCurrentIndex(newIndex);
 }
 
+static QComboBox * createEngineBox(MainWindow const &mw, QWidget *parent) {
+	QComboBox *const box = new QComboBox(parent);
+	for (std::size_t i = 0, n = mw.numAudioEngines(); i < n; ++i) {
+		ConstAudioEngineConf conf = mw.audioEngineConf(i);
+		box->addItem(conf.nameString());
+		if (QWidget *w = conf.settingsWidget()) {
+			w->hide();
+			w->setParent(parent);
+		}
+	}
+
+	return box;
 }
+
+static QComboBox * createResamplerBox(MainWindow const &mw, QWidget *parent) {
+	QComboBox *const box = new QComboBox(parent);
+	for (std::size_t i = 0, n = mw.numResamplers(); i < n; ++i)
+		box->addItem(mw.resamplerDesc(i));
+
+	box->setCurrentIndex(1);
+	return box;
+}
+
+} // anon ns
 
 SoundDialog::SoundDialog(MainWindow const &mw, QWidget *const parent)
 : QDialog(parent)
 , mw_(mw)
-, topLayout(new QVBoxLayout)
-, engineSelector(new QComboBox(this))
-, resamplerSelector(new QComboBox(this))
-, rateSelector(new QComboBox(this))
-, latencySelector(new QSpinBox(this))
-, engineWidget()
-, engineIndex_(0)
-, resamplerNum(1)
+, engineSelector_("sound/engineIndex", createEngineBox(mw, this))
+, resamplerSelector_("sound/resamplerNum", createResamplerBox(mw, this))
+, rateBox_(createRateBox(this))
+, latencyBox_(new QSpinBox(this))
+, engineWidget_()
 , rate_(0)
 , latency_(68)
 {
 	setWindowTitle(tr("Sound Settings"));
 
-	QVBoxLayout *const mainLayout = new QVBoxLayout;
+	QVBoxLayout *const mainLayout = new QVBoxLayout(this);
+	QVBoxLayout *const topLayout = addLayout(mainLayout, new QVBoxLayout);
 
 	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Sound engine:")));
-
-		for (std::size_t i = 0; i < mw.numAudioEngines(); ++i)
-			engineSelector->addItem(mw.audioEngineConf(i).nameString());
-
-		hLayout->addWidget(engineSelector);
-		topLayout->addLayout(hLayout);
+		hLayout->addWidget(engineSelector_.box());
 	}
 
 	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Resampler:")));
-
-		for (unsigned i = 0; i < ResamplerInfo::num(); ++i)
-			resamplerSelector->addItem(ResamplerInfo::get(i).desc);
-
-		hLayout->addWidget(resamplerSelector);
-		topLayout->addLayout(hLayout);
+		hLayout->addWidget(resamplerSelector_.box());
 	}
 
 	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Sample rate:")));
-
-		populateRateSelector(rateSelector, generateSampleRateInfo());
-
-		hLayout->addWidget(rateSelector);
-		topLayout->addLayout(hLayout);
+		hLayout->addWidget(rateBox_);
 	}
 
 	{
-		QHBoxLayout *const hLayout = new QHBoxLayout;
+		QHBoxLayout *const hLayout = addLayout(topLayout, new QHBoxLayout);
 		hLayout->addWidget(new QLabel(tr("Buffer latency:")));
-		latencySelector->setRange(8, 999);
-		latencySelector->setSuffix(" ms");
-		hLayout->addWidget(latencySelector);
-		topLayout->addLayout(hLayout);
+		latencyBox_->setRange(8, 999);
+		latencyBox_->setSuffix(" ms");
+		hLayout->addWidget(latencyBox_);
 	}
 
-	mainLayout->addLayout(topLayout);
-
 	{
-		QPushButton *const okButton = new QPushButton(tr("OK"), this);
-		QPushButton *const cancelButton = new QPushButton(tr("Cancel"), this);
-		QHBoxLayout *const hLayout = new QHBoxLayout;
-
-		hLayout->addWidget(okButton);
-		hLayout->addWidget(cancelButton);
-
+		QHBoxLayout *const hLayout = addLayout(mainLayout, new QHBoxLayout,
+		                                       Qt::AlignBottom | Qt::AlignRight);
+		QPushButton *const okButton = addWidget(hLayout, new QPushButton(tr("OK")));
+		QPushButton *const cancelButton = addWidget(hLayout, new QPushButton(tr("Cancel")));
 		okButton->setDefault(true);
-
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-
-		mainLayout->addLayout(hLayout);
-		mainLayout->setAlignment(hLayout, Qt::AlignBottom | Qt::AlignRight);
 	}
 
-	setLayout(mainLayout);
-
 	QSettings settings;
-	settings.beginGroup("sound");
-	engineIndex_ = filterValue(settings.value("engineIndex", engineIndex_).toInt(), engineSelector->count());
-	resamplerNum = filterValue(settings.value("resamplerNum", resamplerNum).toInt(), resamplerSelector->count(), 0, resamplerNum);
-	setRate(rateSelector, settings.value("rate", rateSelector->itemData(rateSelector->currentIndex())).toInt());
-	latency_ = filterValue(settings.value("latency", latency_).toInt(), latencySelector->maximum()+1, latencySelector->minimum(), latency_);
-	settings.endGroup();
+	setRate(rateBox_,
+	        settings.value("sound/rate",
+		               rateBox_->itemData(rateBox_->currentIndex())).toInt());
+	rate_ = rateBox_->itemData(rateBox_->currentIndex()).toInt();
+	latency_ = filterValue(settings.value("sound/latency", latency_).toInt(),
+	                       latencyBox_->maximum() + 1, latencyBox_->minimum(), latency_);
+	latencyBox_->setValue(latency_);
 
-	rate_ = rateSelector->itemData(rateSelector->currentIndex()).toInt();
-	engineChange(engineSelector->currentIndex());
-	connect(engineSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(engineChange(int)));
-	connect(rateSelector, SIGNAL(currentIndexChanged(int)), this, SLOT(rateIndexChange(int)));
-
-	restore();
-	store();
+	engineChange(engineSelector_.index());
+	connect(engineSelector_.box(), SIGNAL(currentIndexChanged(int)),
+	        this, SLOT(engineChange(int)));
+	connect(rateBox_, SIGNAL(currentIndexChanged(int)), this, SLOT(rateIndexChange(int)));
 }
 
 SoundDialog::~SoundDialog() {
 	QSettings settings;
-	settings.beginGroup("sound");
-	settings.setValue("engineIndex", engineIndex_);
-	settings.setValue("resamplerNum", resamplerNum);
-	settings.setValue("rate", rate_);
-	settings.setValue("latency", latency_);
-	settings.endGroup();
+	settings.setValue("sound/rate", rate_);
+	settings.setValue("sound/latency", latency_);
 }
 
-void SoundDialog::engineChange(int index) {
-	if (engineWidget) {
-		topLayout->removeWidget(engineWidget);
-		engineWidget->setParent(NULL);
+void SoundDialog::engineChange(int const index) {
+	QBoxLayout *const topLayout = static_cast<QBoxLayout *>(layout()->itemAt(0)->layout());
+	if (engineWidget_) {
+		engineWidget_->hide();
+		topLayout->removeWidget(engineWidget_);
 	}
-
-	if ((engineWidget = mw_.audioEngineConf(index).settingsWidget()))
-		topLayout->insertWidget(1, engineWidget);
+	if ((engineWidget_ = mw_.audioEngineConf(index).settingsWidget())) {
+		topLayout->insertWidget(1, engineWidget_);
+		engineWidget_->show();
+	}
 }
 
-void SoundDialog::rateIndexChange(const int index) {
-	if (getCustomIndex(rateSelector) == index) {
-		const QSize &sz = rateSelector->itemData(index).toSize();
-		const int currentRate = rate_;
+void SoundDialog::rateIndexChange(int const index) {
+	if (getCustomIndex(rateBox_) == index) {
+		QSize const size = rateBox_->itemData(index).toSize();
+		int const currentRate = rate_;
 		bool ok = false;
-
 		int r = QInputDialog::getInteger(this, tr("Set Sample Rate"),
-				tr("Sample rate (Hz):"), currentRate, sz.width(), sz.height(), 1, &ok);
-
+		                                 tr("Sample rate (Hz):"), currentRate,
+		                                 size.width(), size.height(), 1, &ok);
 		if (!ok)
 			r = currentRate;
 
-		setRate(rateSelector, r);
+		setRate(rateBox_, r);
 	}
 }
 
 void SoundDialog::store() {
-	engineIndex_ = engineSelector->currentIndex();
-	rate_ = rateSelector->itemData(rateSelector->currentIndex()).toInt();
-	latency_ = latencySelector->value();
-	resamplerNum = resamplerSelector->currentIndex();
+	engineSelector_.accept();
+	resamplerSelector_.accept();
+	rate_ = rateBox_->itemData(rateBox_->currentIndex()).toInt();
+	latency_ = latencyBox_->value();
 }
 
 void SoundDialog::restore() {
-	for (std::size_t i = 0; i < mw_.numAudioEngines(); ++i)
+	for (std::size_t i = 0, n = mw_.numAudioEngines(); i < n; ++i)
 		mw_.audioEngineConf(i).rejectSettings();
 
-	engineSelector->setCurrentIndex(engineIndex_);
-	resamplerSelector->setCurrentIndex(resamplerNum);
-	setRate(rateSelector, rate_);
-	latencySelector->setValue(latency_);
+	engineSelector_.reject();
+	resamplerSelector_.reject();
+	setRate(rateBox_, rate_);
+	latencyBox_->setValue(latency_);
 }
 
 void SoundDialog::accept() {
@@ -275,7 +230,7 @@ void SoundDialog::reject() {
 }
 
 void applySettings(MainWindow &mw, SoundDialog const &sd) {
-	for (std::size_t i = 0; i < mw.numAudioEngines(); ++i)
+	for (std::size_t i = 0, n = mw.numAudioEngines(); i < n; ++i)
 		mw.audioEngineConf(i).acceptSettings();
 
 	mw.setAudioOut(sd.engineIndex(), sd.rate(), sd.latency(), sd.resamplerNo());

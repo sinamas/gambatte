@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,20 +19,10 @@
 #ifndef AOENGINE_H
 #define AOENGINE_H
 
-#include "../audioengine.h"
+#include "transfer_ptr.h"
 
-#include <ao/ao.h>
+class AudioEngine;
 
-class AoEngine : public AudioEngine {
-	ao_device *aoDevice;
-
-	int doInit(int rate, unsigned latency);
-
-public:
-	AoEngine();
-	~AoEngine();
-	void uninit();
-	int write(void *buffer, unsigned samples);
-};
+transfer_ptr<AudioEngine> createAoEngine();
 
 #endif

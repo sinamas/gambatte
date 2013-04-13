@@ -16,26 +16,68 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef PERSIST_CHECKBOX_H
-#define PERSIST_CHECKBOX_H
+#ifndef DIALOGHELPERS_H
+#define DIALOGHELPERS_H
 
 #include <QString>
 
 class QCheckBox;
-class QWidget;
+class QComboBox;
+
+template<class Parent, class L>
+inline L * addLayout(Parent *p, L *l) {
+	p->addLayout(l);
+	return l;
+}
+
+template<class Parent, class L>
+L * addLayout(Parent *p, L *l, Qt::Alignment alignment) {
+	p->addLayout(l);
+	p->setAlignment(l, alignment);
+	return l;
+}
+
+template<class Layout, class W>
+inline W * addWidget(Layout *l, W *w) {
+	l->addWidget(w);
+	return w;
+}
+
+inline int filterValue(int value, int upper, int lower = 0, int fallback = 0) {
+	if (value >= upper || value < lower)
+		return fallback;
+
+	return value;
+}
 
 class PersistCheckBox {
-	QCheckBox *const checkBox_;
-	const QString key_;
-	bool value_;
-
 public:
-	PersistCheckBox(QCheckBox *checkBox, const QString &key, bool defaultValue);
+	PersistCheckBox(QCheckBox *checkBox, QString const &key, bool defaultValue);
 	~PersistCheckBox();
 	void accept();
 	void reject() const;
 	bool value() const { return value_; }
 	QCheckBox * checkBox() const { return checkBox_; }
+
+private:
+	QCheckBox *const checkBox_;
+	QString const key_;
+	bool value_;
+};
+
+class PersistComboBox {
+public:
+	PersistComboBox(QString const &key, QComboBox *box);
+	~PersistComboBox();
+	QComboBox * box() const { return box_; }
+	int index() const { return index_; }
+	void accept();
+	void reject() const;
+
+private:
+	QString const key_;
+	QComboBox *const box_;
+	int index_;
 };
 
 #endif

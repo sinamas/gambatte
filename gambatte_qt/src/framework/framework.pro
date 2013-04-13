@@ -11,17 +11,17 @@ SOURCES += framework/src/blittercontainer.cpp \
     framework/src/audioengines/customdevconf.cpp \
     framework/src/audioengineconf.cpp \
     framework/src/blitterconf.cpp \
+    framework/src/blitterwidget.cpp \
+    framework/src/dialoghelpers.cpp \
     framework/src/dwmcontrol.cpp \
     framework/src/frameratecontrol.cpp \
+    framework/src/inputbox.cpp \
+    framework/src/joysticklock.cpp \
     framework/src/mainwindow.cpp \
     framework/src/mediawidget.cpp \
     framework/src/mediaworker.cpp \
     framework/src/mmpriority.cpp \
-    framework/src/samplebuffer.cpp \
-    framework/src/blitterwidget.cpp \
-    framework/src/joysticklock.cpp \
-    framework/src/persistcheckbox.cpp \
-    framework/src/inputbox.cpp
+    framework/src/sourceupdater.cpp
 SOURCES += $$COMMONPATH/resample/src/chainresampler.cpp \
 	$$COMMONPATH/resample/src/i0.cpp \
 	$$COMMONPATH/resample/src/kaiser50sinc.cpp \
@@ -143,8 +143,9 @@ else {
         framework/src/addblitterwidgets.cpp \
         framework/src/getfullmodetoggler.cpp \
         framework/src/blitterwidget.cpp \
-        framework/src/audioengines/aoengine.cpp
+        framework/src/audioengines/aoengine.cpp \
+        framework/src/audioengines/openalengine.cpp
     SOURCES += framework/src/SDL_Joystick/src/dummy/SDL_sysjoystick.c
     CONFIG += link_pkgconfig
-    PKGCONFIG += ao
+    PKGCONFIG += ao openal
 }

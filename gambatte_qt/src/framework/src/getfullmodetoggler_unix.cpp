@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,10 +25,8 @@
 transfer_ptr<FullModeToggler> getFullModeToggler(WId /*winId*/) {
 	if (XRandR12Toggler::isUsable())
 		return transfer_ptr<FullModeToggler>(new XRandR12Toggler);
-
 	if (XRandRToggler::isUsable())
 		return transfer_ptr<FullModeToggler>(new XRandRToggler);
-
 // 	if (Xf86VidModeToggler::isUsable())
 // 		return transfer_ptr<FullModeToggler>(new Xf86VidModeToggler(winId));
 

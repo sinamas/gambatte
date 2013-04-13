@@ -19,11 +19,10 @@
 #ifndef SOUNDDIALOG_H
 #define SOUNDDIALOG_H
 
+#include "dialoghelpers.h"
 #include <QDialog>
 
 class MainWindow;
-class QVBoxLayout;
-class QComboBox;
 class QSpinBox;
 
 /**
@@ -31,17 +30,27 @@ class QSpinBox;
   * configuring audio settings.
   */
 class SoundDialog : public QDialog {
+public:
+	explicit SoundDialog(MainWindow const &mw, QWidget *parent = 0);
+	virtual ~SoundDialog();
+	std::size_t engineIndex() const { return engineSelector_.index(); }
+	std::size_t resamplerNo() const { return resamplerSelector_.index(); }
+	int rate() const { return rate_; }
+	int latency() const { return latency_; };
+
+public slots:
+	virtual void accept();
+	virtual void reject();
+
+private:
 	Q_OBJECT
 
 	MainWindow const &mw_;
-	QVBoxLayout *const topLayout;
-	QComboBox *const engineSelector;
-	QComboBox *const resamplerSelector;
-	QComboBox *const rateSelector;
-	QSpinBox *const latencySelector;
-	QWidget *engineWidget;
-	int engineIndex_;
-	int resamplerNum;
+	PersistComboBox engineSelector_;
+	PersistComboBox resamplerSelector_;
+	QComboBox *const rateBox_;
+	QSpinBox *const latencyBox_;
+	QWidget *engineWidget_;
 	int rate_;
 	int latency_;
 
@@ -51,18 +60,6 @@ class SoundDialog : public QDialog {
 private slots:
 	void engineChange(int index);
 	void rateIndexChange(int index);
-
-public:
-	explicit SoundDialog(MainWindow const &mw, QWidget *parent = 0);
-	~SoundDialog();
-	int engineIndex() const { return engineIndex_; }
-	int resamplerNo() const { return resamplerNum; }
-	int rate() const { return rate_; }
-	int latency() const { return latency_; };
-
-public slots:
-	void accept();
-	void reject();
 };
 
 void applySettings(MainWindow &mw, SoundDialog const &sd);

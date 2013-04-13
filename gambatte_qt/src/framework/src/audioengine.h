@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,49 +22,73 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QString>
+#include <cstddef>
 
 class QWidget;
 
 class AudioEngine {
-	QMutex mut;
-	const QString nameString_;
-	int rate_;
-
-protected:
-	virtual int doInit(int rate, unsigned msLatency) = 0;
-	virtual void doAcceptSettings() {}
 public:
 	struct BufferState {
-		enum { NOT_SUPPORTED = 0xFFFFFFFFu };
-		unsigned fromUnderrun;
-		unsigned fromOverflow;
+		enum { not_supported = std::size_t(-1) };
+		std::size_t fromUnderrun;
+		std::size_t fromOverflow;
 	};
 
-	const QString& nameString() const { return nameString_; }
-	int rate() const { return rate_; }
+	QString const & nameString() const { return nameString_; }
+	long rate() const { return rate_; }
+	void acceptSettings() { QMutexLocker l(&mut_); doAcceptSettings(); }
 
-	AudioEngine(const QString &name) : nameString_(name), rate_(0) {}
+	long init(long rate, int msLatency) {
+		QMutexLocker l(&mut_);
+		rate_ = rate = doInit(rate, msLatency);
+		if (rate < 0)
+			uninit();
+
+		return rate;
+	}
+
 	virtual ~AudioEngine() {}
-	int init(int rate, unsigned msLatency) { QMutexLocker l(&mut); return rate_ = doInit(rate, msLatency); }
 	virtual void uninit() {}
-	virtual int write(void *buffer, unsigned samples) = 0;
+	virtual int write(void *buffer, std::size_t samples) = 0;
 	virtual long rateEstimate() const { return rate_; }
-	virtual const BufferState bufferState() const { static const BufferState s = { BufferState::NOT_SUPPORTED, BufferState::NOT_SUPPORTED }; return s; }
+
+	virtual BufferState bufferState() const {
+		BufferState s = { BufferState::not_supported,
+		                  BufferState::not_supported };
+		return s;
+	}
+
 	virtual void pause() {}
 
 	/** @return success */
 	virtual bool flushPausedBuffers() const { return false; }
 
-	virtual int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out) {
+	virtual int write(void *buffer, std::size_t samples,
+	                  BufferState &preBufState_out, long &rate_out)
+	{
 		preBufState_out = bufferState();
-		const int ret = write(buffer, samples);
+		int const ret = write(buffer, samples);
 		rate_out = rateEstimate();
 		return ret;
 	}
 
-	virtual QWidget* settingsWidget() const { return 0; }
-	void acceptSettings() { QMutexLocker l(&mut); doAcceptSettings(); }
+	virtual QWidget * settingsWidget() const { return 0; }
 	virtual void rejectSettings() const {}
+
+protected:
+	AudioEngine(QString const &name)
+	: nameString_(name)
+	, rate_(0)
+	{
+	}
+
+	virtual long doInit(long rate, int msLatency) = 0;
+	virtual void doAcceptSettings() {}
+
+private:
+	QMutex mut_;
+	QString const nameString_;
+	long rate_;
 };
 
 #endif

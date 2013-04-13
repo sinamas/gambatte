@@ -302,7 +302,7 @@ public:
 
 		widget_->setLayout(new QHBoxLayout);
 		widget_->layout()->setMargin(0);
-		widget_->layout()->addWidget(new QLabel(QString(QObject::tr("Xv Port:"))));
+		widget_->layout()->addWidget(new QLabel(QObject::tr("Xv Port:")));
 		widget_->layout()->addWidget(portSelector_);
 	}
 
@@ -436,15 +436,7 @@ public:
 
 	virtual bool isUnusable() const { return confWidget_.numAdapters() == 0; }
 
-	virtual void blit() {
-		if (portGrabber_.grabbed()) {
-			subBlitter_->flip();
-			setPixelBuffer(subBlitter_->pixels(), inBuffer().pixelFormat,
-			               subBlitter_->pitch());
-		}
-	}
-
-	virtual long sync() {
+	virtual int present() {
 		if (!portGrabber_.grabbed() || subBlitter_->failed())
 			return -1;
 
@@ -460,9 +452,13 @@ public:
 			    || portGrabber_.port() >= confWidget_.basePortId()
 			                            + confWidget_.numPortIds())) {
 			initPort();
-			lockPixelBuffer();
-			setBufferDimensions(inBuffer().width, inBuffer().height);
-			unlockPixelBuffer();
+
+			{
+				BufferLock lock(*this);
+				setBufferDimensions(inBuffer().width, inBuffer().height,
+				                    SetBuffer(lock));
+			}
+
 			repaint();
 		}
 	}
@@ -472,6 +468,14 @@ public:
 	virtual QPaintEngine * paintEngine() const { return 0; }
 
 protected:
+	virtual void consumeBuffer(SetBuffer setInputBuffer) {
+		if (portGrabber_.grabbed()) {
+			subBlitter_->flip();
+			setInputBuffer(subBlitter_->pixels(), inBuffer().pixelFormat,
+			               subBlitter_->pitch());
+		}
+	}
+
 	virtual void paintEvent(QPaintEvent *event) {
 		QRect const &rect = event->rect();
 		XFillRectangle(QX11Info::display(), winId(), gc_,
@@ -481,7 +485,8 @@ protected:
 			subBlitter_->blit(winId(), portGrabber_.port(), size());
 	}
 
-	virtual void setBufferDimensions(unsigned width, unsigned height);
+	virtual void setBufferDimensions(unsigned width, unsigned height,
+	                                 SetBuffer setInputBuffer);
 
 private:
 	GC const gc_;
@@ -493,11 +498,13 @@ private:
 	virtual void privSetPaused(bool /*paused*/) {}
 };
 
-void XvBlitter::setBufferDimensions(unsigned const width, unsigned const height) {
+void XvBlitter::setBufferDimensions(unsigned const width, unsigned const height,
+                                    SetBuffer setInputBuffer)
+{
 	int const formatid = confWidget_.formatId();
 	subBlitter_.reset();
 	subBlitter_ = createSubBlitter(portGrabber_.port(), formatid, QSize(width, height));
-	setPixelBuffer(subBlitter_->pixels(),
+	setInputBuffer(subBlitter_->pixels(),
 	               formatid == formatid_rgb32 ? PixelBuffer::RGB32 : PixelBuffer::UYVY,
 	               subBlitter_->pitch());
 }

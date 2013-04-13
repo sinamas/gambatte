@@ -17,171 +17,201 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "alsaengine.h"
-#include <algorithm>
+#include "../audioengine.h"
+#include "customdevconf.h"
+#include "rateest.h"
+#include "scoped_ptr.h"
+#include <QObject>
+#include <alsa/asoundlib.h>
 #include <cstdio>
 
-AlsaEngine::AlsaEngine() :
-	AudioEngine("ALSA"),
-	conf("Custom PCM device:", "default", "alsaengine", "plughw"),
-	pcm_handle(0),
-	bufSize(0),
-	prevfur(0)
-{}
+namespace {
 
-AlsaEngine::~AlsaEngine() {
-	uninit();
+struct PcmDeleter {
+	static void del(snd_pcm_t *pcm) {
+		if (pcm)
+			snd_pcm_close(pcm);
+	}
+};
+
+class AlsaEngine : public AudioEngine {
+public:
+	AlsaEngine()
+	: AudioEngine("ALSA")
+	, conf_(QObject::tr("Custom PCM device:"), "default", "alsaengine", "plughw")
+	, bufSize_(0)
+	, prevfur_(0)
+	{
+	}
+
+	virtual void uninit() { pcm_.reset(); }
+
+	virtual int write(void *buffer, std::size_t samples) {
+		return write(buffer, samples, bufferState());
+	}
+
+	virtual int write(void *buffer, std::size_t samples, BufferState &preBufState, long &rate) {
+		int ret = write(buffer, samples, preBufState = bufferState());
+		rate = est_.result();
+		return ret;
+	}
+
+	virtual long rateEstimate() const { return est_.result(); }
+	virtual BufferState bufferState() const;
+	virtual void pause() { prevfur_ = 0; est_.reset(); }
+	virtual bool flushPausedBuffers() const { return true; }
+	virtual QWidget * settingsWidget() const { return conf_.settingsWidget(); }
+	virtual void rejectSettings() const { conf_.rejectSettings(); }
+
+protected:
+	virtual long doInit(long rate, int latency);
+	virtual void doAcceptSettings() { conf_.acceptSettings(); }
+
+private:
+	CustomDevConf conf_;
+	RateEst est_;
+	scoped_ptr<snd_pcm_t, PcmDeleter> pcm_;
+	snd_pcm_uframes_t bufSize_;
+	snd_pcm_uframes_t prevfur_;
+
+	int write(void *buffer, snd_pcm_uframes_t samples, BufferState const &bstate);
+};
+
+static transfer_ptr<snd_pcm_t, PcmDeleter> openPcm(CustomDevConf const &conf) {
+	snd_pcm_t *p = 0;
+	if (snd_pcm_open(&p, conf.device().toLocal8Bit().data(), SND_PCM_STREAM_PLAYBACK, 0) < 0) {
+		std::fprintf(stderr, "Error opening PCM device %s\n",
+		             conf.device().toLocal8Bit().data());
+		return transfer_ptr<snd_pcm_t, PcmDeleter>();
+	}
+
+	return transfer_ptr<snd_pcm_t, PcmDeleter>(p);
 }
 
-int AlsaEngine::doInit(const int inrate, const unsigned latency) {
+long AlsaEngine::doInit(long const inrate, int const latency) {
 	unsigned rate = inrate;
-
-	if (snd_pcm_open(&pcm_handle, conf.device(), SND_PCM_STREAM_PLAYBACK, 0) < 0) {
-		std::fprintf(stderr, "Error opening PCM device %s\n", conf.device());
-		pcm_handle = 0;
-		goto fail;
-	}
+	transfer_ptr<snd_pcm_t, PcmDeleter> pcm = openPcm(conf_);
+	if (!pcm)
+		return -1;
 
 	{
 		snd_pcm_hw_params_t *hwparams;
 		snd_pcm_hw_params_alloca(&hwparams);
-
-		if (snd_pcm_hw_params_any(pcm_handle, hwparams) < 0) {
-			std::fprintf(stderr, "Can not configure this PCM device.\n");
-			goto fail;
+		if (snd_pcm_hw_params_any(pcm.get(), hwparams) < 0) {
+			std::fprintf(stderr, "Cannot configure this PCM device.\n");
+			return -1;
 		}
 
-		if (snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
+		if (snd_pcm_hw_params_set_access(pcm.get(), hwparams, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
 			std::fprintf(stderr, "Error setting access.\n");
-			goto fail;
+			return -1;
 		}
-
-		if (snd_pcm_hw_params_set_format(pcm_handle, hwparams, SND_PCM_FORMAT_S16) < 0) {
+		if (snd_pcm_hw_params_set_format(pcm.get(), hwparams, SND_PCM_FORMAT_S16) < 0) {
 			std::fprintf(stderr, "Error setting format.\n");
-			goto fail;
+			return -1;
 		}
-
-		if (snd_pcm_hw_params_set_rate_near(pcm_handle, hwparams, &rate, 0) < 0) {
+		if (snd_pcm_hw_params_set_rate_near(pcm.get(), hwparams, &rate, 0) < 0) {
 			std::fprintf(stderr, "Error setting rate.\n");
-			goto fail;
+			return -1;
 		}
-
-		if (snd_pcm_hw_params_set_channels(pcm_handle, hwparams, 2) < 0) {
+		if (snd_pcm_hw_params_set_channels(pcm.get(), hwparams, 2) < 0) {
 			std::fprintf(stderr, "Error setting channels.\n");
-			goto fail;
+			return -1;
 		}
 
 		{
 			unsigned ulatency = latency * 1000;
-
-			if (snd_pcm_hw_params_set_buffer_time_near(pcm_handle, hwparams, &ulatency, 0) < 0) {
+			if (snd_pcm_hw_params_set_buffer_time_near(pcm.get(), hwparams, &ulatency, 0) < 0) {
 				std::fprintf(stderr, "Error setting buffer latency %u.\n", ulatency);
-				goto fail;
+				return -1;
 			}
 		}
 
 		{
 			unsigned val = 16;
-			snd_pcm_hw_params_set_periods_max(pcm_handle, hwparams, &val, 0);
+			snd_pcm_hw_params_set_periods_max(pcm.get(), hwparams, &val, 0);
 		}
 
-		if (snd_pcm_hw_params(pcm_handle, hwparams) < 0) {
+		if (snd_pcm_hw_params(pcm.get(), hwparams) < 0) {
 			std::fprintf(stderr, "Error setting HW params.\n");
-			goto fail;
+			return -1;
 		}
 
 		{
 			snd_pcm_uframes_t bSize = 0;
-
 			if (snd_pcm_hw_params_get_buffer_size(hwparams, &bSize) < 0) {
 				std::fprintf(stderr, "Error getting buffer size\n");
-				goto fail;
+				return -1;
 			}
 
-			bufSize = bSize;
+			bufSize_ = bSize;
 		}
 	}
 
 	{
 		snd_pcm_sw_params_t *swparams;
 		snd_pcm_sw_params_alloca(&swparams);
-
-		if (snd_pcm_sw_params_current(pcm_handle, swparams) < 0) {
+		if (snd_pcm_sw_params_current(pcm.get(), swparams) < 0) {
 			std::fprintf(stderr, "Error getting current swparams\n");
-		} else if (snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams, bufSize) < 0) {
+		} else if (snd_pcm_sw_params_set_start_threshold(pcm.get(), swparams, bufSize_) < 0) {
 			std::fprintf(stderr, "Error setting start threshold\n");
-		} else if (snd_pcm_sw_params(pcm_handle, swparams) < 0) {
+		} else if (snd_pcm_sw_params(pcm.get(), swparams) < 0) {
 			std::fprintf(stderr, "Error setting swparams\n");
 		}
 	}
 
-	prevfur = 0;
-	est.init(rate, rate, bufSize);
-
+	prevfur_ = 0;
+	est_.init(rate, rate, bufSize_);
+	pcm_ = pcm;
 	return rate;
-
-fail:
-	uninit();
-	return -1;
 }
 
-void AlsaEngine::uninit() {
-	if (pcm_handle)
-		snd_pcm_close(pcm_handle);
-
-	pcm_handle = 0;
-}
-
-int AlsaEngine::write(void *const buffer, const unsigned samples, const BufferState &bstate) {
+int AlsaEngine::write(void *const buffer, snd_pcm_uframes_t const samples, BufferState const &bstate) {
 	bool underrun = false;
-
-	if (bstate.fromUnderrun == 0 || snd_pcm_state(pcm_handle) != SND_PCM_STATE_RUNNING) {
+	if (bstate.fromUnderrun == 0
+			|| snd_pcm_state(pcm_.get()) != SND_PCM_STATE_RUNNING) {
 		underrun = true;
-	} else if (prevfur > bstate.fromUnderrun && bstate.fromUnderrun != BufferState::NOT_SUPPORTED) {
-		est.feed(prevfur - bstate.fromUnderrun);
+	} else if (prevfur_ > bstate.fromUnderrun
+			&& bstate.fromUnderrun != BufferState::not_supported) {
+		est_.feed(prevfur_ - bstate.fromUnderrun);
 	}
 
-	prevfur = bstate.fromUnderrun + samples;
+	prevfur_ = bstate.fromUnderrun + samples;
 
-	for (int n = 4; n-- && snd_pcm_writei(pcm_handle, buffer, samples) < 0;) {
-		snd_pcm_prepare(pcm_handle);
+	for (int n = 4; n-- && snd_pcm_writei(pcm_.get(), buffer, samples) < 0;) {
+		snd_pcm_prepare(pcm_.get());
 		underrun = true;
 	}
 
 	if (underrun)
-		est.reset();
+		est_.reset();
 
 	return 0;
 }
 
-int AlsaEngine::write(void *const buffer, const unsigned samples) {
-	return write(buffer, samples, bufferState());
-}
+AudioEngine::BufferState AlsaEngine::bufferState() const {
+	snd_pcm_hwsync(pcm_.get());
 
-int AlsaEngine::write(void *const buffer, const unsigned samples, BufferState &preBufState, long &rate) {
-	const int ret = write(buffer, samples, preBufState = bufferState());
-	rate = est.result();
-	return ret;
-}
-
-const AudioEngine::BufferState AlsaEngine::bufferState() const {
-	BufferState s;
-	snd_pcm_sframes_t avail;
-
-	snd_pcm_hwsync(pcm_handle);
-	avail = snd_pcm_avail_update(pcm_handle);
-
+	snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm_.get());
 	if (avail == -EPIPE)
-		avail = bufSize;
+		avail = bufSize_;
 
+	BufferState s;
 	if (avail < 0) {
-		s.fromOverflow = s.fromUnderrun = BufferState::NOT_SUPPORTED;
+		s.fromOverflow = s.fromUnderrun = BufferState::not_supported;
 	} else {
-		if (static_cast<unsigned>(avail) > bufSize)
-			avail = bufSize;
+		if (static_cast<snd_pcm_uframes_t>(avail) > bufSize_)
+			avail = bufSize_;
 
-		s.fromUnderrun = bufSize - avail;
+		s.fromUnderrun = bufSize_ - avail;
 		s.fromOverflow = avail;
 	}
 
 	return s;
+}
+
+} // anon ns
+
+transfer_ptr<AudioEngine> createAlsaEngine() {
+	return transfer_ptr<AudioEngine>(new AlsaEngine);
 }

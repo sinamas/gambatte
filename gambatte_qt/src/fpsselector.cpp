@@ -22,7 +22,7 @@
 #include <QSettings>
 
 static int getCustomIndex(QComboBox const *comboBox) {
-	return comboBox->findText(QString("Other..."));
+	return comboBox->findText(QObject::tr("Other..."));
 }
 
 static void setFps(QComboBox *const comboBox, QSize const &value) {
@@ -40,13 +40,13 @@ static void setFps(QComboBox *const comboBox, QSize const &value) {
 		comboBox->setCurrentIndex(valueIndex);
 }
 
-FpsSelector::FpsSelector()
-: comboBox_(new QComboBox)
+FpsSelector::FpsSelector(QWidget *widgetParent)
+: comboBox_(new QComboBox(widgetParent))
 , value_(262144, 4389)
 {
 	comboBox_->addItem("GB/GBC (" + QString::number(262144.0 / 4389.0) + " fps)",
 	                   QSize(262144, 4389));
-	comboBox_->addItem(QString("Other..."));
+	comboBox_->addItem(tr("Other..."));
 
 	QSize const &loadedValue = QSettings().value("misc/fps", value_).toSize();
 	value_ =    loadedValue.width() > 0

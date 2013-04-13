@@ -24,27 +24,119 @@ namespace {
 
 using namespace gambatte;
 
-static InputDialog::Button makeButtonInfo(InputDialog::Button::Action *action, char const *label,
-		char const *category, int defaultKey = Qt::Key_unknown, int defaultAltKey = Qt::Key_unknown,
-		unsigned char defaultFpp = 0) {
-	InputDialog::Button b = { label: label, category: category, defaultKey: defaultKey,
-	                          defaultAltKey: defaultAltKey, action: action, defaultFpp: defaultFpp };
-	return b;
-}
-
-template<void (GambatteSource::*fun)()>
-struct CallAct : InputDialog::Button::Action {
-	GambatteSource *const source;
-	explicit CallAct(GambatteSource *source) : source(source) {}
-	virtual void buttonPressed() { (source->*fun)(); }
+struct ButtonInfo {
+	char const *label;
+	char const *category;
+	int defaultKey;
+	int defaultAltKey;
+	unsigned char defaultFpp;
 };
 
-template<bool bval>
-struct GbDirAct : InputDialog::Button::Action {
-	bool &a, &b;
-	explicit GbDirAct(bool &a, bool &b) : a(a), b(b) {}
-	virtual void buttonPressed() { a = true; b = bval; }
-	virtual void buttonReleased() { a = false; }
+static ButtonInfo const buttonInfoGbUp = { "Up", "Game", Qt::Key_Up, 0, 0 };
+static ButtonInfo const buttonInfoGbDown = { "Down", "Game", Qt::Key_Down, 0, 0 };
+static ButtonInfo const buttonInfoGbLeft = { "Left", "Game", Qt::Key_Left, 0, 0 };
+static ButtonInfo const buttonInfoGbRight = { "Right", "Game", Qt::Key_Right, 0, 0 };
+static ButtonInfo const buttonInfoGbA = { "A", "Game", Qt::Key_D, 0, 0 };
+static ButtonInfo const buttonInfoGbB = { "B", "Game", Qt::Key_C, 0, 0 };
+static ButtonInfo const buttonInfoGbStart = { "Start", "Game", Qt::Key_Return, 0, 0 };
+static ButtonInfo const buttonInfoGbSelect = { "Select", "Game", Qt::Key_Shift, 0, 0 };
+static ButtonInfo const buttonInfoPause = { "Pause", "Play", Qt::Key_Pause, 0, 0 };
+static ButtonInfo const buttonInfoFrameStep = { "Frame step", "Play", Qt::Key_F1, 0, 0 };
+static ButtonInfo const buttonInfoDecFrameRate = { "Decrease frame rate", "Play", Qt::Key_F2, 0, 0 };
+static ButtonInfo const buttonInfoIncFrameRate = { "Increase frame rate", "Play", Qt::Key_F3, 0, 0 };
+static ButtonInfo const buttonInfoResetFrameRate = { "Reset frame rate", "Play", Qt::Key_F4, 0, 0 };
+static ButtonInfo const buttonInfoFastFwd = { "Fast forward", "Play", Qt::Key_Tab, 0, 0 };
+static ButtonInfo const buttonInfoSaveState = { "Save state", "State", Qt::Key_F5, 0, 0 };
+static ButtonInfo const buttonInfoLoadState = { "Load state", "State", Qt::Key_F8, 0, 0 };
+static ButtonInfo const buttonInfoPrevState = { "Previous state slot", "State", Qt::Key_F6, 0, 0 };
+static ButtonInfo const buttonInfoNextState = { "Next state slot", "State", Qt::Key_F7, 0, 0 };
+static ButtonInfo const buttonInfoGbATurbo = { "Turbo A", "Other", 0, 0, 1 };
+static ButtonInfo const buttonInfoGbBTurbo = { "Turbo B", "Other", 0, 0, 1 };
+static ButtonInfo const buttonInfoQuit = { "Quit", "Other", 0, 0, 0 };
+
+// separate non-template base to avoid obj code bloat
+class ButtonBase : public InputDialog::Button {
+public:
+	// pass by ptr to disallow passing temporaries
+	explicit ButtonBase(ButtonInfo const *info) : info_(info) {}
+	virtual QString const label() const { return info_->label; }
+	virtual QString const category() const { return info_->category; }
+	virtual int defaultKey() const { return info_->defaultKey; }
+	virtual int defaultAltKey() const { return info_->defaultAltKey; }
+	virtual unsigned char defaultFpp() const { return info_->defaultFpp; }
+
+private:
+	ButtonInfo const *info_;
+};
+
+template<class T>
+static void addButton(auto_vector<InputDialog::Button> &v,
+		ButtonInfo const *info, void (T::*onPressed)(), T *t) {
+	class Button : public ButtonBase {
+	public:
+		Button(ButtonInfo const *info, void (T::*onPressed)(), T *t)
+		: ButtonBase(info), onPressed_(onPressed), t_(t)
+		{
+		}
+
+		virtual void pressed() { (t_->*onPressed_)(); }
+		virtual void released() {}
+
+	private:
+		void (T::*onPressed_)();
+		T *t_;
+	};
+
+	v.push_back(new Button(info, onPressed, t));
+}
+
+template<class Action>
+static void addButton(auto_vector<InputDialog::Button> &v, ButtonInfo const *info, Action action) {
+	class Button : public ButtonBase {
+	public:
+		Button(ButtonInfo const *info, Action action)
+		: ButtonBase(info), action_(action)
+		{
+		}
+
+		virtual void pressed() { action_.pressed(); }
+		virtual void released() { action_.released(); }
+
+	private:
+		Action action_;
+	};
+
+	v.push_back(new Button(info, action));
+}
+
+template<void (GambatteSource::*setPressed)(bool)>
+struct CallSetterAct {
+	GambatteSource *source;
+	explicit CallSetterAct(GambatteSource *source) : source(source) {}
+	void  pressed() const { (source->*setPressed)(true); }
+	void released() const { (source->*setPressed)(false); }
+};
+
+template<bool button_id>
+class GbDirAct {
+public:
+	GbDirAct(bool &buttonPressed, bool &lastPressedButtonId)
+	: buttonPressed_(buttonPressed), lastPressedButtonId_(lastPressedButtonId)
+	{
+	}
+
+	void  pressed() const { buttonPressed_ = true; lastPressedButtonId_ = button_id; }
+	void released() const { buttonPressed_ = false; }
+
+private:
+	bool &buttonPressed_, &lastPressedButtonId_;
+};
+
+struct SetPressedAct {
+	bool &v;
+	explicit SetPressedAct(bool &v) : v(v) {}
+	void pressed() const { v = true; }
+	void released() const { v = false; }
 };
 
 enum { a_but, b_but, select_but, start_but, right_but, left_but, up_but, down_but };
@@ -68,59 +160,41 @@ GambatteSource::GambatteSource()
 }
 
 InputDialog * GambatteSource::createInputDialog() {
-	struct GbButAct : InputDialog::Button::Action {
-		bool &a;
-		explicit GbButAct(bool &a) : a(a) {}
-		virtual void buttonPressed() { a = true; }
-		virtual void buttonReleased() { a = false; }
-	};
+	auto_vector<InputDialog::Button> v;
+	addButton(v, &buttonInfoGbUp, GbDirAct<true>(dpadUp_, dpadUpLast_));
+	addButton(v, &buttonInfoGbDown, GbDirAct<false>(dpadDown_, dpadUpLast_));
+	addButton(v, &buttonInfoGbLeft, GbDirAct<true>(dpadLeft_, dpadLeftLast_));
+	addButton(v, &buttonInfoGbRight, GbDirAct<false>(dpadRight_, dpadLeftLast_));
+	addButton(v, &buttonInfoGbA, SetPressedAct(inputState_[a_but]));
+	addButton(v, &buttonInfoGbB, SetPressedAct(inputState_[b_but]));
+	addButton(v, &buttonInfoGbStart, SetPressedAct(inputState_[start_but]));
+	addButton(v, &buttonInfoGbSelect, SetPressedAct(inputState_[select_but]));
+	addButton(v, &buttonInfoPause, &GambatteSource::emitPause, this);
+	addButton(v, &buttonInfoFrameStep, &GambatteSource::emitFrameStep, this);
+	addButton(v, &buttonInfoDecFrameRate, &GambatteSource::emitDecFrameRate, this);
+	addButton(v, &buttonInfoIncFrameRate, &GambatteSource::emitIncFrameRate, this);
+	addButton(v, &buttonInfoResetFrameRate, &GambatteSource::emitResetFrameRate, this);
+	addButton(v, &buttonInfoFastFwd, CallSetterAct<&GambatteSource::emitSetTurbo>(this));
+	addButton(v, &buttonInfoSaveState, &GambatteSource::emitSaveState, this);
+	addButton(v, &buttonInfoLoadState, &GambatteSource::emitLoadState, this);
+	addButton(v, &buttonInfoPrevState, &GambatteSource::emitPrevStateSlot, this);
+	addButton(v, &buttonInfoNextState, &GambatteSource::emitNextStateSlot, this);
+	addButton(v, &buttonInfoGbATurbo, SetPressedAct(inputState_[8 + a_but]));
+	addButton(v, &buttonInfoGbBTurbo, SetPressedAct(inputState_[8 + b_but]));
+	addButton(v, &buttonInfoQuit, &GambatteSource::emitQuit, this);
 
-	struct FastForwardAct : InputDialog::Button::Action {
-		GambatteSource *const source;
-		explicit FastForwardAct(GambatteSource *source) : source(source) {}
-		virtual void buttonPressed() { source->emitSetTurbo(true); }
-		virtual void buttonReleased() { source->emitSetTurbo(false); }
-	};
-
-	std::vector<InputDialog::Button> v;
-	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadUp_, dpadUpLast_), "Up", "Game", Qt::Key_Up));
-	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadDown_, dpadUpLast_), "Down", "Game", Qt::Key_Down));
-	v.push_back(makeButtonInfo(new GbDirAct<true>(dpadLeft_, dpadLeftLast_), "Left", "Game", Qt::Key_Left));
-	v.push_back(makeButtonInfo(new GbDirAct<false>(dpadRight_, dpadLeftLast_), "Right", "Game", Qt::Key_Right));
-	v.push_back(makeButtonInfo(new GbButAct(inputState_[a_but]), "A", "Game", Qt::Key_D));
-	v.push_back(makeButtonInfo(new GbButAct(inputState_[b_but]), "B", "Game", Qt::Key_C));
-	v.push_back(makeButtonInfo(new GbButAct(inputState_[start_but]), "Start", "Game", Qt::Key_Return));
-	v.push_back(makeButtonInfo(new GbButAct(inputState_[select_but]), "Select", "Game", Qt::Key_Shift));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPause>(this), "Pause", "Play", Qt::Key_Pause));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitFrameStep>(this), "Frame step", "Play", Qt::Key_F1));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitDecFrameRate>(this),
-	                           "Decrease frame rate", "Play", Qt::Key_F2));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitIncFrameRate>(this),
-	                           "Increase frame rate", "Play", Qt::Key_F3));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitResetFrameRate>(this),
-	                           "Reset frame rate", "Play", Qt::Key_F4));
-	v.push_back(makeButtonInfo(new FastForwardAct(this), "Fast forward", "Play", Qt::Key_Tab));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitSaveState>(this), "Save state", "State", Qt::Key_F5));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitLoadState>(this), "Load state", "State", Qt::Key_F8));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitPrevStateSlot>(this),
-	                           "Previous state slot", "State", Qt::Key_F6));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitNextStateSlot>(this),
-	                           "Next state slot", "State", Qt::Key_F7));
-	v.push_back(makeButtonInfo(new GbButAct(inputState_[8 + a_but]), "Turbo A", "Other",
-	                           Qt::Key_unknown, Qt::Key_unknown, 1));
-	v.push_back(makeButtonInfo(new GbButAct(inputState_[8 + b_but]), "Turbo B", "Other",
-	                           Qt::Key_unknown, Qt::Key_unknown, 1));
-	v.push_back(makeButtonInfo(new CallAct<&GambatteSource::emitQuit>(this), "Quit", "Other"));
-
-	return new InputDialog(v);
+	InputDialog *dialog = new InputDialog(v);
+	QObject *o = dialog;
+	o->setParent(this);
+	return dialog;
 }
 
 std::vector<VideoDialog::VideoSourceInfo> const GambatteSource::generateVideoSourceInfos() {
 	std::vector<VideoDialog::VideoSourceInfo> v(VfilterInfo::numVfilters());
 	for (std::size_t i = 0; i < v.size(); ++i) {
-		VideoDialog::VideoSourceInfo vsi = { label: VfilterInfo::get(i).handle,
-			width: VfilterInfo::get(i).outWidth, height: VfilterInfo::get(i).outHeight };
-
+		VfilterInfo const &vfi = VfilterInfo::get(i);
+		VideoDialog::VideoSourceInfo vsi =
+			{ vfi.handle, QSize(vfi.outWidth, vfi.outHeight) };
 		v[i] = vsi;
 	}
 
@@ -128,11 +202,11 @@ std::vector<VideoDialog::VideoSourceInfo> const GambatteSource::generateVideoSou
 }
 
 void GambatteSource::keyPressEvent(QKeyEvent const *e) {
-	inputDialog_->keyPressEvent(e);
+	inputDialog_->keyPress(e);
 }
 
 void GambatteSource::keyReleaseEvent(QKeyEvent const *e) {
-	inputDialog_->keyReleaseEvent(e);
+	inputDialog_->keyRelease(e);
 }
 
 void GambatteSource::joystickEvent(SDL_Event const &e) {
@@ -140,8 +214,13 @@ void GambatteSource::joystickEvent(SDL_Event const &e) {
 }
 
 struct GambatteSource::GbVidBuf {
-	uint_least32_t *pixels; std::ptrdiff_t pitch;
-	GbVidBuf(uint_least32_t *pixels, std::ptrdiff_t pitch) : pixels(pixels), pitch(pitch) {}
+	uint_least32_t *pixels;
+	std::ptrdiff_t pitch;
+
+	GbVidBuf(uint_least32_t *pixels, std::ptrdiff_t pitch)
+	: pixels(pixels), pitch(pitch)
+	{
+	}
 };
 
 GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(
@@ -160,7 +239,8 @@ GambatteSource::GbVidBuf GambatteSource::setPixelBuffer(
 	return GbVidBuf(static_cast<uint_least32_t *>(pixels), pitch);
 }
 
-static void setGbDir(bool &a, bool &b, bool const aPressed, bool const bPressed, bool const preferA) {
+static void setGbDir(bool &a, bool &b,
+		bool const aPressed, bool const bPressed, bool const preferA) {
 	if (aPressed & bPressed) {
 		a =  aPressed & preferA;
 		b = (aPressed & preferA) ^ 1;
@@ -178,52 +258,56 @@ static unsigned packedInputState(bool const inputState[], std::size_t const len)
 	return is;
 }
 
-static void * getpbdata(PixelBuffer const &pb, unsigned vsrci) {
+static void * getpbdata(PixelBuffer const &pb, std::size_t vsrci) {
 	return    pb.width  == VfilterInfo::get(vsrci).outWidth
 	       && pb.height == VfilterInfo::get(vsrci).outHeight
 	     ? pb.data
 	     : 0;
 }
 
-long GambatteSource::update(PixelBuffer const &pb, qint16 *const soundBuf, long &samples) {
+template<class T>
+static T * ptr_cast(void *p) { return static_cast<T *>(p); }
+
+std::ptrdiff_t GambatteSource::update(
+		PixelBuffer const &pb, qint16 *const soundBuf, std::size_t &samples) {
 	GbVidBuf const gbvidbuf = setPixelBuffer(getpbdata(pb, vsrci_), pb.pixelFormat, pb.pitch);
-	samples -= overupdate;
-	if (samples < 0) {
+	if (samples < overUpdate) {
 		samples = 0;
 		return -1;
 	}
 
-	setGbDir(inputState_[up_but], inputState_[down_but], dpadUp_, dpadDown_, dpadUpLast_);
-	setGbDir(inputState_[left_but], inputState_[right_but], dpadLeft_, dpadRight_, dpadLeftLast_);
+	setGbDir(inputState_[up_but], inputState_[down_but],
+	         dpadUp_, dpadDown_, dpadUpLast_);
+	setGbDir(inputState_[left_but], inputState_[right_but],
+	         dpadLeft_, dpadRight_, dpadLeftLast_);
 	inputGetter_.is = packedInputState(inputState_, sizeof inputState_ / sizeof inputState_[0]);
 
-	unsigned usamples = samples;
-	long const retval = gb_.runFor(gbvidbuf.pixels, gbvidbuf.pitch,
-	                               reinterpret_cast<quint32 *>(soundBuf), usamples);
+	unsigned usamples = samples - overUpdate;
+	std::ptrdiff_t const vidFrameSampleNo =
+		gb_.runFor(gbvidbuf.pixels, gbvidbuf.pitch,
+		           ptr_cast<quint32>(soundBuf), usamples);
 	samples = usamples;
-
-	if (retval >= 0)
+	if (vidFrameSampleNo >= 0)
 		inputDialog_->consumeAutoPress();
 
-	return retval;
+	return vidFrameSampleNo;
 }
 
 void GambatteSource::generateVideoFrame(PixelBuffer const &pb) {
 	if (void *const pbdata = getpbdata(pb, vsrci_)) {
 		setPixelBuffer(pbdata, pb.pixelFormat, pb.pitch);
-
 		if (vfilter_) {
-			if (cconvert_) {
-				vfilter_->draw(cconvert_->inBuf(), cconvert_->inPitch());
-				cconvert_->draw(pbdata, pb.pitch);
-			} else
-				vfilter_->draw(pbdata, pb.pitch);
-		} else if (cconvert_)
+			void          *dstbuf   = cconvert_ ? cconvert_->inBuf()   : pbdata;
+			std::ptrdiff_t dstpitch = cconvert_ ? cconvert_->inPitch() : pb.pitch;
+			vfilter_->draw(dstbuf, dstpitch);
+		}
+
+		if (cconvert_)
 			cconvert_->draw(pbdata, pb.pitch);
 	}
 }
 
-void GambatteSource::setVideoSource(unsigned const videoSourceIndex) {
+void GambatteSource::setVideoSource(std::size_t const videoSourceIndex) {
 	if (videoSourceIndex != vsrci_) {
 		vsrci_ = videoSourceIndex;
 		vfilter_.reset();

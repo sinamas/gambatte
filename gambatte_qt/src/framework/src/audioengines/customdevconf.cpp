@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,62 +17,61 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "customdevconf.h"
-
-#include <QWidget>
 #include <QCheckBox>
 #include <QLineEdit>
-#include <QVBoxLayout>
 #include <QSettings>
+#include <QVBoxLayout>
+#include <QWidget>
 
-CustomDevConf::CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup, const char *customdevstr) :
-defaultstr(defaultstr),
-confgroup(confgroup),
-confWidget(new QWidget),
-customDevBox(new QCheckBox(QString(desc))),
-customDevEdit(new QLineEdit),
-customDevStr(customdevstr ? customdevstr : defaultstr),
-useCustomDev(false)
+CustomDevConf::CustomDevConf(QString const &desc,
+                             QString const &defaultDev,
+                             QString const &confGroup,
+                             QString const &customDev)
+: defaultDev_(defaultDev)
+, confGroup_(confGroup)
+, confWidget_(new QWidget)
+, customDevBox_(new QCheckBox(desc, confWidget_.get()))
+, customDevEdit_(new QLineEdit(confWidget_.get()))
+, customDev_(customDev)
+, useCustomDev_(false)
 {
-	confWidget->setLayout(new QVBoxLayout);
-	confWidget->layout()->setMargin(0);
-	confWidget->layout()->addWidget(customDevBox);
-	confWidget->layout()->addWidget(customDevEdit);
+	confWidget_->setLayout(new QVBoxLayout);
+	confWidget_->layout()->setMargin(0);
+	confWidget_->layout()->addWidget(customDevBox_);
+	confWidget_->layout()->addWidget(customDevEdit_);
 
 	{
 		QSettings settings;
-		settings.beginGroup(confgroup);
-		useCustomDev = settings.value("useCustomDev", useCustomDev).toBool();
-		customDevStr = settings.value("customDevStr", customDevStr).toByteArray();
+		settings.beginGroup(confGroup);
+		useCustomDev_ = settings.value("useCustomDev", useCustomDev_).toBool();
+		customDev_ = settings.value("customDevStr", customDev_).toString();
 		settings.endGroup();
 	}
 
-	customDevBoxChange(customDevBox->isChecked());
-	connect(customDevBox, SIGNAL(toggled(bool)), this, SLOT(customDevBoxChange(bool)));
+	customDevEdit_->setEnabled(customDevBox_->isChecked());
+	QObject::connect(customDevBox_, SIGNAL(toggled(bool)),
+	                 customDevEdit_, SLOT(setEnabled(bool)));
 	rejectSettings();
 }
 
 CustomDevConf::~CustomDevConf() {
 	QSettings settings;
-	settings.beginGroup(confgroup);
-	settings.setValue("useCustomDev", useCustomDev);
-	settings.setValue("customDevStr", customDevStr);
+	settings.beginGroup(confGroup_);
+	settings.setValue("useCustomDev", useCustomDev_);
+	settings.setValue("customDevStr", customDev_);
 	settings.endGroup();
 }
 
-void CustomDevConf::customDevBoxChange(const bool checked) {
-	customDevEdit->setEnabled(checked);
-}
-
 void CustomDevConf::acceptSettings() {
-	useCustomDev = customDevBox->isChecked();
-	customDevStr = customDevEdit->text().toAscii();
+	useCustomDev_ = customDevBox_->isChecked();
+	customDev_ = customDevEdit_->text();
 }
 
 void CustomDevConf::rejectSettings() const {
-	customDevBox->setChecked(useCustomDev);
-	customDevEdit->setText(customDevStr);
+	customDevBox_->setChecked(useCustomDev_);
+	customDevEdit_->setText(customDev_);
 }
 
-const char* CustomDevConf::device() const {
-	return useCustomDev ? customDevStr.data() : defaultstr;
+QString const CustomDevConf::device() const {
+	return useCustomDev_ ? customDev_ : defaultDev_;
 }

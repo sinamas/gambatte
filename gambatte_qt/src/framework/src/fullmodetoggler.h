@@ -19,35 +19,33 @@
 #ifndef FULLMODETOGGLER_H
 #define FULLMODETOGGLER_H
 
+#include "resinfo.h"
 #include <QObject>
-#include <QWidget>
 #include <QRect>
 #include <QString>
+#include <QWidget>
 #include <vector>
-
-#include "resinfo.h"
 
 class FullModeToggler : public QObject {
 	Q_OBJECT
 
 public:
-	virtual ~FullModeToggler() {};
-	virtual unsigned currentResIndex(unsigned screen) const = 0;
-	virtual unsigned currentRateIndex(unsigned screen) const = 0;
-	virtual const QRect fullScreenRect(const QWidget *w) const { return w->geometry(); }
+	virtual ~FullModeToggler() {}
+	virtual std::size_t currentResIndex(std::size_t screen) const = 0;
+	virtual std::size_t currentRateIndex(std::size_t screen) const = 0;
+	virtual QRect const fullScreenRect(QWidget const *w) const { return w->geometry(); }
 	virtual bool isFullMode() const = 0;
-	virtual void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex) = 0;
+	virtual void setMode(std::size_t screen, std::size_t resIndex, std::size_t rateIndex) = 0;
 	virtual void setFullMode(bool enable) = 0;
 	virtual void emitRate() = 0;
-	virtual const std::vector<ResInfo>& modeVector(unsigned screen) const = 0;
-	virtual void setScreen(const QWidget *widget) = 0;
-	virtual unsigned screen() const = 0;
-	virtual unsigned screens() const = 0;
-	virtual const QString screenName(unsigned screen) const { return QString::number(screen + 1); }
+	virtual std::vector<ResInfo> const & modeVector(std::size_t screen) const = 0;
+	virtual void setScreen(QWidget const *widget) = 0;
+	virtual std::size_t screen() const = 0;
+	virtual std::size_t screens() const = 0;
+	virtual QString const screenName(std::size_t screen) const { return QString::number(screen + 1); }
 
 signals:
 	void rateChange(int newHz);
-//	void modeChange();
 };
 
 #endif

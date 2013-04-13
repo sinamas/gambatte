@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,42 +20,42 @@
 #define XRANDRTOGGLER_H
 
 #include "../fullmodetoggler.h"
-#include "uncopyable.h"
-
+#include "scoped_ptr.h"
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-class XRandRToggler : public FullModeToggler, Uncopyable {
-	Q_OBJECT
-
-	std::vector<ResInfo> infoVector;
-	XRRScreenConfiguration *const config;
-	unsigned originalResIndex;
-	unsigned fullResIndex;
-	Rotation rotation;
-	unsigned fullRateIndex;
-	short originalRate;
-	bool isFull;
-
+class XRandRToggler : public FullModeToggler {
 public:
 	static bool isUsable();
 	XRandRToggler();
-	~XRandRToggler();
-	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
-	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
-	const QRect fullScreenRect(const QWidget *w) const;
-	bool isFullMode() const { return isFull; }
-	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
-	void setFullMode(bool enable);
-	void emitRate();
-	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
-	void setScreen(const QWidget */*widget*/) {}
-	unsigned screen() const { return 0; }
-	unsigned screens() const { return 1; }
+	virtual std::size_t currentResIndex(std::size_t /*screen*/) const { return fullResIndex_; }
+	virtual std::size_t currentRateIndex(std::size_t /*screen*/) const { return fullRateIndex_; }
+	virtual QRect const fullScreenRect(QWidget const *w) const;
+	virtual bool isFullMode() const { return isFull_; }
+	virtual void setMode(std::size_t screen, std::size_t resIndex, std::size_t rateIndex);
+	virtual void setFullMode(bool enable);
+	virtual void emitRate();
+	virtual std::vector<ResInfo> const & modeVector(std::size_t /*screen*/) const { return infoVector_; }
+	virtual void setScreen(QWidget const *) {}
+	virtual std::size_t screen() const { return 0; }
+	virtual std::size_t screens() const { return 1; }
 
 signals:
 	void rateChange(int newHz);
-//	void modeChange();
+
+private:
+	Q_OBJECT
+
+	struct XRRDeleter;
+
+	std::vector<ResInfo> infoVector_;
+	scoped_ptr<XRRScreenConfiguration, XRRDeleter> const config_;
+	std::size_t originalResIndex_;
+	std::size_t fullResIndex_;
+	Rotation rotation_;
+	std::size_t fullRateIndex_;
+	short originalRate_;
+	bool isFull_;
 };
 
 #endif

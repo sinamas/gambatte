@@ -17,12 +17,14 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "dwmcontrol.h"
+#include "blitterwidget.h"
 #include <QtGlobal> // for Q_WS_WIN define
 
 #ifdef Q_WS_WIN
 
-#include "blitterwidget.h"
 #include <windows.h>
+#include <algorithm>
+#include <functional>
 
 namespace {
 
@@ -52,15 +54,17 @@ typedef HRESULT (WINAPI *DwmSetPresentParametersFunc)(HWND hwnd, DWM_PRESENT_PAR
 typedef HRESULT (WINAPI *DwmIsCompositionEnabledFunc)(BOOL *pfEnabled);
 
 class DwmApi {
-	const HMODULE dwmapidll_;
-	DwmSetPresentParametersFunc setPresentParameters_;
-	DwmIsCompositionEnabledFunc isCompositionEnabled_;
-
 public:
 	DwmApi()
-	: dwmapidll_(LoadLibraryA("dwmapi.dll")),
-	  setPresentParameters_(dwmapidll_ ? (DwmSetPresentParametersFunc) GetProcAddress(dwmapidll_, "DwmSetPresentParameters") : 0),
-	  isCompositionEnabled_(dwmapidll_ ? (DwmIsCompositionEnabledFunc) GetProcAddress(dwmapidll_, "DwmIsCompositionEnabled") : 0)
+	: dwmapidll_(LoadLibraryA("dwmapi.dll"))
+	, setPresentParameters_(dwmapidll_
+	                        ? reinterpret_cast<DwmSetPresentParametersFunc>(
+	                              GetProcAddress(dwmapidll_, "DwmSetPresentParameters"))
+	                        : 0)
+	, isCompositionEnabled_(dwmapidll_
+	                        ? reinterpret_cast<DwmIsCompositionEnabledFunc>(
+	                              GetProcAddress(dwmapidll_, "DwmIsCompositionEnabled"))
+	                        : 0)
 	{
 	}
 
@@ -85,15 +89,19 @@ public:
 
 		return false;
 	}
+
+private:
+	HMODULE const dwmapidll_;
+	DwmSetPresentParametersFunc const setPresentParameters_;
+	DwmIsCompositionEnabledFunc const isCompositionEnabled_;
 };
 
 static DwmApi dwmapi_;
 
-static void setDwmTripleBuffer(const HWND hwnd, const bool enable) {
+static void setDwmTripleBuffer(HWND const hwnd, bool const enable) {
 	DWM_PRESENT_PARAMETERS p;
 	ZeroMemory(&p, sizeof p);
 	p.cbSize = sizeof p;
-
 	if (enable) {
 		p.fQueue = true;
 		p.cBuffer = 2;
@@ -107,10 +115,10 @@ static void setDwmTripleBuffer(const HWND hwnd, const bool enable) {
 
 }
 
-DwmControl::DwmControl(const std::vector<BlitterWidget*> &blitters)
-: blitters_(blitters),
-  refreshCnt_(1),
-  tripleBuffer_(false)
+DwmControl::DwmControl(std::vector<BlitterWidget *> const &blitters)
+: blitters_(blitters)
+, refreshCnt_(1)
+, tripleBuffer_(false)
 {
 }
 
@@ -118,7 +126,8 @@ void DwmControl::setDwmTripleBuffer(bool enable) {
 	tripleBuffer_ = enable;
 
 	if (dwmapi_.isCompositionEnabled()) {
-		for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
+		for (std::vector<BlitterWidget*>::const_iterator it =
+				blitters_.begin(); it != blitters_.end(); ++it) {
 			::setDwmTripleBuffer((*it)->hwnd(), tripleBuffer_);
 		}
 	}
@@ -127,7 +136,8 @@ void DwmControl::setDwmTripleBuffer(bool enable) {
 // OpenGL freezes if minimized with triple buffer enabled
 void DwmControl::hideEvent() {
 	if (dwmapi_.isCompositionEnabled()) {
-		for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
+		for (std::vector<BlitterWidget*>::const_iterator it =
+				blitters_.begin(); it != blitters_.end(); ++it) {
 			::setDwmTripleBuffer((*it)->hwnd(), false);
 		}
 	}
@@ -135,7 +145,8 @@ void DwmControl::hideEvent() {
 
 void DwmControl::showEvent() {
 	if (dwmapi_.isCompositionEnabled()) {
-		for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
+		for (std::vector<BlitterWidget*>::const_iterator it =
+				blitters_.begin(); it != blitters_.end(); ++it) {
 			::setDwmTripleBuffer((*it)->hwnd(), tripleBuffer_);
 		}
 
@@ -143,16 +154,15 @@ void DwmControl::showEvent() {
 	}
 }
 
-bool DwmControl::winEvent(const void *const msg) {
+bool DwmControl::winEvent(void const *const msg) {
 	enum { WM_DWMCOMPOSITIONCHANGED = 0x031E };
 
-	if (static_cast<const MSG*>(msg)->message == WM_DWMCOMPOSITIONCHANGED) {
-		for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
-			(*it)->compositionEnabledChange();
-		}
-
+	if (static_cast<MSG const *>(msg)->message == WM_DWMCOMPOSITIONCHANGED) {
+		std::for_each(blitters_.begin(), blitters_.end(),
+		              std::mem_fun(&BlitterWidget::compositionEnabledChange));
 		if (dwmapi_.isCompositionEnabled()) {
-			for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
+			for (std::vector<BlitterWidget*>::const_iterator it =
+					blitters_.begin(); it != blitters_.end(); ++it) {
 				::setDwmTripleBuffer((*it)->hwnd(), tripleBuffer_);
 			}
 
@@ -171,7 +181,8 @@ void DwmControl::tick() {
 		--refreshCnt_;
 
 		if (dwmapi_.isCompositionEnabled()) {
-			for (std::vector<BlitterWidget*>::const_iterator it = blitters_.begin(); it != blitters_.end(); ++it) {
+			for (std::vector<BlitterWidget*>::const_iterator it =
+					blitters_.begin(); it != blitters_.end(); ++it) {
 				::setDwmTripleBuffer((*it)->hwnd(), tripleBuffer_);
 			}
 		}
@@ -193,11 +204,17 @@ bool DwmControl::isCompositingEnabled() {
 
 #else
 
-DwmControl::DwmControl(const std::vector<BlitterWidget*> &) {}
+DwmControl::DwmControl(std::vector<BlitterWidget *> const &)
+: blitters_()
+, refreshCnt_()
+, tripleBuffer_()
+{
+}
+
 void DwmControl::setDwmTripleBuffer(bool) {}
 void DwmControl::hideEvent() {}
 void DwmControl::showEvent() {}
-bool DwmControl::winEvent(const void *) { return false; }
+bool DwmControl::winEvent(void const *) { return false; }
 void DwmControl::tick() {}
 void DwmControl::hwndChange(BlitterWidget *) {}
 bool DwmControl::hasDwmCapability() { return false; }

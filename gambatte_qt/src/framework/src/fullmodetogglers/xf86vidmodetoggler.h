@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,45 +19,45 @@
 #ifndef XF86VIDMODETOGGLER_H
 #define XF86VIDMODETOGGLER_H
 
-#include <QCoreApplication>
 #include "../fullmodetoggler.h"
+#include <QCoreApplication>
 #include <X11/Xlib.h>
 #include <X11/extensions/xf86vmode.h>
 
 class Xf86VidModeToggler : public FullModeToggler {
-	Q_OBJECT
-
-	XF86VidModeModeInfo **modesinfo;
-	XF86VidModeModeInfo originalMode;
-	std::vector<ResInfo> infoVector;
-	int modecount;
-	unsigned fullResIndex;
-	unsigned fullRateIndex;
-	int originalvportx;
-	int originalvporty;
-	WId winId;
-	bool isFull;
-
 public:
 	static bool isUsable();
-	Xf86VidModeToggler(WId winId);
-	~Xf86VidModeToggler();
-	unsigned currentResIndex(unsigned /*screen*/) const { return fullResIndex; }
-	unsigned currentRateIndex(unsigned /*screen*/) const { return fullRateIndex; }
-	const QRect fullScreenRect(const QWidget *w) const;
-	bool isFullMode() const { return isFull; }
-	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
-	void setFullMode(bool enable);
-	void emitRate();
-	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return infoVector; }
-	void setScreen(const QWidget */*widget*/) {}
-	unsigned screen() const { return 0; }
-	unsigned screens() const { return 1; }
-	bool eventFilter(QObject *obj, QEvent *ev);
+	explicit Xf86VidModeToggler(WId winId);
+	virtual ~Xf86VidModeToggler();
+	virtual std::size_t currentResIndex(std::size_t /*screen*/) const { return fullResIndex_; }
+	virtual std::size_t currentRateIndex(std::size_t /*screen*/) const { return fullRateIndex_; }
+	virtual QRect const fullScreenRect(QWidget const *w) const;
+	virtual bool isFullMode() const { return isFull_; }
+	virtual void setMode(std::size_t screen, std::size_t resIndex, std::size_t rateIndex);
+	virtual void setFullMode(bool enable);
+	virtual void emitRate();
+	virtual std::vector<ResInfo> const & modeVector(std::size_t /*screen*/) const { return infoVector_; }
+	virtual void setScreen(QWidget const *) {}
+	virtual std::size_t screen() const { return 0; }
+	virtual std::size_t screens() const { return 1; }
+	virtual bool eventFilter(QObject *obj, QEvent *ev);
 
 signals:
 	void rateChange(int newHz);
-//	void modeChange();
+
+private:
+	Q_OBJECT
+
+	XF86VidModeModeInfo **modesinfo_;
+	XF86VidModeModeInfo originalMode_;
+	std::vector<ResInfo> infoVector_;
+	int modecount_;
+	std::size_t fullResIndex_;
+	std::size_t fullRateIndex_;
+	int originalvportx_;
+	int originalvporty_;
+	WId winId_;
+	bool isFull_;
 };
 
 #endif

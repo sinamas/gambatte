@@ -17,9 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "palettedialog.h"
+#include "dialoghelpers.h"
 #include <QApplication>
 #include <QByteArray>
-#include <QColor>
 #include <QColorDialog>
 #include <QDataStream>
 #include <QDir>
@@ -529,7 +529,7 @@ static unsigned long gbcToRgb32(unsigned const rgb15) {
 
 ColorPicker::ColorPicker(QRgb color, QWidget *parent)
 : QFrame(parent)
-, w_(new QWidget)
+, w_(new QWidget(this))
 {
 	setAcceptDrops(true);
 	w_->setAutoFillBackground(true);
@@ -584,8 +584,8 @@ void ColorPicker::mouseMoveEvent(QMouseEvent *e) {
 
 	QDrag *const drag = new QDrag(this);
 	QMimeData *const mimeData = new QMimeData;
-	mimeData->setColorData(getQColor());
 	drag->setMimeData(mimeData);
+	mimeData->setColorData(getQColor());
 	drag->exec(Qt::CopyAction);
 }
 
@@ -619,10 +619,10 @@ ColorQuad::ColorQuad(QString const &label, QWidget *parent)
 : QGroupBox(label, parent)
 {
 	setAcceptDrops(true);
-	setLayout(new QHBoxLayout);
 
+	QHBoxLayout *const l = new QHBoxLayout(this);
 	for (std::size_t i = 0; i < sizeof picker_ / sizeof *picker_; ++i) {
-		layout()->addWidget(picker_[i] = new ColorPicker);
+		picker_[i] = addWidget(l, new ColorPicker);
 		connect(picker_[i], SIGNAL(colorChanged()), this, SLOT(pickerChanged()));
 	}
 }
@@ -656,11 +656,10 @@ void ColorQuad::mousePressEvent(QMouseEvent *) {
 	for (std::size_t i = 0; i < sizeof picker_ / sizeof *picker_; ++i)
 		dataStream << color(i);
 
-	QMimeData *const mimeData = new QMimeData;
-	mimeData->setData("application/x-colorquad", itemData);
-
 	QDrag *const drag = new QDrag(this);
+	QMimeData *const mimeData = new QMimeData;
 	drag->setMimeData(mimeData);
+	mimeData->setData("application/x-colorquad", itemData);
 	drag->exec(Qt::CopyAction);
 }
 
@@ -686,10 +685,10 @@ public:
 static QStringList const makeStaticStringList(bool const hasGlobal) {
 	QStringList sl;
 	if (hasGlobal)
-		sl.append("Global Palette");
+		sl.append(QObject::tr("Global Palette"));
 
-	sl.append("Current Scheme");
-	sl.append("Default Gray");
+	sl.append(QObject::tr("Current Scheme"));
+	sl.append(QObject::tr("Default Gray"));
 	for (std::size_t i = 0; i < gbcDirPalettesSize(); ++i)
 		sl.append(gbcDirPalettes[i].title);
 	for (std::size_t i = 0; i < gbcTitlePalettesSize(); ++i)
@@ -717,7 +716,7 @@ static QModelIndex schemeIndexOf(QAbstractItemModel const &model, QString const 
 	}
 
 	for (int i = 0; i < rows; ++i) {
-		if (model.index(i, 0).data().toString() == "Current Scheme")
+		if (model.index(i, 0).data().toString() == QObject::tr("Current Scheme"))
 			return model.index(i, 0);
 	}
 
@@ -730,75 +729,59 @@ PaletteDialog::PaletteDialog(QString const &savepath,
                              PaletteDialog const *const global,
                              QWidget *const parent)
 : QDialog(parent)
+, savedir_(savepath + '/')
 , global_(global)
-, listView_(new QListView)
-, rmSchemeButton_(new QPushButton("Remove Scheme"))
+, listView_(new QListView(this))
+, rmSchemeButton_(new QPushButton(tr("Remove Scheme"), this))
 , quads_()
 , currentColors_()
-, defaultScheme_(global ? "Global Palette" : "Default Gray")
+, defaultScheme_(global ? tr("Global Palette") : tr("Default Gray"))
 , schemeString_(defaultScheme_)
 {
-	setWindowTitle(global ? "Current ROM Palette" : "Global Palette");
+	setWindowTitle(global ? tr("Current ROM Palette") : tr("Global Palette"));
+	QDir::root().mkpath(savedir_ + "stored/");
+	listView_->setModel(new ImmutableStringListModel(this));
+	setSchemeList();
 
-	QBoxLayout *const mainLayout = new QVBoxLayout;
+	QVBoxLayout *const mainLayout = new QVBoxLayout(this);
 
 	{
-		QBoxLayout *const topLayout = new QHBoxLayout;
+		QHBoxLayout *const topLayout = addLayout(mainLayout, new QHBoxLayout);
+		QGroupBox *const lframe = addWidget(topLayout, new QGroupBox(tr("Scheme")));
+		QVBoxLayout *const frameLayout = new QVBoxLayout(lframe);
+		frameLayout->addWidget(listView_);
 
-		{
-			QGroupBox *const lframe = new QGroupBox("Scheme");
-			QBoxLayout *const frameLayout = new QVBoxLayout;
-			savedir_ = savepath + "/";
-			QDir::root().mkpath(savedir_ + "stored/");
-			listView_->setModel(new ImmutableStringListModel(this));
-			setSchemeList();
-			frameLayout->addWidget(listView_);
+		QPushButton *const saveButton =
+			addWidget(frameLayout, new QPushButton(tr("Save Scheme...")));
+		rmSchemeButton_->setParent(0); // tab order reparent
+		frameLayout->addWidget(rmSchemeButton_);
+		connect(saveButton, SIGNAL(clicked()), this, SLOT(saveScheme()));
+		connect(rmSchemeButton_, SIGNAL(clicked()), this, SLOT(rmScheme()));
 
-			{
-				QPushButton *saveButton = new QPushButton("Save Scheme...");
-				connect(saveButton, SIGNAL(clicked()), this, SLOT(saveScheme()));
-				frameLayout->addWidget(saveButton);
-			}
-
-			connect(rmSchemeButton_, SIGNAL(clicked()), this, SLOT(rmScheme()));
-			frameLayout->addWidget(rmSchemeButton_);
-			lframe->setLayout(frameLayout);
-			topLayout->addWidget(lframe);
-		}
-
-		{
-			QBoxLayout *vLayout = new QVBoxLayout;
-			vLayout->addWidget(quads_[0] = new ColorQuad("Background"));
-			vLayout->addWidget(quads_[1] = new ColorQuad("Sprite 1"));
-			vLayout->addWidget(quads_[2] = new ColorQuad("Sprite 2"));
-			topLayout->addLayout(vLayout);
-		}
-
-		mainLayout->addLayout(topLayout);
+		QVBoxLayout *vLayout = addLayout(topLayout, new QVBoxLayout);
+		quads_[0] = addWidget(vLayout, new ColorQuad(tr("Background")));
+		quads_[1] = addWidget(vLayout, new ColorQuad(tr("Sprite 1")));
+		quads_[2] = addWidget(vLayout, new ColorQuad(tr("Sprite 2")));
 	}
 
 	{
-		QPushButton *const okButton = new QPushButton(tr("OK"));
-		QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
+		QHBoxLayout *hLayout = addLayout(mainLayout, new QHBoxLayout,
+		                                 Qt::AlignBottom | Qt::AlignRight);
+		QPushButton *okButton     = addWidget(hLayout, new QPushButton(tr("OK")));
+		QPushButton *cancelButton = addWidget(hLayout, new QPushButton(tr("Cancel")));
 		okButton->setDefault(true);
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-
-		QBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(okButton);
-		hLayout->addWidget(cancelButton);
-		mainLayout->addLayout(hLayout);
-		mainLayout->setAlignment(hLayout, Qt::AlignBottom | Qt::AlignRight);
 	}
 
-	setLayout(mainLayout);
-
-	for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
-		connect(quads_[i], SIGNAL(colorChanged()), listView_->selectionModel(), SLOT(clear()));
+	for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i) {
+		connect(quads_[i], SIGNAL(colorChanged()),
+		        listView_->selectionModel(), SLOT(clear()));
+	}
 
 	connect(listView_->selectionModel(),
 	        SIGNAL(currentChanged(QModelIndex const &, QModelIndex const &)),
-	        this, SLOT(schemeChanged(QModelIndex const &, QModelIndex const &)));
+	        this, SLOT(schemeChanged(QModelIndex const &)));
 
 	if (global) {
 		restore();
@@ -868,7 +851,7 @@ void PaletteDialog::rmScheme() {
 
 void PaletteDialog::saveScheme() {
 	bool ok;
-	QString const &text = QInputDialog::getText(this, "Save Scheme", "Scheme name:",
+	QString const &text = QInputDialog::getText(this, tr("Save Scheme"), tr("Scheme name:"),
 	                                            QLineEdit::Normal, QString(), &ok);
 	if (!ok)
 		return;
@@ -877,7 +860,7 @@ void PaletteDialog::saveScheme() {
 			|| makeStaticStringList(true).contains(text)
 			|| text.size() > 200
 			|| text.contains(QRegExp("[" + QRegExp::escape("<>:\"/\\|?*") + "]"))) {
-		QMessageBox::information(this, "Invalid scheme name", "Invalid scheme name.");
+		QMessageBox::information(this, tr("Invalid scheme name"), tr("Invalid scheme name."));
 		return;
 	}
 
@@ -893,21 +876,21 @@ void PaletteDialog::saveScheme() {
 	listView_->setCurrentIndex(schemeIndexOf(*listView_->model(), text));
 }
 
-void PaletteDialog::schemeChanged(QModelIndex const &current, QModelIndex const &/*previous*/) {
+void PaletteDialog::schemeChanged(QModelIndex const &current) {
 	rmSchemeButton_->setEnabled(false);
 	if (!current.isValid())
 		return;
 
 	QString const &str = current.data().toString();
-	if ("Global Palette" == str) {
+	if (tr("Global Palette") == str) {
 		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
 		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
 			quads_[i]->setColor(j, global_->color(i, j));
-	} else if ("Current Scheme" == str) {
+	} else if (tr("Current Scheme") == str) {
 		for (std::size_t i = 0; i < sizeof currentColors_ / sizeof *currentColors_; ++i)
 		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
 			quads_[i]->setColor(j, currentColors_[i][j]);
-	} else if ("Default Gray" == str) {
+	} else if (tr("Default Gray") == str) {
 		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
 		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
 			quads_[i]->setColor(j, (3 - (j & 3)) * 85 * 0x010101);
@@ -935,7 +918,8 @@ void PaletteDialog::store() {
 
 	if (!listView_->currentIndex().isValid()) {
 		// obs: will emit currentChanged()
-		listView_->setCurrentIndex(schemeIndexOf(*listView_->model(), "Current Scheme"));
+		listView_->setCurrentIndex(schemeIndexOf(*listView_->model(),
+		                                         tr("Current Scheme")));
 	}
 
 	schemeString_ = listView_->currentIndex().data().toString();
@@ -956,7 +940,7 @@ void PaletteDialog::setSettingsFile(QString const &filename, QString const &romT
 	settingsFile_ = filename;
 	defaultScheme_ = findGbcTitlePal(romTitle.toAscii().data())
 	               ? romTitle
-	               : QString("Global Palette");
+	               : tr("Global Palette");
 	QSettings settings(savedir_ + settingsFile_, QSettings::IniFormat);
 	loadSettings(settings);
 }

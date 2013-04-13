@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,11 +22,12 @@
 #include "../audioengine.h"
 
 class NullAudioEngine : public AudioEngine {
-	int doInit(int rate, unsigned /*latency*/) { return rate; }
-
 public:
 	NullAudioEngine() : AudioEngine("Null") {}
-	int write(void */*buffer*/, unsigned /*samples*/) { return 0; }
+	virtual int write(void */*buffer*/, std::size_t /*samples*/) { return 0; }
+
+protected:
+	virtual long doInit(long rate, int /*latency*/) { return rate; }
 };
 
 #endif

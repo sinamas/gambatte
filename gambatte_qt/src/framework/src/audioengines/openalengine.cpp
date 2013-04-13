@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,8 +17,18 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "openalengine.h"
-#include <QtGlobal> // for Q_WS_WIN define
-#include <cstdio>
+#include "../audioengine.h"
+#include "array.h"
+#include "scoped_ptr.h"
+#include <QtGlobal> // for Q_WS_ define
+
+#ifdef Q_WS_MAC
+#include <OpenAL/alc.h>
+#include <OpenAL/al.h>
+#else
+#include <AL/alc.h>
+#include <AL/al.h>
+#endif
 
 #ifdef Q_WS_WIN
 #include <windows.h>
@@ -26,7 +36,13 @@
 #include <time.h>
 #endif
 
-static const char* errorToString(ALenum error) {
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+
+namespace {
+
+static char const * errorToString(ALenum error) {
 	switch (error) {
 	case AL_NO_ERROR: return "no error";
 	case AL_INVALID_NAME: return "invalid name";
@@ -41,191 +57,171 @@ static const char* errorToString(ALenum error) {
 
 static ALint getSourcei(ALuint source, ALenum pname) {
 	ALint value = 0;
-
 	alGetSourcei(source, pname, &value);
-
 	return value;
 }
 
-static const unsigned BUF_POW = 9;
-static const unsigned BUF_SZ = 1 << BUF_POW;
+static std::size_t const buf_size = 1 << 9;
 
-OpenAlEngine::OpenAlEngine() :
-AudioEngine("OpenAL"),
-buf(NULL),
-device(NULL),
-context(NULL),
-source(0),
-buffers(0),
-bufPos(0) {
-}
+struct AlDeleter {
+	static void del(ALCdevice *d) { if (d) { alcCloseDevice(d); } }
 
-OpenAlEngine::~OpenAlEngine() {
-	uninit();
-}
+	static void del(ALCcontext *c) {
+		if (c) {
+			alcMakeContextCurrent(0);
+			alcDestroyContext(c);
+		}
+	}
+};
+
+class OpenAlEngine : public AudioEngine {
+public:
+	OpenAlEngine()
+	: AudioEngine("OpenAL")
+	, source_(0)
+	, buffers_(0)
+	, bufPos_(0)
+	{
+	}
+
+	virtual ~OpenAlEngine() { uninit(); }
+	virtual void uninit();
+	virtual int write(void *buffer, std::size_t samples);
+	virtual BufferState bufferState() const;
+
+protected:
+	virtual long doInit(long rate, int latency);
+
+private:
+	Array<qint16> buf_;
+	scoped_ptr<ALCdevice,  AlDeleter> device_;
+	scoped_ptr<ALCcontext, AlDeleter> context_;
+	ALuint source_;
+	int buffers_;
+	std::size_t bufPos_;
+
+	void deleteProcessedBufs() const;
+};
 
 void OpenAlEngine::deleteProcessedBufs() const {
-	ALint processed = getSourcei(source, AL_BUFFERS_PROCESSED);
-
+	ALint processed = getSourcei(source_, AL_BUFFERS_PROCESSED);
 	while (processed--) {
 		ALuint bid = 0;
-
-		alSourceUnqueueBuffers(source, 1, &bid);
+		alSourceUnqueueBuffers(source_, 1, &bid);
 		alDeleteBuffers(1, &bid);
 	}
 }
 
-int OpenAlEngine::doInit(const int rate, unsigned latency) {
-	class FailureCleaner {
-		OpenAlEngine *const engine;
-
-	public:
-		bool failed;
-
-		FailureCleaner(OpenAlEngine *engine) : engine(engine), failed(true) {}
-
-		~FailureCleaner() {
-			if (failed)
-				engine->uninit();
-		}
-	} failureCleaner(this);
-
-	ALenum error;
-
-	if (!(device = alcOpenDevice(NULL))) {
+long OpenAlEngine::doInit(long const rate, int latency) {
+	device_.reset(alcOpenDevice(0));
+	if (!device_) {
 		std::fprintf(stderr, "alcOpenDevice error\n");
 		return -1;
 	}
 
-	if (!(context = alcCreateContext(device, NULL))) {
+	context_.reset(alcCreateContext(device_.get(), 0));
+	if (!context_) {
 		std::fprintf(stderr, "alcCreateContext error\n");
 		return -1;
 	}
 
 	alGetError();
-	alcMakeContextCurrent(context);
+	alcMakeContextCurrent(context_.get());
 
+	ALenum error;
 	if ((error = alGetError()) != AL_NO_ERROR) {
 		std::fprintf(stderr, "alcMakeContextCurrent error: %s\n", errorToString(error));
 		return -1;
 	}
 
-	alGenSources (1, &source);
-
+	alGenSources(1, &source_);
 	if ((error = alGetError()) != AL_NO_ERROR) {
 		std::fprintf(stderr, "alGenSources error: %s\n", errorToString(error));
 		return -1;
 	}
 
-	failureCleaner.failed = false;
-	buffers = rate * latency / (BUF_SZ * 1000);
-	++buffers;
-// 	std::printf("buffers: %u\n", buffers);
-	buf = new qint16[BUF_SZ * 2];
-	bufPos = 0;
+	buffers_ = rate * latency / (buf_size * 1000) + 1;
+	buf_.reset(buf_size * 2);
+	bufPos_ = 0;
 
 	return rate;
 }
 
 void OpenAlEngine::uninit() {
-	if (context) {
-		if (alIsSource(source)) {
-			alSourceStop(source);
+	if (context_ && alIsSource(source_)) {
+		alSourceStop(source_);
 
-			ALint queued = getSourcei(source, AL_BUFFERS_QUEUED);
-
-			while (queued--) {
-				ALuint bid = 0;
-
-				alSourceUnqueueBuffers(source, 1, &bid);
-				alDeleteBuffers(1, &bid);
-			}
-
-			alDeleteSources(1, &source);
+		ALint queued = getSourcei(source_, AL_BUFFERS_QUEUED);
+		while (queued--) {
+			ALuint bid = 0;
+			alSourceUnqueueBuffers(source_, 1, &bid);
+			alDeleteBuffers(1, &bid);
 		}
 
-		alcMakeContextCurrent(NULL);
-		alcDestroyContext(context);
+		alDeleteSources(1, &source_);
 	}
 
-	if (device)
-		alcCloseDevice(device);
-
-	delete []buf;
-
-	buf = NULL;
-	context = NULL;
-	device = NULL;
-	source = 0;
+	context_.reset();
+	device_.reset();
+	buf_.reset();
+	source_ = 0;
 }
 
-int OpenAlEngine::write(void *const data, const unsigned samples) {
-	{
-		unsigned total = samples + bufPos;
-		const qint16 *src = static_cast<const qint16*>(data);
-
-		while (total >= BUF_SZ) {
-			if (getSourcei(source, AL_BUFFERS_QUEUED) >= static_cast<int>(buffers)) {
-				while (getSourcei(source, AL_BUFFERS_PROCESSED) < 1  && getSourcei(source, AL_SOURCE_STATE) == AL_PLAYING) {
+int OpenAlEngine::write(void *const data, std::size_t const samples) {
+	qint16 const *src = static_cast<qint16 const *>(data);
+	std::size_t total = samples + bufPos_;
+	while (total >= buf_size) {
+		if (getSourcei(source_, AL_BUFFERS_QUEUED) >= buffers_) {
+			while (getSourcei(source_, AL_BUFFERS_PROCESSED) < 1
+					&& getSourcei(source_, AL_SOURCE_STATE) == AL_PLAYING) {
 #ifdef Q_WS_WIN
-					Sleep(1);
+				Sleep(1);
 #else
-					timespec tspec = { 0, 500000 };
-					nanosleep(&tspec, NULL);
+				timespec tspec = { 0, 500000 };
+				nanosleep(&tspec, 0);
 #endif
-				}
-
-				ALuint bid = 0;
-				alSourceUnqueueBuffers(source, 1, &bid);
-				alDeleteBuffers(1, &bid);
 			}
 
-			std::memcpy(buf + bufPos * 2, src, (BUF_SZ - bufPos) * 2 * sizeof *buf);
-			src += (BUF_SZ - bufPos) * 2;
-			total -= BUF_SZ;
-			bufPos = 0;
-
-			{
-				ALuint bufid = 0;
-				alGenBuffers(1, &bufid);
-				alBufferData(bufid, AL_FORMAT_STEREO16, buf, BUF_SZ * 2 * sizeof *buf, rate());
-				alSourceQueueBuffers(source, 1, &bufid);
-			}
+			ALuint bid = 0;
+			alSourceUnqueueBuffers(source_, 1, &bid);
+			alDeleteBuffers(1, &bid);
 		}
 
-		std::memcpy(buf + bufPos * 2, src, (total - bufPos) * 2 * sizeof *buf);
+		std::memcpy(buf_ + bufPos_ * 2, src, (buf_size - bufPos_) * 2 * sizeof *buf_);
+		src += (buf_size - bufPos_) * 2;
+		total -= buf_size;
+		bufPos_ = 0;
 
-		bufPos = total;
+		ALuint bufid = 0;
+		alGenBuffers(1, &bufid);
+		alBufferData(bufid, AL_FORMAT_STEREO16, buf_, buf_size * 2 * sizeof *buf_, rate());
+		alSourceQueueBuffers(source_, 1, &bufid);
 	}
 
-	if (getSourcei(source, AL_SOURCE_STATE) != AL_PLAYING) {
-		//std::printf("UNDERRUN!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-		alSourcePlay(source);
-	}
+	std::memcpy(buf_ + bufPos_ * 2, src, (total - bufPos_) * 2 * sizeof *buf_);
+	bufPos_ = total;
 
-	//if (alGetError() != AL_NO_ERROR)
-	//	return -1;
+	if (getSourcei(source_, AL_SOURCE_STATE) != AL_PLAYING)
+		alSourcePlay(source_);
 
 	return 0;
 }
 
-const AudioEngine::BufferState OpenAlEngine::bufferState() const {
+AudioEngine::BufferState OpenAlEngine::bufferState() const {
 	deleteProcessedBufs();
 
-	unsigned fromUnderrun = 0;
-
-	{
-		const ALint queued = getSourcei(source, AL_BUFFERS_QUEUED);
-
-		if (queued > 0)
-			fromUnderrun = queued * BUF_SZ - (BUF_SZ >> 1);
-	}
-
-	fromUnderrun += bufPos;
-
-	const BufferState s = { fromUnderrun: fromUnderrun, fromOverflow: fromUnderrun > (buffers + 1) * BUF_SZ ? 0 : (buffers + 1) * BUF_SZ - fromUnderrun };
-
-	//std::printf("fromUnderrun: %u\n", s.fromUnderrun);
+	ALint const queued = getSourcei(source_, AL_BUFFERS_QUEUED);
+	BufferState s = { 0, 0 };
+	s.fromUnderrun = queued > 0 ? queued * buf_size - buf_size / 2 : 0;
+	s.fromUnderrun += bufPos_;
+	s.fromUnderrun = std::min<std::size_t>(s.fromUnderrun, (buffers_ + 1) * buf_size);
+	s.fromOverflow = (buffers_ + 1) * buf_size - s.fromUnderrun;
 
 	return s;
+}
+
+} // anon ns
+
+transfer_ptr<AudioEngine> createOpenAlEngine() {
+	return transfer_ptr<AudioEngine>(new OpenAlEngine);
 }

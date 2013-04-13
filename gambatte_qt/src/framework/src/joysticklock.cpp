@@ -17,51 +17,57 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "joysticklock.h"
-#include "SDL_Joystick/include/SDL_joystick.h"
 #include <map>
 
-QMutex JoystickLock::mut;
-
-int pollJsEvent(SDL_Event *const ev, const int insensitivity) {
-	typedef std::map<unsigned, int> map_t;
-	static map_t axisState;
+static int pollJsEvent(SDL_Event *const ev, int const insensitivity) {
+	typedef std::map<unsigned, int> Map;
+	static Map axisState;
 
 	int evValid;
 
 	do {
 		evValid = SDL_PollEvent(ev);
-
 		if (evValid && ev->type == SDL_JOYAXISMOTION) {
-			enum { THRESHOLD = 8192 };
-			const map_t::iterator it = axisState.insert(map_t::value_type(ev->id, 0)).first;
-
-			switch (it->second) {
-			case 0:
-				if (ev->value >= THRESHOLD + insensitivity)
-					ev->value = AXIS_POSITIVE;
-				else if (ev->value <= -(THRESHOLD + insensitivity))
-					ev->value = AXIS_NEGATIVE;
+			enum { threshold = 8192 };
+			Map::iterator const at =
+				axisState.insert(Map::value_type(ev->id, SdlJoystick::axis_centered)).first;
+			switch (at->second) {
+			case SdlJoystick::axis_centered:
+				if (ev->value >= threshold + insensitivity)
+					ev->value = SdlJoystick::axis_positive;
+				else if (ev->value <= -(threshold + insensitivity))
+					ev->value = SdlJoystick::axis_negative;
 				else
 					continue;
 
 				break;
-			case AXIS_POSITIVE:
-				if (ev->value >= THRESHOLD - insensitivity)
+			case SdlJoystick::axis_positive:
+				if (ev->value >= threshold - insensitivity)
 					continue;
 
-				ev->value = ev->value <= -(THRESHOLD + insensitivity) ? AXIS_NEGATIVE : 0;
+				ev->value = ev->value <= -(threshold + insensitivity)
+				          ? SdlJoystick::axis_negative
+				          : SdlJoystick::axis_centered;
 				break;
-			case AXIS_NEGATIVE:
-				if (ev->value <= -(THRESHOLD - insensitivity))
+			case SdlJoystick::axis_negative:
+				if (ev->value <= -(threshold - insensitivity))
 					continue;
 
-				ev->value = ev->value >= THRESHOLD + insensitivity ? AXIS_POSITIVE : 0;
+				ev->value = ev->value >= threshold + insensitivity
+				          ? SdlJoystick::axis_positive
+				          : SdlJoystick::axis_centered;
 				break;
 			}
 
-			it->second = ev->value;
+			at->second = ev->value;
 		}
 	} while (false);
 
 	return evValid;
 }
+
+int SdlJoystick::Locked::pollEvent(SDL_Event *ev, int insensitivity) {
+	return pollJsEvent(ev, insensitivity);
+}
+
+QMutex SdlJoystick::mutex_;

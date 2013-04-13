@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,6 +19,9 @@
 #ifndef SCALINGMETHOD_H
 #define SCALINGMETHOD_H
 
-enum ScalingMethod { UNRESTRICTED, KEEP_RATIO, INTEGER }; enum { NUM_SCALING_METHODS = INTEGER + 1 };
+enum ScalingMethod { scaling_unrestricted,
+                     scaling_keep_ratio,
+                     scaling_integer, };
+enum { num_scaling_methods = scaling_integer + 1 };
 
 #endif

@@ -17,7 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "blitterwidget.h"
-#include <adaptivesleep.h>
+#include "adaptivesleep.h"
 #include <QtGlobal> // for Q_WS_WIN define
 #include <algorithm>
 #include <cstdlib>
@@ -27,31 +27,34 @@ static long limit(long const est, long const ref) {
 	return std::max(std::min(est, ref + maxdiff), ref - maxdiff);
 }
 
-void FtEst::init(const long frameTime) {
-	this->frameTime = frameTime;
-	ft = 4500000 << 6;
-	ftAvg = frameTime << UPSHIFT;
-	last = 0;
-	count = (ft + (frameTime >> 1)) / (frameTime ? frameTime : 1);
+enum { ft_shift = 6 };
+
+FtEst::FtEst(long const frameTime)
+: frameTime_(frameTime)
+, ft_(4500000 << ft_shift)
+, ftAvg_(frameTime << ftavg_shift)
+, last_(0)
+, count_((ft_ + (frameTime >> 1)) / (frameTime ? frameTime : 1))
+{
 }
 
-void FtEst::update(const usec_t t) {
-	if (t - last < usec_t(ftAvg + (ftAvg >> 4)) >> UPSHIFT) {
-		ft += t - last < usec_t(ftAvg - (ftAvg >> 4)) >> UPSHIFT
-		    ? (ftAvg - (ftAvg >> 7)) << (6 - UPSHIFT)
-		    : (t - last) << 6;
-		count += 1 << 6;
+void FtEst::update(usec_t const t) {
+	if (t - last_ < usec_t(ftAvg_ + (ftAvg_ >> 4)) >> ftavg_shift) {
+		ft_ += t - last_ < usec_t(ftAvg_ - (ftAvg_ >> 4)) >> ftavg_shift
+		     ? (ftAvg_ - (ftAvg_ >> 7)) << (ft_shift - ftavg_shift)
+		     : (t - last_) << ft_shift;
+		count_ += 1 << ft_shift;
 
-		long const ftAvgNew = long(float(ft) * UP / count + 0.5f);
-		ftAvg = limit((ftAvg * 31 + ftAvgNew + 16) >> 5, frameTime << UPSHIFT);
+		long const ftAvgNew = long(float(ft_) * ftavg_scale / count_ + 0.5f);
+		ftAvg_ = limit((ftAvg_ * 31 + ftAvgNew + 16) >> 5, frameTime_ << ftavg_shift);
 
-		if (ft > 6000000 << 6) {
-			ft = (ft * 3 + 2) >> 2;
-			count = (count * 3 + 2) >> 2;
+		if (ft_ > 6000000 << ft_shift) {
+			ft_ = (ft_ * 3 + 2) >> 2;
+			count_ = (count_ * 3 + 2) >> 2;
 		}
 	}
 
-	last = t;
+	last_ = t;
 }
 
 #ifdef Q_WS_WIN
@@ -87,7 +90,7 @@ usec_t getusecs() {
 	return timer.get();
 }
 
-void usecsleep(const usec_t usecs) {
+void usecsleep(usec_t usecs) {
 	Sleep((usecs + 999) / 1000);
 }
 
@@ -97,28 +100,26 @@ void usecsleep(const usec_t usecs) {
 
 usec_t getusecs() {
 	timeval t;
-	gettimeofday(&t, NULL);
+	gettimeofday(&t, 0);
 	return t.tv_sec * usec_t(1000000) + t.tv_usec;
 }
 
-void usecsleep(const usec_t usecs) {
-	timespec tspec = { tv_sec: 0,
-	                   tv_nsec: long(usecs) * 1000 };
-
-	nanosleep(&tspec, NULL);
+void usecsleep(usec_t usecs) {
+	timespec tspec = { 0, long(usecs) * 1000 };
+	nanosleep(&tspec, 0);
 }
 
 #endif /*Q_WS_WIN*/
 
 BlitterWidget::BlitterWidget(VideoBufferLocker vbl,
-                             const QString &name,
+                             QString const &name,
                              unsigned maxSwapInterval,
-                             QWidget *parent) :
-QWidget(parent),
-vbl(vbl),
-nameString_(name),
-maxSwapInterval_(maxSwapInterval),
-paused(true)
+                             QWidget *parent)
+: QWidget(parent)
+, vbl_(vbl)
+, nameString_(name)
+, maxSwapInterval_(maxSwapInterval)
+, paused_(true)
 {
 	setMouseTracking(true);
 }

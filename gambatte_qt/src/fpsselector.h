@@ -25,9 +25,9 @@
 class QComboBox;
 class QWidget;
 
-class FpsSelector : public QObject {
+class FpsSelector : private QObject {
 public:
-	FpsSelector();
+	explicit FpsSelector(QWidget *widgetParent);
 	~FpsSelector();
 	void accept();
 	void reject();

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,9 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "addaudioengines.h"
-
 #include "audioengines/ossengine.h"
+#include "audioengine.h"
 
 void addAudioEngines(auto_vector<AudioEngine> &audioEngines, WId /*winId*/) {
-	audioEngines.push_back(new OssEngine);
+	audioEngines.push_back(createOssEngine().release());
 }

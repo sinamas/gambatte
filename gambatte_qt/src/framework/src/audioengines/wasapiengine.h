@@ -20,7 +20,7 @@
 #define WASAPIENGINE_H
 
 #include "../audioengine.h"
-#include "persistcheckbox.h"
+#include "dialoghelpers.h"
 #include "rateest.h"
 #include "scoped_ptr.h"
 #include <BaseTsd.h>
@@ -32,38 +32,42 @@ class IAudioRenderClient;
 class IAudioClock;
 
 class WasapiEngine: public AudioEngine {
-	const scoped_ptr<QWidget> confWidget;
+public:
+	static bool isUsable();
+	WasapiEngine();
+	virtual ~WasapiEngine();
+	virtual void uninit();
+	virtual int write(void *buffer, std::size_t frames);
+	virtual int write(void *buffer, std::size_t samples,
+	                  BufferState &preBufState_out, long &rate_out);
+	virtual long rateEstimate() const { return est.result(); }
+	virtual BufferState bufferState() const;
+	virtual void pause();
+	virtual QWidget * settingsWidget() const { return confWidget.get(); }
+	virtual void rejectSettings() const;
+
+protected:
+	virtual long doInit(long rate, int latency);
+	virtual void doAcceptSettings();
+
+private:
+	scoped_ptr<QWidget> const confWidget;
 	QComboBox *const deviceSelector;
 	PersistCheckBox exclusive_;
 	IAudioClient *pAudioClient;
 	IAudioRenderClient *pRenderClient;
 	IAudioClock *pAudioClock;
 	void *eventHandle_;
-	unsigned pos_;
-	unsigned posFrames;
+	UINT32 pos_;
+	UINT32 posFrames;
 	unsigned deviceIndex;
-	unsigned nchannels_;
+	int nchannels_;
 	UINT32 bufferFrameCount;
 	RateEst est;
 	bool started;
 
-	int doInit(int rate, unsigned latency);
-	void doAcceptSettings();
-	int waitForSpace(UINT32 &numFramesPadding, unsigned space);
-	int write(void *buffer, unsigned frames, UINT32 numFramesPadding);
-
-public:
-	static bool isUsable();
-	WasapiEngine();
-	~WasapiEngine();
-	void uninit();
-	int write(void *buffer, unsigned frames);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
-	long rateEstimate() const { return est.result(); }
-	const BufferState bufferState() const;
-	void pause();
-	QWidget* settingsWidget() const { return confWidget.get(); }
-	void rejectSettings() const;
+	int waitForSpace(UINT32 &numFramesPadding, UINT32 space);
+	int write(void *buffer, std::size_t frames, UINT32 numFramesPadding);
 };
 
 #endif /* WASAPIENGINE_H */

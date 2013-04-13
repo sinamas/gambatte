@@ -19,9 +19,9 @@
 #ifndef MISCDIALOG_H
 #define MISCDIALOG_H
 
+#include "dialoghelpers.h"
 #include "fpsselector.h"
 #include "pathselector.h"
-#include "persistcheckbox.h"
 #include <QDialog>
 
 class QSpinBox;
@@ -44,15 +44,14 @@ public slots:
 
 private:
 	QSpinBox *const turboSpeedBox;
-	FpsSelector fpsSelector_;
-	PathSelector savepathSelector_;
 	PersistCheckBox pauseOnDialogs_;
 	PersistCheckBox pauseOnFocusOut_;
+	FpsSelector fpsSelector_;
 	PersistCheckBox dwmTripleBuf_;
 	PersistCheckBox multicartCompat_;
+	PathSelector savepathSelector_;
 	int turboSpeed_;
 
-	void store();
 	void restore();
 };
 

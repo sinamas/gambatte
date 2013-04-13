@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,42 +19,40 @@
 #ifndef BLITTERCONTAINER_H
 #define BLITTERCONTAINER_H
 
-#include <QWidget>
-#include <QSize>
 #include "scalingmethod.h"
+#include <QSize>
+#include <QWidget>
 
 class BlitterWidget;
 
 class BlitterContainer : public QWidget {
+public:
+	explicit BlitterContainer(QWidget *parent = 0);
+	void hideCursor();
+	void showCursor();
+	void setAspectRatio(QSize const &);
+	void setBlitter(BlitterWidget *blitter);
+	void setScalingMethod(ScalingMethod);
+	void setSourceSize(QSize const &);
+	void parentExclusiveEvent(bool fs) { parentExclusive_ = fs; testExclusive(); }
+	BlitterWidget * blitter() { return blitter_; }
+	QSize const sourceSize() const { return sourceSize_; }
+
+protected:
+	virtual void moveEvent(QMoveEvent *event);
+	virtual void resizeEvent(QResizeEvent *event);
+
+private:
 	BlitterWidget *blitter_;
 	QSize aspectRatio_;
 	QSize sourceSize_;
 	ScalingMethod scalingMethod_;
-	bool parentExclusive;
+	bool parentExclusive_;
 	bool cursorHidden_;
 
-	void doLayout(int w, int h);
+	QSize const correctedSize() const;
+	void updateLayout();
 	void testExclusive();
-	void updateLayout() { doLayout(width(), height()); }
-
-protected:
-	void moveEvent(QMoveEvent *event);
-	void resizeEvent(QResizeEvent *event);
-
-public:
-	explicit BlitterContainer(QWidget *parent = 0);
-	~BlitterContainer();
-	void hideCursor();
-	void showCursor();
-	void setAspectRatio(const QSize &);
-	void setBlitter(BlitterWidget *blitter);
-	void setScalingMethod(ScalingMethod);
-	void setSourceSize(const QSize &);
-	void parentExclusiveEvent(bool fs) { parentExclusive = fs; testExclusive(); }
-	BlitterWidget* blitter() { return blitter_; }
-	const QSize& aspectRatio() const { return aspectRatio_; }
-	ScalingMethod scalingMethod() const { return scalingMethod_; }
-	const QSize& sourceSize() const { return sourceSize_; }
 };
 
 #endif

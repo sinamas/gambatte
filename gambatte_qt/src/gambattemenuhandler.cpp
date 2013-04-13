@@ -39,9 +39,9 @@ static QString const strippedName(QString const &fullFileName) {
 
 struct TmpPauser : private Uncopyable {
 	MainWindow &mw;
-	unsigned const inc;
+	int const inc;
 
-	explicit TmpPauser(MainWindow &mw, unsigned inc = 4)
+	explicit TmpPauser(MainWindow &mw, int inc = 4)
 	: mw(mw), inc(inc)
 	{
 		mw.incPause(inc);
@@ -63,10 +63,10 @@ FrameRateAdjuster::FrameTime::FrameTime(unsigned baseNum, unsigned baseDenom)
 void FrameRateAdjuster::FrameTime::setBaseFrameTime(unsigned const baseNum, unsigned const baseDenom) {
 	frameTimes_[num_steps] = Rational(baseNum, baseDenom);
 
-	unsigned const bnum = baseNum * 0x10000 / baseDenom;
-	for (unsigned i = num_steps, num = bnum; i < num_steps * 2; ++i)
+	unsigned const bnum = baseNum * 0x10000ul / baseDenom;
+	for (std::size_t i = num_steps, num = bnum; i < num_steps * 2; ++i)
 		frameTimes_[i + 1] = Rational(num = num * 11 / 10, 0x10000);
-	for (unsigned i = num_steps, num = bnum; i; --i)
+	for (std::size_t i = num_steps, num = bnum; i; --i)
 		frameTimes_[i - 1] = Rational(num = num * 10 / 11, 0x10000);
 }
 
@@ -147,12 +147,12 @@ WindowSizeMenu::WindowSizeMenu(MainWindow &mw, VideoDialog const &vd)
 , maxSize_(QApplication::desktop()->screen()->size())
 {
 	fillMenu(vd.sourceSize(), vd.scalingMethod());
-	setCheckedSize(QSettings().value("video/windowSize", QSize(-1, -1)).toSize());
-	connect(group_, SIGNAL(triggered(QAction *)), this, SLOT(triggered(QAction *)));
+	setCheckedSize(QSettings().value("video/windowSize", QSize()).toSize());
+	connect(group_, SIGNAL(triggered(QAction *)), this, SLOT(triggered()));
 
 	QSize const &size = checkedSize();
 	mw_.setWindowSize(size);
-	if (size == QSize(-1, -1))
+	if (size.isEmpty())
 		mw_.resize(QSettings().value("mainwindow/size", QSize(160, 144)).toSize());
 }
 
@@ -163,32 +163,32 @@ WindowSizeMenu::~WindowSizeMenu() {
 
 void WindowSizeMenu::videoDialogChange(VideoDialog const &vd) {
 	QSize const &oldSize = checkedSize();
-	disconnect(group_, SIGNAL(triggered(QAction *)), this, SLOT(triggered(QAction *)));
+	disconnect(group_, SIGNAL(triggered(QAction *)), this, SLOT(triggered()));
 	menu_->clear();
 	delete group_;
 	group_ = new QActionGroup(menu_);
 
 	fillMenu(vd.sourceSize(), vd.scalingMethod());
 	setCheckedSize(oldSize);
-	connect(group_, SIGNAL(triggered(QAction *)), this, SLOT(triggered(QAction *)));
+	connect(group_, SIGNAL(triggered(QAction *)), this, SLOT(triggered()));
 
 	QSize const &newSize = checkedSize();
 	if (newSize != oldSize)
 		mw_.setWindowSize(newSize);
 }
 
-void WindowSizeMenu::triggered(QAction *) {
+void WindowSizeMenu::triggered() {
 	mw_.setWindowSize(checkedSize());
 }
 
 void WindowSizeMenu::fillMenu(QSize const &sourceSize, ScalingMethod const scalingMethod) {
 	QSize const aspectRatio(160, 144);
-	QSize const basesz(scalingMethod == INTEGER ? sourceSize : aspectRatio);
+	QSize const basesz(scalingMethod == scaling_integer ? sourceSize : aspectRatio);
 	QSize sz(basesz);
 	while (sz.width() <= maxSize_.width() && sz.height() <= maxSize_.height()) {
 		if (sz.width() >= sourceSize.width() && sz.height() >= sourceSize.height()) {
 			QAction *a = menu_->addAction(
-				"&" + QString::number(sz.width()) + "x" + QString::number(sz.height()));
+				'&' + QString::number(sz.width()) + 'x' + QString::number(sz.height()));
 			a->setData(sz);
 			a->setCheckable(true);
 			group_->addAction(a);
@@ -198,7 +198,7 @@ void WindowSizeMenu::fillMenu(QSize const &sourceSize, ScalingMethod const scali
 	}
 
 	QAction *a = menu_->addAction(tr("&Variable"));
-	a->setData(QSize(-1, -1));
+	a->setData(QSize());
 	a->setCheckable(true);
 	group_->addAction(a);
 }
@@ -217,20 +217,20 @@ void WindowSizeMenu::setCheckedSize(QSize const &size) {
 }
 
 QSize const WindowSizeMenu::checkedSize() const {
-	return group_->checkedAction() ? group_->checkedAction()->data().toSize() : QSize(-1, -1);
+	return group_->checkedAction() ? group_->checkedAction()->data().toSize() : QSize();
 }
 
 static QString const settingsPath() {
 	QString path = QSettings(QSettings::IniFormat, QSettings::UserScope,
 		QCoreApplication::organizationName(), QCoreApplication::applicationName()).fileName();
-	path.truncate(path.lastIndexOf("/"));
+	path.truncate(path.lastIndexOf('/'));
 	return path;
 }
 
 static QString const toCmdString(QAction const *a) {
 	QString text = a->text().toLower();
-	text.replace("&", "");
-	text.replace(" ", "-");
+	text.replace('&', QString());
+	text.replace(' ', '-');
 	return text;
 }
 
@@ -266,7 +266,7 @@ static void printUsage(char const *const arg0, QList<QAction *> const &actions) 
 			std::string const &text = toCmdString(a).toStdString();
 			char const c = toCmdChar(a);
 			std::cout << "  "
-			          << (c ? "-" + std::string(1, c) + ", " : std::string("    "))
+			          << (c ? '-' + std::string(1, c) + ", " : std::string("    "))
 			          << "--" << text << "[=0]\n";
 		}
 	}
@@ -544,7 +544,7 @@ void GambatteMenuHandler::loadFile(QString const &fileName) {
 			&mw_,
 			tr("File Load Error"),
 			tr("Failed to load file\n") + fileName + ".\n\n"
-		                                    + gambatte::to_string(error).c_str() + ".");
+		                                    + gambatte::to_string(error).c_str() + '.');
 		return;
 	}
 
@@ -632,12 +632,12 @@ void GambatteMenuHandler::romPaletteChange() {
 namespace {
 
 struct SetDmgPaletteColorFun {
-	GambatteSource &source; unsigned palnum; unsigned colornum; unsigned rgb32;
+	GambatteSource &source; int palnum; int colornum; unsigned long rgb32;
 	void operator()() const { source.setDmgPaletteColor(palnum, colornum, rgb32); }
 };
 
 struct SetVideoSourceFun {
-	GambatteSource &source; unsigned sourceIndex;
+	GambatteSource &source; std::size_t sourceIndex;
 	void operator()() const { source.setVideoSource(sourceIndex); }
 };
 
@@ -649,8 +649,8 @@ struct SetSaveDirFun {
 } // anon ns
 
 void GambatteMenuHandler::setDmgPaletteColors() {
-	for (unsigned palnum = 0; palnum < 3; ++palnum)
-	for (unsigned colornum = 0; colornum < 4; ++colornum) {
+	for (int palnum = 0; palnum < 3; ++palnum)
+	for (int colornum = 0; colornum < 4; ++colornum) {
 		SetDmgPaletteColorFun fun = { source_, palnum, colornum,
 		                              romPaletteDialog_->color(palnum, colornum) };
 		mw_.callInWorkerThread(fun);
@@ -687,9 +687,9 @@ void GambatteMenuHandler::cheatDialogChange() {
 
 	foreach (QString const &s, cheatDialog_->cheats().split(';', QString::SkipEmptyParts)) {
 		if (s.contains('-')) {
-			gameGenieCodes += s.toStdString() + ";";
+			gameGenieCodes += s.toStdString() + ';';
 		} else
-			gameSharkCodes += s.toStdString() + ";";
+			gameSharkCodes += s.toStdString() + ';';
 	}
 
 	source_.setGameGenie(gameGenieCodes);
@@ -861,7 +861,6 @@ void GambatteMenuHandler::escPressed() {
 		fsAct_->trigger();
 #else
 	mw_.menuBar()->setVisible(!mw_.menuBar()->isVisible());
-
 	if (!mw_.menuBar()->isVisible())
 		mw_.hideCursor();
 #endif

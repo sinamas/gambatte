@@ -20,13 +20,27 @@
 #define CORE_AUDIO_ENGINE_H
 
 #include "../audioengine.h"
-#include "uncopyable.h"
-#include <ringbuffer.h>
+#include "ringbuffer.h"
 #include <AudioUnit/AudioUnit.h>
 #include <pthread.h>
 
-class CoreAudioEngine : public AudioEngine, private Uncopyable {
-	enum { UNIT_CLOSED = 0, UNIT_OPENED, UNIT_INITED };
+class CoreAudioEngine : public AudioEngine {
+public:
+	CoreAudioEngine();
+	virtual ~CoreAudioEngine();
+	virtual void uninit();
+	virtual int write(void *buffer, std::size_t frames);
+	virtual int write(void *buffer, std::size_t samples,
+	                  BufferState &preBufState_out, long &rate_out);
+	virtual BufferState bufferState() const;
+	virtual long rateEstimate() const;
+	virtual void pause();
+
+protected:
+	virtual long doInit(long rate, int latency);
+
+private:
+	enum { unit_closed = 0, unit_opened, unit_inited };
 
 	RingBuffer<SInt16> rbuf;
 	AudioUnit outUnit;
@@ -36,21 +50,11 @@ class CoreAudioEngine : public AudioEngine, private Uncopyable {
 	Float64 rateEst;
 	bool running;
 
-	static OSStatus renderProc(void *inRefCon, AudioUnitRenderActionFlags *inActionFlags,
-			const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumFrames, AudioBufferList *ioData);
-	unsigned read(void *stream, unsigned frames, Float64 rateScalar);
-	int doInit(int rate, unsigned latency);
-	int doWrite(void *buffer, unsigned frames);
-
-public:
-	CoreAudioEngine();
-	~CoreAudioEngine();
-	void uninit();
-	int write(void *buffer, unsigned frames);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
-	const BufferState bufferState() const;
-	long rateEstimate() const;
-	void pause();
+	static OSStatus renderProc(void *refCon, AudioUnitRenderActionFlags *inActionFlags,
+	                           AudioTimeStamp const *timeStamp, UInt32 busNumber,
+	                           UInt32 numFrames, AudioBufferList *ioData);
+	std::size_t read(void *stream, std::size_t frames, Float64 rateScalar);
+	int doWrite(void *buffer, std::size_t frames);
 };
 
 #endif

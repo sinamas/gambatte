@@ -24,31 +24,31 @@ class QString;
 class QWidget;
 
 class ConstAudioEngineConf {
-	const AudioEngine *const ae;
-
 public:
-	/*explicit */ConstAudioEngineConf(const AudioEngine *const ae) : ae(ae) {}
-	const QString& nameString() const;
-	QWidget* settingsWidget() const;
+	/*explicit */ConstAudioEngineConf(AudioEngine const *ae) : ae_(ae) {}
+	QString const & nameString() const;
+	QWidget * settingsWidget() const;
 	void rejectSettings() const;
+	bool operator==(ConstAudioEngineConf r) const { return ae_ == r.ae_; }
+	bool operator!=(ConstAudioEngineConf r) const { return ae_ != r.ae_; }
 
-	bool operator==(ConstAudioEngineConf r) const { return ae == r.ae; }
-	bool operator!=(ConstAudioEngineConf r) const { return ae != r.ae; }
+private:
+	AudioEngine const *ae_;
 };
 
 class AudioEngineConf {
-	AudioEngine *const ae;
-
 public:
-	/*explicit */AudioEngineConf(AudioEngine *const ae) : ae(ae) {}
-	const QString& nameString() const;
-	QWidget* settingsWidget() const;
+	/*explicit */AudioEngineConf(AudioEngine *ae) : ae_(ae) {}
+	QString const & nameString() const;
+	QWidget * settingsWidget() const;
 	void acceptSettings() const;
 	void rejectSettings() const;
+	bool operator==(AudioEngineConf r) const { return ae_ == r.ae_; }
+	bool operator!=(AudioEngineConf r) const { return ae_ != r.ae_; }
+	operator ConstAudioEngineConf() const { return ConstAudioEngineConf(ae_); }
 
-	bool operator==(AudioEngineConf r) const { return ae == r.ae; }
-	bool operator!=(AudioEngineConf r) const { return ae != r.ae; }
-	operator const ConstAudioEngineConf() const { return ConstAudioEngineConf(ae); }
+private:
+	AudioEngine *ae_;
 };
 
 #endif

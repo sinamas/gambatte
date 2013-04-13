@@ -19,30 +19,30 @@
 #include "audioengineconf.h"
 #include "audioengine.h"
 
-const QString& ConstAudioEngineConf::nameString() const {
-	return ae->nameString();
+QString const & ConstAudioEngineConf::nameString() const {
+	return ae_->nameString();
 }
 
-QWidget* ConstAudioEngineConf::settingsWidget() const {
-	return ae->settingsWidget();
+QWidget * ConstAudioEngineConf::settingsWidget() const {
+	return ae_->settingsWidget();
 }
 
 void ConstAudioEngineConf::rejectSettings() const {
-	ae->rejectSettings();
+	ae_->rejectSettings();
 }
 
-const QString& AudioEngineConf::nameString() const {
-	return ae->nameString();
+QString const & AudioEngineConf::nameString() const {
+	return ae_->nameString();
 }
 
-QWidget* AudioEngineConf::settingsWidget() const {
-	return ae->settingsWidget();
+QWidget * AudioEngineConf::settingsWidget() const {
+	return ae_->settingsWidget();
 }
 
 void AudioEngineConf::acceptSettings() const {
-	ae->acceptSettings();
+	ae_->acceptSettings();
 }
 
 void AudioEngineConf::rejectSettings() const {
-	ae->rejectSettings();
+	ae_->rejectSettings();
 }

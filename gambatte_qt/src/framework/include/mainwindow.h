@@ -96,10 +96,10 @@ public:
 	void unpause(unsigned bitmask = 1);
 
 	/** Pauses audio/video production. Will add inc to pause. Pauses when pause is not 0. */
-	void incPause(unsigned inc);
+	void incPause(int inc);
 
 	/** Resumes audio/video production. Will subtract dec from pause. Unpauses when pause is 0. */
-	void decPause(unsigned dec);
+	void decPause(int dec);
 
 	/** Pauses audio/video production automatically when the central widget of the MainWindow loses focus.
 	  * Calls pause(bitmask) on focusOut, and unpause(bitmask) on focusIn.
@@ -119,9 +119,9 @@ public:
 	/** The video format is the format of the video content produced by MediaSource.
 	  * This will set the "frame buffer" to the requested format.
 	  */
-	void setVideoFormat(unsigned w, unsigned h/*, PixelBuffer::PixelFormat pf*/);
+	void setVideoFormat(QSize const &size/*, PixelBuffer::PixelFormat pf*/);
 
-	void setAspectRatio(const QSize &ar);
+	void setAspectRatio(QSize const &ar);
 	void setScalingMethod(ScalingMethod smet);
 
 	/**
@@ -129,27 +129,27 @@ public:
 	  * Should be used in place of methods like QMainWindow::resize, because this
 	  * one does not screw up full screen.
 	  *
-	  * Pass size = QSize(-1, -1) for a variable size, such that the user may adjust
+	  * Pass an empty size for a variable size, such that the user may adjust
 	  * the window size. Otherwise a fixed window size equal to size will be used.
 	  * This window size does not include window borders or menus.
 	  */
 	void setWindowSize(QSize const &size);
 
 	/** Each blitter has some properties that can be accessed through its BlitterConf. */
-	const BlitterConf blitterConf(std::size_t blitterNo);
-	const ConstBlitterConf blitterConf(std::size_t blitterNo) const;
+	BlitterConf blitterConf(std::size_t blitterNo);
+	ConstBlitterConf blitterConf(std::size_t blitterNo) const;
 	std::size_t numBlitters() const;
-	const BlitterConf currentBlitterConf();
-	const ConstBlitterConf currentBlitterConf() const;
+	BlitterConf currentBlitterConf();
+	ConstBlitterConf currentBlitterConf() const;
 
 	/** A video blitter is an engine (DirectDraw, Xv, etc.) responsible for putting video content on the screen. */
 	void setVideoBlitter(std::size_t blitterNo);
 
-	void setVideoFormatAndBlitter(unsigned w, unsigned h,
+	void setVideoFormatAndBlitter(QSize const &size,
 			/*PixelBuffer::PixelFormat pf, */std::size_t blitterNo);
 
 	/** speed = N, gives N times faster than normal when fastForward is enabled. */
-	void setFastForwardSpeed(unsigned speed);
+	void setFastForwardSpeed(int speed);
 
 	/** Sets the video mode that is used for full screen (see toggleFullScreen).
 	  * A screen is basically a monitor. A different full screen mode can be selected for each screen.
@@ -161,9 +161,9 @@ public:
 	void setFullScreenMode(std::size_t screenNo, std::size_t resIndex, std::size_t rateIndex);
 
 	/** Returns the modes supported by each screen. */
-	const std::vector<ResInfo>& modeVector(std::size_t screen) const;
+	std::vector<ResInfo> const & modeVector(std::size_t screen) const;
 
-	const QString screenName(std::size_t screen) const;
+	QString const screenName(std::size_t screen) const;
 
 	/** Returns the number of screens. */
 	std::size_t screens() const;
@@ -183,22 +183,22 @@ public:
 	void toggleFullScreen();
 
 	/** Each AudioEngine has some properties that can be accessed through its AudioEngineConf. */
-	const AudioEngineConf audioEngineConf(std::size_t aeNo);
-	const ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const;
+	AudioEngineConf audioEngineConf(std::size_t aeNo);
+	ConstAudioEngineConf audioEngineConf(std::size_t aeNo) const;
 	std::size_t numAudioEngines() const;
 
 	/** Audio resamplers of different performance can be selected. */
 	std::size_t numResamplers() const;
-	const char* resamplerDesc(std::size_t resamplerNo) const;
+	char const * resamplerDesc(std::size_t resamplerNo) const;
 
 	/** Sets the AudioEngine (DirectSound, ALSA, etc.) to be used for audio output,
 	  * as well as which output sampling rate, buffer size in milliseconds, and resampler to use.
 	  * The sampling rate does not need to match the sampling rate of the audio content produced
 	  * by the source, as the input will be converted to match the output rate.
 	  */
-	void setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo);
+	void setAudioOut(std::size_t engineNo, long srateHz, int msecLatency, std::size_t resamplerNo);
 
-	/** Pause doesn't take effect immediately. Call this to wait until the worker thread is paused.
+	/** Pause does not take effect immediately. Call this to wait until the worker thread is paused.
 	  * Meant as a tool to simplify thread safety.
 	  */
 	void waitUntilPaused();
@@ -209,7 +209,7 @@ public:
 	  * Meant as a tool to simplify thread safety.
 	  */
 	template<class T>
-	void callWhenPaused(const T &fun);
+	void callWhenPaused(T const &fun);
 
 	/** Puts fun into a queue of functors that are called in the worker thread at a later time.
 	  * fun should implement operator() and have a copy-constructor.
@@ -218,7 +218,7 @@ public:
 	  * is more likely to cause audio underruns.
 	  */
 	template<class T>
-	void callInWorkerThread(const T &fun);
+	void callInWorkerThread(T const &fun);
 
 	/** Discard buffered audio data */
 	void resetAudio();
@@ -244,23 +244,23 @@ signals:
 	void dwmCompositionChange();
 
 protected:
-	virtual void mouseMoveEvent(QMouseEvent*);
-	virtual void closeEvent(QCloseEvent*);
-	virtual void moveEvent(QMoveEvent*);
-	virtual void resizeEvent(QResizeEvent*);
-	virtual void hideEvent(QHideEvent*);
-	virtual void showEvent(QShowEvent*);
-	virtual void focusOutEvent(QFocusEvent*);
-	virtual void focusInEvent(QFocusEvent*);
-	virtual void keyPressEvent(QKeyEvent*);
-	virtual void keyReleaseEvent(QKeyEvent*);
+	virtual void mouseMoveEvent(QMouseEvent *);
+	virtual void closeEvent(QCloseEvent *);
+	virtual void moveEvent(QMoveEvent *);
+	virtual void resizeEvent(QResizeEvent *);
+	virtual void hideEvent(QHideEvent *);
+	virtual void showEvent(QShowEvent *);
+	virtual void focusOutEvent(QFocusEvent *);
+	virtual void focusInEvent(QFocusEvent *);
+	virtual void keyPressEvent(QKeyEvent *);
+	virtual void keyReleaseEvent(QKeyEvent *);
 #ifdef Q_WS_WIN
 	virtual bool winEvent(MSG *msg, long *result);
 #endif
 
 private:
 	void correctFullScreenGeometry();
-	void doSetWindowSize(const QSize &sz);
+	void doSetWindowSize(QSize const &sz);
 	void doShowFullScreen();
 
 	MediaWidget *const w_;
@@ -276,12 +276,12 @@ public:
 	~CallWhenMediaWorkerPaused();
 
 	template<class T>
-	void operator()(const T &function) const { callq_.push(function); }
+	void operator()(T const &function) const { callq_.push(function); }
 };
 
 template<class T>
-void MainWindow::callWhenPaused(const T &fun) {
-	const CallWhenMediaWorkerPaused call(*w_);
+void MainWindow::callWhenPaused(T const &fun) {
+	CallWhenMediaWorkerPaused call(*w_);
 	call(fun);
 }
 
@@ -293,12 +293,12 @@ public:
 	~PushMediaWorkerCall();
 
 	template<class T>
-	void operator()(const T &function) const { callq_.push(function); }
+	void operator()(T const &function) const { callq_.push(function); }
 };
 
 template<class T>
-void MainWindow::callInWorkerThread(const T &fun) {
-	const PushMediaWorkerCall pushMediaWorkerCall(*w_);
+void MainWindow::callInWorkerThread(T const &fun) {
+	PushMediaWorkerCall pushMediaWorkerCall(*w_);
 	pushMediaWorkerCall(fun);
 }
 

@@ -17,6 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "cheatdialog.h"
+#include "dialoghelpers.h"
 #include "scoped_ptr.h"
 #include <QAbstractListModel>
 #include <QHBoxLayout>
@@ -88,16 +89,15 @@ private:
 	std::vector<CheatListItem> items_;
 };
 
-}
+} // anon ns
 
 GetCheatInput::GetCheatInput(QString const &desc, QString const &code, QWidget *parent)
 : QDialog(parent)
-, codeEdit_(new QLineEdit(code))
-, descEdit_(new QLineEdit(desc))
-, okButton_(new QPushButton(tr("OK")))
+, descEdit_(new QLineEdit(desc, this))
+, codeEdit_(new QLineEdit(code, this))
+, okButton_(new QPushButton(tr("OK"), this))
 {
-	QVBoxLayout *const l = new QVBoxLayout;
-	setLayout(l);
+	QVBoxLayout *const l = new QVBoxLayout(this);
 	l->addWidget(new QLabel(tr("Description:")));
 	l->addWidget(descEdit_);
 	l->addWidget(new QLabel(tr("GG/GS Code:")));
@@ -109,21 +109,18 @@ GetCheatInput::GetCheatInput(QString const &desc, QString const &code, QWidget *
 	codeEdit_->setToolTip(tr("Game Genie: hhh-hhh-hhh;...\nGame Shark: 01hhhhhh;..."));
 	codeEdit_->setWhatsThis(codeEdit_->toolTip());
 
-	QHBoxLayout *const hl = new QHBoxLayout;
-	l->addLayout(hl);
-	l->setAlignment(hl, Qt::AlignBottom | Qt::AlignRight);
+	QHBoxLayout *const hl = addLayout(l, new QHBoxLayout,
+	                                  Qt::AlignBottom | Qt::AlignRight);
 	hl->addWidget(okButton_);
-	QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
-	hl->addWidget(cancelButton);
-
+	QPushButton *const cancelButton = addWidget(hl, new QPushButton(tr("Cancel")));
 	okButton_->setEnabled(codeEdit_->hasAcceptableInput());
 	connect(codeEdit_, SIGNAL(textChanged(QString const &)),
-	        this, SLOT(codeTextEdited(QString const &)));
+	        this, SLOT(codeTextEdited()));
 	connect(okButton_, SIGNAL(clicked()), this, SLOT(accept()));
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 }
 
-void GetCheatInput::codeTextEdited(QString const &) {
+void GetCheatInput::codeTextEdited() {
 	okButton_->setEnabled(codeEdit_->hasAcceptableInput());
 }
 
@@ -137,44 +134,34 @@ QString const GetCheatInput::descText() const {
 
 CheatDialog::CheatDialog(QString const &savefile, QWidget *parent)
 : QDialog(parent)
-, view_(new QListView())
-, editButton_(new QPushButton(tr("Edit...")))
-, rmButton_(new QPushButton(tr("Remove")))
+, view_(new QListView(this))
+, editButton_(new QPushButton(tr("Edit..."), this))
+, rmButton_(new QPushButton(tr("Remove"), this))
 , savefile_(savefile)
 {
 	setWindowTitle("Cheats");
 
-	QVBoxLayout *const mainLayout = new QVBoxLayout;
-	setLayout(mainLayout);
-	QVBoxLayout *const viewLayout = new QVBoxLayout;
-	mainLayout->addLayout(viewLayout);
+	QVBoxLayout *const mainLayout = new QVBoxLayout(this);
+	QVBoxLayout *const viewLayout = addLayout(mainLayout, new QVBoxLayout);
 	viewLayout->addWidget(view_);
 	resetViewModel(items_);
 
-	{
-		QPushButton *const addButton = new QPushButton("Add...");
-		viewLayout->addWidget(addButton);
-		connect(addButton, SIGNAL(clicked()), this, SLOT(addCheat()));
-	}
-
+	QPushButton *const addButton = addWidget(viewLayout, new QPushButton(tr("Add...")));
+	connect(addButton,  SIGNAL(clicked()), this, SLOT(addCheat()));
+	editButton_->setParent(0); // tab order reparent
 	viewLayout->addWidget(editButton_);
 	connect(editButton_, SIGNAL(clicked()), this, SLOT(editCheat()));
+	rmButton_->setParent(0); // tab order reparent
 	viewLayout->addWidget(rmButton_);
 	connect(rmButton_, SIGNAL(clicked()), this, SLOT(removeCheat()));
 
-	{
-		QPushButton *const okButton = new QPushButton(tr("OK"));
-		QPushButton *const cancelButton = new QPushButton(tr("Cancel"));
-		okButton->setDefault(true);
-		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
-		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-
-		QBoxLayout *const hLayout = new QHBoxLayout;
-		hLayout->addWidget(okButton);
-		hLayout->addWidget(cancelButton);
-		mainLayout->addLayout(hLayout);
-		mainLayout->setAlignment(hLayout, Qt::AlignBottom | Qt::AlignRight);
-	}
+	QBoxLayout *const hLayout = addLayout(mainLayout, new QHBoxLayout,
+	                                      Qt::AlignBottom | Qt::AlignRight);
+	QPushButton *const okButton = addWidget(hLayout, new QPushButton(tr("OK")));
+	QPushButton *const cancelButton = addWidget(hLayout, new QPushButton(tr("Cancel")));
+	okButton->setDefault(true);
+	connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
+	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 }
 
 CheatDialog::~CheatDialog() {
@@ -229,21 +216,20 @@ void CheatDialog::resetViewModel(std::vector<CheatListItem> const &items, int co
 	scoped_ptr<QAbstractItemModel> const oldModel(view_->model());
 	view_->setModel(new CheatListModel(items, this));
 	view_->setCurrentIndex(view_->model()->index(newCurRow, 0, QModelIndex()));
-	selectionChanged(view_->selectionModel()->currentIndex(), QModelIndex());
+	selectionChanged(view_->selectionModel()->currentIndex());
 	connect(view_->selectionModel(),
 	        SIGNAL(currentChanged(QModelIndex const &, QModelIndex const &)),
-	        this, SLOT(selectionChanged(QModelIndex const &, QModelIndex const &)));
+	        this, SLOT(selectionChanged(QModelIndex const &)));
 }
 
 void CheatDialog::addCheat() {
-	scoped_ptr<GetCheatInput> const getCheatDialog(new GetCheatInput(QString(), QString(), this));
-	getCheatDialog->setWindowTitle(tr("Add Cheat"));
-
-	if (getCheatDialog->exec()) {
+	GetCheatInput getCheatDialog(QString(), QString(), this);
+	getCheatDialog.setWindowTitle(tr("Add Cheat"));
+	if (getCheatDialog.exec()) {
 		std::vector<CheatListItem> items =
 			static_cast<CheatListModel *>(view_->model())->items();
-		CheatListItem const item(getCheatDialog->descText(),
-		                         getCheatDialog->codeText(),
+		CheatListItem const item(getCheatDialog.descText(),
+		                         getCheatDialog.codeText(),
 		                         false);
 		std::vector<CheatListItem>::iterator it =
 			items.insert(std::lower_bound(items.begin(), items.end(), item,
@@ -258,13 +244,11 @@ void CheatDialog::editCheat() {
 	std::vector<CheatListItem> items = static_cast<CheatListModel *>(view_->model())->items();
 
 	if (row < items.size()) {
-		scoped_ptr<GetCheatInput> const getCheatDialog(
-			new GetCheatInput(items[row].label, items[row].code, this));
-		getCheatDialog->setWindowTitle(tr("Edit Cheat"));
-
-		if (getCheatDialog->exec()) {
-			CheatListItem const item(getCheatDialog->descText(),
-			                         getCheatDialog->codeText(),
+		GetCheatInput getCheatDialog(items[row].label, items[row].code, this);
+		getCheatDialog.setWindowTitle(tr("Edit Cheat"));
+		if (getCheatDialog.exec()) {
+			CheatListItem const item(getCheatDialog.descText(),
+			                         getCheatDialog.codeText(),
 			                         items[row].checked);
 			items.erase(items.begin() + row);
 
@@ -289,7 +273,7 @@ void CheatDialog::removeCheat() {
 	}
 }
 
-void CheatDialog::selectionChanged(QModelIndex const &current, QModelIndex const &) {
+void CheatDialog::selectionChanged(QModelIndex const &current) {
 	editButton_->setEnabled(current.isValid());
 	rmButton_->setEnabled(current.isValid());
 }
@@ -298,7 +282,7 @@ QString const CheatDialog::cheats() const {
 	QString s;
 	for (std::size_t i = 0; i < items_.size(); ++i) {
 		if (items_[i].checked)
-			s += items_[i].code + ";";
+			s += items_[i].code + ';';
 	}
 
 	return s;

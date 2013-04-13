@@ -24,33 +24,33 @@ class QString;
 class QWidget;
 
 class ConstBlitterConf {
-	const BlitterWidget *const blitter;
-
 public:
-	explicit ConstBlitterConf(const BlitterWidget *const blitter) : blitter(blitter) {}
-	const QString& nameString() const;
+	explicit ConstBlitterConf(BlitterWidget const *blitter) : blitter_(blitter) {}
+	QString const & nameString() const;
 	unsigned maxSwapInterval() const;
-	QWidget* settingsWidget() const;
+	QWidget * settingsWidget() const;
 	void rejectSettings() const;
+	bool operator==(ConstBlitterConf r) const { return blitter_ == r.blitter_; }
+	bool operator!=(ConstBlitterConf r) const { return blitter_ != r.blitter_; }
 
-	bool operator==(ConstBlitterConf r) const { return blitter == r.blitter; }
-	bool operator!=(ConstBlitterConf r) const { return blitter != r.blitter; }
+private:
+	BlitterWidget const *blitter_;
 };
 
 class BlitterConf {
-	BlitterWidget *const blitter;
-
 public:
-	explicit BlitterConf(BlitterWidget *const blitter) : blitter(blitter) {}
-	const QString& nameString() const;
+	explicit BlitterConf(BlitterWidget *blitter) : blitter_(blitter) {}
+	QString const & nameString() const;
 	unsigned maxSwapInterval() const;
-	QWidget* settingsWidget() const;
+	QWidget * settingsWidget() const;
 	void acceptSettings() const;
 	void rejectSettings() const;
+	bool operator==(BlitterConf r) const { return blitter_ == r.blitter_; }
+	bool operator!=(BlitterConf r) const { return blitter_ != r.blitter_; }
+	operator ConstBlitterConf() const { return ConstBlitterConf(blitter_); }
 
-	bool operator==(BlitterConf r) const { return blitter == r.blitter; }
-	bool operator!=(BlitterConf r) const { return blitter != r.blitter; }
-	operator const ConstBlitterConf() const { return ConstBlitterConf(blitter); }
+private:
+	BlitterWidget *blitter_;
 };
 
 #endif

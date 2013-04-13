@@ -20,7 +20,7 @@
 #include "../blitterwidget.h"
 #include "../swscale.h"
 #include "array.h"
-#include "persistcheckbox.h"
+#include "dialoghelpers.h"
 #include "scoped_ptr.h"
 #include <QCheckBox>
 #include <QPaintEvent>
@@ -300,7 +300,8 @@ public:
 	: BlitterWidget(vbl, QString("X11"), false, parent)
 	, visualInfo_(getVisualInfo().get())
 	, confWidget_(new QWidget)
-	, bf_(new QCheckBox(QString("Semi-bilinear filtering")), "x11blitter/bf", false)
+	, bf_(new QCheckBox(tr("Semi-bilinear filtering"), confWidget_.get()),
+	      "x11blitter/bf", false)
 	{
 		confWidget_->setLayout(new QVBoxLayout);
 		confWidget_->layout()->setMargin(0);
@@ -319,7 +320,7 @@ public:
 
 	virtual bool isUnusable() const { return !visualInfo_.visual; }
 
-	virtual long sync() {
+	virtual int present() {
 		if (!image0_ || !image1_)
 			return -1;
 
@@ -329,21 +330,21 @@ public:
 		return 0;
 	}
 
-	virtual void blit();
 	virtual QWidget * settingsWidget() const { return confWidget_.get(); }
 	virtual void acceptSettings() { bf_.accept(); }
 	virtual void rejectSettings() const { bf_.reject(); }
 	virtual QPaintEngine * paintEngine() const { return 0; }
 
 protected:
-	virtual void setBufferDimensions(unsigned w, unsigned h) {
+	virtual void consumeBuffer(SetBuffer setInputBuffer);
+
+	virtual void setBufferDimensions(unsigned w, unsigned h, SetBuffer setInputBuffer) {
 		uninit();
 
 		bool shm = XShmQueryExtension(QX11Info::display());
 		image0_ = createImage(QSize(w, h), visualInfo_, shm);
 		image1_ = createImage(size(), visualInfo_, shm);
-
-		setPixelBuffer(image0_ ? image0_->pixels() : 0,
+		setInputBuffer(image0_ ? image0_->pixels() : 0,
 		               visualInfo_.depth <= 16 ? PixelBuffer::RGB16 : PixelBuffer::RGB32,
 		               image0_ ? image0_->pitch() : 0);
 	}
@@ -379,7 +380,7 @@ private:
 	PersistCheckBox bf_;
 };
 
-void X11Blitter::blit() {
+void X11Blitter::consumeBuffer(SetBuffer setInputBuffer) {
 	if (!image0_ || !image1_)
 		return;
 
@@ -387,7 +388,7 @@ void X11Blitter::blit() {
 	Image const &frontImage = inBuffer().data == image0_->pixels() ? *image1_ : *image0_;
 	if (backImage.size() == frontImage.size()) {
 		// flip
-		setPixelBuffer(frontImage.pixels(), inBuffer().pixelFormat, frontImage.pitch());
+		setInputBuffer(frontImage.pixels(), inBuffer().pixelFormat, frontImage.pitch());
 	} else
 		copyImage(frontImage, backImage, visualInfo_.depth, bf_.value());
 }

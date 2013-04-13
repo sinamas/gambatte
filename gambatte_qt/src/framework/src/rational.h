@@ -23,11 +23,11 @@ struct Rational {
 	long num;
 	long denom;
 
-	Rational(const long num = 1, const long denom = 1) : num(num), denom(denom) {}
+	Rational(long num = 1, long denom = 1) : num(num), denom(denom) {}
 	float toFloat() const { return static_cast<float>(num) / denom; }
 	double toDouble() const { return static_cast<double>(num) / denom; }
 
-	const Rational reciprocal() const { return Rational(denom, num); }
+	Rational reciprocal() const { return Rational(denom, num); }
 
 	// assumes positive num and denom
 	long ceiled() const { return (num - 1) / denom + 1; }
@@ -35,11 +35,11 @@ struct Rational {
 	long rounded() const { return (num + (denom >> 1)) / denom; }
 };
 
-inline bool operator==(const Rational &lhs, const Rational &rhs) {
+inline bool operator==(Rational const &lhs, Rational const &rhs) {
 	return lhs.num == rhs.num && lhs.denom == rhs.denom;
 }
 
-inline bool operator!=(const Rational &lhs, const Rational &rhs) {
+inline bool operator!=(Rational const &lhs, Rational const &rhs) {
 	return lhs.num != rhs.num || lhs.denom != rhs.denom;
 }
 

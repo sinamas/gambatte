@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,10 +19,10 @@
 #ifndef ADD_BLITTER_WIDGETS_H
 #define ADD_BLITTER_WIDGETS_H
 
-class BlitterWidget;
-
 #include "videobufferlocker.h"
 #include "auto_vector.h"
+
+class BlitterWidget;
 
 void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl);
 

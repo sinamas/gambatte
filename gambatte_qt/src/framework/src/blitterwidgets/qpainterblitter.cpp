@@ -19,7 +19,7 @@
 #include "qpainterblitter.h"
 #include "../blitterwidget.h"
 #include "../swscale.h"
-#include "persistcheckbox.h"
+#include "dialoghelpers.h"
 #include "scoped_ptr.h"
 #include <QCheckBox>
 #include <QImage>
@@ -35,7 +35,7 @@ public:
 	QPainterBlitter(VideoBufferLocker vbl, QWidget *parent)
 	: BlitterWidget(vbl, "QPainter", false, parent)
 	, confWidget_(new QWidget)
-	, bf_(new QCheckBox(QString("Semi-bilinear filtering"), confWidget_.get()),
+	, bf_(new QCheckBox(tr("Semi-bilinear filtering"), confWidget_.get()),
 	      "qpainterblitter/bf", false)
 	{
 		confWidget_->setLayout(new QVBoxLayout);
@@ -45,16 +45,8 @@ public:
 		setAttribute(Qt::WA_OpaquePaintEvent, true);
 	}
 
-	virtual void blit();
 	virtual void draw() { repaint(); }
-
-	virtual void setBufferDimensions(unsigned const w, unsigned const h) {
-		uninit();
-		image0_.reset(new QImage(w, h, QImage::Format_RGB32));
-		image1_.reset(new QImage(size(), QImage::Format_RGB32));
-		setPixelBuffer(image0_->bits(), PixelBuffer::RGB32,
-		               image0_->bytesPerLine() >> 2);
-	}
+	virtual int present() { return 0; }
 
 	virtual void uninit() {
 		image0_.reset();
@@ -66,7 +58,26 @@ public:
 	virtual void rejectSettings() const { bf_.reject(); }
 
 protected:
+	virtual void consumeBuffer(SetBuffer setInputBuffer) {
+		QImage &frontBuf = inBuffer().data == image0_->bits() ? *image1_ : *image0_;
+		if (image0_->size() == image1_->size()) {
+			// flip
+			setInputBuffer(frontBuf.bits(), PixelBuffer::RGB32,
+			               frontBuf.bytesPerLine() >> 2);
+		} else {
+			scaleInputBufferOnto(frontBuf);
+		}
+	}
+
 	virtual void privSetPaused(bool ) {}
+
+	virtual void setBufferDimensions(unsigned w, unsigned h, SetBuffer setInputBuffer) {
+		uninit();
+		image0_.reset(new QImage(w, h, QImage::Format_RGB32));
+		image1_.reset(new QImage(size(), QImage::Format_RGB32));
+		setInputBuffer(image0_->bits(), PixelBuffer::RGB32,
+		               image0_->bytesPerLine() >> 2);
+	}
 
 	virtual void paintEvent(QPaintEvent *event) {
 		if (image0_ && image1_) {
@@ -92,7 +103,7 @@ protected:
 		} else {
 			frontImage.reset();
 			frontImage.reset(new QImage(size(), QImage::Format_RGB32));
-			blit();
+			scaleInputBufferOnto(*frontImage);
 		}
 	}
 
@@ -101,15 +112,12 @@ private:
 	scoped_ptr<QImage> image0_;
 	scoped_ptr<QImage> image1_;
 	PersistCheckBox bf_;
+
+	void scaleInputBufferOnto(QImage &frontBuf) const;
 };
 
-void QPainterBlitter::blit() {
-	QImage &frontBuf = inBuffer().data == image0_->bits() ? *image1_ : *image0_;
-
-	if (image0_->size() == image1_->size()) {
-		// flip
-		setPixelBuffer(frontBuf.bits(), PixelBuffer::RGB32, frontBuf.bytesPerLine() >> 2);
-	} else if (bf_.value()) {
+void QPainterBlitter::scaleInputBufferOnto(QImage &frontBuf) const {
+	if (bf_.value()) {
 		semiLinearScale<quint32, 0xFF00FF, 0x00FF00, 8>(
 			reinterpret_cast<quint32 *>(frontBuf.bits()), frontBuf.bytesPerLine() >> 2,
 			frontBuf.width(), frontBuf.height(),

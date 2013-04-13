@@ -20,6 +20,7 @@
 #define VIDEODIALOG_H
 
 #include "auto_vector.h"
+#include "dialoghelpers.h"
 #include "resinfo.h"
 #include "scalingmethod.h"
 #include <QDialog>
@@ -27,123 +28,67 @@
 #include <vector>
 
 class MainWindow;
-class QVBoxLayout;
-class QHBoxLayout;
-class QComboBox;
-class QAbstractButton;
 class QRadioButton;
-class QLabel;
-class QBoxLayout;
 
 /**
   * A utility class that can optionally be used to provide a GUI for
   * configuring video settings.
   */
 class VideoDialog : public QDialog {
-	Q_OBJECT
-
 public:
 	struct VideoSourceInfo {
-		// label used in the video dialog combobox.
 		QString label;
-
-		unsigned width;
-		unsigned height;
+		QSize size;
 	};
 
-private:
-	class PersistInt {
-		const QString key_;
-		int i_;
-	public:
-		PersistInt(const QString &key, int upper, int lower = 0, int defaultVal = 0);
-		~PersistInt();
-		PersistInt & operator=(int i) { i_ = i; return *this; }
-		operator int() const { return i_; }
-	};
-
-	class EngineSelector {
-		QComboBox *const comboBox_;
-		PersistInt index_;
-
-	public:
-		explicit EngineSelector(MainWindow const &mw);
-		void addToLayout(QBoxLayout *topLayout);
-		const QComboBox * comboBox() const { return comboBox_; }
-		void store();
-		void restore();
-		int index() const { return index_; }
-	};
-
-	class ScalingMethodSelector {
-		QRadioButton *const unrestrictedScalingButton_;
-		QRadioButton *const keepRatioButton_;
-		QRadioButton *const integerScalingButton_;
-		PersistInt scaling_;
-
-	public:
-		ScalingMethodSelector();
-		void addToLayout(QLayout *layout);
-		const QAbstractButton * integerScalingButton() const;
-		void store();
-		void restore();
-		ScalingMethod scalingMethod() const { return static_cast<ScalingMethod>(static_cast<int>(scaling_)); }
-	};
-
-	class SourceSelector {
-		QLabel *const label_;
-		QComboBox *const comboBox_;
-		PersistInt index_;
-
-	public:
-		SourceSelector(const QString &sourcesLabel, const std::vector<VideoSourceInfo> &sourceInfos);
-		void addToLayout(QBoxLayout *layout);
-		const QComboBox * comboBox() const { return comboBox_; }
-		void setVideoSources(const std::vector<VideoSourceInfo> &sourceInfos);
-		void store();
-		void restore();
-		int index() const { return index_; }
-	};
-
-	class FullResSelector;
-	class FullHzSelector;
-
-	MainWindow const &mw_;
-	QVBoxLayout *const topLayout;
-	QWidget *engineWidget;
-	EngineSelector engineSelector;
-	ScalingMethodSelector scalingMethodSelector;
-	SourceSelector sourceSelector;
-	auto_vector<FullResSelector> const fullResSelectors;
-	auto_vector<FullHzSelector> const fullHzSelectors;
-
-	void fillFullResSelectors();
-	void store();
-	void restore();
-
-private slots:
-	void engineChange(int index);
-	void fullresChange(int index);
-	void sourceChange(int index);
-
-public:
 	VideoDialog(MainWindow const &mw,
 	            std::vector<VideoSourceInfo> const &sourceInfos,
 	            QString const &sourcesLabel,
 	            QWidget *parent = 0);
-	~VideoDialog();
-	int blitterNo() const;
-	unsigned fullResIndex(unsigned screen) const;
-	unsigned fullRateIndex(unsigned screen) const;
-	unsigned sourceIndex() const { return sourceSelector.index(); }
+	std::size_t blitterNo() const { return engineSelector_.index(); }
+	std::size_t fullResIndex(std::size_t screen) const;
+	std::size_t fullRateIndex(std::size_t screen) const;
+	std::size_t sourceIndex() const { return sourceSelector_.index(); }
 	QSize const sourceSize() const;
-	void setVideoSources(std::vector<VideoSourceInfo> const &sourceInfos);
-	void setSourceSize(QSize const &sourceSize);
-	ScalingMethod scalingMethod() const { return scalingMethodSelector.scalingMethod(); }
+	ScalingMethod scalingMethod() const { return scalingMethodSelector_.scalingMethod(); }
 
 public slots:
-	void accept();
-	void reject();
+	virtual void accept();
+	virtual void reject();
+
+private:
+	Q_OBJECT
+
+	class ScalingMethodSelector {
+	public:
+		explicit ScalingMethodSelector(QWidget *parent);
+		~ScalingMethodSelector();
+		void addToLayout(QLayout *layout);
+		void accept();
+		void reject();
+		ScalingMethod scalingMethod() const { return scaling_; }
+
+	private:
+		QRadioButton *const unrestrictedScalingButton_;
+		QRadioButton *const keepRatioButton_;
+		QRadioButton *const integerScalingButton_;
+		ScalingMethod scaling_;
+	};
+
+	MainWindow const &mw_;
+	PersistComboBox engineSelector_;
+	PersistComboBox sourceSelector_;
+	auto_vector<PersistComboBox> const fullResSelectors_;
+	auto_vector<PersistComboBox> const fullHzSelectors_;
+	ScalingMethodSelector scalingMethodSelector_;
+	QWidget *engineWidget_;
+
+	void resIndexChange(std::size_t screen, int index);
+
+private slots:
+	void engineChange(int index);
+	void resIndexChange(int index);
+	void sourceChange(int index);
 };
 
 void applySettings(MainWindow &mw, VideoDialog const &vd);

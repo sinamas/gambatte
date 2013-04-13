@@ -18,22 +18,26 @@
  ***************************************************************************/
 #include "directdrawblitter.h"
 #include "../dwmcontrol.h"
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QSettings>
 #include <QHBoxLayout>
-#include <QVBoxLayout>
 #include <QLabel>
-#include <QApplication>
-#include <iostream>
+#include <QSettings>
+#include <QVBoxLayout>
 #include <cstring>
+#include <iostream>
 
-Q_DECLARE_METATYPE(GUID*)
+Q_DECLARE_METATYPE(GUID *)
 
-BOOL WINAPI DirectDrawBlitter::enumCallback(GUID FAR *lpGUID, char *lpDriverDescription, char */*lpDriverName*/, LPVOID lpContext, HMONITOR) {
-	DirectDrawBlitter *const thisptr = static_cast<DirectDrawBlitter*>(lpContext);
-	GUID *guidptr = NULL;
-
+BOOL WINAPI DirectDrawBlitter::enumCallback(GUID FAR *lpGUID,
+                                            char *lpDriverDescription,
+                                            char * ,
+                                            LPVOID context,
+                                            HMONITOR )
+{
+	DirectDrawBlitter *const thisptr = static_cast<DirectDrawBlitter *>(context);
+	GUID *guidptr = 0;
 	if (lpGUID) {
 		thisptr->deviceList.append(*lpGUID);
 		guidptr = &thisptr->deviceList.last();
@@ -44,56 +48,56 @@ BOOL WINAPI DirectDrawBlitter::enumCallback(GUID FAR *lpGUID, char *lpDriverDesc
 	return true;
 }
 
-DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
-	BlitterWidget(vbl, "DirectDraw", 2, parent),
-	confWidget(new QWidget),
-	vblank_(new QCheckBox(QString("Wait for vertical blank")), "directdrawblitter/vblank", false),
-	flipping_(new QCheckBox(QString("Exclusive full screen")), "directdrawblitter/flipping", false),
-	vblankflip_(new QCheckBox(QString("Flip during vertical blank")), "directdrawblitter/vblankflip", true),
-	triplebuf_(new QCheckBox("Triple buffering"), "directdrawblitter/triplebuf", false),
-	videoSurface_(new QCheckBox(QString("Use video memory surface")), "directdrawblitter/videoSurface", true),
-	deviceSelector(new QComboBox),
-	lpDD(NULL),
-	lpDDSPrimary(NULL),
-	lpDDSBack(NULL),
-	lpDDSSystem(NULL),
-	lpDDSVideo(NULL),
-	lpDDSClear(NULL),
-	lpClipper(NULL),
-	lastblank(0),
-	clear(0),
-	dhz(600),
-	swapInterval(0),
-	deviceIndex(0),
-	exclusive(false),
-	blitted(false)
+DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent)
+: BlitterWidget(vbl, "DirectDraw", 2, parent)
+, confWidget(new QWidget)
+, deviceSelector(new QComboBox(confWidget.get()))
+, vblank_(new QCheckBox(tr("Wait for vertical blank"), confWidget.get()),
+          "directdrawblitter/vblank", false)
+, flipping_(new QCheckBox(tr("Exclusive full screen"), confWidget.get()),
+            "directdrawblitter/flipping", false)
+, vblankflip_(new QCheckBox(tr("Flip during vertical blank"), confWidget.get()),
+              "directdrawblitter/vblankflip", true)
+, triplebuf_(new QCheckBox(tr("Triple buffering"), confWidget.get()),
+             "directdrawblitter/triplebuf", false)
+, videoSurface_(new QCheckBox(tr("Use video memory surface"), confWidget.get()),
+                "directdrawblitter/videoSurface", true)
+, lpDD()
+, lpDDSPrimary()
+, lpDDSBack()
+, lpDDSSystem()
+, lpDDSVideo()
+, lpDDSClear()
+, lpClipper()
+, lastblank(0)
+, clear(0)
+, dhz(600)
+, swapInterval(0)
+, deviceIndex(0)
+, exclusive(false)
+, blitted(false)
 {
 	setAttribute(Qt::WA_PaintOnScreen, true);
 
 	DirectDrawEnumerateExA(enumCallback, this, DDENUM_ATTACHEDSECONDARYDEVICES);
-
 	if (deviceSelector->count() < 1)
-		deviceSelector->addItem(QString(), QVariant::fromValue<GUID*>(NULL));
+		deviceSelector->addItem(QString(), QVariant::fromValue<GUID *>(0));
 
 	QSettings settings;
-	settings.beginGroup("directdrawblitter");
-
-	if ((deviceIndex = settings.value("deviceIndex", deviceIndex).toUInt()) >= static_cast<unsigned>(deviceSelector->count()))
+	deviceIndex = settings.value("directdrawblitter/deviceIndex", deviceIndex).toUInt();
+	if (deviceIndex >= static_cast<uint>(deviceSelector->count()))
 		deviceIndex = 0;
 
-	settings.endGroup();
-
-	QVBoxLayout *const mainLayout = new QVBoxLayout;
+	QVBoxLayout *const mainLayout = new QVBoxLayout(confWidget.get());
 	mainLayout->setMargin(0);
 
 	if (deviceSelector->count() > 2) {
-		QHBoxLayout *const hlayout = new QHBoxLayout;
-
-		hlayout->addWidget(new QLabel(QString(tr("DirectDraw device:"))));
-		hlayout->addWidget(deviceSelector);
-
+		QHBoxLayout *hlayout = new QHBoxLayout;
 		mainLayout->addLayout(hlayout);
-	}
+		hlayout->addWidget(new QLabel(tr("DirectDraw device:")));
+		hlayout->addWidget(deviceSelector);
+	} else
+		deviceSelector->hide();
 
 	mainLayout->addWidget(vblank_.checkBox());
 	vblank_.checkBox()->setToolTip(tr("Prevents tearing. Does not work well on all systems.\n"
@@ -103,23 +107,24 @@ DirectDrawBlitter::DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent) :
 
 	{
 		QHBoxLayout *l = new QHBoxLayout;
+		mainLayout->addLayout(l);
 		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
 		l->addWidget(vblankflip_.checkBox());
 		vblankflip_.checkBox()->setToolTip(tr("Prevents tearing. Recommended."));
-		mainLayout->addLayout(l);
 		l = new QHBoxLayout;
+		mainLayout->addLayout(l);
 		l->addSpacing(QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin));
 		l->addWidget(triplebuf_.checkBox());
-		mainLayout->addLayout(l);
 	}
 
 	mainLayout->addWidget(videoSurface_.checkBox());
-	confWidget->setLayout(mainLayout);
 
 	vblankflip_.checkBox()->setEnabled(flipping_.checkBox()->isChecked());
 	triplebuf_.checkBox()->setEnabled(flipping_.checkBox()->isChecked());
-	connect(flipping_.checkBox(), SIGNAL(toggled(bool)), vblankflip_.checkBox(), SLOT(setEnabled(bool)));
-	connect(flipping_.checkBox(), SIGNAL(toggled(bool)), triplebuf_.checkBox(), SLOT(setEnabled(bool)));
+	connect(flipping_.checkBox(), SIGNAL(toggled(bool)),
+	        vblankflip_.checkBox(), SLOT(setEnabled(bool)));
+	connect(flipping_.checkBox(), SIGNAL(toggled(bool)),
+	        triplebuf_.checkBox(), SLOT(setEnabled(bool)));
 
 	rejectSettings();
 }
@@ -135,13 +140,10 @@ DirectDrawBlitter::~DirectDrawBlitter() {
 
 void DirectDrawBlitter::videoSurfaceBlit() {
 	HRESULT ddrval = DD_OK;
-
-	for (unsigned n = 2; n-- && lpDDSSystem && lpDDSVideo;) {
+	for (int n = 2; n-- && lpDDSSystem && lpDDSVideo;) {
 		lpDDSSystem->PageLock(0);
 		lpDDSVideo->PageLock(0);
-
-		ddrval = lpDDSVideo->BltFast(0, 0, lpDDSSystem, NULL, DDBLTFAST_WAIT);
-
+		ddrval = lpDDSVideo->BltFast(0, 0, lpDDSSystem, 0, DDBLTFAST_WAIT);
 		lpDDSVideo->PageUnlock(0);
 		lpDDSSystem->PageUnlock(0);
 
@@ -152,7 +154,7 @@ void DirectDrawBlitter::videoSurfaceBlit() {
 	}
 
 	if (ddrval != DD_OK)
-		std::cerr << "lpDDSVideo->BltFast(0, 0, lpDDSSystem, NULL, DDBLTFAST_WAIT) failed" << std::endl;
+		std::cerr << "lpDDSVideo->BltFast() failed" << std::endl;
 }
 
 void DirectDrawBlitter::systemSurfaceBlit() {
@@ -161,33 +163,31 @@ void DirectDrawBlitter::systemSurfaceBlit() {
 	lpDDSVideo = lpDDSTmp;
 }
 
-void DirectDrawBlitter::blit() {
+void DirectDrawBlitter::consumeBuffer(SetBuffer setInputBuffer) {
 	if (!lpDDSSystem || !lpDDSVideo)
 		return;
 
-	lpDDSSystem->Unlock(NULL);
-
+	lpDDSSystem->Unlock(0);
 	if (videoSurface_.value())
 		videoSurfaceBlit();
 	else
 		systemSurfaceBlit();
 
-	{
-		DDSURFACEDESC2 ddsd;
-		ddsd.dwSize = sizeof ddsd;
-
-		if (lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
-			std::cerr << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
-			ddsd.lpSurface = NULL;
-		}
-
-		setPixelBuffer(ddsd.lpSurface, inBuffer().pixelFormat,
-				inBuffer().pixelFormat == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
+	DDSURFACEDESC2 ddsd;
+	ddsd.dwSize = sizeof ddsd;
+	if (lpDDSSystem->Lock(0, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, 0) != DD_OK) {
+		std::cerr << "lpDDSSystem->Lock() failed" << std::endl;
+		ddsd.lpSurface = 0;
 	}
+
+	std::ptrdiff_t pitch = inBuffer().pixelFormat == PixelBuffer::RGB16
+	                     ? ddsd.lPitch >> 1
+	                     : ddsd.lPitch >> 2
+	setInputBuffer(ddsd.lpSurface, inBuffer().pixelFormat, pitch);
 }
 
 void DirectDrawBlitter::draw() {
-	if (exclusive & flipping_.value()/* & ~vblankflip*/)
+	if (exclusive && flipping_.value())
 		finalBlit(DDBLT_WAIT);
 }
 
@@ -200,25 +200,22 @@ void DirectDrawBlitter::initPrimarySurface() {
 	ddsd.dwSize = sizeof ddsd;
 	ddsd.dwFlags = DDSD_CAPS;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-
-	if (exclusive & flipping_.value()) {
+	if (exclusive && flipping_.value()) {
 		ddsd.dwFlags |= DDSD_BACKBUFFERCOUNT;
 		ddsd.dwBackBufferCount = triplebuf_.value() ? 2 : 1;
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_COMPLEX | DDSCAPS_FLIP;
 	}
 
-	if (lpDD->CreateSurface(&ddsd, &lpDDSPrimary, NULL) != DD_OK) {
-		std::cerr << "lpDD->CreateSurface(&ddsd, &lpDDSPrimary, NULL) failed" << std::endl;
-		lpDDSBack = lpDDSPrimary = NULL;
+	if (lpDD->CreateSurface(&ddsd, &lpDDSPrimary, 0) != DD_OK) {
+		std::cerr << "lpDD->CreateSurface() failed" << std::endl;
+		lpDDSBack = lpDDSPrimary = 0;
 	} else {
 		lpDDSBack = lpDDSPrimary;
-
-		if (exclusive & flipping_.value()) {
+		if (exclusive && flipping_.value()) {
 			ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
-
 			if (lpDDSPrimary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDSBack) != DD_OK) {
-				std::cerr << "lpDDSPrimary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDSBack) failed" << std::endl;
-				lpDDSBack = NULL;
+				std::cerr << "lpDDSPrimary->GetAttachedSurface() failed" << std::endl;
+				lpDDSBack = 0;
 			}
 		}
 
@@ -227,8 +224,12 @@ void DirectDrawBlitter::initPrimarySurface() {
 	}
 }
 
-static void initSubSurface(IDirectDraw7 *const lpDD, IDirectDrawSurface7 *const lpDDSSystem,
-		IDirectDrawSurface7 *&lpDDSOut, const DWORD w, const DWORD h, const DWORD dwCaps) {
+static void initSubSurface(IDirectDraw7 *const lpDD,
+                           IDirectDrawSurface7 *const lpDDSSystem,
+                           IDirectDrawSurface7 *&lpDDSOut,
+                           DWORD const w, DWORD const h,
+                           DWORD const dwCaps)
+{
 	if (!lpDDSSystem)
 		return;
 
@@ -238,37 +239,34 @@ static void initSubSurface(IDirectDraw7 *const lpDD, IDirectDrawSurface7 *const 
 	lpDDSSystem->GetSurfaceDesc(&ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | dwCaps;
-
 	if (w)
 		ddsd.dwWidth = w;
-
 	if (h)
 		ddsd.dwHeight = h;
 
-	if (lpDD->CreateSurface(&ddsd, &lpDDSOut, NULL) != DD_OK) {
-		lpDDSOut = NULL;
-		std::cerr << "lpDD->CreateSurface(&ddsd, &lpDDSOut, NULL) failed" << std::endl;
+	if (lpDD->CreateSurface(&ddsd, &lpDDSOut, 0) != DD_OK) {
+		lpDDSOut = 0;
+		std::cerr << "lpDD->CreateSurface() failed" << std::endl;
 	}
 }
 
 void DirectDrawBlitter::initVideoSurface() {
-	initSubSurface(lpDD, lpDDSSystem, lpDDSVideo, 0, 0, videoSurface_.value() ? 0 : DDSCAPS_SYSTEMMEMORY);
+	initSubSurface(lpDD, lpDDSSystem, lpDDSVideo, 0, 0,
+	               videoSurface_.value() ? 0 : DDSCAPS_SYSTEMMEMORY);
 }
 
 void DirectDrawBlitter::initClearSurface() {
 	initSubSurface(lpDD, lpDDSSystem, lpDDSClear, 1, 1, 0);
-
 	if (lpDDSClear) {
 		DDSURFACEDESC2 ddsd;
 		ddsd.dwSize = sizeof ddsd;
-
-		if (lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
-			std::cerr << "lpDDSClear->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
+		if (lpDDSClear->Lock(0, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, 0) != DD_OK) {
+			std::cerr << "lpDDSClear->Lock() failed" << std::endl;
 			lpDDSClear->Release();
-			lpDDSClear = NULL;
+			lpDDSClear = 0;
 		} else {
 			std::memset(ddsd.lpSurface, 0, ddsd.ddpfPixelFormat.dwRGBBitCount / 8);
-			lpDDSClear->Unlock(NULL);
+			lpDDSClear->Unlock(0);
 		}
 	}
 
@@ -276,33 +274,29 @@ void DirectDrawBlitter::initClearSurface() {
 }
 
 void DirectDrawBlitter::init() {
-	if (DirectDrawCreateEx(deviceSelector->itemData(deviceIndex).value<GUID*>(), reinterpret_cast<void**>(&lpDD),
-			IID_IDirectDraw7, NULL) != DD_OK) {
+	if (DirectDrawCreateEx(deviceSelector->itemData(deviceIndex).value<GUID *>(),
+	                       reinterpret_cast<void **>(&lpDD), IID_IDirectDraw7, 0) != DD_OK) {
 		std::cerr << "DirectDrawCreateEx failed" << std::endl;
-		goto fail;
+		return uninit();
 	}
 
-	if (lpDD->SetCooperativeLevel(parentWidget()->parentWidget()->winId(),
-			(exclusive & flipping_.value()) ? DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN : DDSCL_NORMAL) != DD_OK) {
+	DWORD const sclFlags = exclusive && flipping_.value()
+	                     ? DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN
+	                     : DDSCL_NORMAL;
+	if (lpDD->SetCooperativeLevel(parentWidget()->parentWidget()->winId(), sclFlags) != DD_OK) {
 		std::cerr << "SetCooperativeLevel failed" << std::endl;
-		goto fail;
+		return uninit();
 	}
-
-	if (lpDD->CreateClipper(0, &lpClipper, NULL) != DD_OK) {
+	if (lpDD->CreateClipper(0, &lpClipper, 0) != DD_OK) {
 		std::cerr << "CreateClipper failed" << std::endl;
-		goto fail;
+		return uninit();
 	}
-
 	if (lpClipper->SetHWnd(0, winId()) != DD_OK) {
 		std::cerr << "SetHWnd failed" << std::endl;
-		goto fail;
+		return uninit();
 	}
 
 	initPrimarySurface();
-	return;
-
-fail:
-	uninit();
 }
 
 void DirectDrawBlitter::restoreSurfaces() {
@@ -312,12 +306,11 @@ void DirectDrawBlitter::restoreSurfaces() {
 	lpDDSPrimary->Restore();
 	lpDDSVideo->Restore();
 	lpDDSClear->Restore();
-
-	if (lpDDSPrimary->IsLost() == DDERR_SURFACELOST || lpDDSVideo->IsLost() == DDERR_SURFACELOST ||
-			lpDDSClear->IsLost() == DDERR_SURFACELOST) {
+	if (lpDDSPrimary->IsLost() == DDERR_SURFACELOST
+			|| lpDDSVideo->IsLost() == DDERR_SURFACELOST
+			|| lpDDSClear->IsLost() == DDERR_SURFACELOST) {
 		lpDDSPrimary->Release();
 		initPrimarySurface();
-
 		if (videoSurface_.value()) {
 			lpDDSVideo->Release();
 			initVideoSurface();
@@ -328,14 +321,17 @@ void DirectDrawBlitter::restoreSurfaces() {
 	}
 }
 
-static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const pixelFormat,
-		LPDIRECTDRAWSURFACE7 lpDDSPrimary) {
+static void setDdPf(DDPIXELFORMAT *const ddpf,
+                    PixelBuffer::PixelFormat *const pixelFormat,
+                    LPDIRECTDRAWSURFACE7 lpDDSPrimary)
+{
 	bool alpha = false;
 
 	ddpf->dwSize = sizeof *ddpf;
-
-	if (lpDDSPrimary && lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK && (ddpf->dwFlags & DDPF_RGB) &&
-			ddpf->dwRGBBitCount == 16) {
+	if (lpDDSPrimary
+			&& lpDDSPrimary->GetPixelFormat(ddpf) == DD_OK
+			&& (ddpf->dwFlags & DDPF_RGB)
+			&& ddpf->dwRGBBitCount == 16) {
 		*pixelFormat = PixelBuffer::RGB16;
 	} else {
 		*pixelFormat = PixelBuffer::RGB32;
@@ -344,7 +340,6 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const p
 
 	std::memset(ddpf, 0, sizeof *ddpf);
 	ddpf->dwFlags = DDPF_RGB;
-
 	if (*pixelFormat == PixelBuffer::RGB16) {
 		ddpf->dwRGBBitCount = 16;
 		ddpf->dwRBitMask = 0xF800;
@@ -355,7 +350,6 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const p
 		ddpf->dwRBitMask = 0x00FF0000;
 		ddpf->dwGBitMask = 0x0000FF00;
 		ddpf->dwBBitMask = 0x000000FF;
-
 		if (alpha) {
 			ddpf->dwFlags |= DDPF_ALPHAPIXELS;
 			ddpf->dwRGBAlphaBitMask = 0xFF000000;
@@ -363,7 +357,9 @@ static void setDdPf(DDPIXELFORMAT *const ddpf, PixelBuffer::PixelFormat *const p
 	}
 }
 
-void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned int h) {
+void DirectDrawBlitter::setBufferDimensions(unsigned const w, unsigned const h,
+                                            SetBuffer setInputBuffer)
+{
 	blitted = false;
 
 	if (!lpDDSPrimary)
@@ -371,22 +367,21 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 
 	if (lpDDSSystem) {
 		lpDDSSystem->Release();
-		lpDDSSystem = NULL;
+		lpDDSSystem = 0;
 	}
-
 	if (lpDDSVideo) {
 		lpDDSVideo->Release();
-		lpDDSVideo = NULL;
+		lpDDSVideo = 0;
 	}
-
 	if (lpDDSClear) {
 		lpDDSClear->Release();
-		lpDDSClear = NULL;
+		lpDDSClear = 0;
 	}
 
 	DDPIXELFORMAT ddpf;
 	PixelBuffer::PixelFormat pixelFormat;
 	setDdPf(&ddpf, &pixelFormat, lpDDSPrimary);
+	setInputBuffer(0, pixelFormat, 0);
 
 	DDSURFACEDESC2 ddsd;
 	std::memset(&ddsd, 0, sizeof ddsd);
@@ -396,83 +391,53 @@ void DirectDrawBlitter::setBufferDimensions(const unsigned int w, const unsigned
 	ddsd.dwWidth = w;
 	ddsd.dwHeight = h;
 	ddsd.ddpfPixelFormat = ddpf;
-
-	if (lpDD->CreateSurface(&ddsd, &lpDDSSystem, NULL) != DD_OK) {
-		std::cerr << "lpDD->CreateSurface(&ddsd, &lpDDSSystem, NULL) failed" << std::endl;
-		goto fail;
+	if (lpDD->CreateSurface(&ddsd, &lpDDSSystem, 0) != DD_OK) {
+		std::cerr << "lpDD->CreateSurface() failed" << std::endl;
+		return uninit();
 	}
 
 	initVideoSurface();
 	initClearSurface();
-
 	if (!lpDDSVideo || !lpDDSClear)
-		goto fail;
+		return uninit();
 
-	if (lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) != DD_OK) {
-		std::cerr << "lpDDSSystem->Lock(NULL, &ddsd, DDLOCK_NOSYSLOCK|DDLOCK_WAIT, NULL) failed" << std::endl;
-		goto fail;
+	if (lpDDSSystem->Lock(0, &ddsd, DDLOCK_NOSYSLOCK | DDLOCK_WAIT, 0) != DD_OK) {
+		std::cerr << "lpDDSSystem->Lock() failed" << std::endl;
+		return uninit();
 	}
 
-	setPixelBuffer(ddsd.lpSurface, pixelFormat, pixelFormat == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
-
-	return;
-
-fail:
-	setPixelBuffer(NULL, pixelFormat, 0);
-	uninit();
+	setInputBuffer(ddsd.lpSurface, pixelFormat,
+	               pixelFormat == PixelBuffer::RGB16 ? ddsd.lPitch >> 1 : (ddsd.lPitch >> 2));
 }
 
 void DirectDrawBlitter::uninit() {
-	lpDDSBack = NULL;
+	lpDDSBack = 0;
 
 	if (lpClipper) {
 		lpClipper->Release();
-		lpClipper = NULL;
+		lpClipper = 0;
 	}
-
 	if (lpDDSPrimary) {
 		lpDDSPrimary->Release();
-		lpDDSPrimary = NULL;
+		lpDDSPrimary = 0;
 	}
-
 	if (lpDDSSystem) {
 		lpDDSSystem->Release();
-		lpDDSSystem = NULL;
+		lpDDSSystem = 0;
 	}
-
 	if (lpDDSVideo) {
 		lpDDSVideo->Release();
-		lpDDSVideo = NULL;
+		lpDDSVideo = 0;
 	}
-
 	if (lpDDSClear) {
 		lpDDSClear->Release();
-		lpDDSClear = NULL;
+		lpDDSClear = 0;
 	}
-
 	if (lpDD) {
 		lpDD->Release();
-		lpDD = NULL;
+		lpDD = 0;
 	}
 }
-
-/*void DirectDrawBlitter::setFrameTime(const long ft) {
-	BlitterWidget::setFrameTime(ft);
-
-	const unsigned hz1 = (1000000 + (ft >> 1)) / ft;
-	const unsigned hz2 = (1000000 * 2 + (ft >> 1)) / ft;
-
-	{
-		QString text("Sync to vertical blank in " + QString::number(hz1));
-
-		if (hz2 != hz1 * 2)
-			text += ", " + QString::number(hz2);
-
-		vblank_.checkBox()->setText(text + " and " + QString::number(hz1 * 2) + " Hz modes");
-	}
-
-	setSwapInterval(hz1, hz2);
-}*/
 
 long DirectDrawBlitter::frameTimeEst() const {
 	if (swapInterval)
@@ -481,27 +446,20 @@ long DirectDrawBlitter::frameTimeEst() const {
 	return BlitterWidget::frameTimeEst();
 }
 
-/*const BlitterWidget::Rational DirectDrawBlitter::frameTime() const {
-	if (vblank_.value() && hz == vblankHz) {
-		return Rational(1, hz);
-	}
-
-	return BlitterWidget::frameTime();
-}*/
-
-void DirectDrawBlitter::setSwapInterval(const unsigned newSwapInterval) {
+void DirectDrawBlitter::setSwapInterval(unsigned const newSwapInterval) {
 	if (newSwapInterval != swapInterval) {
 		swapInterval = newSwapInterval;
-		ftEst.init(swapInterval * 10000000 / dhz);
+		ftEst = FtEst(swapInterval * 10000000 / dhz);
 	}
 }
 
-HRESULT DirectDrawBlitter::backBlit(IDirectDrawSurface7 *const lpDDSSrc, RECT *const rcRectDest, const DWORD flags) {
+HRESULT DirectDrawBlitter::backBlit(
+		IDirectDrawSurface7 *const lpDDSSrc,
+		RECT *const rcRectDest, DWORD const flags) {
 	HRESULT ddrval = DD_OK;
-
-	for (unsigned n = 2; n-- && lpDDSSrc && lpDDSBack;) {
+	for (int n = 2; n-- && lpDDSSrc && lpDDSBack;) {
 		lpDDSSrc->PageLock(0);
-		ddrval = lpDDSBack->Blt(rcRectDest, lpDDSSrc, NULL, flags, NULL);
+		ddrval = lpDDSBack->Blt(rcRectDest, lpDDSSrc, 0, flags, 0);
 		lpDDSSrc->PageUnlock(0);
 
 		if (ddrval == DDERR_SURFACELOST) {
@@ -511,24 +469,21 @@ HRESULT DirectDrawBlitter::backBlit(IDirectDrawSurface7 *const lpDDSSrc, RECT *c
 	}
 
 	if (ddrval != DD_OK && ddrval != DDERR_WASSTILLDRAWING)
-		std::cerr << "lpDDSBack->Blt(rcRectDest, lpDDSSrc, NULL, flags, NULL) failed" << std::endl;
+		std::cerr << "lpDDSBack->Blt() failed" << std::endl;
 
 	return ddrval;
 }
 
-void DirectDrawBlitter::finalBlit(const DWORD waitflag) {
-	if (clear && (exclusive & flipping_.value()) && !blitted) {
+void DirectDrawBlitter::finalBlit(DWORD const waitflag) {
+	if (clear && exclusive && flipping_.value() && !blitted) {
 		lpClipper->SetHWnd(0, parentWidget()->parentWidget()->winId());
 
 		RECT rcRectDest;
 		GetWindowRect(parentWidget()->parentWidget()->winId(), &rcRectDest);
 
-		const bool success = backBlit(lpDDSClear, &rcRectDest, waitflag) == DD_OK;
-
+		bool const success = backBlit(lpDDSClear, &rcRectDest, waitflag) == DD_OK;
 		lpClipper->SetHWnd(0, winId());
-
 		clear -= success;
-
 		if (!success)
 			return;
 	}
@@ -538,33 +493,31 @@ void DirectDrawBlitter::finalBlit(const DWORD waitflag) {
 	blitted |= backBlit(lpDDSVideo, &rcRectDest, waitflag) == DD_OK;
 }
 
-long DirectDrawBlitter::sync() {
+int DirectDrawBlitter::present() {
 	if (!lpDDSVideo || !lpDDSSystem || !lpDDSBack)
 		return -1;
 
 	HRESULT ddrval = DD_OK;
-
-	if (exclusive & flipping_.value()) {
+	if (exclusive && flipping_.value()) {
 		if (swapInterval) {
-			const unsigned long estft = ftEst.est();
-			const usec_t swaplimit = getusecs() - lastblank > estft - estft / 32 ? estft * 2 - 5000000 / dhz : 0;
-
+			unsigned long const estft = ftEst.est();
+			usec_t const swaplimit = getusecs() - lastblank > estft - estft / 32
+			                       ? estft * 2 - 5000000 / dhz
+			                       : 0;
 			if (!blitted)
 				finalBlit(DDBLT_WAIT);
 
-			const DWORD flipflags = DDFLIP_WAIT | (swapInterval == 2 ? DDFLIP_INTERVAL2 : 0);
-
+			DWORD const flipflags = DDFLIP_WAIT
+			                      | (swapInterval == 2 ? DDFLIP_INTERVAL2 : 0);
 			if (lpDDSPrimary)
-				ddrval = lpDDSPrimary->Flip(NULL, flipflags);
+				ddrval = lpDDSPrimary->Flip(0, flipflags);
 
 			usec_t now = getusecs();
-
 			if (now - lastblank < swaplimit) {
 				blitted = false;
 				finalBlit(DDBLT_WAIT);
-
 				if (lpDDSPrimary)
-					ddrval = lpDDSPrimary->Flip(NULL, flipflags);
+					ddrval = lpDDSPrimary->Flip(0, flipflags);
 
 				now = getusecs();
 			}
@@ -574,15 +527,18 @@ long DirectDrawBlitter::sync() {
 			if (!blitted)
 				finalBlit(vblankflip_.value() ? DDBLT_DONOTWAIT : DDBLT_WAIT);
 
-			if (lpDDSPrimary && blitted)
-				ddrval = lpDDSPrimary->Flip(NULL,
-						(vblankflip_.value() ? DDFLIP_DONOTWAIT : DDFLIP_WAIT) |
-						(vblankflip_.value() ? 0 : DDFLIP_NOVSYNC));
+			if (lpDDSPrimary && blitted) {
+				ddrval = lpDDSPrimary->Flip(
+					0,
+					  (vblankflip_.value() ? DDFLIP_DONOTWAIT : DDFLIP_WAIT)
+					| (vblankflip_.value() ? 0 : DDFLIP_NOVSYNC));
+			}
 		}
 	} else {
-		if (const unsigned si = swapInterval ? swapInterval : vblank_.value() && !DwmControl::isCompositingEnabled()) {
-			const usec_t refreshPeriod = 10000000 / dhz;
-
+		if (unsigned const si = swapInterval
+				? swapInterval
+				: vblank_.value() && !DwmControl::isCompositingEnabled()) {
+			usec_t const refreshPeriod = 10000000 / dhz;
 			while (getusecs() - lastblank < (si - 1) * refreshPeriod + refreshPeriod / 2)
 				Sleep(1);
 
@@ -605,11 +561,10 @@ long DirectDrawBlitter::sync() {
 }
 
 void DirectDrawBlitter::acceptSettings() {
-	const bool oldFlipping = flipping_.value();
-	const bool oldTriplebuf = triplebuf_.value();
-	const bool oldVideoSurface = videoSurface_.value();
+	bool const oldFlipping = flipping_.value();
+	bool const oldTriplebuf = triplebuf_.value();
+	bool const oldVideoSurface = videoSurface_.value();
 	bool needReinit = false;
-
 	if (static_cast<int>(deviceIndex) != deviceSelector->currentIndex()) {
 		deviceIndex = deviceSelector->currentIndex();
 		needReinit = true;
@@ -623,7 +578,6 @@ void DirectDrawBlitter::acceptSettings() {
 
 	if (flipping_.value() != oldFlipping)
 		needReinit |= exclusive;
-
 	if (triplebuf_.value() != oldTriplebuf)
 		needReinit |= exclusive & flipping_.value();
 
@@ -647,34 +601,31 @@ void DirectDrawBlitter::rejectSettings() const {
 	deviceSelector->setCurrentIndex(deviceIndex);
 }
 
-void DirectDrawBlitter::rateChange(const int dhz) {
+void DirectDrawBlitter::rateChange(int const dhz) {
 	this->dhz = dhz ? dhz : 600;
-	ftEst.init(swapInterval * 10000000 / this->dhz);
+	ftEst = FtEst(swapInterval * 10000000 / this->dhz);
 }
 
-void DirectDrawBlitter::paintEvent(QPaintEvent */*event*/) {
-	sync();
+void DirectDrawBlitter::paintEvent(QPaintEvent *) {
+	present();
 }
 
-void DirectDrawBlitter::setExclusive(const bool exclusive) {
+void DirectDrawBlitter::setExclusive(bool const exclusive) {
 	if (this->exclusive == exclusive)
 		return;
 
 	this->exclusive = exclusive;
-
-	// std::cout << "exclusive: " << exclusive << std::endl;
-
 	if (flipping_.value())
 		reinit();
 }
 
 void DirectDrawBlitter::reinit() {
 	if (isVisible()) {
-		lockPixelBuffer();
+		BufferLock lock(*this);
+		SetBuffer setInputBuffer(lock);
 		uninit();
-		setPixelBuffer(NULL, PixelBuffer::RGB32, 0);
+		setInputBuffer(0, PixelBuffer::RGB32, 0);
 		init();
-		setBufferDimensions(inBuffer().width, inBuffer().height);
-		unlockPixelBuffer();
+		setBufferDimensions(inBuffer().width, inBuffer().height, setInputBuffer);
 	}
 }

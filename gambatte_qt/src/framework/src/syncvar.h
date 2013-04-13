@@ -23,53 +23,25 @@
 #include <QWaitCondition>
 
 class SyncVar {
-	QMutex mut;
-	QWaitCondition cond;
-	unsigned var;
-
 public:
 	class Locked : Uncopyable {
-		SyncVar &sv;
-
 	public:
-		Locked(SyncVar &sv) : sv(sv) { sv.mut.lock(); }
-		~Locked() { sv.mut.unlock(); }
-		unsigned get() const { return sv.var; }
-		void set(const unsigned var) { sv.var = var; sv.cond.wakeAll(); }
-		bool wait(const unsigned long time = ULONG_MAX) { return sv.cond.wait(&sv.mut, time); }
-// 		bool waitMaskedEqual(unsigned state, unsigned mask, unsigned long time = ULONG_MAX);
-// 		bool waitMaskedNequal(unsigned state, unsigned mask, unsigned long time = ULONG_MAX);
-// 		bool waitEqual(unsigned state, unsigned long time = ULONG_MAX) { return waitMaskedEqual(state, UINT_MAX, time); }
-// 		bool waitNequal(unsigned state, unsigned long time = ULONG_MAX) { return waitMaskedNequal(state, UINT_MAX, time); }
-// 		bool waitAnd(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedEqual(bits, bits, time); }
-// 		bool waitNand(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedNequal(bits, bits, time); }
-// 		bool waitNor(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedEqual(0, bits, time); }
-// 		bool waitOr(unsigned bits, unsigned long time = ULONG_MAX) { return waitMaskedNequal(0, bits, time); }
+		Locked(SyncVar &sv) : sv(sv) { sv.mut_.lock(); }
+		~Locked() { sv.mut_.unlock(); }
+		unsigned get() const { return sv.var_; }
+		void set(unsigned var) { sv.var_ = var; sv.cond_.wakeAll(); }
+		bool wait(unsigned long time = ULONG_MAX) { return sv.cond_.wait(&sv.mut_, time); }
+
+	private:
+		SyncVar &sv;
 	};
 
-	explicit SyncVar(const unsigned var = 0) : var(var) {}
+	explicit SyncVar(unsigned var = 0) : var_(var) {}
+
+private:
+	QMutex mut_;
+	QWaitCondition cond_;
+	unsigned var_;
 };
-
-/*bool SyncVar::Locked::waitMaskedEqual(const unsigned state, const unsigned mask, const unsigned long time) {
-	while ((get() & mask) != state) {
-		wait(time);
-
-		if (time != ULONG_MAX)
-			return (get() & mask) == state;
-	}
-
-	return true;
-}
-
-bool SyncVar::Locked::waitMaskedNequal(const unsigned state, const unsigned mask, const unsigned long time) {
-	while ((get() & mask) == state) {
-		wait(time);
-
-		if (time != ULONG_MAX)
-			return (get() & mask) != state;
-	}
-
-	return true;
-}*/
 
 #endif

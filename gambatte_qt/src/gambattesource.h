@@ -39,12 +39,12 @@ public:
 	void setGameShark(std::string const &codes) { gb_.setGameShark(codes); }
 	void reset() { gb_.reset(); }
 
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
+	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
 		gb_.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 
 	void setSavedir(std::string const &sdir) { gb_.setSaveDir(sdir); }
-	void setVideoSource(unsigned videoSourceIndex);
+	void setVideoSource(std::size_t videoSourceIndex);
 	bool isCgb() const { return gb_.isCgb(); }
 	std::string const romTitle() const { return gb_.romTitle(); }
 	gambatte::PakInfo pakInfo() const { return gb_.pakInfo(); }
@@ -59,7 +59,7 @@ public:
 	virtual void keyPressEvent(QKeyEvent const *);
 	virtual void keyReleaseEvent(QKeyEvent const *);
 	virtual void joystickEvent(SDL_Event const &);
-	virtual long update(PixelBuffer const &fb, qint16 *soundBuf, long &samples);
+	virtual std::ptrdiff_t update(PixelBuffer const &fb, qint16 *soundBuf, std::size_t &samples);
 	virtual void generateVideoFrame(PixelBuffer const &fb);
 
 signals:
@@ -91,7 +91,7 @@ private:
 	scoped_ptr<VideoLink> cconvert_;
 	scoped_ptr<VideoLink> vfilter_;
 	PixelBuffer::PixelFormat pxformat_;
-	unsigned vsrci_;
+	std::size_t vsrci_;
 	bool inputState_[10];
 	bool dpadUp_, dpadDown_;
 	bool dpadLeft_, dpadRight_;

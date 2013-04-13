@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,9 +19,6 @@
 #ifndef DIRECTSOUNDENGINE_H
 #define DIRECTSOUNDENGINE_H
 
-class QCheckBox;
-class QComboBox;
-
 #include "../audioengine.h"
 #include "rateest.h"
 #include "scoped_ptr.h"
@@ -29,17 +26,38 @@ class QComboBox;
 #include <dsound.h>
 #include <QList>
 
+class QCheckBox;
+class QComboBox;
+
 class DirectSoundEngine : public AudioEngine {
+public:
+	explicit DirectSoundEngine(HWND hwnd);
+	virtual ~DirectSoundEngine();
+	virtual void uninit();
+	virtual int write(void *buffer, std::size_t frames);
+	virtual int write(void *buffer, std::size_t samples,
+	                  BufferState &preBufState_out, long &rate_out);
+	virtual long rateEstimate() const { return est.result(); }
+	virtual BufferState bufferState() const;
+	virtual void pause();
+	virtual QWidget * settingsWidget() const { return confWidget.get(); }
+	virtual void rejectSettings() const;
+
+protected:
+	virtual long doInit(long rate, int latency);
+	virtual void doAcceptSettings();
+
+private:
 	RateEst est;
-	const scoped_ptr<QWidget> confWidget;
+	scoped_ptr<QWidget> const confWidget;
+	QComboBox *const deviceSelector;
 	QCheckBox *const primaryBufBox;
 	QCheckBox *const globalBufBox;
-	QComboBox *const deviceSelector;
 	LPDIRECTSOUND lpDS;
 	LPDIRECTSOUNDBUFFER lpDSB;
 	QList<GUID> deviceList;
-	unsigned bufSize;
-	unsigned bufSzDiff; // Difference between real buffer and desired buffer size.
+	DWORD bufSize;
+	DWORD bufSzDiff; // Difference between real buffer and desired buffer size.
 	unsigned deviceIndex;
 	DWORD offset;
 	DWORD lastpc;
@@ -48,26 +66,12 @@ class DirectSoundEngine : public AudioEngine {
 	bool useGlobalBuf;
 	bool blankBuf;
 
-	static BOOL CALLBACK enumCallback(LPGUID, const char*, const char*, LPVOID);
+	static BOOL CALLBACK enumCallback(LPGUID, char const *, char const *, LPVOID);
 
-	int doInit(int rate, unsigned latency);
-	void doAcceptSettings();
-	int waitForSpace(DWORD &pc, DWORD &wc, unsigned space);
+	int waitForSpace(DWORD &pc, DWORD &wc, DWORD space);
 	int getPosAndStatusCheck(DWORD &status, DWORD &pc, DWORD &wc);
-	int doWrite(void *buffer, unsigned frames, DWORD status, DWORD pc, DWORD wc);
+	int doWrite(void *buffer, std::size_t frames, DWORD status, DWORD pc, DWORD wc);
 	void fillBufferState(BufferState &s, DWORD pc, DWORD wc) const;
-
-public:
-	DirectSoundEngine(HWND hwnd);
-	~DirectSoundEngine();
-	void uninit();
-	int write(void *buffer, unsigned frames);
-	int write(void *buffer, unsigned samples, BufferState &preBufState_out, long &rate_out);
-	long rateEstimate() const { return est.result(); }
-	const BufferState bufferState() const;
-	void pause();
-	QWidget* settingsWidget() const { return confWidget.get(); }
-	void rejectSettings() const;
 };
 
 #endif

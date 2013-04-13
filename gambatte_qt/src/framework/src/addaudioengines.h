@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,10 +19,10 @@
 #ifndef ADD_AUDIO_ENGINES_H
 #define ADD_AUDIO_ENGINES_H
 
-class AudioEngine;
-
 #include "auto_vector.h"
 #include <QtGui>
+
+class AudioEngine;
 
 void addAudioEngines(auto_vector<AudioEngine> &audioEngines, WId winId);
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,92 +19,109 @@
 #ifndef BLITTERWIDGET_H
 #define BLITTERWIDGET_H
 
-#include "mediasource.h"
 #include "pixelbuffer.h"
+#include "uncopyable.h"
 #include "usec.h"
 #include "videobufferlocker.h"
+#include <QSize>
 #include <QString>
 #include <QWidget>
 
-class QHBoxLayout;
-
 class FtEst {
-	enum { UPSHIFT= 5 };
-	enum { UP = 1 << UPSHIFT };
-
-	long frameTime;
-	long ft;
-	long ftAvg;
-	usec_t last;
-	unsigned count;
-
 public:
-	explicit FtEst(long frameTime = 0) { init(frameTime); }
-	void init(long frameTime);
+	explicit FtEst(long frameTime = 0);
 	void update(usec_t t);
-	long est() const { return (ftAvg + UP / 2) >> UPSHIFT; }
+	long est() const { return (ftAvg_ + ftavg_scale / 2) >> ftavg_shift; }
+
+private:
+	enum { ftavg_shift = 5 };
+	enum { ftavg_scale = 1 << ftavg_shift };
+
+	long frameTime_;
+	long ft_;
+	long ftAvg_;
+	usec_t last_;
+	unsigned count_;
 };
 
 class BlitterWidget : public QWidget {
-	PixelBuffer pixbuf;
-	VideoBufferLocker vbl;
-	const QString nameString_;
-	const unsigned maxSwapInterval_;
-	bool paused;
-
 protected:
-	virtual void privSetPaused(const bool paused) { setUpdatesEnabled(paused); }
-	virtual void setBufferDimensions(unsigned width, unsigned height) = 0;
-
-	// use these if modifying pixel buffer in the sync method, or in an event method.
-	void lockPixelBuffer() { vbl.lock(); }
-	void unlockPixelBuffer() { vbl.unlock(); }
-
-	void setPixelBuffer(void *pixels, PixelBuffer::PixelFormat format, std::ptrdiff_t pitch) {
-		pixbuf.data = pixels;
-		pixbuf.pitch = pitch;
-		pixbuf.pixelFormat = format;
-	}
-
-public:
-	BlitterWidget(VideoBufferLocker, const QString &name,
+	BlitterWidget(VideoBufferLocker,
+	              QString const &name,
 	              unsigned maxSwapInterval = 0,
 	              QWidget *parent = 0);
-	virtual ~BlitterWidget() {}
-	const QString& nameString() const { return nameString_; }
-	unsigned maxSwapInterval() const { return maxSwapInterval_; }
-	bool isPaused() const { return paused; }
-	void setPaused(const bool paused) { this->paused = paused; privSetPaused(paused); }
-	const PixelBuffer& inBuffer() const { return pixbuf; }
 
-	virtual void init() {}
-	virtual void uninit() {}
-	virtual void blit() = 0;
-	virtual void draw() {}
+	class BufferLock : Uncopyable {
+	public:
+		explicit BufferLock(BlitterWidget &blitter) : b_(blitter) { b_.vbl_.lock(); }
+		~BufferLock() { b_.vbl_.unlock(); }
+		BlitterWidget & blitterWidget() { return b_; }
+	private:
+		BlitterWidget &b_;
+	};
+
+	class SetBuffer {
+	public:
+		SetBuffer(PixelBuffer &pb) : pb_(pb) {}
+		SetBuffer(BufferLock &lock) : pb_(lock.blitterWidget().pixbuf_) {}
+		void operator()(void *data, PixelBuffer::PixelFormat f, std::ptrdiff_t pitch) const {
+			pb_.data = data;
+			pb_.pixelFormat = f;
+			pb_.pitch = pitch;
+		}
+
+	private:
+		PixelBuffer &pb_;
+	};
+
+	virtual void consumeBuffer(SetBuffer setBuffer) = 0;
+	virtual void privSetPaused(bool paused) { setUpdatesEnabled(paused); }
+	virtual void setBufferDimensions(unsigned width, unsigned height, SetBuffer ) = 0;
+
+public:
+	QString const & nameString() const { return nameString_; }
+	unsigned maxSwapInterval() const { return maxSwapInterval_; }
+	bool isPaused() const { return paused_; }
+	void setPaused(bool paused) { paused_ = paused; privSetPaused(paused); }
+	PixelBuffer const & inBuffer() const { return pixbuf_; }
+	void consumeInputBuffer() { consumeBuffer(SetBuffer(pixbuf_)); }
+
+	void setVideoFormat(QSize const &size) {
+		pixbuf_.width = size.width();
+		pixbuf_.height = size.height();
+		setBufferDimensions(pixbuf_.width, pixbuf_.height, SetBuffer(pixbuf_));
+	}
+
+	virtual ~BlitterWidget() {}
 	virtual bool isUnusable() const { return false; }
 
-	void setVideoFormat(unsigned width, unsigned height) {
-		pixbuf.width = width;
-		pixbuf.height = height;
-		setBufferDimensions(width, height);
-	}
+	// TODO: prefer create/destroy to init/uninit
+	virtual void init() {}
+	virtual void uninit() = 0;
+	virtual void draw() {}
+	virtual int present() = 0;
+	virtual long frameTimeEst() const { return 0; }
+
+	virtual QWidget * settingsWidget() const { return 0; }
+	virtual void acceptSettings() {}
+	virtual void rejectSettings() const {}
 
 	virtual void setCorrectedGeometry(int w, int h, int new_w, int new_h) {
 		setGeometry((w - new_w) >> 1, (h - new_h) >> 1, new_w, new_h);
 	}
 
-	virtual WId hwnd() const { return winId(); }
-	virtual long frameTimeEst() const { return 0; }
-	virtual long sync() { return 0; }
+	virtual void compositionEnabledChange() {}
+	virtual void rateChange(int /*newHz*/) {}
 	virtual void setExclusive(bool) {}
 	virtual void setSwapInterval(unsigned) {}
+	virtual WId hwnd() const { return winId(); }
 
-	virtual QWidget* settingsWidget() const { return 0; }
-	virtual void acceptSettings() {}
-	virtual void rejectSettings() const {}
-
-	virtual void rateChange(int /*newHz*/) {}
-	virtual void compositionEnabledChange() {}
+private:
+	VideoBufferLocker const vbl_;
+	QString const nameString_;
+	unsigned const maxSwapInterval_;
+	PixelBuffer pixbuf_;
+	bool paused_;
 };
 
 #endif

@@ -19,35 +19,38 @@
 #ifndef DWMCONTROL_H_
 #define DWMCONTROL_H_
 
-#include <vector>
 #include <QWidget>
+#include <vector>
 
 class BlitterWidget;
 
 class DwmControl {
-	const std::vector<BlitterWidget*> blitters_;
-	int refreshCnt_;
-	bool tripleBuffer_;
-
 public:
-	explicit DwmControl(const std::vector<BlitterWidget*> &blitters);
+	explicit DwmControl(std::vector<BlitterWidget *> const &blitters);
 	void setDwmTripleBuffer(bool enable);
 	void hideEvent();
 	void showEvent();
 	/** @return compositionChange */
-	bool winEvent(const void *msg);
+	bool winEvent(void const *msg);
 	void tick();
 	void hwndChange(BlitterWidget *blitter);
 
 	static bool hasDwmCapability();
 	static bool isCompositingEnabled();
+
+private:
+	std::vector<BlitterWidget *> const blitters_;
+	int refreshCnt_;
+	bool tripleBuffer_;
 };
 
 class DwmControlHwndChange {
-	DwmControl &dwmc_;
 public:
 	explicit DwmControlHwndChange(DwmControl &dwmc) : dwmc_(dwmc) {}
 	void operator()(BlitterWidget *blitter) const { dwmc_.hwndChange(blitter); }
+
+private:
+	DwmControl &dwmc_;
 };
 
 #endif /* DWMCONTROL_H_ */

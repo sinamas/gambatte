@@ -17,63 +17,67 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "quartztoggler.h"
-#include <functional>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <functional>
 
-static inline bool operator!=(const ResInfo &l, const ResInfo &r) {
+static bool operator!=(ResInfo const &l, ResInfo const &r) {
 	return l.w != r.w || l.h != r.h;
 }
 
-static inline bool operator>(const ResInfo &l, const ResInfo &r) {
+static bool operator>(ResInfo const &l, ResInfo const &r) {
 	return l.w > r.w || (l.w == r.w && l.h > r.h);
 }
 
-static void addMode(CFDictionaryRef mode, std::vector<ResInfo> &infoVector, unsigned *resIndex, unsigned *rateIndex) {
+static void addMode(CFDictionaryRef mode,
+                    std::vector<ResInfo> &infoVector,
+                    std::size_t *resIndex, std::size_t *rateIndex)
+{
 	ResInfo info;
-	short rate = 0;
+	short rate;
 
 	{
 		int w = 0;
 		int h = 0;
 		double r = 0.0;
-
-		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(mode, kCGDisplayWidth)), kCFNumberIntType, &w);
-		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(mode, kCGDisplayHeight)), kCFNumberIntType, &h);
-		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(mode, kCGDisplayRefreshRate)), kCFNumberDoubleType, &r);
+		CFNumberGetValue(CFNumberRef(CFDictionaryGetValue(mode, kCGDisplayWidth)),
+		                 kCFNumberIntType, &w);
+		CFNumberGetValue(CFNumberRef(CFDictionaryGetValue(mode, kCGDisplayHeight)),
+		                 kCFNumberIntType, &h);
+		CFNumberGetValue(CFNumberRef(CFDictionaryGetValue(mode, kCGDisplayRefreshRate)),
+		                 kCFNumberDoubleType, &r);
 
 		info.w = w;
 		info.h = h;
 		rate = static_cast<short>(r * 10.0 + 0.5);
 	}
 
-	std::vector<ResInfo>::iterator it = std::lower_bound(infoVector.begin(), infoVector.end(), info, std::greater<ResInfo>());
-
+	std::vector<ResInfo>::iterator it =
+		std::lower_bound(infoVector.begin(), infoVector.end(),
+		                 info, std::greater<ResInfo>());
 	if (it == infoVector.end() || *it != info)
 		it = infoVector.insert(it, info);
 
-	std::vector<short>::iterator rateIt = std::lower_bound(it->rates.begin(), it->rates.end(), rate, std::greater<short>());
-
+	std::vector<short>::iterator rateIt =
+		std::lower_bound(it->rates.begin(), it->rates.end(),
+		                 rate, std::greater<short>());
 	if (rateIt == it->rates.end() || *rateIt != rate)
 		rateIt = it->rates.insert(rateIt, rate);
 
 	if (resIndex)
 		*resIndex = std::distance(infoVector.begin(), it);
-
 	if (rateIndex)
 		*rateIndex = std::distance(it->rates.begin(), rateIt);
 }
 
-QuartzToggler::QuartzToggler() :
-originalMode(NULL),
-activeDspys(NULL),
-widgetScreen(0),
-isFull(false)
+QuartzToggler::QuartzToggler()
+: originalMode()
+, widgetScreen(0)
+, isFull(false)
 {
 	CGDisplayCount dspyCnt = 0;
 	CGGetActiveDisplayList(0, 0, &dspyCnt);
-
-	activeDspys = new CGDirectDisplayID[dspyCnt];
+	activeDspys.reset(dspyCnt);
 	CGGetActiveDisplayList(dspyCnt, activeDspys, &dspyCnt);
 
 	infoVector.resize(dspyCnt);
@@ -85,42 +89,37 @@ isFull(false)
 		CFDictionaryRef currentMode = CGDisplayCurrentMode(display);
 		CFArrayRef modesArray = CGDisplayAvailableModes(display);
 		CFIndex numModes = CFArrayGetCount(modesArray);
-		CFNumberRef bpp = static_cast<CFNumberRef>(CFDictionaryGetValue(currentMode, kCGDisplayBitsPerPixel));
-
+		CFNumberRef bpp =
+			CFNumberRef(CFDictionaryGetValue(currentMode, kCGDisplayBitsPerPixel));
 		for (CFIndex j = 0; j < numModes; ++j) {
-			CFDictionaryRef mode = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(modesArray, j));
-
-			if (CFNumberCompare(bpp, static_cast<CFNumberRef>(CFDictionaryGetValue(mode, kCGDisplayBitsPerPixel)), NULL) == kCFCompareEqualTo) {
-				addMode(mode, infoVector[i], NULL, NULL);
-			}
+			CFDictionaryRef mode =
+				CFDictionaryRef(CFArrayGetValueAtIndex(modesArray, j));
+			CFNumberRef mbpp =
+				CFNumberRef(CFDictionaryGetValue(mode, kCGDisplayBitsPerPixel));
+			if (CFNumberCompare(bpp, mbpp, 0) == kCFCompareEqualTo)
+				addMode(mode, infoVector[i], 0, 0);
 		}
 	}
 
 	originalMode = CGDisplayCurrentMode(activeDspys[widgetScreen]);
 
 	for (CGDisplayCount i = 0; i < dspyCnt; ++i) {
-		unsigned resIndex = 0;
-		unsigned rateIndex = 0;
-		addMode(CGDisplayCurrentMode(activeDspys[i]), infoVector[i], &resIndex, &rateIndex);
+		std::size_t resIndex = 0;
+		std::size_t rateIndex = 0;
+		addMode(CGDisplayCurrentMode(activeDspys[i]),
+		        infoVector[i], &resIndex, &rateIndex);
 		fullResIndex[i] = resIndex;
 		fullRateIndex[i] = rateIndex;
 	}
 }
 
-QuartzToggler::~QuartzToggler() {
-// 	setFullRes(false);
-	delete []activeDspys;
-}
-
-const QRect QuartzToggler::fullScreenRect(const QWidget */*w*/) const {
+QRect const QuartzToggler::fullScreenRect(QWidget const *) const {
 	CGRect r = CGDisplayBounds(activeDspys[widgetScreen]);
-
 	return QRectF(r.origin.x, r.origin.y, r.size.width, r.size.height).toRect();
 }
 
-void QuartzToggler::setScreen(const QWidget *widget) {
-	unsigned n = QApplication::desktop()->screenNumber(widget);
-
+void QuartzToggler::setScreen(QWidget const *widget) {
+	std::size_t n = QApplication::desktop()->screenNumber(widget);
 	if (n != widgetScreen && n < infoVector.size()) {
 		if (isFullMode()) {
 			setFullMode(false);
@@ -133,32 +132,29 @@ void QuartzToggler::setScreen(const QWidget *widget) {
 	}
 }
 
-void QuartzToggler::setMode(const unsigned screen, const unsigned resIndex, const unsigned rateIndex) {
+void QuartzToggler::setMode(std::size_t screen, std::size_t resIndex, std::size_t rateIndex) {
 	fullResIndex[screen] = resIndex;
 	fullRateIndex[screen] = rateIndex;
-
 	if (isFullMode() && screen == widgetScreen)
 		setFullMode(true);
 }
 
-void QuartzToggler::setFullMode(const bool enable) {
+void QuartzToggler::setFullMode(bool const enable) {
 	CGDirectDisplayID display = activeDspys[widgetScreen];
 	CFDictionaryRef currentMode = CGDisplayCurrentMode(display);
-
 	CFDictionaryRef mode = currentMode;
-
 	if (enable) {
 		int bpp = 0;
-		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(currentMode, kCGDisplayBitsPerPixel)), kCFNumberIntType, &bpp);
-
+		CFNumberGetValue(
+			CFNumberRef(CFDictionaryGetValue(currentMode, kCGDisplayBitsPerPixel)),
+			kCFNumberIntType, &bpp);
 		mode = CGDisplayBestModeForParametersAndRefreshRate(
 			display,
 			bpp,
 			infoVector[widgetScreen][fullResIndex[widgetScreen]].w,
 			infoVector[widgetScreen][fullResIndex[widgetScreen]].h,
 			infoVector[widgetScreen][fullResIndex[widgetScreen]].rates[fullRateIndex[widgetScreen]] / 10.0,
-			NULL
-		);
+			0);
 
 		if (!isFull)
 			originalMode = currentMode;
@@ -170,9 +166,12 @@ void QuartzToggler::setFullMode(const bool enable) {
 
 		double oldRate = 0.0;
 		double newRate = 0.0;
-
-		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(currentMode, kCGDisplayRefreshRate)), kCFNumberDoubleType, &oldRate);
-		CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(mode, kCGDisplayRefreshRate)), kCFNumberDoubleType, &newRate);
+		CFNumberGetValue(
+			CFNumberRef(CFDictionaryGetValue(currentMode, kCGDisplayRefreshRate)),
+			kCFNumberDoubleType, &oldRate);
+		CFNumberGetValue(
+			CFNumberRef(CFDictionaryGetValue(mode, kCGDisplayRefreshRate)),
+			kCFNumberDoubleType, &newRate);
 
 		if (static_cast<int>(oldRate * 10.0 + 0.5) != static_cast<int>(newRate * 10.0 + 0.5))
 			emit rateChange(static_cast<int>(newRate * 10.0 + 0.5));
@@ -183,8 +182,9 @@ void QuartzToggler::setFullMode(const bool enable) {
 
 void QuartzToggler::emitRate() {
 	double rate = 0.0;
-
-	CFNumberGetValue(static_cast<CFNumberRef>(CFDictionaryGetValue(CGDisplayCurrentMode(activeDspys[widgetScreen]), kCGDisplayRefreshRate)), kCFNumberDoubleType, &rate);
+	CFDictionaryRef mode = CGDisplayCurrentMode(activeDspys[widgetScreen]);
+	CFNumberGetValue(CFNumberRef(CFDictionaryGetValue(mode, kCGDisplayRefreshRate)),
+	                 kCFNumberDoubleType, &rate);
 
 	emit rateChange(static_cast<int>(rate * 10.0 + 0.5));
 }

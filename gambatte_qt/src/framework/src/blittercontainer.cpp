@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,112 +18,110 @@
  ***************************************************************************/
 #include "blittercontainer.h"
 #include "blitterwidget.h"
-#include <QResizeEvent>
 
-BlitterContainer::BlitterContainer(QWidget *parent) :
-	QWidget(parent),
-	blitter_(NULL),
-	aspectRatio_(64, 48),
-	sourceSize_(64, 48),
-	scalingMethod_(UNRESTRICTED),
-	parentExclusive(false),
-	cursorHidden_(false)
+BlitterContainer::BlitterContainer(QWidget *parent)
+: QWidget(parent)
+, blitter_()
+, aspectRatio_(64, 48)
+, sourceSize_(64, 48)
+, scalingMethod_(scaling_unrestricted)
+, parentExclusive_(false)
+, cursorHidden_(false)
 {
 	QPalette pal = palette();
 	pal.setColor(QPalette::Window, QColor(0, 0, 0));
 	setPalette(pal);
-// 	setBackgroundRole(QPalette::Window);
 	setAutoFillBackground(true);
 	setMouseTracking(true);
 }
 
-BlitterContainer::~BlitterContainer()
-{}
-
-void BlitterContainer::doLayout(const int w, const int h) {
-	if (!blitter_)
-		return;
-
-	if (scalingMethod_ == UNRESTRICTED) {
-		blitter_->setCorrectedGeometry(w, h, w, h);
-	} else if (scalingMethod_ == KEEP_RATIO) {
-		const QSize &ar = aspectRatio_;
-
-		if (w * ar.height() > h * ar.width()) {
-			const int new_w = (h * ar.width() + (ar.height() >> 1)) / ar.height();
-			blitter_->setCorrectedGeometry(w, h, new_w, h);
-		} else {
-			const int new_h = (w * ar.height() + (ar.width() >> 1)) / ar.width();
-			blitter_->setCorrectedGeometry(w, h, w, new_h);
-		}
+// custom impl becuase QSize::scale does not round to nearest
+static QSize const aspectCorrected(QSize const &ar, int w, int h) {
+	if (w * ar.height() > h * ar.width()) {
+		w = (h * ar.width() + (ar.height() >> 1)) / ar.height();
 	} else {
-		const QSize &src = sourceSize_;
-		const int scale = std::min(w / src.width(), h / src.height());
-		const int new_w = src.width() * scale;
-		const int new_h = src.height() * scale;
-		blitter_->setCorrectedGeometry(w, h, new_w, new_h);
+		h = (w * ar.height() + (ar.width() >> 1)) / ar.width();
+	}
+
+	return QSize(w, h);
+}
+
+static QSize const integerScaled(QSize const &source, QSize const &target) {
+	int const scale = std::min(target.width() / source.width(),
+	                           target.height() / source.height());
+	return QSize(source.width() * scale, source.height() * scale);
+}
+
+QSize const BlitterContainer::correctedSize() const {
+	switch (scalingMethod_) {
+	case scaling_unrestricted: break;
+	case scaling_keep_ratio:   return aspectCorrected(aspectRatio_, width(), height());
+	case scaling_integer:      return integerScaled(sourceSize_, size());
+	}
+
+	return size();
+}
+
+void BlitterContainer::updateLayout() {
+	if (blitter_) {
+		QSize const corrected = correctedSize();
+		blitter_->setCorrectedGeometry(width(), height(),
+		                               corrected.width(), corrected.height());
 	}
 }
 
 void BlitterContainer::testExclusive() {
 	if (blitter_)
-		blitter_->setExclusive(parentExclusive && pos() == QPoint(0,0));
+		blitter_->setExclusive(parentExclusive_ && pos() == QPoint(0, 0));
 }
 
-void BlitterContainer::setBlitter(BlitterWidget *const blitter_in) {
-	if (blitter_ != blitter_in) {
-// 		if (blitter_)
-// 			blitter_->setParent(0);
-
-		blitter_ = blitter_in;
-
-// 		if (blitter_)
-// 			blitter_->setParent(this);
-
+void BlitterContainer::setBlitter(BlitterWidget *blitter) {
+	if (blitter_ != blitter) {
+		blitter_ = blitter;
 		updateLayout();
 		testExclusive();
 	}
 }
 
 void BlitterContainer::hideCursor() {
-	if (!cursorHidden_)
+	if (!cursorHidden_) {
 		setCursor(Qt::BlankCursor);
-
-	cursorHidden_ = true;
+		cursorHidden_ = true;
+	}
 }
 
 void BlitterContainer::showCursor() {
-	if (cursorHidden_)
+	if (cursorHidden_) {
 		unsetCursor();
-
-	cursorHidden_ = false;
+		cursorHidden_ = false;
+	}
 }
 
-void BlitterContainer::setAspectRatio(const QSize &ar) {
+void BlitterContainer::setAspectRatio(QSize const &ar) {
 	if (aspectRatio_ != ar) {
 		aspectRatio_ = ar;
 		updateLayout();
 	}
 }
 
-void BlitterContainer::setScalingMethod(const ScalingMethod st) {
+void BlitterContainer::setScalingMethod(ScalingMethod st) {
 	if (scalingMethod_ != st) {
 		scalingMethod_ = st;
 		updateLayout();
 	}
 }
 
-void BlitterContainer::setSourceSize(const QSize &ss) {
+void BlitterContainer::setSourceSize(QSize const &ss) {
 	if (sourceSize_ != ss) {
 		sourceSize_ = ss;
 		updateLayout();
 	}
 }
 
-void BlitterContainer::moveEvent(QMoveEvent */*e*/) {
+void BlitterContainer::moveEvent(QMoveEvent *) {
 	testExclusive();
 }
 
-void BlitterContainer::resizeEvent(QResizeEvent *const event) {
-	doLayout(event->size().width(), event->size().height());
+void BlitterContainer::resizeEvent(QResizeEvent *) {
+	updateLayout();
 }

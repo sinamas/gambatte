@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,29 +21,28 @@
 
 #include "../fullmodetoggler.h"
 
-class QWidget;
-
 class NullToggler : public FullModeToggler {
-	Q_OBJECT
-
-	const std::vector<ResInfo> nullVector;
-	bool fullRes;
-
 public:
 	NullToggler() : fullRes(false) {}
-	unsigned currentResIndex(unsigned /*screen*/) const { return 0; }
-	unsigned currentRateIndex(unsigned /*screen*/) const { return 0; }
-	bool isFullMode() const { return fullRes; }
-	void setMode(unsigned /*screen*/, unsigned /*resIndex*/, unsigned /*rateIndex*/) {}
-	void setFullMode(bool enable) { fullRes = enable; }
-	void emitRate() { emit rateChange(0); }
-	const std::vector<ResInfo>& modeVector(unsigned /*screen*/) const { return nullVector; }
-	void setScreen(const QWidget */*widget*/) {}
-	unsigned screen() const { return 0; }
-	unsigned screens() const { return 0; }
+	virtual std::size_t currentResIndex(std::size_t /*screen*/) const { return 0; }
+	virtual std::size_t currentRateIndex(std::size_t /*screen*/) const { return 0; }
+	virtual bool isFullMode() const { return fullRes; }
+	virtual void setMode(std::size_t /*screen*/, std::size_t /*resIndex*/, std::size_t /*rateIndex*/) {}
+	virtual void setFullMode(bool enable) { fullRes = enable; }
+	virtual void emitRate() { emit rateChange(0); }
+	virtual std::vector<ResInfo> const & modeVector(std::size_t /*screen*/) const { return nullVector; }
+	virtual void setScreen(QWidget const *) {}
+	virtual std::size_t screen() const { return 0; }
+	virtual std::size_t screens() const { return 0; }
 
 signals:
 	void rateChange(int newHz);
+
+private:
+	Q_OBJECT
+
+	std::vector<ResInfo> const nullVector;
+	bool fullRes;
 };
 
 #endif

@@ -17,14 +17,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "inputbox.h"
-#include "joysticklock.h"
-#include "scoped_ptr.h"
-#include "SDL_joystick.h"
-#include <QMenu>
 #include <QContextMenuEvent>
 #include <QKeyEvent>
+#include <QMenu>
 
-static const char* keyToString(int key) {
+static char const * keyToString(int key) {
 	switch (key) {
 	case Qt::Key_Escape: return "Escape";
 	case Qt::Key_Tab: return "Tab";
@@ -342,49 +339,56 @@ static const char* keyToString(int key) {
 	case Qt::Key_Sleep: return "Sleep";
 	case Qt::Key_Zoom: return "Zoom";
 	case Qt::Key_Cancel: return "Cancel";
-	default: return "";
 	}
+
+	return "";
 }
 
 InputBox::InputBox(QWidget *nextFocus)
-: nextFocus(nextFocus),
-  timerId(0),
-  ignoreCnt(0)
+: nextFocus_(nextFocus)
+, timerId_(0)
+, ignoreCnt_(0)
 {
-// 	setReadOnly(true);
-	setData(0, NULL_VALUE);
-	connect(this, SIGNAL(textEdited(const QString&)), this, SLOT(textEditedSlot(const QString&)));
+	setData(0, value_null);
+	connect(this, SIGNAL(textEdited(QString const &)), this, SLOT(textEditedSlot()));
+}
+
+void InputBox::clear() {
+	if (data_.value != value_null) {
+		setData(0, value_null);
+	} else
+		emit redundantClear();
 }
 
 void InputBox::contextMenuEvent(QContextMenuEvent *event) {
-	const scoped_ptr<QMenu> menu(new QMenu(this));
-	menu->addAction(tr("&Copy"), this, SLOT(copy()))->setEnabled(hasSelectedText());
-	menu->addSeparator();
-	menu->addAction(tr("&Select All"), this, SLOT(selectAll()))->setEnabled(!displayText().isEmpty());
-	menu->addSeparator();
-	menu->addAction(tr("C&lear"), this, SLOT(clearData()))->setEnabled(getData().value != NULL_VALUE);
-	menu->exec(event->globalPos());
+	QMenu menu(this);
+	menu.addAction(tr("&Copy"), this, SLOT(copy()))->setEnabled(hasSelectedText());
+	menu.addSeparator();
+	menu.addAction(tr("&Select All"), this, SLOT(selectAll()))->setEnabled(!displayText().isEmpty());
+	menu.addSeparator();
+	menu.addAction(tr("C&lear"), this, SLOT(clear()))->setEnabled(data().value != value_null);
+	menu.exec(event->globalPos());
 }
 
 void InputBox::focusInEvent(QFocusEvent *event) {
-	if (!timerId) {
-		JoystickLock::lock();
-		SDL_JoystickUpdate();
-		SDL_ClearEvents();
-		ignoreCnt = 1;
-		timerId = startTimer(100);
+	if (!js_) {
+		js_.reset(new SdlJoystick::Locked);
+		js_->update();
+		js_->clearEvents();
+		ignoreCnt_ = 1;
+		timerId_ = startTimer(100);
 	}
 
 	QLineEdit::focusInEvent(event);
 }
 
 void InputBox::focusOutEvent(QFocusEvent *event) {
-	if (timerId) {
-		JoystickLock::unlock();
-		killTimer(timerId);
-		timerId = 0;
+	if (timerId_) {
+		killTimer(timerId_);
+		timerId_ = 0;
 	}
 
+	js_.reset();
 	QLineEdit::focusOutEvent(event);
 }
 
@@ -393,25 +397,24 @@ void InputBox::keyPressEvent(QKeyEvent *e) {
 		QLineEdit::keyPressEvent(e);
 	} else {
 		setData(e->key());
-
-		if (nextFocus)
-			nextFocus->setFocus();
+		if (nextFocus_)
+			nextFocus_->setFocus();
 	}
 }
 
-void InputBox::timerEvent(QTimerEvent */*event*/) {
-	if (!hasFocus())
+void InputBox::timerEvent(QTimerEvent *) {
+	if (!js_)
 		return;
 
-	SDL_JoystickUpdate();
+	js_->update();
 
 	SDL_Event ev;
 	int value = 0;
 	unsigned id = 0;
 
-	if (ignoreCnt) {
-		ignoreCnt--;
-	} else while (pollJsEvent(&ev, 256)) {
+	if (ignoreCnt_) {
+		ignoreCnt_--;
+	} else while (js_->pollEvent(&ev, 256)) {
 		switch (ev.type) {
 		case SDL_JOYAXISMOTION:
 		case SDL_JOYHATMOTION:
@@ -427,63 +430,55 @@ void InputBox::timerEvent(QTimerEvent */*event*/) {
 		id = ev.id;
 	}
 
-	SDL_ClearEvents();
+	js_->clearEvents();
 
 	if (id) {
 		setData(id, value);
-
-		if (nextFocus)
-			nextFocus->setFocus();
+		if (nextFocus_)
+			nextFocus_->setFocus();
 	}
 }
 
-void InputBox::setData(const unsigned id, const int value) {
-	data.id = id;
-	data.value = value;
+void InputBox::setData(unsigned const id, int const value) {
+	data_.id = id;
+	data_.value = value;
 
-	if (value == KBD_VALUE) {
+	if (value == value_kbd) {
 		setText(keyToString(id));
-	} else if (value == NULL_VALUE) {
-		setText("");
+	} else if (value == value_null) {
+		QLineEdit::clear();
 	} else {
-		QString str(SDL_JoystickName(data.dev_num));
+		QString str(SDL_JoystickName(data_.dev_num));
 		str.append(' ');
 
-		switch (data.type) {
+		switch (data_.type) {
 		case SDL_JOYAXISMOTION:
 			str.append("Axis ");
-			str.append(QString::number(data.num));
+			str.append(QString::number(data_.num));
 			str.append(' ');
-			str.append(data.value == AXIS_POSITIVE ? '+' : '-');
+			str.append(data_.value == SdlJoystick::axis_positive ? '+' : '-');
 			break;
 		case SDL_JOYHATMOTION:
 			str.append("Hat ");
-			str.append(QString::number(data.num));
+			str.append(QString::number(data_.num));
 			str.append(' ');
 
-			if (data.value & SDL_HAT_UP)
+			if (data_.value & SDL_HAT_UP)
 				str.append("Up");
-			if (data.value & SDL_HAT_DOWN)
+			if (data_.value & SDL_HAT_DOWN)
 				str.append("Down");
-			if (data.value & SDL_HAT_LEFT)
+			if (data_.value & SDL_HAT_LEFT)
 				str.append("Left");
-			if (data.value & SDL_HAT_RIGHT)
+			if (data_.value & SDL_HAT_RIGHT)
 				str.append("Right");
 
 			break;
 		case SDL_JOYBUTTONCHANGE:
 			str.append("Button ");
-			str.append(QString::number(data.num));
+			str.append(QString::number(data_.num));
 			break;
 		}
 
 		setText(str);
 	}
-}
-
-void InputBoxPair::clear() {
-	if (altBox->getData().value != InputBox::NULL_VALUE)
-		altBox->clearData();
-	else
-		mainBox->clearData();
 }

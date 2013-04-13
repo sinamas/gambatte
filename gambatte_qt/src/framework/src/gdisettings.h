@@ -23,6 +23,7 @@
 #include <windows.h>
 
 class GdiSettings : Uncopyable {
+private:
 	struct MonInfo {
 		DWORD  cbSize;
 		RECT   rcMonitor;
@@ -31,33 +32,30 @@ class GdiSettings : Uncopyable {
 		TCHAR  szDevice[CCHDEVICENAME];
 	};
 
-	typedef BOOL (WINAPI *GetMonInfo)(HMONITOR, MonInfo*);
-    typedef HMONITOR (WINAPI *MonFromWindow)(HWND, DWORD);
-    typedef HMONITOR (WINAPI *MonFromPoint)(POINT pt, DWORD dwFlags);
-    typedef LONG (WINAPI *ChangeGdiSettingsEx)(LPCTSTR, LPDEVMODE, HWND, DWORD, LPVOID);
+	typedef BOOL (WINAPI *GetMonInfo)(HMONITOR, MonInfo *);
+	typedef HMONITOR (WINAPI *MonFromWindow)(HWND, DWORD);
+	typedef HMONITOR (WINAPI *MonFromPoint)(POINT pt, DWORD dwFlags);
+	typedef LONG (WINAPI *ChangeGdiSettingsEx)(LPCTSTR, LPDEVMODE, HWND, DWORD, LPVOID);
 
-public:
-	enum { MON_DEFAULTTONEAREST = 2 };
-
-private:
 	HMODULE user32handle;
 	GetMonInfo getMonitorInfo;
 	ChangeGdiSettingsEx changeDisplaySettingsEx;
 
 public:
+	enum { MON_DEFAULTTONEAREST = 2 };
+
 	MonFromWindow monitorFromWindow;
 	MonFromPoint monitorFromPoint;
 
-private:
-	TCHAR *getMonitorName(HMONITOR monitor, MonInfo *minfo) const;
-
-public:
 	GdiSettings();
 	~GdiSettings();
 	BOOL enumDisplaySettings(HMONITOR monitor, DWORD iModeNum, LPDEVMODE devmode) const;
 	LONG changeDisplaySettings(HMONITOR monitor, LPDEVMODE devmode, DWORD dwflags) const;
+
+private:
+	TCHAR * getMonitorName(HMONITOR monitor, MonInfo *minfo) const;
 };
 
-extern const GdiSettings gdiSettings;
+extern GdiSettings const gdiSettings;
 
 #endif /*GDISETTINGS_H_*/

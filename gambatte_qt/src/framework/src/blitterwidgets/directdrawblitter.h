@@ -20,23 +20,47 @@
 #define DIRECTDRAWBLITTER_H_
 
 #include "../blitterwidget.h"
-#include "persistcheckbox.h"
+#include "dialoghelpers.h"
 #include "scoped_ptr.h"
 #include <QList>
 #include <ddraw.h>
 
-class QCheckBox;
 class QComboBox;
 
 class DirectDrawBlitter : public BlitterWidget {
+public:
+	explicit DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
+	virtual ~DirectDrawBlitter();
+	virtual void draw();
+	virtual void init();
+	virtual long frameTimeEst() const;
+	virtual int present();
+	virtual void uninit();
+	virtual void setExclusive(bool exclusive);
+
+	virtual QWidget * settingsWidget() const { return confWidget.get(); }
+	virtual void acceptSettings();
+	virtual void rejectSettings() const;
+
+	virtual QPaintEngine * paintEngine () const { return 0; }
+
+	virtual void rateChange(int dhz);
+	virtual void setSwapInterval(unsigned si);
+
+protected:
+	virtual void consumeBuffer(SetBuffer setInputBuffer);
+	virtual void paintEvent(QPaintEvent *event);
+	virtual void setBufferDimensions(unsigned w, unsigned h, SetBuffer setInputBuffer);
+
+private:
 	FtEst ftEst;
-	const scoped_ptr<QWidget> confWidget;
+	scoped_ptr<QWidget> const confWidget;
+	QComboBox *const deviceSelector;
 	PersistCheckBox vblank_;
 	PersistCheckBox flipping_;
 	PersistCheckBox vblankflip_;
 	PersistCheckBox triplebuf_;
 	PersistCheckBox videoSurface_;
-	QComboBox *const deviceSelector;
 	LPDIRECTDRAW7 lpDD;
 	LPDIRECTDRAWSURFACE7 lpDDSPrimary;
 	LPDIRECTDRAWSURFACE7 lpDDSBack;
@@ -53,7 +77,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	bool exclusive;
 	bool blitted;
 
-	static BOOL WINAPI enumCallback(GUID FAR *, char*, char*, LPVOID, HMONITOR);
+	static BOOL WINAPI enumCallback(GUID FAR *, char *, char *, LPVOID, HMONITOR);
 	void initPrimarySurface();
 	void initVideoSurface();
 	void initClearSurface();
@@ -62,35 +86,7 @@ class DirectDrawBlitter : public BlitterWidget {
 	void videoSurfaceBlit();
 	HRESULT backBlit(IDirectDrawSurface7 *lpDDSSrc, RECT *rcRectDest, DWORD flags);
 	void finalBlit(DWORD waitFlag);
-	//void detectExclusive();
 	void reinit();
-
-protected:
-	void paintEvent(QPaintEvent *event);
-	/*void resizeEvent(QResizeEvent *event);
-	void moveEvent(QMoveEvent *event);
-	void hideEvent(QHideEvent *event);*/
-	void setBufferDimensions(unsigned int w, unsigned int h);
-
-public:
-	explicit DirectDrawBlitter(VideoBufferLocker vbl, QWidget *parent = 0);
-	~DirectDrawBlitter();
-	void blit();
-	void draw();
-	void init();
-	long frameTimeEst() const;
-	long sync();
-	void uninit();
-	void setExclusive(bool exclusive);
-
-	QWidget* settingsWidget() const { return confWidget.get(); }
-	void acceptSettings();
-	void rejectSettings() const;
-
-	QPaintEngine* paintEngine () const { return NULL; }
-
-	void rateChange(int dhz);
-	void setSwapInterval(unsigned si);
 };
 
 #endif /*DIRECTDRAWBLITTER_H_*/

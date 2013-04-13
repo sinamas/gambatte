@@ -16,7 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "samplebuffer.h"
+#include "sourceupdater.h"
 #include "mediasource.h"
 #include "resample/resamplerinfo.h"
 #include <cstring>
@@ -24,9 +24,9 @@
 template<class T>
 static T * ptr_cast(void *p) { return static_cast<T *>(p); }
 
-void SampleBuffer::reset() {
-	const long insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
-	const long maxin = spf_.ceiled() + source_.overupdate;
+void SourceUpdater::reset() {
+	long const insrate = static_cast<long>(ft_.reciprocal().toFloat() * spf_.toFloat() + 0.5f);
+	std::size_t const maxin = spf_.ceiled() + source_.overUpdate;
 
 	sndInBuffer_.reset(0);
 	resampler_.reset();
@@ -38,18 +38,21 @@ void SampleBuffer::reset() {
 	}
 }
 
-long SampleBuffer::update(const PixelBuffer &pb) {
-	long insamples = sndInBuffer_.size() - samplesBuffered_;
-	const long res = source_.update(pb, ptr_cast<qint16>(sndInBuffer_ + samplesBuffered_),
-	                                insamples);
-	samplesBuffered_ += insamples;
-	return res < 0 ? res : samplesBuffered_ - insamples + res;
+std::ptrdiff_t SourceUpdater::update(PixelBuffer const &pb) {
+	std::size_t updateSamples = sndInBuffer_.size() - samplesBuffered_;
+	std::ptrdiff_t vidFrameDoneSampleNo =
+		source_.update(pb, ptr_cast<qint16>(sndInBuffer_ + samplesBuffered_),
+		               updateSamples);
+	samplesBuffered_ += updateSamples;
+	return vidFrameDoneSampleNo >= 0
+	     ? samplesBuffered_ - updateSamples + vidFrameDoneSampleNo
+	     : -1;
 }
 
-long SampleBuffer::read(const long insamples, qint16 *const out, const bool alwaysResample) {
-	long outsamples = 0;
+std::size_t SourceUpdater::readSamples(
+		qint16 *const out, std::size_t const insamples, bool const alwaysResample) {
+	std::size_t outsamples = 0;
 	samplesBuffered_ -= insamples;
-
 	if (out) {
 		if (resampler_->inRate() == resampler_->outRate() && !alwaysResample) {
 			std::memcpy(out, sndInBuffer_, insamples * sizeof *sndInBuffer_);

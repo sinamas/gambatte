@@ -37,7 +37,6 @@ MainWindow::FrameBuffer::Locked::~Locked() {
 
 MainWindow::MainWindow(MediaSource &source)
 : w_(new MediaWidget(source, *this))
-, winSize_(-1, -1)
 , fullscreen_(false)
 {
 	setFocusPolicy(Qt::StrongFocus);
@@ -52,7 +51,7 @@ MainWindow::MainWindow(MediaSource &source)
 void MainWindow::run() { w_->run(); }
 void MainWindow::stop() { w_->stop(); }
 
-void MainWindow::setWindowSize(const QSize &sz) {
+void MainWindow::setWindowSize(QSize const &sz) {
 	winSize_ = sz;
 
 	if (!fullscreen_ && isVisible())
@@ -78,25 +77,23 @@ void MainWindow::toggleFullScreen() {
 	}
 }
 
-void MainWindow::setVideoFormat(unsigned w, unsigned h) {
-	w_->setVideoFormat(w, h);
-
-	if (winSize_ == QSize(-1, -1))
+void MainWindow::setVideoFormat(QSize const &size) {
+	w_->setVideoFormat(size);
+	if (winSize_.isEmpty())
 		centralWidget()->setMinimumSize(w_->videoSize());
 }
 
-void MainWindow::setVideoFormatAndBlitter(unsigned w, unsigned h, std::size_t blitterNo) {
-	w_->setVideoFormatAndBlitter(w, h, blitterNo);
-
-	if (winSize_ == QSize(-1, -1))
+void MainWindow::setVideoFormatAndBlitter(QSize const &size, std::size_t blitterNo) {
+	w_->setVideoFormatAndBlitter(size, blitterNo);
+	if (winSize_.isEmpty())
 		centralWidget()->setMinimumSize(w_->videoSize());
 }
 
 void MainWindow::setVideoBlitter(std::size_t blitterNo) { w_->setVideoBlitter(blitterNo); }
-void MainWindow::setAspectRatio(const QSize &ar) { w_->setAspectRatio(ar); }
+void MainWindow::setAspectRatio(QSize const &ar) { w_->setAspectRatio(ar); }
 void MainWindow::setScalingMethod(ScalingMethod smet) { w_->setScalingMethod(smet); }
 
-void MainWindow::setAudioOut(std::size_t engineNo, unsigned srateHz, unsigned msecLatency, std::size_t resamplerNo) {
+void MainWindow::setAudioOut(std::size_t engineNo, long srateHz, int msecLatency, std::size_t resamplerNo) {
 	w_->setAudioOut(engineNo, srateHz, msecLatency, resamplerNo);
 }
 
@@ -107,7 +104,8 @@ void MainWindow::setSyncToRefreshRate(bool on) { w_->setSyncToRefreshRate(on); }
 
 void MainWindow::setFullScreenMode(std::size_t screenNo, std::size_t resIndex, std::size_t rateIndex) {
 	if (screenNo < w_->screens()
-			&& (w_->currentResIndex(screenNo) != resIndex || w_->currentRateIndex(screenNo) != rateIndex)) {
+			&& (w_->currentResIndex(screenNo) != resIndex
+			    || w_->currentRateIndex(screenNo) != rateIndex)) {
 		if (w_->isFullMode() && screenNo == w_->currentScreen()) {
 			w_->parentExclusiveEvent(false);
 			w_->setMode(screenNo, resIndex, rateIndex);
@@ -122,37 +120,37 @@ void MainWindow::setFullScreenMode(std::size_t screenNo, std::size_t resIndex, s
 	}
 }
 
-const std::vector<ResInfo>& MainWindow::modeVector(std::size_t screen) const { return w_->modeVector(screen); }
-const QString MainWindow::screenName(std::size_t screen) const { return w_->screenName(screen); }
+std::vector<ResInfo> const & MainWindow::modeVector(std::size_t screen) const { return w_->modeVector(screen); }
+QString const MainWindow::screenName(std::size_t screen) const { return w_->screenName(screen); }
 std::size_t MainWindow::screens() const { return w_->screens(); }
 std::size_t MainWindow::currentResIndex(std::size_t screen) const { return w_->currentResIndex(screen); }
 std::size_t MainWindow::currentRateIndex(std::size_t screen) const { return w_->currentRateIndex(screen); }
 std::size_t MainWindow::currentScreen() const { return w_->currentScreen(); }
-const BlitterConf MainWindow::currentBlitterConf() { return w_->currentBlitterConf(); }
-const ConstBlitterConf MainWindow::currentBlitterConf() const { return w_->currentBlitterConf(); }
+BlitterConf MainWindow::currentBlitterConf() { return w_->currentBlitterConf(); }
+ConstBlitterConf MainWindow::currentBlitterConf() const { return w_->currentBlitterConf(); }
 void MainWindow::frameStep() { w_->frameStep(); }
 void MainWindow::hideCursor() { w_->hideCursor(); }
-void MainWindow::setFastForwardSpeed(unsigned speed) { w_->setFastForwardSpeed(speed); }
+void MainWindow::setFastForwardSpeed(int speed) { w_->setFastForwardSpeed(speed); }
 void MainWindow::setFastForward(bool enable) { w_->setFastForward(enable); }
 void MainWindow::pause(unsigned bitmask) { w_->pause(bitmask); }
 void MainWindow::unpause(unsigned bitmask) { w_->unpause(bitmask); }
-void MainWindow::incPause(unsigned inc) { w_->incPause(inc); }
-void MainWindow::decPause(unsigned dec) { w_->decPause(dec); }
+void MainWindow::incPause(int inc) { w_->incPause(inc); }
+void MainWindow::decPause(int dec) { w_->decPause(dec); }
 bool MainWindow::isRunning() const { return w_->isRunning(); }
-const BlitterConf MainWindow::blitterConf(std::size_t blitterNo) { return w_->blitterConf(blitterNo); }
-const ConstBlitterConf MainWindow::blitterConf(std::size_t blitterNo) const { return w_->blitterConf(blitterNo); }
+BlitterConf MainWindow::blitterConf(std::size_t blitterNo) { return w_->blitterConf(blitterNo); }
+ConstBlitterConf MainWindow::blitterConf(std::size_t blitterNo) const { return w_->blitterConf(blitterNo); }
 std::size_t MainWindow::numBlitters() const { return w_->numBlitters(); }
-const AudioEngineConf MainWindow::audioEngineConf(std::size_t aeNo) { return w_->audioEngineConf(aeNo); }
-const ConstAudioEngineConf MainWindow::audioEngineConf(std::size_t aeNo) const { return w_->audioEngineConf(aeNo); }
+AudioEngineConf MainWindow::audioEngineConf(std::size_t aeNo) { return w_->audioEngineConf(aeNo); }
+ConstAudioEngineConf MainWindow::audioEngineConf(std::size_t aeNo) const { return w_->audioEngineConf(aeNo); }
 std::size_t MainWindow::numAudioEngines() const { return w_->numAudioEngines(); }
 std::size_t MainWindow::numResamplers() const { return w_->numResamplers(); }
-const char* MainWindow::resamplerDesc(std::size_t resamplerNo) const { return w_->resamplerDesc(resamplerNo); }
+char const * MainWindow::resamplerDesc(std::size_t resamplerNo) const { return w_->resamplerDesc(resamplerNo); }
 void MainWindow::resetAudio() { w_->resetAudio(); }
 void MainWindow::setDwmTripleBuffer(bool enable) { w_->setDwmTripleBuffer(enable); }
 bool MainWindow::hasDwmCapability() { return DwmControl::hasDwmCapability(); }
 bool MainWindow::isDwmCompositionEnabled() { return DwmControl::isCompositingEnabled(); }
 
-void MainWindow::closeEvent(QCloseEvent */*e*/) {
+void MainWindow::closeEvent(QCloseEvent *) {
 	w_->stop();
 	emit closing();
 // 	w_->setFullMode(false); // avoid misleading auto-minimize on close focusOut event.
@@ -163,7 +161,7 @@ void MainWindow::hideEvent(QHideEvent *) {
 }
 
 void MainWindow::showEvent(QShowEvent *) {
-	// some window managers get pissed (xfwm4 breaks, metacity complains) if fixed window size is set too early.
+	// some window managers get upset (xfwm4 breaks, metacity complains) if fixed window size is set too early.
 	if (!fullscreen_)
 		doSetWindowSize(winSize_);
 
@@ -201,14 +199,14 @@ bool MainWindow::winEvent(MSG *msg, long *) {
 #endif
 
 void MainWindow::doShowFullScreen() {
-	const int screen = QApplication::desktop()->screenNumber(this);
+	int const screen = QApplication::desktop()->screenNumber(this);
 
 	w_->setFullMode(true);
-	doSetWindowSize(QSize(-1, -1));
+	doSetWindowSize(QSize());
 
 	// If the window is outside the screen it will be moved to the primary screen by Qt.
 	{
-		const QRect &rect = QApplication::desktop()->screenGeometry(screen);
+		QRect const &rect = QApplication::desktop()->screenGeometry(screen);
 		QPoint p(pos());
 
 		if (p.x() > rect.right())
@@ -234,29 +232,32 @@ void MainWindow::doShowFullScreen() {
 	w_->parentExclusiveEvent(hasFocus());
 }
 
-void MainWindow::doSetWindowSize(const QSize &sz) {
-	if (sz == QSize(-1, -1)) {
+void MainWindow::doSetWindowSize(QSize const &s) {
+	if (s.isEmpty()) {
 		centralWidget()->setMinimumSize(w_->videoSize());
 		layout()->setSizeConstraint(QLayout::SetMinimumSize);
+
 		setMinimumSize(1, 1); // needed on macx
-		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX); // needed on macx. needed for metacity full screen switching, layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) won't do.
+		// needed on macx. needed for metacity full screen switching,
+		// layout()->setSizeConstraint(QLayout::SetMinAndMaxSize) will not do.
+		setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+
 		resize(size()); // needed on macx
 	} else {
-		centralWidget()->setMinimumSize(sz);
+		centralWidget()->setMinimumSize(s);
 		layout()->setSizeConstraint(QLayout::SetFixedSize);
 	}
 }
 
 void MainWindow::correctFullScreenGeometry() {
-	const QRect &screenRect = w_->fullScreenRect(this);
-
+	QRect const screenRect = w_->fullScreenRect(this);
 	if (geometry() != screenRect)
 		setGeometry(screenRect);
 
 }
 
 CallWhenMediaWorkerPaused::CallWhenMediaWorkerPaused(MediaWidget &mw)
-: worker_(*mw.worker), callq_(mw.pausedq)
+: worker_(*mw.worker_), callq_(mw.pausedq_)
 {
 	worker_.qPause();
 }
@@ -269,16 +270,15 @@ CallWhenMediaWorkerPaused::~CallWhenMediaWorkerPaused() {
 }
 
 PushMediaWorkerCall::PushMediaWorkerCall(MediaWidget &mw)
-: worker_(*mw.worker), callq_(worker_.pauseVar.callq)
+: worker_(*mw.worker_), callq_(worker_.pauseVar_.callq_)
 {
-	worker_.pauseVar.mut.lock();
+	worker_.pauseVar_.mut_.lock();
 }
 
 PushMediaWorkerCall::~PushMediaWorkerCall() {
-	worker_.pauseVar.cond.wakeAll();
-
-	if (AtomicVar<bool>::ConstLocked(worker_.doneVar).get())
+	worker_.pauseVar_.cond_.wakeAll();
+	if (AtomicVar<bool>::ConstLocked(worker_.doneVar_).get())
 		callq_.pop_all();
 
-	worker_.pauseVar.mut.unlock();
+	worker_.pauseVar_.mut_.unlock();
 }

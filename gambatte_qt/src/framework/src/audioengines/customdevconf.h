@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Sindre Aam�s                                    *
+ *   Copyright (C) 2007 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,35 +19,33 @@
 #ifndef CUSTOMDEVCONF_H
 #define CUSTOMDEVCONF_H
 
+#include "scoped_ptr.h"
+#include <QString>
+
 class QCheckBox;
 class QLineEdit;
 class QWidget;
 
-#include "scoped_ptr.h"
-#include <QObject>
-#include <QByteArray>
-
-class CustomDevConf : public QObject {
-	Q_OBJECT
-
-	const char *const defaultstr;
-	const char *const confgroup;
-	const scoped_ptr<QWidget> confWidget;
-	QCheckBox *const customDevBox;
-	QLineEdit *const customDevEdit;
-	QByteArray customDevStr;
-	bool useCustomDev;
-
-private slots:
-	void customDevBoxChange(bool checked);
-
+class CustomDevConf {
 public:
-	CustomDevConf(const char *desc, const char *defaultstr, const char *confgroup, const char *customdevstr = 0);
+	CustomDevConf(QString const &desc,
+	              QString const &defaultDev,
+	              QString const &confGroup,
+	              QString const &customDev);
 	~CustomDevConf();
-	QWidget* settingsWidget() const { return confWidget.get(); }
+	QWidget * settingsWidget() const { return confWidget_.get(); }
 	void acceptSettings();
 	void rejectSettings() const;
-	const char* device() const;
+	QString const device() const;
+
+private:
+	QString const defaultDev_;
+	QString const confGroup_;
+	scoped_ptr<QWidget> const confWidget_;
+	QCheckBox *const customDevBox_;
+	QLineEdit *const customDevEdit_;
+	QString customDev_;
+	bool useCustomDev_;
 };
 
 #endif

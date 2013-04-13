@@ -27,29 +27,19 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-template<class Parent, class ChildLayout>
-static ChildLayout * addLayout(Parent *parent, ChildLayout *child) {
-	parent->addLayout(child);
-	return child;
-}
-
-template<class Parent, class ChildLayout>
-static ChildLayout * addLayout(Parent *parent, ChildLayout *child, Qt::Alignment alignment) {
-	parent->addLayout(child);
-	parent->setAlignment(child, alignment);
-	return child;
-}
-
 MiscDialog::MiscDialog(QString const &savepath, QWidget *parent)
 : QDialog(parent)
 , turboSpeedBox(new QSpinBox(this))
-, savepathSelector_("Choose Save Path:", "misc/savepath",
-                    std::make_pair(QDir::toNativeSeparators(savepath), savepath),
-		    std::make_pair(tr("Same folder as ROM image"), QString()))
 , pauseOnDialogs_(new QCheckBox(tr("Pause when displaying dialogs"), this), "misc/pauseOnDialogs", true)
 , pauseOnFocusOut_(new QCheckBox(tr("Pause on focus out"), this), "misc/pauseOnFocusOut", false)
+, fpsSelector_(this)
 , dwmTripleBuf_(new QCheckBox(tr("DWM triple buffering"), this), "misc/dwmTripleBuf", true)
 , multicartCompat_(new QCheckBox(tr("Multicart compatibility"), this), "misc/multicartCompat", false)
+, savepathSelector_("Choose Save Path:",
+                    "misc/savepath",
+                    std::make_pair(QDir::toNativeSeparators(savepath), savepath),
+                    std::make_pair(tr("Same folder as ROM image"), QString()),
+                    this)
 , turboSpeed_(8)
 {
 	setWindowTitle(tr("Miscellaneous Settings"));
@@ -92,12 +82,10 @@ MiscDialog::MiscDialog(QString const &savepath, QWidget *parent)
 	}
 
 	{
-		QPushButton *const okButton = new QPushButton(tr("OK"), this);
-		QPushButton *const cancelButton = new QPushButton(tr("Cancel"), this);
 		QHBoxLayout *const hLayout = addLayout(mainLayout, new QHBoxLayout,
 		                                       Qt::AlignBottom | Qt::AlignRight);
-		hLayout->addWidget(okButton);
-		hLayout->addWidget(cancelButton);
+		QPushButton *const okButton = addWidget(hLayout, new QPushButton(tr("OK")));
+		QPushButton *const cancelButton = addWidget(hLayout, new QPushButton(tr("Cancel")));
 		okButton->setDefault(true);
 		connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
 		connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
@@ -113,16 +101,6 @@ MiscDialog::~MiscDialog() {
 	settings.setValue("misc/turboSpeed", turboSpeed_);
 }
 
-void MiscDialog::store() {
-	fpsSelector_.accept();
-	turboSpeed_ = turboSpeedBox->value();
-	pauseOnDialogs_.accept();
-	pauseOnFocusOut_.accept();
-	dwmTripleBuf_.accept();
-	multicartCompat_.accept();
-	savepathSelector_.accept();
-}
-
 void MiscDialog::restore() {
 	fpsSelector_.reject();
 	turboSpeedBox->setValue(turboSpeed_);
@@ -134,7 +112,13 @@ void MiscDialog::restore() {
 }
 
 void MiscDialog::accept() {
-	store();
+	fpsSelector_.accept();
+	turboSpeed_ = turboSpeedBox->value();
+	pauseOnDialogs_.accept();
+	pauseOnFocusOut_.accept();
+	dwmTripleBuf_.accept();
+	multicartCompat_.accept();
+	savepathSelector_.accept();
 	QDialog::accept();
 }
 

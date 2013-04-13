@@ -24,28 +24,34 @@
 
 template<typename T>
 class AtomicVar {
-	mutable QMutex mut;
-	T var;
 public:
-	AtomicVar() {}
-	explicit AtomicVar(const T var) : var(var) {}
+	AtomicVar() : var_() {}
+	explicit AtomicVar(T var) : var_(var) {}
 
 	class Locked : Uncopyable {
-		AtomicVar &av;
 	public:
-		Locked(AtomicVar &av) : av(av) { av.mut.lock(); }
-		~Locked() { av.mut.unlock(); }
-		T get() const { return av.var; }
-		void set(const T v) { av.var = v; }
+		Locked(AtomicVar &av) : av(av) { av.mut_.lock(); }
+		~Locked() { av.mut_.unlock(); }
+		T get() const { return av.var_; }
+		void set(T v) { av.var_ = v; }
+
+	private:
+		AtomicVar &av;
 	};
 
 	class ConstLocked : Uncopyable {
-		const AtomicVar &av;
 	public:
-		ConstLocked(const AtomicVar &av) : av(av) { av.mut.lock(); }
-		~ConstLocked() { av.mut.unlock(); }
-		T get() const { return av.var; }
+		ConstLocked(AtomicVar const &av) : av(av) { av.mut_.lock(); }
+		~ConstLocked() { av.mut_.unlock(); }
+		T get() const { return av.var_; }
+
+	private:
+		AtomicVar const &av;
 	};
+
+private:
+	mutable QMutex mut_;
+	T var_;
 };
 
 #endif

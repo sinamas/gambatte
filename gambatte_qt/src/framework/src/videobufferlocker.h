@@ -25,8 +25,8 @@ class VideoBufferLocker {
 	QMutex &vbmut;
 public:
 	VideoBufferLocker(QMutex &vbmut) : vbmut(vbmut) {}
-	void lock() { vbmut.lock(); }
-	void unlock() { vbmut.unlock(); }
+	void lock() const { vbmut.lock(); }
+	void unlock() const { vbmut.unlock(); }
 };
 
 #endif

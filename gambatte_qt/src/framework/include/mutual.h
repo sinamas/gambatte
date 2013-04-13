@@ -24,42 +24,46 @@
 
 template<class T>
 class Mutual {
-	mutable QMutex mut;
-	T t;
-
 public:
 	Mutual() {}
-	explicit Mutual(const T &t) : t(t) {}
+	explicit Mutual(T const &t) : t(t) {}
 
 	class Locked : Uncopyable {
-		Mutual &lc;
 	public:
 		Locked(Mutual &lc) : lc(lc) { lc.mut.lock(); }
 		~Locked() { lc.mut.unlock(); }
-		T* operator->() { return &lc.t; }
-		const T* operator->() const { return &lc.t; }
-		T& get() { return lc.t; }
-		const T& get() const { return lc.t; }
+		T * operator->() { return &lc.t; }
+		T const * operator->() const { return &lc.t; }
+		T & get() { return lc.t; }
+		T const & get() const { return lc.t; }
+	private:
+		Mutual &lc;
 	};
 
 	class ConstLocked : Uncopyable {
-		const Mutual &lc;
 	public:
-		ConstLocked(const Mutual &lc) : lc(lc) { lc.mut.lock(); }
+		ConstLocked(Mutual const &lc) : lc(lc) { lc.mut.lock(); }
 		~ConstLocked() { lc.mut.unlock(); }
-		const T* operator->() const { return &lc.t; }
-		const T& get() const { return lc.t; }
+		T const * operator->() const { return &lc.t; }
+		T const & get() const { return lc.t; }
+	private:
+		Mutual const &lc;
 	};
 
 	class TryLocked : Uncopyable {
-		Mutual *const lc;
 	public:
 		TryLocked(Mutual &lc) : lc(lc.mut.tryLock() ? &lc : 0) {}
 		~TryLocked() { if (lc) lc->mut.unlock(); }
-		T* operator->() const { return &lc->t; }
-		T* get() const { return lc ? &lc->t : 0; }
+		T * operator->() const { return &lc->t; }
+		T * get() const { return lc ? &lc->t : 0; }
 		operator bool() const { return lc; }
+	private:
+		Mutual *const lc;
 	};
+
+private:
+	mutable QMutex mut;
+	T t;
 };
 
 #endif

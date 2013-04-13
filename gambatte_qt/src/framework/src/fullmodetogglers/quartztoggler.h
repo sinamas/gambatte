@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Sindre Aam�s                                    *
+ *   Copyright (C) 2008 by Sindre Aamås                                    *
  *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,40 +20,38 @@
 #define QUARTZTOGGLER_H_
 
 #include "../fullmodetoggler.h"
+#include "array.h"
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
 
-class QWidget;
-
 class QuartzToggler : public FullModeToggler {
-	Q_OBJECT
-
-	CFDictionaryRef originalMode;
-	CGDirectDisplayID *activeDspys;
-	std::vector<std::vector<ResInfo> > infoVector;
-	std::vector<unsigned> fullResIndex;
-	std::vector<unsigned> fullRateIndex;
-	unsigned widgetScreen;
-	bool isFull;
-
 public:
 	QuartzToggler();
-	~QuartzToggler();
-	unsigned currentResIndex(unsigned screen) const { return fullResIndex[screen]; }
-	unsigned currentRateIndex(unsigned screen) const { return fullRateIndex[screen]; }
-	const QRect fullScreenRect(const QWidget *w) const;
-	bool isFullMode() const { return isFull; }
-	void setMode(unsigned screen, unsigned resIndex, unsigned rateIndex);
-	void setFullMode(bool enable);
-	void emitRate();
-	const std::vector<ResInfo>& modeVector(unsigned screen) const { return infoVector[screen]; }
-	void setScreen(const QWidget *widget);
-	unsigned screen() const { return widgetScreen; }
-	unsigned screens() const { return infoVector.size(); }
+	virtual std::size_t currentResIndex(std::size_t screen) const { return fullResIndex[screen]; }
+	virtual std::size_t currentRateIndex(std::size_t screen) const { return fullRateIndex[screen]; }
+	virtual QRect const fullScreenRect(QWidget const *w) const;
+	virtual bool isFullMode() const { return isFull; }
+	virtual void setMode(std::size_t screen, std::size_t resIndex, std::size_t rateIndex);
+	virtual void setFullMode(bool enable);
+	virtual void emitRate();
+	virtual std::vector<ResInfo> const & modeVector(std::size_t screen) const { return infoVector[screen]; }
+	virtual void setScreen(QWidget const *widget);
+	virtual std::size_t screen() const { return widgetScreen; }
+	virtual std::size_t screens() const { return infoVector.size(); }
 
 signals:
 	void rateChange(int newHz);
-//	void modeChange();
+
+private:
+	Q_OBJECT
+
+	CFDictionaryRef originalMode;
+	Array<CGDirectDisplayID> activeDspys;
+	std::vector<std::vector<ResInfo> > infoVector;
+	std::vector<std::size_t> fullResIndex;
+	std::vector<std::size_t> fullRateIndex;
+	std::size_t widgetScreen;
+	bool isFull;
 };
 
 #endif

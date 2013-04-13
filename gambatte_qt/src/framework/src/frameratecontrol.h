@@ -25,14 +25,6 @@ class MediaWorker;
 class BlitterWidget;
 
 class FrameRateControl {
-	MediaWorker &worker_;
-	BlitterWidget *blitter_;
-	Rational frameTime_;
-	int refreshRate_;
-	bool refreshRateSync_;
-
-	void update();
-
 public:
 	FrameRateControl(MediaWorker &worker, BlitterWidget *blitter);
 	void setBlitter(BlitterWidget *blitter);
@@ -40,6 +32,14 @@ public:
 	void setRefreshRate(int refreshRate);
 	void setRefreshRateSync(bool enable) { refreshRateSync_ = enable; update(); }
 
+private:
+	MediaWorker &worker_;
+	BlitterWidget *blitter_;
+	Rational frameTime_;
+	int refreshRate_;
+	bool refreshRateSync_;
+
+	void update();
 };
 
 #endif
