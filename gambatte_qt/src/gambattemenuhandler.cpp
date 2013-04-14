@@ -543,8 +543,9 @@ void GambatteMenuHandler::loadFile(QString const &fileName) {
 		QMessageBox::critical(
 			&mw_,
 			tr("File Load Error"),
-			tr("Failed to load file\n") + fileName + ".\n\n"
-		                                    + gambatte::to_string(error).c_str() + '.');
+			(tr("Failed to load file\n")
+			 + fileName + ".\n\n"
+			 + gambatte::to_string(error).c_str() + '.'));
 		return;
 	}
 
