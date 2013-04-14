@@ -64,7 +64,7 @@ public:
 	unsigned fillSoundBuffer() { return mem_.fillSoundBuffer(cycleCounter_); }
 	bool isCgb() const { return mem_.isCgb(); }
 
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
 		mem_.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 

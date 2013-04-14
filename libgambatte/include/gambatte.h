@@ -92,7 +92,7 @@ public:
 	  * @param palNum 0 <= palNum < 3. One of BG_PALETTE, SP1_PALETTE and SP2_PALETTE.
 	  * @param colorNum 0 <= colorNum < 4
 	  */
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32);
+	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
 
 	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);

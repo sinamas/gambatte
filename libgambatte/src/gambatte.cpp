@@ -128,7 +128,7 @@ void GB::saveSavedata() {
 		p_->cpu.saveSavedata();
 }
 
-void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
+void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
 	p_->cpu.setDmgPaletteColor(palNum, colorNum, rgb32);
 }
 
