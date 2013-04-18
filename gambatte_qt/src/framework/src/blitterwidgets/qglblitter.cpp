@@ -22,16 +22,16 @@
 #include "array.h"
 #include "dialoghelpers.h"
 #include "scoped_ptr.h"
-
-#ifdef PLATFORM_WIN32
-#include <GL/glext.h>
-#endif
-
 #include <QCheckBox>
 #include <QGLWidget>
 #include <QSettings>
 #include <QSizePolicy>
 #include <QVBoxLayout>
+
+#ifdef PLATFORM_WIN32
+#include <GL/glext.h>
+#endif
+
 #include <algorithm>
 #include <cstring>
 #include <vector>

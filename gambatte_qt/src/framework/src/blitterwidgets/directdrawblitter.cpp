@@ -182,7 +182,7 @@ void DirectDrawBlitter::consumeBuffer(SetBuffer setInputBuffer) {
 
 	std::ptrdiff_t pitch = inBuffer().pixelFormat == PixelBuffer::RGB16
 	                     ? ddsd.lPitch >> 1
-	                     : ddsd.lPitch >> 2
+	                     : ddsd.lPitch >> 2;
 	setInputBuffer(ddsd.lpSurface, inBuffer().pixelFormat, pitch);
 }
 
