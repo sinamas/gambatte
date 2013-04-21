@@ -19,6 +19,6 @@
 #ifndef U48DIV_H
 #define U48DIV_H
 
-unsigned long u48div(unsigned long num1, unsigned num2, unsigned long den);
+unsigned long u48div(unsigned long numeratorLow, unsigned numeratorHigh, unsigned long denominator);
 
 #endif

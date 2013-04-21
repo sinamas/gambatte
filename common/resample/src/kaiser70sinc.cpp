@@ -20,9 +20,9 @@
 #include "i0.h"
 #include <cmath>
 
-double kaiser70SincWin(const long n, const long M) {
-	const double beta = 6.9;
-	static const double i0beta_rec = 1.0 / i0(beta);
+double kaiser70SincWin(long const n, long const M) {
+	double const beta = 6.9;
+	static double const i0beta_rec = 1.0 / i0(beta);
 
 	double x = static_cast<double>(n * 2) / M - 1.0;
 	x = x * x;

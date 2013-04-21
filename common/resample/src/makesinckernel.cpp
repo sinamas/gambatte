@@ -18,67 +18,62 @@
  ***************************************************************************/
 #include "makesinckernel.h"
 #include "array.h"
+#include <cmath>
 
-void makeSincKernel(short *const kernel, const unsigned phases,
-		const unsigned phaseLen, double fc, double (*win)(long m, long M), double const maxAllowedGain) {
-	static const double PI = 3.14159265358979323846;
+void makeSincKernel(short *const kernel, int const phases, int const phaseLen, double fc,
+                    double (*const win)(long m, long M), double const maxAllowedGain)
+{
+	double const PI = 3.14159265358979323846;
 	fc /= phases;
 
 	/*{
-		const Array<double> dkernel(phaseLen * phases);
-		const long M = static_cast<long>(phaseLen) * phases - 1;
-
+		Array<double> const dkernel(phaseLen * phases);
+		long const M = long(phaseLen) * phases - 1;
 		for (long i = 0; i < M + 1; ++i) {
-			const double sinc = i * 2 == M ?
-					PI * fc :
-					std::sin(PI * fc * (i * 2 - M)) / (i * 2 - M);
-
-			dkernel[((phases - (i % phases)) % phases) * phaseLen + i / phases] = win(i, M) * sinc;
+			double sinc = i * 2 == M
+			            ? PI * fc
+			            : std::sin(PI * fc * (i * 2 - M)) / (i * 2 - M);
+			std::size_t pos = std::size_t((phases - (i % phases)) % phases) * phaseLen
+			                  + i / phases;
+			dkernel[pos] = win(i, M) * sinc;
 		}
 
 		double maxabsgain = 0;
-
-		for (unsigned ph = 0; ph < phases; ++ph) {
+		for (int ph = 0; ph < phases; ++ph) {
 			double gain = 0;
 			double absgain = 0;
-
-			for (unsigned i = 0; i < phaseLen; ++i) {
-				gain += dkernel[ph * phaseLen + i];
-				absgain += std::abs(dkernel[ph * phaseLen + i]);
+			for (int i = 0; i < phaseLen; ++i) {
+				gain += dkernel[std::size_t(ph) * phaseLen + i];
+				absgain += std::abs(dkernel[std::size_t(ph) * phaseLen + i]);
 			}
 
 			gain = 1.0 / gain;
-
 			// Per phase normalization to avoid DC fluctuations.
-			for (unsigned i = 0; i < phaseLen; ++i)
-				dkernel[ph * phaseLen + i] *= gain;
+			for (int i = 0; i < phaseLen; ++i)
+				dkernel[std::size_t(ph) * phaseLen + i] *= gain;
 
 			absgain *= gain;
-
 			if (absgain > maxabsgain)
 				maxabsgain = absgain;
 		}
 
-		const double gain = (0x10000 - 0.5 * phaseLen) * maxAllowedGain / maxabsgain;
-
+		double gain = (0x10000 - 0.5 * phaseLen) * maxAllowedGain / maxabsgain;
 		for (long i = 0; i < M + 1; ++i)
 			kernel[i] = std::floor(dkernel[i] * gain + 0.5);
 	}*/
 
-	// The following is equivalent to the more readable version above
-
-	const long M = static_cast<long>(phaseLen) * phases - 1;
-	const Array<double> dkernel(M / 2 + 1);
+	// The following should be equivalent to the more concise version above
+	// Some polyphase FIRs used are huge enough that this seemed worthwile.
+	long const M = long(phaseLen) * phases - 1;
+	Array<double> const dkernel(M / 2 + 1);
 
 	{
 		double *dk = dkernel;
-
-		for (unsigned ph = 0; ph < phases; ++ph) {
+		for (int ph = 0; ph < phases; ++ph) {
 			for (long i = ph; i < M / 2 + 1; i += phases) {
-				const double sinc = i * 2 == M ?
-						PI * fc :
-						std::sin(PI * fc * (i * 2 - M)) / (i * 2 - M);
-
+				double sinc = i * 2 == M
+				            ? PI * fc
+				            : std::sin(PI * fc * (i * 2 - M)) / (i * 2 - M);
 				*dk++ = win(i, M) * sinc;
 			}
 		}
@@ -89,21 +84,18 @@ void makeSincKernel(short *const kernel, const unsigned phases,
 	{
 		double *dkp1 = dkernel;
 		double *dkp2 = dkernel + M / 2;
-
-		for (unsigned ph = 0; ph < (phases + 1) / 2; ++ph) {
+		for (int ph = 0; ph < (phases + 1) / 2; ++ph) {
 			double gain = 0.0;
 			double absgain = 0.0;
 
 			{
-				const double *kp1 = dkp1;
-				const double *kp2 = dkp2;
+				double const *kp1 = dkp1;
+				double const *kp2 = dkp2;
 				long i = ph;
-
 				for (; i < M / 2 + 1; i += phases) {
 					gain += *kp1;
 					absgain += std::abs(*kp1++);
 				}
-
 				for (; i < M + 1; i += phases) {
 					gain += *kp2;
 					absgain += std::abs(*kp2--);
@@ -113,7 +105,6 @@ void makeSincKernel(short *const kernel, const unsigned phases,
 			gain = 1.0 / gain;
 
 			long i = ph;
-
 			for (; i < M / 2 + 1; i += phases)
 				*dkp1++ *= gain;
 
@@ -123,19 +114,16 @@ void makeSincKernel(short *const kernel, const unsigned phases,
 			}
 
 			absgain *= gain;
-
 			if (absgain > maxabsgain)
 				maxabsgain = absgain;
 		}
 	}
 
-	const double gain = (0x10000 - 0.5 * phaseLen) * maxAllowedGain / maxabsgain;
-	const double *dk = dkernel;
-
-	for (unsigned ph = 0; ph < phases; ++ph) {
-		short *k = kernel + ((phases - ph) % phases) * phaseLen;
-		short *km = kernel + phaseLen - 1 + ((ph + 1) % phases) * phaseLen;
-
+	double const gain = (0x10000 - 0.5 * phaseLen) * maxAllowedGain / maxabsgain;
+	double const *dk = dkernel;
+	for (int ph = 0; ph < phases; ++ph) {
+		short *k = kernel + std::size_t((phases - ph) % phases) * phaseLen;
+		short *km = kernel + phaseLen - 1 + std::size_t((ph + 1) % phases) * phaseLen;
 		for (long i = ph; i < M / 2 + 1; i += phases)
 			*km-- = *k++ = static_cast<short>(std::floor(*dk++ * gain + 0.5));
 	}

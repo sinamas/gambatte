@@ -19,10 +19,7 @@
 #ifndef MAKE_SINC_KERNEL_H
 #define MAKE_SINC_KERNEL_H
 
-#include <cmath>
-#include <cstdlib>
-
-void makeSincKernel(short *kernel, unsigned phases, unsigned phaseLen,
-		double fc, double (*win)(long m, long M), double gain);
+void makeSincKernel(short *kernel, int phases, int phaseLen,
+                    double fc, double (*win)(long m, long M), double gain);
 
 #endif

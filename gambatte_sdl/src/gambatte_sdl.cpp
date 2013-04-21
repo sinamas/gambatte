@@ -20,6 +20,7 @@
 #include "audiosink.h"
 #include "blitterwrapper.h"
 #include "parser.h"
+#include "resample/resampler.h"
 #include "resample/resamplerinfo.h"
 #include "skipsched.h"
 #include "str_to_sdlkey.h"

@@ -23,11 +23,11 @@
 
 class SubResampler {
 public:
-	virtual std::size_t resample(short *out, const short *in, std::size_t inlen) = 0;
+	virtual ~SubResampler() {}
+	virtual std::size_t resample(short *out, short const *in, std::size_t inlen) = 0;
 	virtual unsigned mul() const = 0;
 	virtual unsigned div() const = 0;
 	virtual void adjustDiv(unsigned /*div*/) {}
-	virtual ~SubResampler() {}
 };
 
 #endif

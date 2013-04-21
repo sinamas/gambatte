@@ -19,12 +19,13 @@
 #ifndef RSHIFT16_ROUND_H
 #define RSHIFT16_ROUND_H
 
+// negative shift is not defined in c++98
 #ifdef NO_NEGATIVE_SHIFT
-static inline long rshift16_round(const long l) {
+inline long rshift16_round(long const l) {
 	return l < 0 ? -((-l + 0x8000) >> 16) : (l + 0x8000) >> 16;
 }
 #else
-static inline long rshift16_round(const long l) {
+inline long rshift16_round(long l) {
 	return (l + 0x8000) >> 16;
 }
 #endif
