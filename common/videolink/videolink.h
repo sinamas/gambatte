@@ -24,7 +24,7 @@
 class VideoLink {
 public:
 	virtual ~VideoLink() {}
-	virtual void* inBuf() const = 0;
+	virtual void * inBuf() const = 0;
 	virtual std::ptrdiff_t inPitch() const = 0;
 	virtual void draw(void *dst, std::ptrdiff_t dstpitch) = 0;
 };

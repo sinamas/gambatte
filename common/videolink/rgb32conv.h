@@ -24,7 +24,7 @@ class VideoLink;
 class Rgb32Conv {
 public:
 	enum PixelFormat { RGB32, RGB16, UYVY };
-	static VideoLink* create(PixelFormat pf, unsigned width, unsigned height);
+	static VideoLink * create(PixelFormat pf, unsigned width, unsigned height);
 };
 
 #endif

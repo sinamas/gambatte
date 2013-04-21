@@ -25,15 +25,17 @@
 #include "gbint.h"
 
 class MaxStHq2x : public VideoLink {
-	const Array<gambatte::uint_least32_t> buffer_;
 public:
-	enum { OUT_WIDTH = VfilterInfo::IN_WIDTH * 2 };
-	enum { OUT_HEIGHT = VfilterInfo::IN_HEIGHT * 2 };
+	enum { out_width  = VfilterInfo::in_width  * 2 };
+	enum { out_height = VfilterInfo::in_height * 2 };
 
 	MaxStHq2x();
-	virtual void* inBuf() const;
+	virtual void * inBuf() const;
 	virtual std::ptrdiff_t inPitch() const;
 	virtual void draw(void *dst, std::ptrdiff_t dstpitch);
+
+private:
+	SimpleArray<gambatte::uint_least32_t> const buffer_;
 };
 
 #endif
