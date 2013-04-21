@@ -315,7 +315,7 @@ long WasapiEngine::doInit(long rate, int const latency) {
 	}
 
 	pos_ = 0;
-	est.init(rate, rate, bufferFrameCount);
+	est = RateEst(rate, bufferFrameCount);
 
 	return rate;
 }
@@ -382,7 +382,7 @@ int WasapiEngine::write(void *buffer, std::size_t frames, UINT32 numFramesPaddin
 				est.feed((static_cast<UINT32>(pos) - pos_) / posFrames,
 				         qpcpos / 10);
 			} else
-				est.reset();
+				est.resetLastFeedTimeStamp();
 		}
 
 		pos_ = pos;

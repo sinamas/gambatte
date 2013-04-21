@@ -14,7 +14,7 @@ public:
 	~transfer_ptr() { Deleter::del(p_); }
 	T * get() const { return p_; }
 	T * release() { T *p = p_; p_ = 0; return p; }
-	operator const released() { return released(release()); }
+	operator released const () { return released(release()); }
 	T & operator*() const { return *p_; }
 	T * operator->() const { return p_; }
 	operator bool() const { return p_; }

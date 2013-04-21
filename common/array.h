@@ -24,30 +24,30 @@
 #include <cstddef>
 
 template<typename T>
-class Array : Uncopyable {
-	T *a;
-	std::size_t sz;
-
+class SimpleArray : Uncopyable {
 public:
-	explicit Array(std::size_t size = 0) : a(size ? new T[size] : 0), sz(size) {}
-	~Array() { delete[] defined_ptr(a); }
-	void reset(std::size_t size = 0) { delete[] defined_ptr(a); a = size ? new T[size] : 0; sz = size; }
-	std::size_t size() const { return sz; }
-	T * get() const { return a; }
-	operator T*() const { return a; }
+	explicit SimpleArray(std::size_t size = 0) : a_(size ? new T[size] : 0) {}
+	~SimpleArray() { delete[] defined_ptr(a_); }
+	void reset(std::size_t size = 0) { delete[] defined_ptr(a_); a_ = size ? new T[size] : 0; }
+	T * get() const { return a_; }
+	operator T *() const { return a_; }
+
+private:
+	T *a_;
 };
 
 template<typename T>
-class ScopedArray : Uncopyable {
-	T *a_;
-
+class Array {
 public:
-	explicit ScopedArray(T *a = 0) : a_(a) {}
-	~ScopedArray() { delete[] defined_ptr(a_); }
-	void reset(T *a = 0) { delete[] defined_ptr(a_); a_ = a; }
-	T * release() { T *a = a_; a_ = 0; return a; }
+	explicit Array(std::size_t size = 0) : a_(size), size_(size) {}
+	void reset(std::size_t size = 0) { a_.reset(size); size_ = size; }
+	std::size_t size() const { return size_; }
 	T * get() const { return a_; }
-	operator T*() const { return a_; }
+	operator T *() const { return a_; }
+
+private:
+	SimpleArray<T> a_;
+	std::size_t size_;
 };
 
 #endif

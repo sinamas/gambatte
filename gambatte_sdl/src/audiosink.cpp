@@ -75,7 +75,7 @@ struct AudioSink::SdlDeleter {
 
 AudioSink::AudioSink(unsigned const srate, unsigned const latency, unsigned const periods)
 : rbuf_(nearestPowerOf2(srate * latency / ((periods + 1) * 1000)) * periods * 2)
-, rateEst_(srate)
+, rateEst_(srate, rbuf_.size() / periods)
 , mut_(SDL_CreateMutex())
 , bufReadyCond_(SDL_CreateCond())
 , failed_(openAudio(srate, rbuf_.size() / 2 / periods, fillBuffer, this) < 0)

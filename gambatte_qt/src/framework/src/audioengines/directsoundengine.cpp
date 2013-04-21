@@ -193,7 +193,7 @@ long DirectSoundEngine::doInit(long const rate, int const latency) {
 
 	offset += 1;
 	blankBuf = true;
-	est.init(rate, rate, bufSize >> 2);
+	est = RateEst(rate, bufSize >> 2);
 	return rate;
 }
 
@@ -304,7 +304,7 @@ int DirectSoundEngine::doWrite(
 			blankBuf = !frames;
 		}
 
-		est.reset();
+		est.resetLastFeedTimeStamp();
 	} else {
 		est.feed(((pc >= lastpc ? pc : bufSize + pc) - lastpc) >> 2);
 	}

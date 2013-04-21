@@ -20,10 +20,11 @@
 #define UNCOPYABLE_H
 
 class Uncopyable {
-	Uncopyable(const Uncopyable&);
-	Uncopyable& operator=(const Uncopyable&);
-public:
+protected:
 	Uncopyable() {}
+private:
+	Uncopyable(Uncopyable const &);
+	Uncopyable& operator=(Uncopyable const &);
 };
 
 #endif

@@ -22,13 +22,14 @@
 #include "usec.h"
 
 class AdaptiveSleep {
-	usec_t oversleep;
-	usec_t oversleepVar;
-	unsigned noSleep;
-
 public:
-	AdaptiveSleep() : oversleep(0), oversleepVar(0), noSleep(60) {}
+	AdaptiveSleep() : oversleep_(0), oversleepVar_(0), noSleep_(60) {}
 	usec_t sleepUntil(usec_t base, usec_t inc);
+
+private:
+	usec_t oversleep_;
+	usec_t oversleepVar_;
+	unsigned noSleep_;
 };
 
 #endif

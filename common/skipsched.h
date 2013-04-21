@@ -20,18 +20,13 @@
 #define SKIPSCHED_H
 
 class SkipSched {
-	unsigned skipped;
-	unsigned skippedmax;
-
 public:
-	SkipSched() { reset(); }
-
-	void reset() {
-		skipped = 0;
-		skippedmax = 2 - 1;
-	}
-
+	SkipSched() : skipped_(0), skippedmax_(2 - 1) {}
 	bool skipNext(bool wantskip);
+
+private:
+	unsigned skipped_;
+	unsigned skippedmax_;
 };
 
 #endif

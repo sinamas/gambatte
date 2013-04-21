@@ -63,8 +63,8 @@ void linearScale(T *dst, std::ptrdiff_t const dstPitch, int const outWidth, int 
 	if (inWidth <= 0 || inHeight <= 0)
 		return;
 
-	ScopedArray<T> const sums(new T[inWidth + 1]);
-	ScopedArray<unsigned char> const hcoeffs(new unsigned char[outWidth - 1]);
+	SimpleArray<T> const sums(inWidth + 1);
+	SimpleArray<unsigned char> const hcoeffs(outWidth - 1);
 
 	{
 		int hppos = (outWidth + inWidth) >> 1;
@@ -193,8 +193,8 @@ void semiLinearScale(
 	if (inWidth <= 0 || inHeight <= 0)
 		return;
 
-	ScopedArray<T> const sums(new T[inWidth]);
-	ScopedArray<unsigned char> const hcoeffs(new unsigned char[inWidth]);
+	SimpleArray<T> const sums(inWidth);
+	SimpleArray<unsigned char> const hcoeffs(inWidth);
 
 	{
 		int hppos = inWidth;

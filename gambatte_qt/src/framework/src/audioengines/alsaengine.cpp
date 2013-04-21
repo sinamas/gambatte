@@ -58,7 +58,7 @@ public:
 
 	virtual long rateEstimate() const { return est_.result(); }
 	virtual BufferState bufferState() const;
-	virtual void pause() { prevfur_ = 0; est_.reset(); }
+	virtual void pause() { prevfur_ = 0; est_.resetLastFeedTimeStamp(); }
 	virtual bool flushPausedBuffers() const { return true; }
 	virtual QWidget * settingsWidget() const { return conf_.settingsWidget(); }
 	virtual void rejectSettings() const { conf_.rejectSettings(); }
@@ -161,7 +161,7 @@ long AlsaEngine::doInit(long const inrate, int const latency) {
 	}
 
 	prevfur_ = 0;
-	est_.init(rate, rate, bufSize_);
+	est_ = RateEst(rate, bufSize_);
 	pcm_ = pcm;
 	return rate;
 }
@@ -184,7 +184,7 @@ int AlsaEngine::write(void *const buffer, snd_pcm_uframes_t const samples, Buffe
 	}
 
 	if (underrun)
-		est_.reset();
+		est_.resetLastFeedTimeStamp();
 
 	return 0;
 }

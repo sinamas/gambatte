@@ -79,7 +79,7 @@ public:
 
 	virtual long rateEstimate() const { return est_.result(); }
 	virtual BufferState bufferState() const;
-	virtual void pause() { prevbytes_ = 0; est_.reset(); }
+	virtual void pause() { prevbytes_ = 0; est_.resetLastFeedTimeStamp(); }
 	virtual bool flushPausedBuffers() const { return true; }
 	virtual QWidget * settingsWidget() const { return conf_.settingsWidget(); }
 	virtual void rejectSettings() const { conf_.rejectSettings(); }
@@ -157,7 +157,7 @@ long OssEngine::doInit(long rate, int const latency) {
 	}
 
 	prevbytes_ = 0;
-	est_.init(rate, rate, bufSize_);
+	est_ = RateEst(rate, bufSize_);
 	return rate;
 }
 
@@ -169,7 +169,7 @@ int OssEngine::write(void *const buffer, std::size_t const samples, BufferState 
 				if (bstate.fromUnderrun > fragSize_)
 					est_.feed((ci.bytes - prevbytes_) >> 2);
 				else
-					est_.reset();
+					est_.resetLastFeedTimeStamp();
 			}
 
 			prevbytes_ = ci.bytes;
