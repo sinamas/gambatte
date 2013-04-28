@@ -28,4 +28,5 @@ TARGET = gambatte_qt
 macx:TARGET = "Gambatte Qt"
 DESTDIR = ../bin
 INCLUDEPATH += ../../libgambatte/include
+DEPENDPATH  += ../../libgambatte/include
 LIBS += -L../../libgambatte -lgambatte -lz
