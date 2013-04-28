@@ -46,6 +46,8 @@ private:
 	typedef std::list<SubResampler *> List;
 	typedef SubResampler * (*CreateSinc)(unsigned div, float rollOffStart,
 	                                     float rollOffWidth, double gain);
+	enum { big_sinc_mul   = 2048 };
+	enum { small_sinc_mul =   32 };
 
 	List list_;
 	SubResampler *bigSinc_;
@@ -56,8 +58,10 @@ private:
 
 	ChainResampler(long inRate, long outRate, std::size_t periodSize);
 	void downinitAddSincResamplers(double ratio, float outRate,
-			CreateSinc createBigSinc, CreateSinc createSmallSinc,
-			unsigned bigSincMul, unsigned smallSincMul, double gain);
+	                               CreateSinc createBigSinc,
+	                               CreateSinc createSmallSinc,
+	                               double gain);
+	void upinit(long inRate, long outRate, CreateSinc);
 	void reallocateBuffer();
 
 	template<class Sinc>
@@ -68,17 +72,15 @@ private:
 
 	template<template<unsigned, unsigned> class Sinc>
 	void downinit(long inRate, long outRate);
-
-	template<template<unsigned, unsigned> class Sinc>
-	void upinit(long inRate, long outRate);
 };
 
 template<template<unsigned, unsigned> class Sinc>
 Resampler * ChainResampler::create(long inRate, long outRate, std::size_t periodSize) {
 	transfer_ptr<ChainResampler> r(new ChainResampler(inRate, outRate, periodSize));
-	if (outRate > inRate)
-		r->upinit<Sinc>(inRate, outRate);
-	else
+	if (outRate > inRate) {
+		r->upinit(inRate, outRate,
+		          createSinc< Sinc<channels, big_sinc_mul> >);
+	} else
 		r->downinit<Sinc>(inRate, outRate);
 
 	return r.release();
@@ -87,8 +89,8 @@ Resampler * ChainResampler::create(long inRate, long outRate, std::size_t period
 template<template<unsigned, unsigned> class Sinc>
 void ChainResampler::downinit(long const inRate,
                               long const outRate) {
-	typedef Sinc<channels, 2048> BigSinc;
-	typedef Sinc<channels,   32> SmallSinc;
+	typedef Sinc<channels,   big_sinc_mul> BigSinc;
+	typedef Sinc<channels, small_sinc_mul> SmallSinc;
 
 	double ratio = static_cast<double>(inRate) / outRate;
 	double gain = 1.0;
@@ -102,32 +104,7 @@ void ChainResampler::downinit(long const inRate,
 
 	downinitAddSincResamplers(ratio, outRate,
 	                          createSinc<BigSinc>, createSinc<SmallSinc>,
-	                          BigSinc::MUL, SmallSinc::MUL, gain);
-	reallocateBuffer();
-}
-
-template<template<unsigned, unsigned> class Sinc>
-void ChainResampler::upinit(long const inRate,
-                            long const outRate) {
-	typedef Sinc<channels, 2048> BigSinc;
-	typedef Sinc<channels,   32> SmallSinc;
-
-	double ratio = static_cast<double>(outRate) / inRate;
-	// Spectral images above 20 kHz assumed inaudible
-	// this post-polyphase zero stuffing causes some power loss though.
-	{
-		int const div = outRate / std::max(inRate, 40000l);
-		if (div >= 2) {
-			list_.push_front(new Upsampler<channels>(div));
-			ratio /= div;
-		}
-	}
-
-	float const rollOff = std::max((inRate - 36000.0f) / inRate, 0.2f);
-	bigSinc_ = new BigSinc(static_cast<int>(BigSinc::MUL / ratio + 0.5),
-	                       typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff),
-	                       1.0);
-	list_.push_front(bigSinc_); // note: inserted at the front
+	                          gain);
 	reallocateBuffer();
 }
 

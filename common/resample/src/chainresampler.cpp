@@ -76,8 +76,6 @@ void ChainResampler::downinitAddSincResamplers(double ratio,
                                                float const outRate,
                                                CreateSinc const createBigSinc,
                                                CreateSinc const createSmallSinc,
-                                               unsigned const bigSincMul,
-                                               unsigned const smallSincMul,
                                                double gain)
 {
 	// For high outRate: Start roll-off at 36 kHz continue until outRate Hz,
@@ -92,18 +90,18 @@ void ChainResampler::downinitAddSincResamplers(double ratio,
 		float const midRollOffStartPlusEnd = midRollOffStart + midRollOffEnd;
 		float const ideal2ChainMidRatio = get2ChainMidRatio(ratio, finalRollOffLen,
 		                                                    midRollOffStartPlusEnd);
-		int div_2c = int(ratio * smallSincMul / ideal2ChainMidRatio + 0.5f);
-		double ratio_2c = ratio * smallSincMul / div_2c;
+		int div_2c = int(ratio * small_sinc_mul / ideal2ChainMidRatio + 0.5f);
+		double ratio_2c = ratio * small_sinc_mul / div_2c;
 		float cost_2c = get2ChainCost(ratio, finalRollOffLen, ratio_2c, midRollOffStartPlusEnd);
 		if (cost_2c < get1ChainCost(ratio, finalRollOffLen)) {
 			float const ideal3ChainRatio1 = get3ChainRatio1(ratio_2c, finalRollOffLen,
 			                                                ratio, midRollOffStartPlusEnd);
-			int const div1_3c = int(ratio * smallSincMul / ideal3ChainRatio1 + 0.5f);
-			double const ratio1_3c = ratio * smallSincMul / div1_3c;
+			int const div1_3c = int(ratio * small_sinc_mul / ideal3ChainRatio1 + 0.5f);
+			double const ratio1_3c = ratio * small_sinc_mul / div1_3c;
 			float const ideal3ChainRatio2 = get3ChainRatio2(ratio1_3c, finalRollOffLen,
 			                                                midRollOffStartPlusEnd);
-			int const div2_3c = int(ratio1_3c * smallSincMul / ideal3ChainRatio2 + 0.5f);
-			double const ratio2_3c = ratio1_3c * smallSincMul / div2_3c;
+			int const div2_3c = int(ratio1_3c * small_sinc_mul / ideal3ChainRatio2 + 0.5f);
+			double const ratio2_3c = ratio1_3c * small_sinc_mul / div2_3c;
 			if (get3ChainCost(ratio, finalRollOffLen, ratio1_3c,
 			                  ratio2_3c, midRollOffStartPlusEnd) < cost_2c) {
 				list_.push_back(createSmallSinc(div1_3c,
@@ -128,11 +126,34 @@ void ChainResampler::downinitAddSincResamplers(double ratio,
 	float rollOffStart = 0.5f * (1.0f
 	                             + std::max((outRate - 40000.0f) * outPeriod, 0.0f)
 	                             - finalRollOffLen) / ratio;
-	bigSinc_ = createBigSinc(static_cast<int>(bigSincMul * ratio + 0.5),
+	bigSinc_ = createBigSinc(static_cast<int>(big_sinc_mul * ratio + 0.5),
 	                         rollOffStart,
 	                         0.5f * finalRollOffLen / ratio,
 	                         gain);
 	list_.push_back(bigSinc_);
+}
+
+void ChainResampler::upinit(long const inRate,
+                            long const outRate,
+                            CreateSinc const createSinc) {
+	double ratio = static_cast<double>(outRate) / inRate;
+	// Spectral images above 20 kHz assumed inaudible
+	// this post-polyphase zero stuffing causes some power loss though.
+	{
+		int const div = outRate / std::max(inRate, 40000l);
+		if (div >= 2) {
+			list_.push_front(new Upsampler<channels>(div));
+			ratio /= div;
+		}
+	}
+
+	float const rollOffLen = std::max((inRate - 36000.0f) / inRate, 0.2f);
+	bigSinc_ = createSinc(static_cast<int>(big_sinc_mul / ratio + 0.5),
+	                      0.5f * (1 - rollOffLen),
+	                      0.5f * rollOffLen,
+	                      1.0);
+	list_.push_front(bigSinc_); // note: inserted at the front
+	reallocateBuffer();
 }
 
 void ChainResampler::reallocateBuffer() {
