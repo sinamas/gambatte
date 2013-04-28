@@ -29,20 +29,13 @@ static Resampler * createLinint(long inRate, long outRate, std::size_t ) {
 	return new Linint<ResamplerInfo::channels>(inRate, outRate);
 }
 
-template<template<unsigned, unsigned> class T>
-static Resampler * createChainResampler(long inRate, long outRate, std::size_t periodSize) {
-	ChainResampler *r = new ChainResampler;
-	r->init<T>(inRate, outRate, periodSize);
-	return r;
-}
-
 ResamplerInfo const ResamplerInfo::resamplers_[] = {
 	{ "Fast", createLinint },
-	{ "High quality (polyphase FIR)", createChainResampler<RectSinc> },
-// 	{ "Hamming windowed sinc (~50 dB SNR)", createChainResampler<HammingSinc> },
-// 	{ "Blackman windowed sinc (~70 dB SNR)", createChainResampler<BlackmanSinc> },
-	{ "Very high quality (polyphase FIR)", createChainResampler<Kaiser50Sinc> },
-	{ "Highest quality (polyphase FIR)", createChainResampler<Kaiser70Sinc> },
+	{ "High quality (polyphase FIR)", ChainResampler::create<RectSinc> },
+// 	{ "Hamming windowed sinc (~50 dB SNR)", ChainResampler::create<HammingSinc> },
+// 	{ "Blackman windowed sinc (~70 dB SNR)", ChainResampler::create<BlackmanSinc> },
+	{ "Very high quality (polyphase FIR)", ChainResampler::create<Kaiser50Sinc> },
+	{ "Highest quality (polyphase FIR)", ChainResampler::create<Kaiser70Sinc> },
 };
 
 std::size_t const ResamplerInfo::num_ =

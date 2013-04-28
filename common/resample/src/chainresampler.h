@@ -22,31 +22,28 @@
 #include "../resampler.h"
 #include "../resamplerinfo.h"
 #include "array.h"
-#include "subresampler.h"
+#include "transfer_ptr.h"
 #include "upsampler.h"
-#include <cassert>
-#include <cmath>
-#include <cstddef>
-#include <cstdlib>
+#include <algorithm>
 #include <list>
+
+class SubResampler;
 
 class ChainResampler : public Resampler {
 public:
 	enum { channels = ResamplerInfo::channels };
 
-	ChainResampler();
-	virtual ~ChainResampler() { uninit(); }
+	template<template<unsigned, unsigned> class Sinc>
+	static Resampler * create(long inRate, long outRate, std::size_t periodSize);
+
+	virtual ~ChainResampler();
 	virtual void adjustRate(long inRate, long outRate);
 	virtual void exactRatio(unsigned long &mul, unsigned long &div) const;
 	virtual std::size_t maxOut(std::size_t /*inlen*/) const { return maxOut_; }
 	virtual std::size_t resample(short *out, short const *in, std::size_t inlen);
 
-	template<template<unsigned,unsigned> class Sinc>
-	std::size_t init(long inRate, long outRate, std::size_t periodSize);
-	void uninit();
-
 private:
-	typedef std::list<SubResampler*> List;
+	typedef std::list<SubResampler *> List;
 	typedef SubResampler * (*CreateSinc)(unsigned div, float rollOffStart,
 	                                     float rollOffWidth, double gain);
 
@@ -54,32 +51,14 @@ private:
 	SubResampler *bigSinc_;
 	Array<short> buffer_;
 	short *buffer2_;
-	std::size_t periodSize_;
+	std::size_t const periodSize_;
 	std::size_t maxOut_;
 
-	static float get1ChainCost(float ratio, float finalRollOffLen) {
-		return ratio / finalRollOffLen;
-	}
-
-	static float get2ChainMidRatio(float ratio, float finalRollOffLen,
-	                               float midRollOffStartPlusEnd);
-	static float get2ChainCost(float ratio, float finalRollOffLen, float midRatio,
-	                           float midRollOffStartPlusEnd);
-
-	static float get3ChainRatio2(float ratio1,
-	                             float finalRollOffLen,
-	                             float midRollOffStartPlusEnd) {
-		return get2ChainMidRatio(ratio1, finalRollOffLen, midRollOffStartPlusEnd);
-	}
-
-	static float get3ChainRatio1(float ratio1, float finalRollOffLen, float ratio,
-	                             float midRollOffStartPlusEnd);
-	static float get3ChainCost(float ratio, float finalRollOffLen, float ratio1, float ratio2,
-	                           float midRollOffStartPlusEnd);
-
+	ChainResampler(long inRate, long outRate, std::size_t periodSize);
 	void downinitAddSincResamplers(double ratio, float outRate,
 			CreateSinc createBigSinc, CreateSinc createSmallSinc,
 			unsigned bigSincMul, unsigned smallSincMul, double gain);
+	void reallocateBuffer();
 
 	template<class Sinc>
 	static SubResampler * createSinc(unsigned div,
@@ -87,33 +66,29 @@ private:
 		return new Sinc(div, typename Sinc::RollOff(rollOffStart, rollOffWidth), gain);
 	}
 
-	template<template<unsigned,unsigned> class Sinc>
-	std::size_t downinit(long inRate, long outRate, std::size_t periodSize);
+	template<template<unsigned, unsigned> class Sinc>
+	void downinit(long inRate, long outRate);
 
-	template<template<unsigned,unsigned> class Sinc>
-	std::size_t upinit(long inRate, long outRate, std::size_t periodSize);
-
-	std::size_t reallocateBuffer();
+	template<template<unsigned, unsigned> class Sinc>
+	void upinit(long inRate, long outRate);
 };
 
-template<template<unsigned,unsigned> class Sinc>
-std::size_t ChainResampler::init(long inRate, long outRate, std::size_t periodSize) {
-	setRate(inRate, outRate);
-
+template<template<unsigned, unsigned> class Sinc>
+Resampler * ChainResampler::create(long inRate, long outRate, std::size_t periodSize) {
+	transfer_ptr<ChainResampler> r(new ChainResampler(inRate, outRate, periodSize));
 	if (outRate > inRate)
-		return upinit<Sinc>(inRate, outRate, periodSize);
+		r->upinit<Sinc>(inRate, outRate);
 	else
-		return downinit<Sinc>(inRate, outRate, periodSize);
+		r->downinit<Sinc>(inRate, outRate);
+
+	return r.release();
 }
 
-template<template<unsigned,unsigned> class Sinc>
-std::size_t ChainResampler::downinit(long const inRate,
-                                     long const outRate,
-                                     std::size_t const periodSize) {
+template<template<unsigned, unsigned> class Sinc>
+void ChainResampler::downinit(long const inRate,
+                              long const outRate) {
 	typedef Sinc<channels, 2048> BigSinc;
 	typedef Sinc<channels,   32> SmallSinc;
-	uninit();
-	periodSize_ = periodSize;
 
 	double ratio = static_cast<double>(inRate) / outRate;
 	double gain = 1.0;
@@ -125,19 +100,17 @@ std::size_t ChainResampler::downinit(long const inRate,
 		gain *= 1.0 / BigSinc::Cic::gain(div);
 	}
 
-	downinitAddSincResamplers(ratio, outRate, createSinc<BigSinc>,
-			createSinc<SmallSinc>, BigSinc::MUL, SmallSinc::MUL, gain);
-	return reallocateBuffer();
+	downinitAddSincResamplers(ratio, outRate,
+	                          createSinc<BigSinc>, createSinc<SmallSinc>,
+	                          BigSinc::MUL, SmallSinc::MUL, gain);
+	reallocateBuffer();
 }
 
-template<template<unsigned,unsigned> class Sinc>
-std::size_t ChainResampler::upinit(long const inRate,
-                                   long const outRate,
-                                   std::size_t const periodSize) {
+template<template<unsigned, unsigned> class Sinc>
+void ChainResampler::upinit(long const inRate,
+                            long const outRate) {
 	typedef Sinc<channels, 2048> BigSinc;
 	typedef Sinc<channels,   32> SmallSinc;
-	uninit();
-	periodSize_ = periodSize;
 
 	double ratio = static_cast<double>(outRate) / inRate;
 	// Spectral images above 20 kHz assumed inaudible
@@ -155,7 +128,7 @@ std::size_t ChainResampler::upinit(long const inRate,
 	                       typename BigSinc::RollOff(0.5f * (1 - rollOff), 0.5f * rollOff),
 	                       1.0);
 	list_.push_front(bigSinc_); // note: inserted at the front
-	return reallocateBuffer();
+	reallocateBuffer();
 }
 
 #endif
