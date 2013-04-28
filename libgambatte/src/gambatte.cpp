@@ -54,8 +54,8 @@ GB::~GB() {
 	delete p_;
 }
 
-long GB::runFor(gambatte::uint_least32_t *const videoBuf, std::ptrdiff_t const pitch,
-                gambatte::uint_least32_t *const soundBuf, unsigned &samples) {
+std::ptrdiff_t GB::runFor(gambatte::uint_least32_t *const videoBuf, std::ptrdiff_t const pitch,
+                          gambatte::uint_least32_t *const soundBuf, std::size_t &samples) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
 		return -1;
@@ -66,9 +66,8 @@ long GB::runFor(gambatte::uint_least32_t *const videoBuf, std::ptrdiff_t const p
 
 	long const cyclesSinceBlit = p_->cpu.runFor(samples * 2);
 	samples = p_->cpu.fillSoundBuffer();
-
 	return cyclesSinceBlit >= 0
-	     ? static_cast<long>(samples) - (cyclesSinceBlit >> 1)
+	     ? static_cast<std::ptrdiff_t>(samples) - (cyclesSinceBlit >> 1)
 	     : cyclesSinceBlit;
 }
 
@@ -99,7 +98,6 @@ LoadRes GB::load(std::string const &romfile, unsigned const flags) {
 	LoadRes const loadres = p_->cpu.load(romfile,
 	                                     flags & FORCE_DMG,
 	                                     flags & MULTICART_COMPAT);
-
 	if (loadres == LOADRES_OK) {
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
@@ -128,7 +126,7 @@ void GB::saveSavedata() {
 		p_->cpu.saveSavedata();
 }
 
-void GB::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
+void GB::setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
 	p_->cpu.setDmgPaletteColor(palNum, colorNum, rgb32);
 }
 

@@ -61,10 +61,10 @@ public:
 	char const * romTitle() const { return mem_.romTitle(); }
 	PakInfo const pakInfo(bool multicartCompat) const { return mem_.pakInfo(multicartCompat); }
 	void setSoundBuffer(uint_least32_t *buf) { mem_.setSoundBuffer(buf); }
-	unsigned fillSoundBuffer() { return mem_.fillSoundBuffer(cycleCounter_); }
+	std::size_t fillSoundBuffer() { return mem_.fillSoundBuffer(cycleCounter_); }
 	bool isCgb() const { return mem_.isCgb(); }
 
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
+	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
 		mem_.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 

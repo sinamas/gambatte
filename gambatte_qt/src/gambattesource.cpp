@@ -282,11 +282,10 @@ std::ptrdiff_t GambatteSource::update(
 	         dpadLeft_, dpadRight_, dpadLeftLast_);
 	inputGetter_.is = packedInputState(inputState_, sizeof inputState_ / sizeof inputState_[0]);
 
-	unsigned usamples = samples - overUpdate;
+	samples -= overUpdate;
 	std::ptrdiff_t const vidFrameSampleNo =
 		gb_.runFor(gbvidbuf.pixels, gbvidbuf.pitch,
-		           ptr_cast<quint32>(soundBuf), usamples);
-	samples = usamples;
+		           ptr_cast<quint32>(soundBuf), samples);
 	if (vidFrameSampleNo >= 0)
 		inputDialog_->consumeAutoPress();
 

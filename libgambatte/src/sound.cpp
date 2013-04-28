@@ -44,10 +44,10 @@ namespace gambatte {
 
 PSG::PSG()
 : buffer_(0)
+, bufferPos_(0)
 , lastUpdate_(0)
 , soVol_(0)
 , rsum_(0x8000) // initialize to 0x8000 to prevent borrows from high word, xor away later
-, bufferPos_(0)
 , enabled_(false)
 {
 }
@@ -113,12 +113,12 @@ void PSG::resetCounter(unsigned long newCc, unsigned long oldCc, bool doubleSpee
 	lastUpdate_ = newCc - (oldCc - lastUpdate_);
 }
 
-unsigned PSG::fillBuffer() {
+std::size_t PSG::fillBuffer() {
 	uint_least32_t sum = rsum_;
 	uint_least32_t *b = buffer_;
-	unsigned n = bufferPos_;
+	std::size_t n = bufferPos_;
 
-	if (unsigned n2 = n >> 3) {
+	if (std::size_t n2 = n >> 3) {
 		n -= n2 << 3;
 
 		do {

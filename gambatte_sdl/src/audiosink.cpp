@@ -22,9 +22,8 @@
 
 namespace {
 
-static unsigned nearestPowerOf2(unsigned const in) {
-	unsigned out = in;
-
+static unsigned long nearestPowerOf2(unsigned long const in) {
+	unsigned long out = in;
 	out |= out >> 1;
 	out |= out >> 2;
 	out |= out >> 4;
@@ -38,9 +37,9 @@ static unsigned nearestPowerOf2(unsigned const in) {
 	return out;
 }
 
-static int openAudio(unsigned srate, std::size_t samples,
-		void (*callback)(void *userdata, Uint8 *stream, int len),
-		void *userdata)
+static int openAudio(long srate, std::size_t samples,
+                     void (*callback)(void *userdata, Uint8 *stream, int len),
+                     void *userdata)
 {
 	SDL_AudioSpec spec;
 	spec.freq = srate;
@@ -49,7 +48,6 @@ static int openAudio(unsigned srate, std::size_t samples,
 	spec.samples = samples;
 	spec.callback = callback;
 	spec.userdata = userdata;
-
 	if (SDL_OpenAudio(&spec, 0) < 0) {
 		std::fprintf(stderr, "Could not open audio: %s\n", SDL_GetError());
 		return -1;
@@ -73,7 +71,7 @@ struct AudioSink::SdlDeleter {
 	static void del(SDL_cond *c) { SDL_DestroyCond(c); }
 };
 
-AudioSink::AudioSink(unsigned const srate, unsigned const latency, unsigned const periods)
+AudioSink::AudioSink(long const srate, int const latency, int const periods)
 : rbuf_(nearestPowerOf2(srate * latency / ((periods + 1) * 1000)) * periods * 2)
 , rateEst_(srate, rbuf_.size() / periods)
 , mut_(SDL_CreateMutex())

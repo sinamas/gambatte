@@ -53,15 +53,16 @@ public:
 	LoadRes load(std::string const &romfile, unsigned flags = 0);
 
 	/**
-	  * Emulates until at least 'samples' stereo sound samples are produced in the
-	  * supplied buffer, or until a video frame has been drawn.
+	  * Emulates until at least 'samples' audio samples are produced in the
+	  * supplied audio buffer, or until a video frame has been drawn.
 	  *
-	  * There are 35112 stereo sound samples in a video frame.
-	  * May run for up to 2064 stereo samples too long.
-	  * A stereo sample consists of two native endian 2s complement 16-bit PCM samples,
-	  * with the left sample preceding the right one. Usually casting soundBuf to
-	  * short/int16_t* is OK. The reason for not using a short* in the interface is to
-	  * avoid implementation-defined behaviour without compromising performance.
+	  * There are 35112 audio (stereo) samples in a video frame.
+	  * May run for up to 2064 audio samples too long.
+	  *
+	  * An audio sample consists of two native endian 2s complement 16-bit PCM samples,
+	  * with the left sample preceding the right one in memory. Usually casting audioBuf
+	  * to int16_t* is OK. The reason for using an uint_least32_t* in the interface is to
+	  * avoid implementation-defined behavior without compromising performance.
 	  * libgambatte is strictly c++98, so fixed-width types are not an option (and even
 	  * c99/c++11 _cannot_ guarantee their availability).
 	  *
@@ -73,14 +74,14 @@ public:
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line
 	  *              to the next in videoBuf.
-	  * @param soundBuf buffer with space >= samples + 2064
-	  * @param samples in: number of stereo samples to produce, out: actual number of
-	  *                samples produced
+	  * @param audioBuf buffer with space >= samples + 2064
+	  * @param samples in: number of stereo samples to produce,
+          *                out: actual number of samples produced
 	  * @return sample number at which the video frame was produced. -1 means no frame
 	  *         was produced.
 	  */
-	long runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
-	            gambatte::uint_least32_t *soundBuf, unsigned &samples);
+	std::ptrdiff_t runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
+	                      gambatte::uint_least32_t *audioBuf, std::size_t &samples);
 
 	/**
 	  * Reset to initial state.
@@ -92,7 +93,7 @@ public:
 	  * @param palNum 0 <= palNum < 3. One of BG_PALETTE, SP1_PALETTE and SP2_PALETTE.
 	  * @param colorNum 0 <= colorNum < 4
 	  */
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
+	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32);
 
 	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);

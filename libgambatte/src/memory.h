@@ -95,13 +95,16 @@ public:
 	void setInputGetter(InputGetter *getInput) { getInput_ = getInput; }
 	void setEndtime(unsigned long cc, unsigned long inc);
 	void setSoundBuffer(uint_least32_t *buf) { psg_.setBuffer(buf); }
-	unsigned fillSoundBuffer(unsigned long cc);
+	std::size_t fillSoundBuffer(unsigned long cc);
 
 	void setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch) {
 		lcd_.setVideoBuffer(videoBuf, pitch);
 	}
 
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
+	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
+		lcd_.setDmgPaletteColor(palNum, colorNum, rgb32);
+	}
+
 	void setGameGenie(std::string const &codes) { cart_.setGameGenie(codes); }
 	void setGameShark(std::string const &codes) { interrupter_.setGameShark(codes); }
 

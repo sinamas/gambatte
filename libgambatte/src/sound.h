@@ -37,7 +37,7 @@ public:
 
 	void generateSamples(unsigned long cycleCounter, bool doubleSpeed);
 	void resetCounter(unsigned long newCc, unsigned long oldCc, bool doubleSpeed);
-	unsigned fillBuffer();
+	std::size_t fillBuffer();
 	void setBuffer(uint_least32_t *buf) { buffer_ = buf; bufferPos_ = 0; }
 
 	bool isEnabled() const { return enabled_; }
@@ -77,10 +77,10 @@ private:
 	Channel3 ch3_;
 	Channel4 ch4_;
 	uint_least32_t *buffer_;
+	std::size_t bufferPos_;
 	unsigned long lastUpdate_;
 	unsigned long soVol_;
 	uint_least32_t rsum_;
-	unsigned bufferPos_;
 	bool enabled_;
 
 	void accumulateChannels(unsigned long cycles);

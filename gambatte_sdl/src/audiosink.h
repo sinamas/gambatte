@@ -38,7 +38,7 @@ public:
 		}
 	};
 
-	AudioSink(unsigned sampleRate, unsigned latency, unsigned periods);
+	AudioSink(long sampleRate, int latency, int periods);
 	~AudioSink();
 	Status write(Sint16 const *inBuf, std::size_t samples);
 

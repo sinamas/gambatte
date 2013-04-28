@@ -1054,13 +1054,9 @@ LoadRes Memory::loadROM(std::string const &romfile, bool const forceDmg, bool co
 	return LOADRES_OK;
 }
 
-unsigned Memory::fillSoundBuffer(unsigned long cc) {
+std::size_t Memory::fillSoundBuffer(unsigned long cc) {
 	psg_.generateSamples(cc, isDoubleSpeed());
 	return psg_.fillBuffer();
-}
-
-void Memory::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
-	lcd_.setDmgPaletteColor(palNum, colorNum, rgb32);
 }
 
 }

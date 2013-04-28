@@ -209,7 +209,6 @@ private:
 	static void setDmgPalette(unsigned long palette[],
 	                          unsigned long const dmgColors[],
 	                          unsigned data);
-	void setDmgPaletteColor(unsigned index, unsigned long rgb32);
 	void refreshPalettes();
 	void setDBuffer();
 	void doMode2IrqEvent();

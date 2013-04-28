@@ -79,7 +79,7 @@ public:
 	}
 
 	virtual void exec(char const *const *argv, int index) {
-		int r = std::atoi(argv[index + 1]);
+		long r = std::atol(argv[index + 1]);
 		if (r < 4000 || r > 192000)
 			return;
 
@@ -91,10 +91,10 @@ public:
 		       "\t\t\t\t    4000 <= N <= 192000, default: 48000\n";
 	}
 
-	unsigned rate() const { return rate_; }
+	long rate() const { return rate_; }
 
 private:
-	unsigned rate_;
+	long rate_;
 };
 
 class LatencyOption : public DescOption {
@@ -118,10 +118,10 @@ public:
 		       "\t\t\t\t    16 <= N <= 5000, default: 133\n";
 	}
 
-	unsigned latency() const { return latency_; }
+	int latency() const { return latency_; }
 
 private:
-	unsigned latency_;
+	int latency_;
 };
 
 class PeriodsOption : public DescOption {
@@ -145,10 +145,10 @@ public:
 		       "\t\t\t\t    1 <= N <= 32, default: 4\n";
 	}
 
-	unsigned periods() const { return periods_; }
+	int periods() const { return periods_; }
 
 private:
-	unsigned periods_;
+	int periods_;
 };
 
 class ScaleOption : public DescOption {
@@ -399,7 +399,7 @@ public:
 		Status(long rate, bool low) : rate(rate), low(low) {}
 	};
 
-	AudioOut(unsigned sampleRate, unsigned latency, unsigned periods,
+	AudioOut(long sampleRate, int latency, int periods,
 	         ResamplerInfo const &resamplerInfo, std::size_t maxInSamplesPerWrite)
 	: resampler_(resamplerInfo.create(2097152, sampleRate, maxInSamplesPerWrite))
 	, resampleBuf_(resampler_->maxOut(maxInSamplesPerWrite) * 2)
@@ -495,7 +495,7 @@ private:
 	jmap_t jhMap;
 
 	bool handleEvents(BlitterWrapper &blitter);
-	int run(unsigned sampleRate, unsigned latency, unsigned periods,
+	int run(long sampleRate, int latency, int periods,
 	        ResamplerInfo const &resamplerInfo, BlitterWrapper &blitter);
 };
 
@@ -783,7 +783,7 @@ static bool isFastForward(Uint8 const *keys) {
 	return keys[SDLK_TAB];
 }
 
-int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned const periods,
+int GambatteSdl::run(long const sampleRate, int const latency, int const periods,
                      ResamplerInfo const &resamplerInfo, BlitterWrapper &blitter) {
 	Array<Uint32> const audioBuf(gb_samples_per_frame + gambatte_max_overproduction);
 	AudioOut aout(sampleRate, latency, periods, resamplerInfo, audioBuf.size());
@@ -800,8 +800,8 @@ int GambatteSdl::run(unsigned const sampleRate, unsigned const latency, unsigned
 			return 0;
 
 		BlitterWrapper::Buf const &vbuf = blitter.inBuf();
-		unsigned runsamples = gb_samples_per_frame - bufsamples;
-		long const vidFrameDoneSampleCnt = gambatte.runFor(
+		std::size_t runsamples = gb_samples_per_frame - bufsamples;
+		std::ptrdiff_t const vidFrameDoneSampleCnt = gambatte.runFor(
 			vbuf.pixels, vbuf.pitch, audioBuf + bufsamples, runsamples);
 		std::size_t const outsamples = vidFrameDoneSampleCnt >= 0
 		                             ? bufsamples + vidFrameDoneSampleCnt
