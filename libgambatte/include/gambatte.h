@@ -69,7 +69,7 @@ public:
 	  * Returns early when a new video frame has finished drawing in the video buffer,
 	  * such that the caller may update the video output before the frame is overwritten.
 	  * The return value indicates whether a new video frame has been drawn, and the
-	  * exact time (in number of samples) at which it was drawn.
+	  * exact time (in number of samples) at which it was completed.
 	  *
 	  * @param videoBuf 160x144 RGB32 (native endian) video frame buffer or 0
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line
@@ -77,8 +77,8 @@ public:
 	  * @param audioBuf buffer with space >= samples + 2064
 	  * @param samples  in: number of stereo samples to produce,
 	  *                out: actual number of samples produced
-	  * @return sample number at which the video frame was produced. -1 means no frame
-	  *         was produced.
+	  * @return sample offset in audioBuf at which the video frame was completed, or -1
+	  *         if no new video frame was completed.
 	  */
 	std::ptrdiff_t runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 	                      gambatte::uint_least32_t *audioBuf, std::size_t &samples);
