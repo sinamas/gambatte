@@ -75,8 +75,8 @@ public:
 	  * @param pitch distance in number of pixels (not bytes) from the start of one line
 	  *              to the next in videoBuf.
 	  * @param audioBuf buffer with space >= samples + 2064
-	  * @param samples in: number of stereo samples to produce,
-          *                out: actual number of samples produced
+	  * @param samples  in: number of stereo samples to produce,
+	  *                out: actual number of samples produced
 	  * @return sample number at which the video frame was produced. -1 means no frame
 	  *         was produced.
 	  */
