@@ -80,33 +80,34 @@ void Rgb32ToUyvy::operator()(gambatte::uint_least32_t *dst,
 				unsigned long const r = (s[0] >> 16 & 0x000000FF) | (s[1]       & 0x00FF0000);
 				unsigned long const g = (s[0] >>  8 & 0x000000FF) | (s[1] <<  8 & 0x00FF0000);
 				unsigned long const b = (s[0]       & 0x000000FF) | (s[1] << 16 & 0x00FF0000);
-				unsigned long const y = r *  66 + g * 129 + b * 25 + ( 16 * 256 + 128) * 0x00010001ul;
-				unsigned long const u = b * 112 - r *  38 - g * 74 + (128 * 256 + 128) * 0x00010001ul;
-				unsigned long const v = r * 112 - g *  94 - b * 18 + (128 * 256 + 128) * 0x00010001ul;
+				unsigned long const y = r *  66 + g * 129 + b * 25 + ( 16 * 256u + 128) * 0x00010001ul;
+				unsigned long const u = b * 112 - r *  38 - g * 74 + (128 * 256u + 128) * 0x00010001ul;
+				unsigned long const v = r * 112 - g *  94 - b * 18 + (128 * 256u + 128) * 0x00010001ul;
 				if (isBigEndian()) {
-					cache_[s[0] & cache_mask].uyvy = (u << 16 & 0xFF000000)
-					                               | (y <<  8 & 0x00FF0000)
-					                               | (v       & 0x0000FF00)
-					                               | (y >>  8 & 0x000000FF);
-					cache_[s[1] & cache_mask].uyvy = (u       & 0xFF000000)
-					                               | (y >>  8 & 0x00FF0000)
-					                               | (v >> 16 & 0x0000FF00)
-					                               |  y >> 24              ;
+					d[0] = cache_[s[0] & cache_mask].uyvy = (u << 16 & 0xFF000000)
+					                                      | (y <<  8 & 0x00FF0000)
+					                                      | (v       & 0x0000FF00)
+					                                      | (y >>  8 & 0x000000FF);
+					d[1] = cache_[s[1] & cache_mask].uyvy = (u       & 0xFF000000)
+					                                      | (y >>  8 & 0x00FF0000)
+					                                      | (v >> 16 & 0x0000FF00)
+					                                      |  y >> 24              ;
 				} else {
-					cache_[s[0] & cache_mask].uyvy = (y << 16 & 0xFF000000)
-					                               | (v <<  8 & 0x00FF0000)
-					                               | (y       & 0x0000FF00)
-					                               | (u >>  8 & 0x000000FF);
-					cache_[s[1] & cache_mask].uyvy = (y       & 0xFF000000)
-					                               | (v >>  8 & 0x00FF0000)
-					                               | (y >> 16 & 0x0000FF00)
-					                               |  u >> 24              ;
+					d[0] = cache_[s[0] & cache_mask].uyvy = (y << 16 & 0xFF000000)
+					                                      | (v <<  8 & 0x00FF0000)
+					                                      | (y       & 0x0000FF00)
+					                                      | (u >>  8 & 0x000000FF);
+					d[1] = cache_[s[1] & cache_mask].uyvy = (y       & 0xFF000000)
+					                                      | (v >>  8 & 0x00FF0000)
+					                                      | (y >> 16 & 0x0000FF00)
+					                                      |  u >> 24              ;
 				}
+			} else {
+				gambatte::uint_least32_t const s0 = s[0], s1 = s[1];
+				d[0] = cache_[s0 & cache_mask].uyvy;
+				d[1] = cache_[s1 & cache_mask].uyvy;
 			}
 
-			gambatte::uint_least32_t const s0 = s[0], s1 = s[1];
-			d[0] = cache_[s0 & cache_mask].uyvy;
-			d[1] = cache_[s1 & cache_mask].uyvy;
 			s += 2;
 			d += 2;
 		}
