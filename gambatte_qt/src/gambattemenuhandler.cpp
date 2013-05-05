@@ -603,20 +603,18 @@ void GambatteMenuHandler::about() {
 	QMessageBox::about(
 		&mw_,
 		"About Gambatte",
-		QString::fromUtf8(
-			"<h3>Gambatte Qt (git)</h3>"
-			"<p>"
-				"<b>Homepage:</b> "
-				"<a href=\"https://github.com/sinamas/gambatte\">"
-					"https://github.com/sinamas/gambatte"
-				"</a>"
-			"</p>"
-			"<p>"
-				"Gambatte is an accuracy-focused, open-source, cross-platform Game "
-				"Boy Color emulator written in C++. It is based on a few thousand "
-				"corner-case hardware tests, as well as previous documentation and "
-				"reverse engineering efforts."
-			"</p>")
+		"<h3>Gambatte Qt (git)</h3>"
+		"<p>"
+			"<b>Homepage:</b> "
+			"<a href=\"https://github.com/sinamas/gambatte\">"
+				"https://github.com/sinamas/gambatte"
+			"</a>"
+		"</p>"
+		"<p>"
+			"Gambatte is an open-source Game Boy Color emulator written for the sake "
+			"of its author's amusement and made available in the hope that it will be "
+			"useful. It is based on some stupid amount of hardware accuracy tests."
+		"</p>"
 	);
 }
 
