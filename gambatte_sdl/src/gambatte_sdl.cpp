@@ -555,7 +555,11 @@ static void printControls() {
 }
 
 int GambatteSdl::exec(int const argc, char const *const argv[]) {
-	std::puts("Gambatte SDL git");
+	std::puts("Gambatte SDL"
+#ifdef GAMBATTE_SDL_VERSION_STR
+	          " (" GAMBATTE_SDL_VERSION_STR ")"
+#endif
+	);
 
 	std::set<Uint8> jdevnums;
 	BoolOption fsOption("\t\tStart in full screen mode\n", "full-screen", 'f');

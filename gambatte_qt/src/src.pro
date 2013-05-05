@@ -30,3 +30,7 @@ DESTDIR = ../bin
 INCLUDEPATH += ../../libgambatte/include
 DEPENDPATH  += ../../libgambatte/include
 LIBS += -L../../libgambatte -lgambatte -lz
+exists(../../.git) {
+	MY_GIT_REVNO = $$system(git rev-list HEAD --count)
+	!isEmpty(MY_GIT_REVNO):DEFINES += GAMBATTE_QT_VERSION_STR='\\"r$$MY_GIT_REVNO\\"'
+}

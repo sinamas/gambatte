@@ -1,19 +1,19 @@
-global_cflags = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer')
-global_cxxflags = ARGUMENTS.get('CXXFLAGS', global_cflags + ' -fno-exceptions -fno-rtti')
-global_defines = ' -DHAVE_STDINT_H'
+import subprocess
+
+cflags   = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer')
+cxxflags = ARGUMENTS.get('CXXFLAGS', cflags + ' -fno-exceptions -fno-rtti')
 vars = Variables()
 vars.Add('CC')
 vars.Add('CXX')
 
 env = Environment(CPPPATH = ['src', '../libgambatte/include', '../common'],
-                  CFLAGS = global_cflags + global_defines,
-                  CXXFLAGS = global_cxxflags + global_defines,
+                  CFLAGS = cflags,
+                  CXXFLAGS = cxxflags,
+                  CPPDEFINES = { 'HAVE_STDINT_H': None },
                   variables = vars)
-
 env.ParseConfig('sdl-config --cflags --libs')
 
 sourceFiles = Split('''
-			src/gambatte_sdl.cpp
 			src/audiosink.cpp
 			src/blitterwrapper.cpp
 			src/parser.cpp
@@ -44,4 +44,15 @@ conf = env.Configure()
 conf.CheckLib('z')
 conf.Finish()
 
-env.Program('gambatte_sdl', sourceFiles)
+version_str_def = {}
+if Dir('../.git').exists():
+	try:
+		git_revno = subprocess.check_output("git rev-list HEAD --count", shell=True).strip()
+		version_str_def = { 'GAMBATTE_SDL_VERSION_STR': r'\"r' + git_revno + r'\"' }
+	except subprocess.CalledProcessError:
+		pass
+
+env.Program('gambatte_sdl',
+            [env.Object('src/gambatte_sdl.cpp',
+                        CPPDEFINES = env['CPPDEFINES'] + [version_str_def])]
+            + sourceFiles)

@@ -603,7 +603,11 @@ void GambatteMenuHandler::about() {
 	QMessageBox::about(
 		&mw_,
 		"About Gambatte",
-		"<h3>Gambatte Qt (git)</h3>"
+		"<h3>Gambatte Qt"
+#ifdef GAMBATTE_QT_VERSION_STR
+		" (" GAMBATTE_QT_VERSION_STR ")"
+#endif
+		"</h3>"
 		"<p>"
 			"<b>Homepage:</b> "
 			"<a href=\"https://github.com/sinamas/gambatte\">"
