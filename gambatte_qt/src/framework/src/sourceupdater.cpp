@@ -45,7 +45,7 @@ std::ptrdiff_t SourceUpdater::update(PixelBuffer const &pb) {
 		               updateSamples);
 	samplesBuffered_ += updateSamples;
 	return vidFrameDoneSampleNo >= 0
-	     ? samplesBuffered_ - updateSamples + vidFrameDoneSampleNo
+	     ? std::ptrdiff_t(samplesBuffered_ - updateSamples + vidFrameDoneSampleNo)
 	     : -1;
 }
 
