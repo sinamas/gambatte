@@ -56,7 +56,7 @@ private:
 		void reset(unsigned long cc);
 		void saveState(SaveState &state, unsigned long cc);
 		void loadState(SaveState const &state);
-		void disableMaster() { killCounter(); master_ = false; reg_ = 0xFF; }
+		void disableMaster() { killCounter(); master_ = false; reg_ = 0x7FFF; }
 		void killCounter() { counter_ = counter_disabled; }
 		void reviveCounter(unsigned long cc);
 
