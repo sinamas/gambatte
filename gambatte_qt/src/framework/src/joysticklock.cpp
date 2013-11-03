@@ -19,55 +19,55 @@
 #include "joysticklock.h"
 #include <map>
 
-static int pollJsEvent(SDL_Event *const ev, int const insensitivity) {
+static bool acceptEvent(SDL_Event &ev, int const insensitivity) {
+	if (ev.type != SDL_JOYAXISMOTION)
+		return true;
+
+	enum { threshold = 8192 };
 	typedef std::map<unsigned, int> Map;
 	static Map axisState;
+	Map::iterator const at =
+		axisState.insert(Map::value_type(ev.id, SdlJoystick::axis_centered)).first;
+	switch (at->second) {
+	case SdlJoystick::axis_centered:
+		if (ev.value >= threshold + insensitivity)
+			ev.value = SdlJoystick::axis_positive;
+		else if (ev.value <= -(threshold + insensitivity))
+			ev.value = SdlJoystick::axis_negative;
+		else
+			return false;
 
+		break;
+	case SdlJoystick::axis_positive:
+		if (ev.value >= threshold - insensitivity)
+			return false;
+
+		ev.value = ev.value <= -(threshold + insensitivity)
+		         ? SdlJoystick::axis_negative
+		         : SdlJoystick::axis_centered;
+		break;
+	case SdlJoystick::axis_negative:
+		if (ev.value <= -(threshold - insensitivity))
+			return false;
+
+		ev.value = ev.value >= threshold + insensitivity
+		         ? SdlJoystick::axis_positive
+		         : SdlJoystick::axis_centered;
+		break;
+	}
+
+	at->second = ev.value;
+	return true;
+}
+
+int SdlJoystick::Locked::pollEvent(SDL_Event *ev, int insensitivity) {
 	int evValid;
 
 	do {
 		evValid = SDL_PollEvent(ev);
-		if (evValid && ev->type == SDL_JOYAXISMOTION) {
-			enum { threshold = 8192 };
-			Map::iterator const at =
-				axisState.insert(Map::value_type(ev->id, SdlJoystick::axis_centered)).first;
-			switch (at->second) {
-			case SdlJoystick::axis_centered:
-				if (ev->value >= threshold + insensitivity)
-					ev->value = SdlJoystick::axis_positive;
-				else if (ev->value <= -(threshold + insensitivity))
-					ev->value = SdlJoystick::axis_negative;
-				else
-					continue;
-
-				break;
-			case SdlJoystick::axis_positive:
-				if (ev->value >= threshold - insensitivity)
-					continue;
-
-				ev->value = ev->value <= -(threshold + insensitivity)
-				          ? SdlJoystick::axis_negative
-				          : SdlJoystick::axis_centered;
-				break;
-			case SdlJoystick::axis_negative:
-				if (ev->value <= -(threshold - insensitivity))
-					continue;
-
-				ev->value = ev->value >= threshold + insensitivity
-				          ? SdlJoystick::axis_positive
-				          : SdlJoystick::axis_centered;
-				break;
-			}
-
-			at->second = ev->value;
-		}
-	} while (false);
+	} while (evValid && !acceptEvent(*ev, insensitivity));
 
 	return evValid;
-}
-
-int SdlJoystick::Locked::pollEvent(SDL_Event *ev, int insensitivity) {
-	return pollJsEvent(ev, insensitivity);
 }
 
 QMutex SdlJoystick::mutex_;
