@@ -27,30 +27,34 @@ static long limit(long const est, long const ref) {
 	return std::max(std::min(est, ref + maxdiff), ref - maxdiff);
 }
 
-enum { ft_shift = 6 };
-
 FtEst::FtEst(long const frameTime)
 : frameTime_(frameTime)
-, ft_(4500000 << ft_shift)
 , ftAvg_(frameTime << ftavg_shift)
 , last_(0)
-, count_((ft_ + (frameTime >> 1)) / (frameTime ? frameTime : 1))
+, t_(2250000)
+, c_(t_ / (frameTime ? frameTime : 1))
+, tc_(t_ * c_)
+, c2_(c_ * c_)
 {
 }
 
 void FtEst::update(usec_t const t) {
 	if (t - last_ < usec_t(ftAvg_ + (ftAvg_ >> 4)) >> ftavg_shift) {
-		ft_ += t - last_ < usec_t(ftAvg_ - (ftAvg_ >> 4)) >> ftavg_shift
-		     ? (ftAvg_ - (ftAvg_ >> 7)) << (ft_shift - ftavg_shift)
-		     : (t - last_) << ft_shift;
-		count_ += 1 << ft_shift;
+		t_ += t - last_ < usec_t(ftAvg_ - (ftAvg_ >> 4)) >> ftavg_shift
+		    ? ftAvg_ * (0.9921875 / ftavg_scale)
+		    : t - last_;
+		c_ += 1;
+		tc_ += t_ * c_;
+		c2_ += c_ * c_;
 
-		long const ftAvgNew = long(float(ft_) * ftavg_scale / count_ + 0.5f);
-		ftAvg_ = limit((ftAvg_ * 31 + ftAvgNew + 16) >> 5, frameTime_ << ftavg_shift);
-
-		if (ft_ > 6000000 << ft_shift) {
-			ft_ = (ft_ * 3 + 2) >> 2;
-			count_ = (count_ * 3 + 2) >> 2;
+		long const ftAvgNew = long(tc_ * ftavg_scale / c2_ + 0.5);
+		ftAvg_ = limit((ftAvg_ * 31 + ftAvgNew + 16) >> 5,
+		               frameTime_ << ftavg_shift);
+		if (t_ > 3000000) {
+			t_ *= 3.0 / 4;
+			c_ *= 3.0 / 4;
+			tc_ *= 9.0 / 16;
+			c2_ *= 9.0 / 16;
 		}
 	}
 

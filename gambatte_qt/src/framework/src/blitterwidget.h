@@ -38,10 +38,9 @@ private:
 	enum { ftavg_scale = 1 << ftavg_shift };
 
 	long frameTime_;
-	long ft_;
 	long ftAvg_;
 	usec_t last_;
-	unsigned count_;
+	double t_, c_, tc_, c2_;
 };
 
 class BlitterWidget : public QWidget {
