@@ -4,13 +4,13 @@
 	jp lstartserial
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	80
 
 .code@150
-l150:
+lbegin:
 	xor a, a
 	ldff(0f), a
 	ld a, 08
@@ -28,36 +28,34 @@ lstartserial:
 
 .code@13f3
 	ldff a, (0f)
-	ld b, a
-	srl a
-	srl a
-	srl a
-	srl a
-	ldff(80), a
-	ld a, b
-	and a, 0f
-	ldff(81), a
-	jp lprintff80
+	jp lprint_a
 
 .code@7000
-lprintff80:
-	ld c, 44
+lprint_a:
+	push af
 	ld b, 91
-lwaitvblank:
-	ldff a, (c)
-	cmp a, b
-	jpnz lwaitvblank
+	call lwaitly_b
 	xor a, a
 	ldff(40), a
 	ld bc, 7a00
 	ld hl, 8000
 	ld d, 00
-lcopytiles:
+lprint_copytiles:
 	ld a, (bc)
 	inc bc
 	ld(hl++), a
 	dec d
-	jpnz lcopytiles
+	jrnz lprint_copytiles
+	pop af
+	ld b, a
+	srl a
+	srl a
+	srl a
+	srl a
+	ld(9800), a
+	ld a, b
+	and a, 0f
+	ld(9801), a
 	ld a, c0
 	ldff(47), a
 	ld a, 80
@@ -69,19 +67,23 @@ lcopytiles:
 	ldff(69), a
 	ldff(69), a
 	ldff(69), a
-	ld a, 00
-	ldff(69), a
-	ldff(69), a
-	ld a, (ff80)
-	ld(9800), a
-	ld a, (ff81)
-	ld(9801), a
 	xor a, a
+	ldff(69), a
+	ldff(69), a
 	ldff(43), a
 	ld a, 91
 	ldff(40), a
-linf:
-	jr linf
+lprint_limbo:
+	jr lprint_limbo
+
+.code@7400
+lwaitly_b:
+	ld c, 44
+lwaitly_b_loop:
+	ldff a, (c)
+	cmp a, b
+	jrnz lwaitly_b_loop
+	ret
 
 .data@7a00
 	00 00 7f 7f 41 41 41 41

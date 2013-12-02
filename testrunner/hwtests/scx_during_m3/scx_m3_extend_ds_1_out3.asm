@@ -1,16 +1,16 @@
 .size 8000
 
 .code@49
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	c0
 
 .code@150
-l150:
+lbegin:
 	ld a, 00
 	ldff(ff), a
 	ld a, 30
@@ -18,69 +18,65 @@ l150:
 	ld a, 01
 	ldff(4d), a
 	stop, 00
-	ld c, 44
 	ld b, 90
-l162:
-	ldff a, (c)
-	cmp a, b
-	jpnz l162
+	call lwaitly_b
 	ld a, 11
 	ldff(40), a
 	ld hl, 8000
 	ld b, 08
-l170:
+lbegin_settile0data:
 	ld a, 00
 	ld(hl++), a
 	ld a, 7e
 	ld(hl++), a
 	dec b
-	jrnz l170
+	jrnz lbegin_settile0data
 	ld b, 08
-l17b:
+lbegin_settile1data:
 	ld a, 00
 	ld(hl++), a
 	ld a, 81
 	ld(hl++), a
 	dec b
-	jrnz l17b
+	jrnz lbegin_settile1data
 	ld b, 08
-l186:
+lbegin_settile2data:
 	ld a, ff
 	ld(hl++), a
 	ld a, 81
 	ld(hl++), a
 	dec b
-	jrnz l186
+	jrnz lbegin_settile2data
 	ld b, 08
-l191:
+lbegin_settile3data:
 	ld a, ff
 	ld(hl++), a
 	ld a, 7e
 	ld(hl++), a
 	dec b
-	jrnz l191
+	jrnz lbegin_settile3data
 	ld c, 12
 	ld hl, 9800
-l19f:
+lbegin_set_bgmap:
 	ld b, 06
 	ld a, 02
-l1a3:
+lbegin_set_bgmapline_tilenos0to11:
 	ld(hl++), a
 	inc a
 	ld(hl++), a
 	dec a
 	dec b
-	jrnz l1a3
+	jrnz lbegin_set_bgmapline_tilenos0to11
 	ld b, 0a
-l1ac:
+lbegin_set_bgmapline_tilenos12to31:
 	xor a, a
 	ld(hl++), a
 	inc a
 	ld(hl++), a
 	dec b
-	jrnz l1ac
+	jrnz lbegin_set_bgmapline_tilenos12to31
 	dec c
-	jrnz l19f
+	jrnz lbegin_set_bgmap
 	ld a, e4
 	ldff(47), a
 	ld a, 80
@@ -111,7 +107,7 @@ l1ac:
 	ld a, 07
 
 .code@1000
-l1000:
+lstatint:
 	ldff(c), a
 	ld a, 04
 
@@ -144,33 +140,26 @@ l1000:
 .code@108c
 	ldff a, (41)
 	and a, 07
-	ldff(80), a
-	jp l7000
+	jp lprint_a
 
-.code@2000
-l2000:
-	nop
-
-.code@6ffd
-	jp l2000
-l7000:
-	ld c, 44
+.code@7000
+lprint_a:
+	push af
 	ld b, 91
-l7004:
-	ldff a, (c)
-	cmp a, b
-	jpnz l7004
+	call lwaitly_b
 	xor a, a
 	ldff(40), a
+	pop af
+	ld(9800), a
 	ld bc, 7a00
 	ld hl, 8000
 	ld d, a0
-l7014:
+lprint_copytiles:
 	ld a, (bc)
 	inc bc
 	ld(hl++), a
 	dec d
-	jpnz l7014
+	jrnz lprint_copytiles
 	ld a, c0
 	ldff(47), a
 	ld a, 80
@@ -182,36 +171,43 @@ l7014:
 	ldff(69), a
 	ldff(69), a
 	ldff(69), a
-	ld a, 00
-	ldff(69), a
-	ldff(69), a
-	ld a, (ff80)
-	ld(9800), a
 	xor a, a
+	ldff(69), a
+	ldff(69), a
 	ldff(43), a
 	ld a, 91
 	ldff(40), a
-	jp l2000
+lprint_limbo:
+	jr lprint_limbo
 
-.data@7a02
-	7f 7f 41 41 41 41 41 41
-	41 41 41 41 7f 7f 00 00
-	08 08 08 08 08 08 08 08
-	08 08 08 08 08 08 00 00
-	7f 7f 01 01 01 01 7f 7f
-	40 40 40 40 7f 7f 00 00
-	7f 7f 01 01 01 01 3f 3f
-	01 01 01 01 7f 7f 00 00
+.code@7400
+lwaitly_b:
+	ld c, 44
+lwaitly_b_loop:
+	ldff a, (c)
+	cmp a, b
+	jrnz lwaitly_b_loop
+	ret
+
+.data@7a00
+	00 00 7f 7f 41 41 41 41
 	41 41 41 41 41 41 7f 7f
-	01 01 01 01 01 01 00 00
-	7f 7f 40 40 40 40 7e 7e
-	01 01 01 01 7e 7e 00 00
+	00 00 08 08 08 08 08 08
+	08 08 08 08 08 08 08 08
+	00 00 7f 7f 01 01 01 01
 	7f 7f 40 40 40 40 7f 7f
-	41 41 41 41 7f 7f 00 00
-	7f 7f 01 01 02 02 04 04
-	08 08 10 10 10 10 00 00
-	3e 3e 41 41 41 41 3e 3e
-	41 41 41 41 3e 3e 00 00
+	00 00 7f 7f 01 01 01 01
+	3f 3f 01 01 01 01 7f 7f
+	00 00 41 41 41 41 41 41
+	7f 7f 01 01 01 01 01 01
+	00 00 7f 7f 40 40 40 40
+	7e 7e 01 01 01 01 7e 7e
+	00 00 7f 7f 40 40 40 40
 	7f 7f 41 41 41 41 7f 7f
-	01 01 01 01 7f 7f
+	00 00 7f 7f 01 01 02 02
+	04 04 08 08 10 10 10 10
+	00 00 3e 3e 41 41 41 41
+	3e 3e 41 41 41 41 3e 3e
+	00 00 7f 7f 41 41 41 41
+	7f 7f 01 01 01 01 7f 7f
 

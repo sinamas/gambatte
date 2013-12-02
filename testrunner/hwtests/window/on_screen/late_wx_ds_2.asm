@@ -1,16 +1,16 @@
 .size 8000
 
 .code@48
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	c0
 
 .code@150
-l150:
+lbegin:
 	ld a, 00
 	ldff(ff), a
 	ld a, 30
@@ -20,10 +20,10 @@ l150:
 	stop, 00
 	ld c, 44
 	ld b, 91
-l162:
+lbegin_waitly91:
 	ldff a, (c)
 	cmp a, b
-	jpnz l162
+	jpnz lbegin_waitly91
 	xor a, a
 	ldff(40), a
 	ld a, 80
@@ -56,25 +56,25 @@ l162:
 	ld hl, 9c00
 	ld a, 01
 	ld b, 03
-l197:
+lbegin_fill_bgmap1:
 	ld c, 00
-l199:
+lbegin_fill_bgmap1_inner:
 	ld(hl++), a
 	dec c
-	jrnz l199
+	jrnz lbegin_fill_bgmap1_inner
 	dec b
-	jrnz l197
+	jrnz lbegin_fill_bgmap1
 	ld a, 07
 	ldff(4b), a
 	ld a, f1
 	ldff(40), a
 	ld c, 41
 	ld b, 03
-l1ac:
+lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jrnz l1ac
+	jrnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02
@@ -82,7 +82,7 @@ l1ac:
 	ei
 
 .code@1000
-l1000:
+lstatint:
 	nop
 
 .code@1022
@@ -94,71 +94,4 @@ l1000:
 	ldff(4b), a
 	pop de
 	ei
-
-.code@2000
-l2000:
-	nop
-
-.code@6ffd
-	jp l2000
-	ld c, 44
-	ld b, 91
-l7004:
-	ldff a, (c)
-	cmp a, b
-	jpnz l7004
-	xor a, a
-	ldff(40), a
-	ld bc, 7a00
-	ld hl, 8000
-	ld d, a0
-l7014:
-	ld a, (bc)
-	inc bc
-	ld(hl++), a
-	dec d
-	jpnz l7014
-	ld a, c0
-	ldff(47), a
-	ld a, 80
-	ldff(68), a
-	ld a, ff
-	ldff(69), a
-	ldff(69), a
-	ldff(69), a
-	ldff(69), a
-	ldff(69), a
-	ldff(69), a
-	ld a, 00
-	ldff(69), a
-	ldff(69), a
-	ld a, (ff80)
-	ld(9800), a
-	xor a, a
-	ldff(43), a
-	ld a, 91
-	ldff(40), a
-	jp l2000
-
-.data@7a02
-	7f 7f 41 41 41 41 41 41
-	41 41 41 41 7f 7f 00 00
-	08 08 08 08 08 08 08 08
-	08 08 08 08 08 08 00 00
-	7f 7f 01 01 01 01 7f 7f
-	40 40 40 40 7f 7f 00 00
-	7f 7f 01 01 01 01 3f 3f
-	01 01 01 01 7f 7f 00 00
-	41 41 41 41 41 41 7f 7f
-	01 01 01 01 01 01 00 00
-	7f 7f 40 40 40 40 7e 7e
-	01 01 01 01 7e 7e 00 00
-	7f 7f 40 40 40 40 7f 7f
-	41 41 41 41 7f 7f 00 00
-	7f 7f 01 01 02 02 04 04
-	08 08 10 10 10 10 00 00
-	3e 3e 41 41 41 41 3e 3e
-	41 41 41 41 3e 3e 00 00
-	7f 7f 41 41 41 41 7f 7f
-	01 01 01 01 7f 7f
 

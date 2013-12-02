@@ -1,20 +1,20 @@
 .size 8000
 
 .code@48
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .code@150
-l150:
+lbegin:
 	ld c, 41
 	ld b, 03
-l154:
+lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz l154
+	jpnz lbegin_waitm3
 	ld a, 40
 	ldff(c), a
 	ld a, 02
@@ -31,7 +31,7 @@ l154:
 	halt
 
 .code@1000
-l1000:
+lstatint:
 	nop
 	nop
 	nop
@@ -53,9 +53,9 @@ l1000:
 	ldff a, (45)
 	inc a
 	cmp a, b
-	jrnz l1039
+	jrnz lstatint_set_lyc
 	xor a, a
-l1039:
+lstatint_set_lyc:
 	ldff(45), a
 	ld a, ff
 	ei

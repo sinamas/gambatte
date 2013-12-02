@@ -2,19 +2,19 @@
 
 .code@48
 	ei
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .code@150
-l150:
+lbegin:
 	ld c, 44
 	ld b, 90
-l154:
+lbegin_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz l154
+	jpnz lbegin_waitvblank
 	ld a, 11
 	ldff(40), a
 	ld hl, 8010
@@ -39,15 +39,15 @@ l154:
 	ld de, 0014
 	ld hl, 9800
 	ld a, 01
-l17c:
+lbegin_set_bgmap:
 	ld b, 0c
-l17e:
+lbegin_set_bgmapline_tilenos0to11:
 	ld(hl++), a
 	dec b
-	jpnz l17e
+	jpnz lbegin_set_bgmapline_tilenos0to11
 	add hl, de
 	dec c
-	jpnz l17c
+	jpnz lbegin_set_bgmap
 	ld a, 03
 	ldff(47), a
 	ld a, 20
@@ -61,7 +61,7 @@ l17e:
 	ld a, 03
 
 .code@1000
-l1000:
+lstatint:
 	ldff(c), a
 	ld a, 60
 	nop

@@ -2,33 +2,33 @@
 
 .code@48
 	ei
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	80
 
 .code@150
-l150:
+lbegin:
 	ld c, 44
 	ld b, 90
-l154:
+lbegin_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz l154
+	jpnz lbegin_waitvblank
 	xor a, a
 	ldff(40), a
 	ld hl, 9f00
 	ld b, 20
-l161:
+lbegin_clearvram:
 	dec l
 	ld(hl), a
-	jrnz l161
+	jrnz lbegin_clearvram
 	dec h
 	dec b
-	jrnz l161
+	jrnz lbegin_clearvram
 	ld hl, 8000
 	ld a, ff
 	ld(hl++), a
@@ -82,10 +82,10 @@ l161:
 	ldff(c), a
 	ld hl, fea0
 	xor a, a
-l1b1:
+lbegin_fill_oam:
 	dec l
 	ld(hl), a
-	jrnz l1b1
+	jrnz lbegin_fill_oam
 	ld a, 10
 	ld(hl), a
 	inc l
@@ -95,11 +95,11 @@ l1b1:
 	ldff(40), a
 	ld c, 41
 	ld b, 03
-l1c4:
+lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz l1c4
+	jpnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02
@@ -109,7 +109,7 @@ l1c4:
 	ei
 
 .code@1000
-l1000:
+lstatint:
 	nop
 
 .code@1011

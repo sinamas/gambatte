@@ -1,13 +1,13 @@
 .size 8000
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	c0
 
 .code@150
-l150:
+lbegin:
 	ld a, 00
 	ldff(ff), a
 	ld a, 30
@@ -17,10 +17,10 @@ l150:
 	stop, 00
 	ld c, 44
 	ld b, 90
-l162:
+lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jpnz l162
+	jpnz lbegin_waitly90
 	ld hl, 8010
 	ld a, ff
 	ld(hl++), a
@@ -28,10 +28,10 @@ l162:
 	ld a, 01
 	ld b, 32
 	ld hl, 9a40
-l175:
+lbegin_settilemap:
 	ld(hl++), a
 	dec b
-	jpnz l175
+	jpnz lbegin_settilemap
 	ld a, 80
 	ldff(68), a
 	ld a, ff
@@ -45,14 +45,13 @@ l175:
 	xor a, a
 	ldff(c), a
 	ldff(c), a
-	nop
 	ld c, 41
 	ld b, 03
-l190:
+lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz l190
+	jpnz lbegin_waitm3
 	xor a, a
 	ldff(45), a
 	ld a, 40
@@ -61,14 +60,14 @@ l190:
 	ldff(ff), a
 	ld c, 42
 	ld b, 90
-l1a4:
+lwait_lycirq:
 	halt
 	xor a, a
 	ldff(0f), a
-	jp l1000
+	jp llycint
 
 .code@1000
-l1000:
+llycint:
 	nop
 
 .code@1017
@@ -84,9 +83,9 @@ l1000:
 	ld a, d
 	inc a
 	cmp a, b
-	jrnz l1071
+	jrnz llycint_waitlya
 	xor a, a
-l1071:
+llycint_waitlya:
 	ldff(45), a
-	jp l1a4
+	jp lwait_lycirq
 

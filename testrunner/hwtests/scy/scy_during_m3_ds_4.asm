@@ -2,16 +2,16 @@
 
 .code@48
 	ei
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	c0
 
 .code@150
-l150:
+lbegin:
 	ld a, 00
 	ldff(ff), a
 	ld a, 30
@@ -21,10 +21,10 @@ l150:
 	stop, 00
 	ld c, 44
 	ld b, 90
-l162:
+lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jpnz l162
+	jpnz lbegin_waitly90
 	ld hl, 8000
 	xor a, a
 	ld(hl++), a
@@ -66,10 +66,10 @@ l162:
 	ld a, 01
 	ld b, 32
 	ld hl, 9a40
-l199:
+lbegin_settilemap:
 	ld(hl++), a
 	dec b
-	jpnz l199
+	jpnz lbegin_settilemap
 	ld a, 80
 	ldff(68), a
 	ld a, ff
@@ -85,14 +85,13 @@ l199:
 	xor a, a
 	ldff(c), a
 	ldff(c), a
-	nop
 	ld c, 41
 	ld b, 03
-l1b8:
+lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz l1b8
+	jpnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02
@@ -102,7 +101,7 @@ l1b8:
 	ld b, 90
 
 .code@1000
-l1000:
+lstatint:
 	nop
 
 .code@101c

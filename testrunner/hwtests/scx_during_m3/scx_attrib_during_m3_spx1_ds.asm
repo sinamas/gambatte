@@ -2,16 +2,16 @@
 
 .code@48
 	ei
-	jp l1000
+	jp lstatint
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	c0
 
 .code@150
-l150:
+lbegin:
 	ld a, 00
 	ldff(ff), a
 	ld a, 30
@@ -21,51 +21,51 @@ l150:
 	stop, 00
 	ld c, 44
 	ld b, 90
-l162:
+lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jpnz l162
+	jpnz lbegin_waitly90
 	ld a, 11
 	ldff(40), a
 	ld hl, 8000
 	ld b, 08
-l170:
+lbegin_setbank0tile0data:
 	ld a, 00
 	ld(hl++), a
 	ld a, 7e
 	ld(hl++), a
 	dec b
-	jrnz l170
+	jrnz lbegin_setbank0tile0data
 	ld hl, 8000
 	ld a, 01
 	ldff(4f), a
 	ld b, 08
-l182:
+lbegin_setbank1tile0data:
 	ld a, ff
 	ld(hl++), a
 	ld a, 81
 	ld(hl++), a
 	dec b
-	jrnz l182
+	jrnz lbegin_setbank1tile0data
 	ld c, 12
 	ld hl, 9800
-l190:
+lbegin_set_bgmap_attrs:
 	ld b, 06
 	ld a, 08
-l194:
+lbegin_set_bgmapline_attrs0to11:
 	ld(hl++), a
 	ld(hl++), a
 	dec b
-	jrnz l194
+	jrnz lbegin_set_bgmapline_attrs0to11
 	ld b, 0a
 	xor a, a
-l19c:
+lbegin_set_bgmapline_attrs12to31:
 	ld(hl++), a
 	ld(hl++), a
 	dec b
-	jrnz l19c
+	jrnz lbegin_set_bgmapline_attrs12to31
 	dec c
-	jrnz l190
+	jrnz lbegin_set_bgmap_attrs
 	ld a, 27
 	ldff(47), a
 	ld a, 80
@@ -88,10 +88,10 @@ l19c:
 	ld hl, fe00
 	ld b, a0
 	xor a, a
-l1c7:
+lbegin_clear_oam:
 	ld(hl++), a
 	dec b
-	jrnz l1c7
+	jrnz lbegin_clear_oam
 	ld a, 10
 	ld(fe00), a
 	ld a, 01
@@ -107,7 +107,7 @@ l1c7:
 	xor a, a
 
 .code@1000
-l1000:
+lstatint:
 	ldff(c), a
 	ld a, 60
 

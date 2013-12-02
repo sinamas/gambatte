@@ -1,13 +1,13 @@
 .size 8000
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	80
 
 .code@150
-l150:
+lbegin:
 	ld a, 66
 	ldff(41), a
 	ldff(42), a
@@ -17,15 +17,14 @@ l150:
 	ldff(49), a
 	ldff(4a), a
 	ldff(4b), a
-	nop
 	ld a, 92
 	ldff(45), a
 	ld b, 92
 	ld c, 44
-l16b:
+lbegin_waitly92:
 	ldff a, (c)
 	cmp a, b
-	jrnz l16b
+	jrnz lbegin_waitly92
 	ld a, 66
 	ldff(40), a
 	ldff a, (40)
@@ -50,32 +49,27 @@ l16b:
 	ldff(89), a
 	ld a, 91
 	ldff(40), a
-	jp l7000
+	jp lprint_hiram
 
-.code@2000
-l2000:
-	nop
-
-.code@6ffd
-	jp l2000
-l7000:
+.code@7000
+lprint_hiram:
 	ld c, 44
 	ld b, 91
-l7004:
+lprint_waitly91:
 	ldff a, (c)
 	cmp a, b
-	jpnz l7004
+	jrnz lprint_waitly91
 	xor a, a
 	ldff(40), a
 	ld bc, 7a00
 	ld hl, 8000
 	ld d, 00
-l7014:
+lprint_copytiles:
 	ld a, (bc)
 	inc bc
 	ld(hl++), a
 	dec d
-	jpnz l7014
+	jrnz lprint_copytiles
 	ld a, c0
 	ldff(47), a
 	ld a, 80
@@ -87,13 +81,13 @@ l7014:
 	ldff(69), a
 	ldff(69), a
 	ldff(69), a
-	ld a, 00
+	xor a, a
 	ldff(69), a
 	ldff(69), a
 	ld hl, 9800
 	ld c, 80
 	ld b, 0a
-l703e:
+lprint_set_bgmap_from_hiram:
 	ldff a, (c)
 	rrca
 	rrca
@@ -106,45 +100,46 @@ l703e:
 	ld(hl++), a
 	inc c
 	dec b
-	jrnz l703e
+	jrnz lprint_set_bgmap_from_hiram
 	xor a, a
 	ldff(42), a
 	ldff(43), a
 	ld a, 91
 	ldff(40), a
-	jp l2000
+lprint_limbo:
+	jr lprint_limbo
 
-.data@7a02
-	7f 7f 41 41 41 41 41 41
-	41 41 41 41 7f 7f 00 00
-	08 08 08 08 08 08 08 08
-	08 08 08 08 08 08 00 00
-	7f 7f 01 01 01 01 7f 7f
-	40 40 40 40 7f 7f 00 00
-	7f 7f 01 01 01 01 3f 3f
-	01 01 01 01 7f 7f 00 00
+.data@7a00
+	00 00 7f 7f 41 41 41 41
 	41 41 41 41 41 41 7f 7f
-	01 01 01 01 01 01 00 00
-	7f 7f 40 40 40 40 7e 7e
-	01 01 01 01 7e 7e 00 00
+	00 00 08 08 08 08 08 08
+	08 08 08 08 08 08 08 08
+	00 00 7f 7f 01 01 01 01
 	7f 7f 40 40 40 40 7f 7f
-	41 41 41 41 7f 7f 00 00
-	7f 7f 01 01 02 02 04 04
-	08 08 10 10 10 10 00 00
-	3e 3e 41 41 41 41 3e 3e
-	41 41 41 41 3e 3e 00 00
+	00 00 7f 7f 01 01 01 01
+	3f 3f 01 01 01 01 7f 7f
+	00 00 41 41 41 41 41 41
+	7f 7f 01 01 01 01 01 01
+	00 00 7f 7f 40 40 40 40
+	7e 7e 01 01 01 01 7e 7e
+	00 00 7f 7f 40 40 40 40
 	7f 7f 41 41 41 41 7f 7f
-	01 01 01 01 7f 7f 00 00
-	08 08 22 22 41 41 7f 7f
-	41 41 41 41 41 41 00 00
+	00 00 7f 7f 01 01 02 02
+	04 04 08 08 10 10 10 10
+	00 00 3e 3e 41 41 41 41
+	3e 3e 41 41 41 41 3e 3e
+	00 00 7f 7f 41 41 41 41
+	7f 7f 01 01 01 01 7f 7f
+	00 00 08 08 22 22 41 41
+	7f 7f 41 41 41 41 41 41
+	00 00 7e 7e 41 41 41 41
 	7e 7e 41 41 41 41 7e 7e
-	41 41 41 41 7e 7e 00 00
-	3e 3e 41 41 40 40 40 40
-	40 40 41 41 3e 3e 00 00
-	7e 7e 41 41 41 41 41 41
-	41 41 41 41 7e 7e 00 00
+	00 00 3e 3e 41 41 40 40
+	40 40 40 40 41 41 3e 3e
+	00 00 7e 7e 41 41 41 41
+	41 41 41 41 41 41 7e 7e
+	00 00 7f 7f 40 40 40 40
 	7f 7f 40 40 40 40 7f 7f
-	40 40 40 40 7f 7f 00 00
-	7f 7f 40 40 40 40 7f 7f
-	40 40 40 40 40 40
+	00 00 7f 7f 40 40 40 40
+	7f 7f 40 40 40 40 40 40
 

@@ -10,52 +10,47 @@
 	02 03 04 05
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	80 00 00 00 1a 00 03
 
 .code@150
-l150:
+lbegin:
 	ld de, 1028
 	ld hl, ffa8
-l156:
+lbegin_copydmaroutine:
 	dec e
 	ld a, (de)
 	ld(hl--), a
-	jrnz l156
-	nop
-	nop
-	nop
-	nop
-	nop
+	jrnz lbegin_copydmaroutine
 	ld c, 44
 	ld b, 90
-l164:
+lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jrnz l164
+	jrnz lbegin_waitly90
 	ld a, 0a
 	ld(0000), a
 	ld hl, fea0
 	ld a, a0
-l172:
+lbegin_fill_oam:
 	dec l
 	ld(hl), a
-	jrnz l172
+	jrnz lbegin_fill_oam
 	ld c, 44
 	ld b, 90
-l17a:
+lbegin_waitly90_2:
 	ldff a, (c)
 	cmp a, b
-	jrnz l17a
+	jrnz lbegin_waitly90_2
 	ld hl, c09f
 	ld c, a0
 	ld a, 10
-l185:
+lbegin_fillwram:
 	dec c
 	ld(hl--), a
-	jrnz l185
+	jrnz lbegin_fillwram
 	ld a, 10
 	ld(fe08), a
 	ld a, 02
@@ -93,32 +88,27 @@ l100e:
 l101b:
 	dec c
 	jrnz l101b
-	jp l7000
+	jp lprintff80
 
-.code@2000
-l2000:
-	nop
-
-.code@6ffd
-	jp l2000
-l7000:
+.code@7000
+lprintff80:
 	ld c, 44
 	ld b, 91
-l7004:
+lprintff80_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz l7004
+	jrnz lprintff80_waitvblank
 	xor a, a
 	ldff(40), a
 	ld bc, 7a00
 	ld hl, 8000
 	ld d, a0
-l7014:
+lprintff80_copytiles:
 	ld a, (bc)
 	inc bc
 	ld(hl++), a
 	dec d
-	jpnz l7014
+	jrnz lprintff80_copytiles
 	ld a, c0
 	ldff(47), a
 	ld a, 80
@@ -133,33 +123,34 @@ l7014:
 	ld a, 00
 	ldff(69), a
 	ldff(69), a
-	ld a, (ff80)
+	ldff a, (80)
 	ld(9800), a
 	xor a, a
 	ldff(43), a
 	ld a, 91
 	ldff(40), a
-	jp l2000
+lprintff80_limbo:
+	jr lprintff80_limbo
 
-.data@7a02
-	7f 7f 41 41 41 41 41 41
-	41 41 41 41 7f 7f 00 00
-	08 08 08 08 08 08 08 08
-	08 08 08 08 08 08 00 00
-	7f 7f 01 01 01 01 7f 7f
-	40 40 40 40 7f 7f 00 00
-	7f 7f 01 01 01 01 3f 3f
-	01 01 01 01 7f 7f 00 00
+.data@7a00
+	00 00 7f 7f 41 41 41 41
 	41 41 41 41 41 41 7f 7f
-	01 01 01 01 01 01 00 00
-	7f 7f 40 40 40 40 7e 7e
-	01 01 01 01 7e 7e 00 00
+	00 00 08 08 08 08 08 08
+	08 08 08 08 08 08 08 08
+	00 00 7f 7f 01 01 01 01
 	7f 7f 40 40 40 40 7f 7f
-	41 41 41 41 7f 7f 00 00
-	7f 7f 01 01 02 02 04 04
-	08 08 10 10 10 10 00 00
-	3e 3e 41 41 41 41 3e 3e
-	41 41 41 41 3e 3e 00 00
+	00 00 7f 7f 01 01 01 01
+	3f 3f 01 01 01 01 7f 7f
+	00 00 41 41 41 41 41 41
+	7f 7f 01 01 01 01 01 01
+	00 00 7f 7f 40 40 40 40
+	7e 7e 01 01 01 01 7e 7e
+	00 00 7f 7f 40 40 40 40
 	7f 7f 41 41 41 41 7f 7f
-	01 01 01 01 7f 7f
+	00 00 7f 7f 01 01 02 02
+	04 04 08 08 10 10 10 10
+	00 00 3e 3e 41 41 41 41
+	3e 3e 41 41 41 41 3e 3e
+	00 00 7f 7f 41 41 41 41
+	7f 7f 01 01 01 01 7f 7f
 

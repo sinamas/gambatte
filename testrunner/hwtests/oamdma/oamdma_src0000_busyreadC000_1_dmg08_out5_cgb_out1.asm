@@ -10,27 +10,13 @@
 	02 03 04 05
 
 .code@100
-	jp l150
+	jp lbegin
 
 .data@143
 	c0 00 00 00 1a 00 03
 
 .code@150
-l150:
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+lbegin:
 	ld hl, ff81
 	ld a, 0e
 	ld(hl++), a
@@ -53,8 +39,6 @@ l150:
 	xor a, a
 	ld(hl++), a
 	ld(hl++), a
-	nop
-	nop
 	ld a, fa
 	ld(hl++), a
 	ld a, 00
@@ -89,10 +73,10 @@ l150:
 	ld(hl++), a
 	ld c, 44
 	ld b, 90
-l1b3:
+lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jrnz l1b3
+	jrnz lbegin_waitly90
 	nop
 	nop
 	nop
@@ -103,10 +87,10 @@ l1b3:
 	ld hl, fe00
 	ld c, a0
 	ld a, 06
-l1c8:
+lbegin_fill_oam:
 	ld(hl++), a
 	dec c
-	jrnz l1c8
+	jrnz lbegin_fill_oam
 	ld a, 90
 	ldff(45), a
 	ld a, 40
@@ -164,25 +148,25 @@ l7014:
 	ldff(40), a
 	jp l2000
 
-.data@7a02
-	7f 7f 41 41 41 41 41 41
-	41 41 41 41 7f 7f 00 00
-	08 08 08 08 08 08 08 08
-	08 08 08 08 08 08 00 00
-	7f 7f 01 01 01 01 7f 7f
-	40 40 40 40 7f 7f 00 00
-	7f 7f 01 01 01 01 3f 3f
-	01 01 01 01 7f 7f 00 00
+.data@7a00
+	00 00 7f 7f 41 41 41 41
 	41 41 41 41 41 41 7f 7f
-	01 01 01 01 01 01 00 00
-	7f 7f 40 40 40 40 7e 7e
-	01 01 01 01 7e 7e 00 00
+	00 00 08 08 08 08 08 08
+	08 08 08 08 08 08 08 08
+	00 00 7f 7f 01 01 01 01
 	7f 7f 40 40 40 40 7f 7f
-	41 41 41 41 7f 7f 00 00
-	7f 7f 01 01 02 02 04 04
-	08 08 10 10 10 10 00 00
-	3e 3e 41 41 41 41 3e 3e
-	41 41 41 41 3e 3e 00 00
+	00 00 7f 7f 01 01 01 01
+	3f 3f 01 01 01 01 7f 7f
+	00 00 41 41 41 41 41 41
+	7f 7f 01 01 01 01 01 01
+	00 00 7f 7f 40 40 40 40
+	7e 7e 01 01 01 01 7e 7e
+	00 00 7f 7f 40 40 40 40
 	7f 7f 41 41 41 41 7f 7f
-	01 01 01 01 7f 7f
+	00 00 7f 7f 01 01 02 02
+	04 04 08 08 10 10 10 10
+	00 00 3e 3e 41 41 41 41
+	3e 3e 41 41 41 41 3e 3e
+	00 00 7f 7f 41 41 41 41
+	7f 7f 01 01 01 01 7f 7f
 

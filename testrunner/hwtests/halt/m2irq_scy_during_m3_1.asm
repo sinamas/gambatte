@@ -1,16 +1,16 @@
 .size 8000
 
 .code@100
-	jp l150
+	jp lbegin
 
 .code@150
-l150:
+lbegin:
 	ld c, 44
 	ld b, 90
-l154:
+lbegin_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz l154
+	jpnz lbegin_waitvblank
 	ld hl, 8010
 	ld a, ff
 	ld(hl++), a
@@ -18,34 +18,33 @@ l154:
 	ld a, 01
 	ld b, 32
 	ld hl, 9a40
-l167:
+lbegin_settilemap:
 	ld(hl++), a
 	dec b
-	jpnz l167
+	jpnz lbegin_settilemap
 	ld a, c0
 	ldff(47), a
-	nop
 	ld c, 41
 	ld b, 03
-l175:
+lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz l175
+	jpnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02
 	ldff(ff), a
 	ld c, 42
 	ld b, 90
-l186:
+lwait_m2irq:
 	halt
 	xor a, a
 	ldff(0f), a
-	jp l1000
+	jp lm2int
 
 .code@1000
-l1000:
+lm2int:
 	nop
 	nop
 	nop
@@ -59,5 +58,5 @@ l1000:
 
 .code@1031
 	ldff(c), a
-	jp l186
+	jp lwait_m2irq
 
