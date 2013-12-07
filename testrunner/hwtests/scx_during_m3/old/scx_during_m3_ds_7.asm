@@ -24,7 +24,7 @@ lbegin:
 lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitly90
+	jrnz lbegin_waitly90
 	ld a, 11
 	ldff(40), a
 	ld hl, 8010
@@ -54,10 +54,10 @@ lbegin_set_bgmap:
 lbegin_set_bgmapline_tilenos0to11:
 	ld(hl++), a
 	dec b
-	jpnz lbegin_set_bgmapline_tilenos0to11
+	jrnz lbegin_set_bgmapline_tilenos0to11
 	add hl, de
 	dec c
-	jpnz lbegin_set_bgmap
+	jrnz lbegin_set_bgmap
 	ld a, 80
 	ldff(68), a
 	xor a, a

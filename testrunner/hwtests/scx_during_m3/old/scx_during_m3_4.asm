@@ -14,7 +14,7 @@ lbegin:
 lbegin_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitvblank
+	jrnz lbegin_waitvblank
 	ld a, 11
 	ldff(40), a
 	ld hl, 8010
@@ -44,10 +44,10 @@ lbegin_set_bgmap:
 lbegin_set_bgmapline_tilenos0to11:
 	ld(hl++), a
 	dec b
-	jpnz lbegin_set_bgmapline_tilenos0to11
+	jrnz lbegin_set_bgmapline_tilenos0to11
 	add hl, de
 	dec c
-	jpnz lbegin_set_bgmap
+	jrnz lbegin_set_bgmap
 	ld a, 03
 	ldff(47), a
 	ld a, 20

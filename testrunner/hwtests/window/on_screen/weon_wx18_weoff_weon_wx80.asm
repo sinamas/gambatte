@@ -20,7 +20,7 @@ lbegin:
 lbegin_waitly91:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitly91
+	jrnz lbegin_waitly91
 	xor a, a
 	ldff(40), a
 	ld a, 80

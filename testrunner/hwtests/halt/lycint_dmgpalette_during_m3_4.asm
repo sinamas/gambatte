@@ -14,7 +14,7 @@ lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz lbegin_waitm3
+	jrnz lbegin_waitm3
 	ld a, 40
 	ldff(c), a
 	ld a, 02

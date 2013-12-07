@@ -35,7 +35,7 @@ lprint_copytiles:
 	inc bc
 	ld(hl++), a
 	dec d
-	jpnz lprint_copytiles
+	jrnz lprint_copytiles
 	pop af
 	ld(9800), a
 	ld a, c0

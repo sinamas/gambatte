@@ -20,12 +20,8 @@ lbegin:
 	stop, 00
 	ld a, ff
 	ldff(45), a
-	ld c, 44
 	ld b, 96
-ly96wait:
-	ldff a, (c)
-	cmp a, b
-	jpnz ly96wait
+	call lwaitly_b
 	ld a, 80
 	ldff(68), a
 	ld a, ff

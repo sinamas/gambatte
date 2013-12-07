@@ -76,8 +76,7 @@ l100e:
 	nop
 	nop
 	ldff a, (41)
-	ld b, 03
-	and a, b
+	and a, 03
 	jp lprint_a
 
 .text@7000

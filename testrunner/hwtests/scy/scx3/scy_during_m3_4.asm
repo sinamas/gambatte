@@ -17,7 +17,7 @@ lbegin:
 lbegin_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitvblank
+	jrnz lbegin_waitvblank
 	ld hl, 8000
 	xor a, a
 	ld(hl++), a
@@ -62,7 +62,7 @@ lbegin_waitvblank:
 lbegin_settilemap:
 	ld(hl++), a
 	dec b
-	jpnz lbegin_settilemap
+	jrnz lbegin_settilemap
 	ld a, e4
 	ldff(47), a
 	ld a, 80
@@ -86,7 +86,7 @@ lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz lbegin_waitm3
+	jrnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02

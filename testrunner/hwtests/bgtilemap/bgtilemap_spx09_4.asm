@@ -17,7 +17,7 @@ lbegin:
 lbegin_waitvblank:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitvblank
+	jrnz lbegin_waitvblank
 	xor a, a
 	ldff(40), a
 	ld hl, 9f00
@@ -109,7 +109,7 @@ lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz lbegin_waitm3
+	jrnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02

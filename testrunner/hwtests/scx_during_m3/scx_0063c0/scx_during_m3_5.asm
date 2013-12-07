@@ -17,7 +17,7 @@ lbegin:
 lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitly90
+	jrnz lbegin_waitly90
 	ld a, 11
 	ldff(40), a
 	ld hl, 8000

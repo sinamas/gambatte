@@ -20,7 +20,7 @@ lbegin:
 lbegin_waitly90:
 	ldff a, (c)
 	cmp a, b
-	jpnz lbegin_waitly90
+	jrnz lbegin_waitly90
 	ld hl, 8010
 	ld a, ff
 	ld(hl++), a
@@ -31,7 +31,7 @@ lbegin_waitly90:
 lbegin_settilemap:
 	ld(hl++), a
 	dec b
-	jpnz lbegin_settilemap
+	jrnz lbegin_settilemap
 	ld a, 80
 	ldff(68), a
 	ld a, ff
@@ -51,7 +51,7 @@ lbegin_waitm3:
 	ldff a, (c)
 	and a, b
 	cmp a, b
-	jpnz lbegin_waitm3
+	jrnz lbegin_waitm3
 	xor a, a
 	ldff(45), a
 	ld a, 40

@@ -36,8 +36,7 @@ lstatint:
 .text@1060
 	ldff(c), a
 	ldff a, (0f)
-	ld b, 07
-	and a, b
+	and a, 07
 	jp lprint_a
 
 .text@7000

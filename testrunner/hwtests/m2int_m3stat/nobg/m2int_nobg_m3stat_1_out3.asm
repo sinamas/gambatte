@@ -29,7 +29,6 @@ lbegin_waitm3:
 	ldff(ff), a
 	ld a, 00
 	ldff(43), a
-	xor a, a
 	ldff(0f), a
 	ei
 

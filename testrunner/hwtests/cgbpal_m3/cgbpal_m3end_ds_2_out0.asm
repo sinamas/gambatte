@@ -25,7 +25,7 @@ lbegin_waitm3:
 	ldff a, (c)
 	and a, d
 	cmp a, b
-	jpnz lbegin_waitm3
+	jrnz lbegin_waitm3
 	ld a, 20
 	ldff(c), a
 	ld a, 02
@@ -39,7 +39,7 @@ lbegin_clearbgp0:
 	ldff(c), a
 	ldff a, (c)
 	or a, a
-	jpnz lbegin_clearbgp0
+	jrnz lbegin_clearbgp0
 	inc a
 
 .text@1000
