@@ -1,8 +1,5 @@
 .size 8000
 
-.text@50
-	jp ltimaint
-
 .text@100
 	jp lbegin
 
@@ -11,10 +8,10 @@
 
 .text@150
 lbegin:
-	jp ltimaint
+	jp ltest
 
 .text@1000
-ltimaint:
+ltest:
 	nop
 	nop
 	nop

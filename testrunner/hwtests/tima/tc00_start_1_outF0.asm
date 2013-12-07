@@ -1,8 +1,5 @@
 .size 8000
 
-.text@50
-	jp ltimaint
-
 .text@100
 	jp lbegin
 
@@ -37,10 +34,10 @@ lbegin:
 	nop
 	ld a, 04
 	ldff(07), a
-	jp ltimaint
+	jp ltest
 
 .text@1000
-ltimaint:
+ltest:
 	nop
 
 .text@1027
