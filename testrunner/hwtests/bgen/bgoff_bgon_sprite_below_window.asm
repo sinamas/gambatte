@@ -1,16 +1,16 @@
 .size 8000
 
-.code@48
+.text@48
 	pop de
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -186,7 +186,7 @@ lbegin_set_bgmap1_start10skip21:
 	ldff(ff), a
 	ei
 
-.code@1000
+.text@1000
 lstatint:
 	nop
 	nop
@@ -203,7 +203,7 @@ lstatint:
 	ld a, f6
 	ldff(40), a
 
-.code@102e
+.text@102e
 	ld a, f7
 	ldff(40), a
 	ei

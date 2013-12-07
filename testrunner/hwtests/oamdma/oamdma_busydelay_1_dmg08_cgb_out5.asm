@@ -1,6 +1,6 @@
 .size 8000
 
-.code@0
+.text@0
 l0:
 	nop
 	nop
@@ -20,13 +20,13 @@ l0:
 	nop
 	jp l1800
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld b, 90
 	call lwaitly_b
@@ -39,7 +39,7 @@ lbegin:
 	inc a
 	jp l1800
 
-.code@404
+.text@404
 	jp l0
 	jp l0
 	jp l0
@@ -93,11 +93,11 @@ lbegin:
 	jp l0
 	jp l0
 
-.code@1800
+.text@1800
 l1800:
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -135,7 +135,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

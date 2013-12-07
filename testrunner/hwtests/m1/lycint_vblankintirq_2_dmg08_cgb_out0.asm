@@ -1,6 +1,6 @@
 .size 8000
 
-.code@40
+.text@40
 	ret
 	nop
 	nop
@@ -11,13 +11,13 @@
 	nop
 	jp l1000
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	dec a
@@ -44,17 +44,17 @@ lbegin_waitly8d:
 	ld a, b
 	ldff(ff), a
 
-.code@1000
+.text@1000
 l1000:
 	ei
 
-.code@1069
+.text@1069
 	ldff a, (c)
 	and a, b
 	ld(ff80), a
 	jp lprintff80
 
-.code@7000
+.text@7000
 lprintff80:
 	ld c, 44
 	ld b, 91

@@ -1,12 +1,12 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	dec a

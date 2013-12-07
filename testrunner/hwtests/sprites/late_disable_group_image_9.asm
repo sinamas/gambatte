@@ -1,12 +1,12 @@
 .size 8000
 
-.code@48
+.text@48
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	dec a
@@ -69,7 +69,7 @@ lbegin_waitly91_2:
 	ld c, 40
 	ld d, 97
 
-.code@1000
+.text@1000
 lstatint:
 	nop
 	nop

@@ -3,19 +3,19 @@
 .data@0
 	01
 
-.code@48
+.text@48
 	jp ff81
 
 .data@9c
 	02 03 04 05
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80 00 00 00 1a 00 03
 
-.code@150
+.text@150
 lbegin:
 	ld de, 1028
 	ld hl, ffa8
@@ -65,7 +65,7 @@ lbegin_fillwram:
 	ld a, 93
 	ldff(40), a
 
-.code@1000
+.text@1000
 	ld c, 1d
 l1002:
 	dec c
@@ -90,7 +90,7 @@ l101b:
 	jrnz l101b
 	jp lprintff80
 
-.code@7000
+.text@7000
 lprintff80:
 	ld c, 44
 	ld b, 91

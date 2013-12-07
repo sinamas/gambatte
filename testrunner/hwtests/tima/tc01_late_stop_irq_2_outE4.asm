@@ -1,15 +1,15 @@
 .size 8000
 
-.code@50
+.text@50
 	jp ltimaint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	ldff(0f), a
@@ -25,19 +25,19 @@ lbegin:
 	nop
 	halt
 
-.code@1000
+.text@1000
 ltimaint:
 	nop
 
-.code@102f
+.text@102f
 	ld a, 01
 	ldff(07), a
 
-.code@1048
+.text@1048
 	ldff a, (0f)
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -83,7 +83,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

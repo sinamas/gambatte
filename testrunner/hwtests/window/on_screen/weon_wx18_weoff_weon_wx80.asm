@@ -1,15 +1,15 @@
 .size 8000
 
-.code@48
+.text@48
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -143,12 +143,12 @@ lbegin_set_bgmap1_start10skip21:
 	ld a, f1
 	ei
 
-.code@1000
+.text@1000
 lstatint:
 	ld a, 18
 	ldff(4b), a
 
-.code@1020
+.text@1020
 	ld a, d1
 	ldff(c), a
 	ld a, 80

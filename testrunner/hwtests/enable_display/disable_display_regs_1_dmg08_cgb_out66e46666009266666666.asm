@@ -1,12 +1,12 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	ld a, 66
 	ldff(41), a
@@ -51,7 +51,7 @@ lbegin_waitly92:
 	ldff(40), a
 	jp lprint_hiram
 
-.code@7000
+.text@7000
 lprint_hiram:
 	ld c, 44
 	ld b, 91

@@ -1,12 +1,12 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80 00 00 00 1b 00 03
 
-.code@e00
+.text@e00
 lcopy_de_to_hl_until_de_is_e0xx:
 	ld b, 00
 lcopy_de_to_hl_until_de_is_e0xx_inner:
@@ -21,7 +21,7 @@ lcopy_de_to_hl_until_de_is_e0xx_inner:
 	jrnz lcopy_de_to_hl_until_de_is_e0xx
 	ret
 
-.code@1000
+.text@1000
 lbegin:
 	ldff a, (44)
 	cmp a, 91
@@ -75,7 +75,7 @@ lbegin:
 	ldff(40), a
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -120,7 +120,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

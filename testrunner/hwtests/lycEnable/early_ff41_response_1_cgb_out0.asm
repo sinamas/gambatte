@@ -1,21 +1,21 @@
 .size 8000
 
-.code@40
+.text@40
 	ei
 	jp l1000
 
-.code@48
+.text@48
 	ld a, 07
 	ldff(0f), a
 	ret
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	dec a
@@ -56,11 +56,11 @@ lbegin_waitm0:
 	ld a, 91
 	ldff(45), a
 
-.code@1000
+.text@1000
 l1000:
 	nop
 
-.code@105f
+.text@105f
 	ld a, 40
 	ldff(41), a
 	ldff a, (c)
@@ -68,7 +68,7 @@ l1000:
 	ld(ff80), a
 	jp lprintff80
 
-.code@7000
+.text@7000
 lprintff80:
 	ld c, 44
 	ld b, 91

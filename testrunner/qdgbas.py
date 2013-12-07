@@ -168,7 +168,7 @@ def maptargets(targets, indata, instart, addr):
 	
 	return i
 
-def ascode(outdata, addr, indata, instart, targets):
+def astext(outdata, addr, indata, instart, targets):
 	for i in xrange(instart, len(indata)):
 		match = opregexp.match(indata[i])
 		if match == None:
@@ -235,7 +235,7 @@ def assembleFile(indata):
 		spl = [x.strip() for x in indata[i].split('@')]
 		i += 1;
 		
-		if spl[0] == '.code':
+		if spl[0] == '.text':
 			i = maptargets(targets, indata, i, int(spl[1], 0x10))
 
 	outdata = bytearray(size)
@@ -244,8 +244,8 @@ def assembleFile(indata):
 		if indata[i] != '':
 			spl = [x.strip() for x in indata[i].split('@')]
 			
-			if spl[0] == '.code':
-				i = ascode(outdata, int(spl[1], 0x10), indata, i+1, targets)
+			if spl[0] == '.text':
+				i = astext(outdata, int(spl[1], 0x10), indata, i+1, targets)
 			elif spl[0] == '.data':
 				i = asdata(outdata, int(spl[1], 0x10), indata, i+1)
 			else:

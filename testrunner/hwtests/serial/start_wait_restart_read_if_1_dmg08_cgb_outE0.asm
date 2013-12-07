@@ -1,15 +1,15 @@
 .size 8000
 
-.code@58
+.text@58
 	jp lstartserial
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	ldff(0f), a
@@ -19,25 +19,25 @@ lbegin:
 	ldff(02), a
 	ei
 
-.code@1000
+.text@1000
 lstartserial:
 	xor a, a
 	ldff(01), a
 	ld a, 81
 	ldff(02), a
 
-.code@1200
+.text@1200
 	ldff(02), a
 
-.code@1500
+.text@1500
 	xor a, a
 	ldff(0f), a,
 
-.code@15f0
+.text@15f0
 	ldff a, (0f)
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -83,7 +83,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

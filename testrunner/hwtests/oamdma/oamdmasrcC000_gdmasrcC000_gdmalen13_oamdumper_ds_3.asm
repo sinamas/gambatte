@@ -3,19 +3,19 @@
 .data@0
 	01
 
-.code@48
+.text@48
 	jp lstatint
 
 .data@9c
 	02 03 04 05
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0 00 00 00 1a 00 03
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -66,7 +66,7 @@ lbegin_set_c0xx:
 	ei
 	halt
 
-.code@1000
+.text@1000
 lstatint:
 	ld a, c0
 	ldff(51), a
@@ -80,7 +80,7 @@ lstatint:
 	ldff(46), a
 	ld a, 13
 
-.code@106d
+.text@106d
 	ldff(c), a
 	ld c, 44
 	ld b, 96

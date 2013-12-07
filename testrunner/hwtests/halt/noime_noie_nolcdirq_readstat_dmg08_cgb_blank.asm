@@ -1,9 +1,9 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	ldff(ff), a
@@ -13,7 +13,7 @@ lbegin:
 	ldff a, (41)
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -46,7 +46,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

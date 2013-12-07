@@ -3,19 +3,19 @@
 .data@0
 	01
 
-.code@48
+.text@48
 	jp lstatint
 
 .data@9c
 	02 03 04 05
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0 00 00 00 1a 00 03
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -57,21 +57,21 @@ lbegin_fillwram:
 	ldff(ff), a
 	ei
 
-.code@1000
+.text@1000
 lstatint:
 	nop
 
-.code@1036
+.text@1036
 	ld a, c0
 	ldff(46), a
 
-.code@115b
+.text@115b
 	ldff a, (41)
 	ld b, 03
 	and a, b
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -109,7 +109,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

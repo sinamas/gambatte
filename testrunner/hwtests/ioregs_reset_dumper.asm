@@ -1,12 +1,12 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80 00 00 00 03 00 01
 
-.code@150
+.text@150
 lbegin:
 	ldff a, (44)
 	cmp a, 91
@@ -47,7 +47,7 @@ lclear_FF56toFF7F:
 	ldff(40), a
 	jp lprint_a
 
-.code@1800
+.text@1800
 ldump_ioports:
 	ld de, ff00
 	ld b, 80
@@ -59,7 +59,7 @@ ldump_ioports_loop:
 	jrnz ldump_ioports_loop
 	ret
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -104,7 +104,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

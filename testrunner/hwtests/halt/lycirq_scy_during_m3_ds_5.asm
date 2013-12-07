@@ -1,12 +1,12 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -66,11 +66,11 @@ lwait_lycirq:
 	ldff(0f), a
 	jp llycint
 
-.code@1000
+.text@1000
 llycint:
 	nop
 
-.code@101b
+.text@101b
 	ldff a, (44)
 	ld d, a
 	ld a, b
@@ -78,7 +78,7 @@ llycint:
 	ldff(c), a
 	xor a, a
 
-.code@1066
+.text@1066
 	ldff(c), a
 	ld a, d
 	inc a

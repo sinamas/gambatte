@@ -1,9 +1,9 @@
 .size 8000
 
-.code@100
+.text@100
 	jp lbegin
 
-.code@150
+.text@150
 lbegin:
 	ld c, 44
 	ld b, 90
@@ -43,7 +43,7 @@ lwait_m2irq:
 	ldff(0f), a
 	jp lm2int
 
-.code@1000
+.text@1000
 lm2int:
 	nop
 	nop
@@ -57,7 +57,7 @@ lm2int:
 	ldff(c), a
 	xor a, a
 
-.code@1030
+.text@1030
 	ldff(c), a
 	jp lwait_m2irq
 

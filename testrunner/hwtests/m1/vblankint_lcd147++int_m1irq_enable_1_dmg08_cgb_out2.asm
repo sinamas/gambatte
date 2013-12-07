@@ -1,6 +1,6 @@
 .size 8000
 
-.code@40
+.text@40
 	jp lvblankint
 	nop
 	nop
@@ -9,13 +9,13 @@
 	nop
 	ret
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	dec a
@@ -42,15 +42,15 @@ lbegin_waitly8d:
 	ld a, b
 	ldff(ff), a
 
-.code@1000
+.text@1000
 lvblankint:
 	ld a, 02
 	ldff(0f), a
 
-.code@114d
+.text@114d
 	ei
 
-.code@11b9
+.text@11b9
 	ld a, 10
 	ldff(41), a
 	ldff a, (c)
@@ -58,7 +58,7 @@ lvblankint:
 	ld(ff80), a
 	jp lprintff80
 
-.code@7000
+.text@7000
 lprintff80:
 	ld c, 44
 	ld b, 91

@@ -1,16 +1,16 @@
 .size 8000
 
-.code@48
+.text@48
 	ei
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld c, 44
 	ld b, 90
@@ -99,7 +99,7 @@ lbegin_clear_oam:
 	ei
 	xor a, a
 
-.code@1000
+.text@1000
 lstatint:
 	ldff(c), a
 	ld a, 60
@@ -115,7 +115,7 @@ lstatint:
 	pop hl
 	ld a, c0
 
-.code@102a
+.text@102a
 	ldff(c), a
 	xor a, a
 

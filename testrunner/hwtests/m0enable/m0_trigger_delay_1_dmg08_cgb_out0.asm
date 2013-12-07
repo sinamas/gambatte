@@ -1,6 +1,6 @@
 .size 8000
 
-.code@48
+.text@48
 	ldff a, (44)
 	cmp a, 05
 	jrnz l51
@@ -8,13 +8,13 @@
 l51:
 	jp l1800
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	xor a, a
 	dec a
@@ -32,7 +32,7 @@ lbegin:
 	ldff(45), a
 	ld c, 41
 
-.code@1000
+.text@1000
 l1000:
 	ld a, 00
 	ldff(c), a
@@ -42,7 +42,7 @@ l1000:
 	ldff(0f), a
 	ei
 
-.code@10ad
+.text@10ad
 	ld a, 08
 	ldff(41), a
 	xor a, a
@@ -51,7 +51,7 @@ l1000_clear_a_loop:
 	xor a, a
 	jrnz l1000_clear_a_loop
 
-.code@1800
+.text@1800
 l1800:
 	nop
 	nop
@@ -68,7 +68,7 @@ l1800:
 	and a, b
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -106,7 +106,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

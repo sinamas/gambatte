@@ -1,12 +1,12 @@
 .size 8000
 
-.code@48
+.text@48
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
-.code@150
+.text@150
 lbegin:
 	ld c, 41
 	ld b, 03
@@ -30,7 +30,7 @@ lbegin_waitm3:
 	ei
 	halt
 
-.code@1000
+.text@1000
 lstatint:
 	nop
 	nop
@@ -48,7 +48,7 @@ lstatint:
 	ldff(c), a
 	inc a
 
-.code@102f
+.text@102f
 	ldff(c), a
 	pop hl
 	ldff a, (45)

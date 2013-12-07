@@ -3,19 +3,19 @@
 .data@0
 	01
 
-.code@48
+.text@48
 	jp ff81
 
 .data@9c
 	02 03 04 05
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0 00 00 00 1a 01 03
 
-.code@150
+.text@150
 lbegin:
 	ld hl, ff81
 	ld a, 0e
@@ -133,20 +133,20 @@ lbegin_fill_oam:
 	ld(4000), a
 	halt
 
-.code@2000
+.text@2000
 l2000:
 	nop
 
-.code@4000
+.text@4000
 	ld bc, 0000
 
-.code@409c
+.text@409c
 	ld(bc), a
 	inc bc
 	inc b
 	dec b
 
-.code@6ffd
+.text@6ffd
 	jp l2000
 	ld c, 44
 	ld b, 91
@@ -207,7 +207,7 @@ l7014:
 	00 00 7f 7f 41 41 41 41
 	7f 7f 01 01 01 01 7f 7f
 
-.code@ff81
+.text@ff81
 lff81:
 	nop
 

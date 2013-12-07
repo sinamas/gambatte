@@ -1,15 +1,15 @@
 .size 8000
 
-.code@50
+.text@50
 	jp ltimaint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld b, 91
 lbegin_waitvblank:
@@ -30,7 +30,7 @@ lbegin_waitvblank:
 	ldff(0f), a
 	ei
 
-.code@1000
+.text@1000
 ltimaint:
 	ld a, 00
 	ldff(ff), a
@@ -46,7 +46,7 @@ ltimaint:
 	ldff a, (05)
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	ld b, a
 	srl a

@@ -1,15 +1,15 @@
 .size 8000
 
-.code@49
+.text@49
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -106,12 +106,12 @@ lbegin_set_bgmapline_tilenos12to31:
 	ei
 	ld a, 07
 
-.code@1000
+.text@1000
 lstatint:
 	ldff(c), a
 	ld a, 04
 
-.code@1020
+.text@1020
 	ld b, 02
 	ldff(c), a
 	sub a, b
@@ -137,12 +137,12 @@ lstatint:
 	sub a, b
 	ldff(c), a
 
-.code@108d
+.text@108d
 	ldff a, (41)
 	and a, 07
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -180,7 +180,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

@@ -3,19 +3,19 @@
 .data@0
 	01
 
-.code@48
+.text@48
 	jp ff81
 
 .data@9c
 	02 03 04 05
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0 00 00 00 1a 00 03
 
-.code@150
+.text@150
 lbegin:
 	ld de, 1030
 	ld hl, ffb0
@@ -58,7 +58,7 @@ lbegin_fillwram:
 	ld a, 93
 	ldff(40), a
 
-.code@1000
+.text@1000
 	ld c, 11
 l1002:
 	dec c
@@ -80,7 +80,7 @@ l100e:
 	and a, b
 	jp lprint_a
 
-.code@7000
+.text@7000
 lprint_a:
 	push af
 	ld b, 91
@@ -118,7 +118,7 @@ lprint_copytiles:
 lprint_limbo:
 	jr lprint_limbo
 
-.code@7400
+.text@7400
 lwaitly_b:
 	ld c, 44
 lwaitly_b_loop:

@@ -1,15 +1,15 @@
 .size 8000
 
-.code@48
+.text@48
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0 00 00 00 1a 00 03
 
-.code@150
+.text@150
 lbegin:
 	ld a, 00
 	ldff(ff), a
@@ -60,7 +60,7 @@ lbegin_set_c0xx:
 	ei
 	halt
 
-.code@1000
+.text@1000
 lstatint:
 	ld a, 00
 	ldff(51), a

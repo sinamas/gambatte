@@ -1,16 +1,16 @@
 .size 8000
 
-.code@48
+.text@48
 	ei
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	80
 
-.code@150
+.text@150
 lbegin:
 	ld c, 44
 	ld b, 90
@@ -104,7 +104,7 @@ lbegin_set_bgmapline_tilenos12to31:
 	ei
 	ld a, 03
 
-.code@1000
+.text@1000
 lstatint:
 	ldff(c), a
 	ld a, 67
@@ -118,7 +118,7 @@ lstatint:
 	pop hl
 	ld a, c0
 
-.code@102c
+.text@102c
 	ldff(c), a
 	ld a, 03
 

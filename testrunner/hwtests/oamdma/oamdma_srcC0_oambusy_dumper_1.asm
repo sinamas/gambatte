@@ -3,19 +3,19 @@
 .data@0
 	01
 
-.code@48
+.text@48
 	jp lstatint
 
 .data@9c
 	02 03 04 05
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0 00 00 00 1b 00 03
 
-.code@150
+.text@150
 lbegin:
 	ld c, 44
 	ld b, 90
@@ -54,7 +54,7 @@ lbegin_set_wram00to9f:
 	ldff(ff), a
 	ei
 
-.code@1000
+.text@1000
 lstatint:
 	ld a, c0
 	ldff(46), a

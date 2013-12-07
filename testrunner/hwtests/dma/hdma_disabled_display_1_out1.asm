@@ -1,15 +1,15 @@
 .size 8000
 
-.code@48
+.text@48
 	jp lstatint
 
-.code@100
+.text@100
 	jp lbegin
 
 .data@143
 	c0
 
-.code@150
+.text@150
 lbegin:
 	ld c, 44
 	ld b, 97
@@ -40,7 +40,7 @@ lbegin_waitly97:
 	ld hl, 8000
 	halt
 
-.code@1000
+.text@1000
 lstatint:
 	xor a, a
 	ldff(40), a
@@ -54,7 +54,7 @@ lstatint:
 	ldff(40), a
 	jp lprintff80
 
-.code@7000
+.text@7000
 lprintff80:
 	ld c, 44
 	ld b, 91
