@@ -18,8 +18,7 @@ lbegin_waitm3:
 	and a, b
 	cmp a, b
 	jpnz lbegin_waitm3
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld a, 20
 	ldff(c), a

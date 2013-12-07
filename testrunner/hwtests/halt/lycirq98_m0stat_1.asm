@@ -15,8 +15,7 @@ lbegin_waitly91:
 	ldff(40), a
 	dec d
 	jrnz lbegin_waitly91
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld b, 96
 	call lwaitly_b

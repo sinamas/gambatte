@@ -8,8 +8,7 @@
 
 .text@150
 lbegin:
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld c, 44
 	ld b, 91

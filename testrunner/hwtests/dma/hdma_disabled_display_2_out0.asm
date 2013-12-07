@@ -11,12 +11,8 @@
 
 .text@150
 lbegin:
-	ld c, 44
 	ld b, 97
-lbegin_waitly97:
-	ldff a, (c)
-	cmp a, b
-	jpnz lbegin_waitly97
+	call lwaitly_b
 	ld a, 99
 	ldff(45), a
 	ld a, 40
@@ -58,12 +54,8 @@ lstatint:
 
 .text@7000
 lprintff80:
-	ld c, 44
 	ld b, 91
-lprintff80_waitvblank:
-	ldff a, (c)
-	cmp a, b
-	jrnz lprintff80_waitvblank
+	call lwaitly_b
 	xor a, a
 	ldff(40), a
 	ld bc, 7a00
@@ -97,6 +89,15 @@ lprintff80_copytiles:
 	ldff(40), a
 lprintff80_limbo:
 	jr lprintff80_limbo
+
+.text@7400
+lwaitly_b:
+	ld c, 44
+lwaitly_b_loop:
+	ldff a, (c)
+	cmp a, b
+	jrnz lwaitly_b_loop
+	ret
 
 .data@7a00
 	00 00 7f 7f 41 41 41 41

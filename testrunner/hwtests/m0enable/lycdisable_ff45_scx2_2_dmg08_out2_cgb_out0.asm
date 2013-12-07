@@ -46,8 +46,7 @@ lstatint:
 	nop
 	nop
 	nop
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	nop
 	nop

@@ -24,12 +24,8 @@ lbegin_copydmaroutine:
 	ld a, (de)
 	ld(hl--), a
 	jrnz lbegin_copydmaroutine
-	ld c, 44
 	ld b, 90
-lbegin_waitly90:
-	ldff a, (c)
-	cmp a, b
-	jrnz lbegin_waitly90
+	call lwaitly_b
 	ld a, 0a
 	ld(0000), a
 	ld hl, fea0
@@ -38,12 +34,8 @@ lbegin_fill_oam:
 	dec l
 	ld(hl), a
 	jrnz lbegin_fill_oam
-	ld c, 44
 	ld b, 90
-lbegin_waitly90_2:
-	ldff a, (c)
-	cmp a, b
-	jrnz lbegin_waitly90_2
+	call lwaitly_b
 	ld hl, c09f
 	ld c, a0
 	ld a, 10
@@ -92,12 +84,8 @@ l101b:
 
 .text@7000
 lprintff80:
-	ld c, 44
 	ld b, 91
-lprintff80_waitvblank:
-	ldff a, (c)
-	cmp a, b
-	jrnz lprintff80_waitvblank
+	call lwaitly_b
 	xor a, a
 	ldff(40), a
 	ld bc, 7a00
@@ -131,6 +119,15 @@ lprintff80_copytiles:
 	ldff(40), a
 lprintff80_limbo:
 	jr lprintff80_limbo
+
+.text@7400
+lwaitly_b:
+	ld c, 44
+lwaitly_b_loop:
+	ldff a, (c)
+	cmp a, b
+	jrnz lwaitly_b_loop
+	ret
 
 .data@7a00
 	00 00 7f 7f 41 41 41 41

@@ -20,8 +20,7 @@ lbegin:
 	ld a, 01
 	ldff(4d), a
 	stop, 00
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld b, 03
 	call lwaitly_b
@@ -59,8 +58,7 @@ lstatint:
 	nop
 
 .text@10d3
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ldff a, (c)
 	and a, b

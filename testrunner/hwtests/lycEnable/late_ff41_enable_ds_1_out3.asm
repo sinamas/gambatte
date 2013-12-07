@@ -22,8 +22,7 @@ lbegin:
 	ld a, 01
 	ldff(4d), a
 	stop, 00
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld b, 03
 	call lwaitly_b

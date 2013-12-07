@@ -18,8 +18,7 @@ lbegin:
 	ld a, 01
 	ldff(4d), a
 	stop, 00
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld c, 44
 	ld b, 97

@@ -1,8 +1,7 @@
 .size 8000
 
 .text@48
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	jp lstatint
 
@@ -14,8 +13,7 @@
 
 .text@150
 lbegin:
-	xor a, a
-	dec a
+	ld a, ff
 	ldff(45), a
 	ld b, 8b
 	call lwaitly_b
