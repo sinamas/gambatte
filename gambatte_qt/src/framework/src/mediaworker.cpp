@@ -24,10 +24,10 @@
 #include "pixelbuffer.h"
 #include "skipsched.h"
 #include <QtGlobal> // for Q_WS_WIN define
-
 #ifdef Q_WS_WIN
 #include <Objbase.h> // For CoInitialize
 #endif
+#include <cstdlib>
 
 MediaWorker::MeanQueue::MeanQueue(long mean, long var)
 : q_(size, Elem(mean, var))
