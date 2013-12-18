@@ -17,7 +17,6 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "mmpriority.h"
-#include <QtGlobal> // for Q_WS_WIN define
 
 #ifdef Q_WS_WIN
 
@@ -87,7 +86,7 @@ SetThreadPriorityAudio::~SetThreadPriorityAudio()
 
 #else
 
-SetThreadPriorityAudio::SetThreadPriorityAudio() : handle_(0) {}
+SetThreadPriorityAudio::SetThreadPriorityAudio() {}
 SetThreadPriorityAudio::~SetThreadPriorityAudio() {}
 
 #endif

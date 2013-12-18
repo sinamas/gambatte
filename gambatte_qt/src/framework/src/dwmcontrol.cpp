@@ -18,7 +18,6 @@
  ***************************************************************************/
 #include "dwmcontrol.h"
 #include "blitterwidget.h"
-#include <QtGlobal> // for Q_WS_WIN define
 
 #ifdef Q_WS_WIN
 
@@ -204,13 +203,7 @@ bool DwmControl::isCompositingEnabled() {
 
 #else
 
-DwmControl::DwmControl(std::vector<BlitterWidget *> const &)
-: blitters_()
-, refreshCnt_()
-, tripleBuffer_()
-{
-}
-
+DwmControl::DwmControl(std::vector<BlitterWidget *> const &) {}
 void DwmControl::setDwmTripleBuffer(bool) {}
 void DwmControl::hideEvent() {}
 void DwmControl::showEvent() {}

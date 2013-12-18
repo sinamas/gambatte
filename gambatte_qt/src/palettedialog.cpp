@@ -96,11 +96,11 @@ static unsigned short const p017[] = {
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000)
 };
 
-static unsigned short const p01B[] = {
+/*static unsigned short const p01B[] = {
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000)
-};
+};*/
 
 static unsigned short const p100[] = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),

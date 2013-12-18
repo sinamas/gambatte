@@ -20,6 +20,7 @@
 #define DWMCONTROL_H_
 
 #include <QWidget>
+#include <QtGlobal> // Q_WS_WIN define
 #include <vector>
 
 class BlitterWidget;
@@ -38,10 +39,12 @@ public:
 	static bool hasDwmCapability();
 	static bool isCompositingEnabled();
 
+#ifdef Q_WS_WIN
 private:
 	std::vector<BlitterWidget *> const blitters_;
 	int refreshCnt_;
 	bool tripleBuffer_;
+#endif
 };
 
 class DwmControlHwndChange {

@@ -931,7 +931,7 @@ void CPU::process(unsigned long const cycles) {
 				hf2 = 0;
 				break;
 
-			case 0x40: b = b; break;
+			case 0x40: /*b = b;*/ break;
 			case 0x41: b = c; break;
 			case 0x42: b = d; break;
 			case 0x43: b = e; break;
@@ -941,7 +941,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x47: b = a; break;
 
 			case 0x48: c = b; break;
-			case 0x49: c = c; break;
+			case 0x49: /*c = c;*/ break;
 			case 0x4A: c = d; break;
 			case 0x4B: c = e; break;
 			case 0x4C: c = h; break;
@@ -951,7 +951,7 @@ void CPU::process(unsigned long const cycles) {
 
 			case 0x50: d = b; break;
 			case 0x51: d = c; break;
-			case 0x52: d = d; break;
+			case 0x52: /*d = d;*/ break;
 			case 0x53: d = e; break;
 			case 0x54: d = h; break;
 			case 0x55: d = l; break;
@@ -961,7 +961,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x58: e = b; break;
 			case 0x59: e = c; break;
 			case 0x5A: e = d; break;
-			case 0x5B: e = e; break;
+			case 0x5B: /*e = e;*/ break;
 			case 0x5C: e = h; break;
 			case 0x5D: e = l; break;
 			case 0x5E: READ(e, hl()); break;
@@ -971,7 +971,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x61: h = c; break;
 			case 0x62: h = d; break;
 			case 0x63: h = e; break;
-			case 0x64: h = h; break;
+			case 0x64: /*h = h;*/ break;
 			case 0x65: h = l; break;
 			case 0x66: READ(h, hl()); break;
 			case 0x67: h = a; break;
@@ -981,7 +981,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x6A: l = d; break;
 			case 0x6B: l = e; break;
 			case 0x6C: l = h; break;
-			case 0x6D: l = l; break;
+			case 0x6D: /*l = l;*/ break;
 			case 0x6E: READ(l, hl()); break;
 			case 0x6F: l = a; break;
 
