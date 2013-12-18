@@ -23,7 +23,6 @@ lbegin:
 	inc a
 	inc a
 	ldff(45), a
-	ld c, 0f
 	xor a, a
 	ldff(0f), a
 	ei

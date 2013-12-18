@@ -24,8 +24,6 @@ lbegin:
 	ei
 	ld a, 44
 	ldff(45), a
-	ld c, 41
-	ld b, 07
 
 .text@1000
 lstatint:

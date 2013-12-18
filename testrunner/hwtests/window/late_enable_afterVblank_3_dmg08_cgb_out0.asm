@@ -20,7 +20,6 @@ lbegin:
 	ld a, 07
 	ldff(4b), a
 	ld c, 41
-	ld b, 03
 	ld a, 20
 	ldff(c), a
 	xor a, a
@@ -39,7 +38,7 @@ lstatint:
 
 .text@10a6
 	ldff a, (c)
-	and a, b
+	and a, 03
 	jp lprint_a
 
 .text@7000

@@ -24,8 +24,6 @@ lbegin:
 	ei
 	ld a, 97
 	ldff(45), a
-	ld c, 41
-	ld b, 07
 
 .text@1000
 lstatint:
@@ -41,7 +39,7 @@ lstatint:
 
 .text@1048
 	ldff a, (41)
-	and a, b
+	and a, 07
 	jp lprint_a
 
 .text@7000

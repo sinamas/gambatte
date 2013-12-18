@@ -82,7 +82,6 @@ lbegin:
 	ei
 	ld a, 01
 	ldff(45), a
-	ld c, 41
 	ld a, 93
 	ldff(40), a
 	ld hl, 8000

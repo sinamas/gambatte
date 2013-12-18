@@ -25,7 +25,6 @@ lbegin:
 	ld a, 07
 	ldff(4b), a
 	ld c, 41
-	ld b, 03
 	ld a, 20
 	ldff(c), a
 	ld a, 02
@@ -42,7 +41,7 @@ lstatint:
 
 .text@1075
 	ldff a, (c)
-	and a, b
+	and a, 03
 	jp lprint_a
 
 .text@7000

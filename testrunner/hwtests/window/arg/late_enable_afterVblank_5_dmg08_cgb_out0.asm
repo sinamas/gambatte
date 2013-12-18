@@ -24,7 +24,6 @@ lbegin:
 	ld b, 97
 	call lwaitly_b
 	ld c, 41
-	ld b, 03
 	ld a, 91
 	ldff(40), a
 	ld a, 20
@@ -45,7 +44,7 @@ lstatint:
 
 .text@118a
 	ldff a, (c)
-	and a, b
+	and a, 03
 	jp lprint_a
 
 .text@7000

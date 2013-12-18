@@ -33,8 +33,6 @@ lbegin:
 	ld a, d
 	ld(hl++), a
 	ld(hl++), a
-
-.text@1b1
 	ld a, 40
 	ldff(41), a
 	ld a, 02

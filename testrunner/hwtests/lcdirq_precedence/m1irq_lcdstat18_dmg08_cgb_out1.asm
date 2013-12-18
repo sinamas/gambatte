@@ -28,7 +28,6 @@ lbegin:
 	inc a
 	inc a
 	ldff(45), a
-	ld c, 41
 
 .text@1000
 lstatint:

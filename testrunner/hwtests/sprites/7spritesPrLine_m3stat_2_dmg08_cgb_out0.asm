@@ -75,8 +75,6 @@ lbegin_fill_oam:
 	ld a, 38
 	ld(hl), a
 	inc l
-
-.text@1b8
 	ld a, 40
 	ldff(41), a
 	ld a, 02
