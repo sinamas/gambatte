@@ -81,7 +81,10 @@ static QComboBox * createEngineBox(MainWindow const &mw, QWidget *parent) {
 	QComboBox *const box = new QComboBox(parent);
 	for (std::size_t i = 0, n = mw.numAudioEngines(); i < n; ++i) {
 		ConstAudioEngineConf conf = mw.audioEngineConf(i);
-		box->addItem(conf.nameString());
+		box->addItem(conf.nameString()
+		           + (i == 0 && n > 2
+		              ? " [" + QObject::tr("recommended") + ']'
+		              : QString()));
 		if (QWidget *w = conf.settingsWidget()) {
 			w->hide();
 			w->setParent(parent);
