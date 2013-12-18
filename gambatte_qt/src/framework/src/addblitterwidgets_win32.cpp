@@ -22,6 +22,6 @@
 #include "blitterwidgets/direct3dblitter.h"
 
 void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl) {
-	blitters.push_back(new DirectDrawBlitter(vbl));
 	blitters.push_back(new Direct3DBlitter(vbl));
+	blitters.push_back(new DirectDrawBlitter(vbl));
 }
