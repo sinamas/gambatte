@@ -22,7 +22,8 @@
 namespace gambatte {
 
 InterruptRequester::InterruptRequester()
-: minIntTime_(0)
+: eventTimes_(disabled_time)
+, minIntTime_(0)
 , ifreg_(0)
 , iereg_(0)
 {
