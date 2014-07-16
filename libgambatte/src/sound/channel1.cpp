@@ -28,6 +28,7 @@ Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit)
 , shadow_(0)
 , nr0_(0)
 , negging_(false)
+, cgb_(false)
 {
 }
 
@@ -78,7 +79,7 @@ void Channel1::SweepUnit::nr4Init(unsigned long const cc) {
 	unsigned const shift = nr0_ & 0x07;
 
 	if (period | shift)
-		counter_ = ((cc >> 14) + (period ? period : 8)) << 14;
+		counter_ = ((((cc + 2 + cgb_ * 2) >> 14) + (period ? period : 8)) << 14) + 2;
 	else
 		counter_ = counter_disabled;
 
@@ -176,7 +177,8 @@ void Channel1::setSo(unsigned long soMask) {
 
 void Channel1::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ = 0x1000 | (cycleCounter_ & 0xFFF);
+	cycleCounter_ &= 0xFFF;
+	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
 
 	dutyUnit_.reset();
 	envelopeUnit_.reset();
@@ -185,7 +187,7 @@ void Channel1::reset() {
 }
 
 void Channel1::init(bool cgb) {
-	lengthCounter_.init(cgb);
+	sweepUnit_.init(cgb);
 }
 
 void Channel1::saveState(SaveState &state) {

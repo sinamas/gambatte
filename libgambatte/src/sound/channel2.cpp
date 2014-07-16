@@ -84,15 +84,12 @@ void Channel2::setSo(unsigned long soMask) {
 
 void Channel2::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ = 0x1000 | (cycleCounter_ & 0xFFF);
+	cycleCounter_ &= 0xFFF;
+	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
 
 	dutyUnit_.reset();
 	envelopeUnit_.reset();
 	setEvent();
-}
-
-void Channel2::init(bool cgb) {
-	lengthCounter_.init(cgb);
 }
 
 void Channel2::saveState(SaveState &state) {

@@ -82,17 +82,12 @@ bool EnvelopeUnit::nr2Change(unsigned const newNr2) {
 }
 
 bool EnvelopeUnit::nr4Init(unsigned long const cc) {
-	{
-		unsigned long period = nr2_ & 7;
+	unsigned long period = nr2_ & 7 ? nr2_ & 7 : 8;
 
-		if (!period)
-			period = 8;
+	if (((cc + 2) & 0x7000) == 0x0000)
+		++period;
 
-		if (!(cc & 0x7000))
-			++period;
-
-		counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
-	}
+	counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
 
 	volume_ = nr2_ >> 4;
 	return !(nr2_ & 0xF8);

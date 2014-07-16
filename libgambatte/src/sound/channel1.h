@@ -54,6 +54,7 @@ private:
 		void nr0Change(unsigned newNr0);
 		void nr4Init(unsigned long cycleCounter);
 		void reset();
+		void init(bool cgb) { cgb_ = cgb; }
 		void saveState(SaveState &state) const;
 		void loadState(SaveState const &state);
 
@@ -63,6 +64,7 @@ private:
 		unsigned short shadow_;
 		unsigned char nr0_;
 		bool negging_;
+		bool cgb_;
 
 		unsigned calcFreq();
 	};

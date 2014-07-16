@@ -85,14 +85,14 @@ void Channel3::setSo(unsigned long soMask) {
 
 void Channel3::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ = 0x1000 | (cycleCounter_ & 0xFFF);
+	cycleCounter_ &= 0xFFF;
+	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
 
 	sampleBuf_ = 0;
 }
 
 void Channel3::init(bool cgb) {
 	cgb_ = cgb;
-	lengthCounter_.init(cgb);
 }
 
 void Channel3::setStatePtrs(SaveState &state) {

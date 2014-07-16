@@ -5,7 +5,7 @@ vars = Variables()
 vars.Add('CC')
 vars.Add('CXX')
 
-env = Environment(CPPPATH = ['.', '../libgambatte/include'],
+env = Environment(CPPPATH = ['.', '../common', '../libgambatte/include'],
                   CFLAGS = global_cflags + global_defines,
                   CXXFLAGS = global_cxxflags + global_defines,
                   LIBS = 'm',

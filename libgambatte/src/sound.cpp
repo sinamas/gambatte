@@ -26,8 +26,8 @@
 
 	Step    Length Ctr  Vol Env     Sweep
 	- - - - - - - - - - - - - - - - - - - -
-	0       Clock       -           Clock
-S	1       -           Clock       -
+S0	0       Clock       -           Clock
+S1	1       -           Clock       -
 	2       Clock       -           -
 	3       -           -           -
 	4       Clock       -           Clock
@@ -37,7 +37,10 @@ S	1       -           Clock       -
 	- - - - - - - - - - - - - - - - - - - -
 	Rate    256 Hz      64 Hz       128 Hz
 
-S) start step on sound power on.
+S0) start step on sound power on.
+S1) step gets immediately incremented at power on if closer to previous edge than next.
+Clock) clock timer on transition to step.
+
 */
 
 namespace gambatte {
@@ -54,9 +57,7 @@ PSG::PSG()
 
 void PSG::init(bool cgb) {
 	ch1_.init(cgb);
-	ch2_.init(cgb);
 	ch3_.init(cgb);
-	ch4_.init(cgb);
 }
 
 void PSG::reset() {

@@ -49,6 +49,7 @@ private:
 	unsigned short period_;
 	unsigned char pos_;
 	unsigned char duty_;
+	unsigned char inc_;
 	bool high_;
 	bool enableEvents_;
 

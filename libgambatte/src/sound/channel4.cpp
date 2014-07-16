@@ -187,15 +187,12 @@ void Channel4::setSo(unsigned long soMask) {
 
 void Channel4::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ = 0x1000 | (cycleCounter_ & 0xFFF);
+	cycleCounter_ &= 0xFFF;
+	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
 
 	lfsr_.reset(cycleCounter_);
 	envelopeUnit_.reset();
 	setEvent();
-}
-
-void Channel4::init(bool cgb) {
-	lengthCounter_.init(cgb);
 }
 
 void Channel4::saveState(SaveState &state) {
