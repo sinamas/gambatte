@@ -280,7 +280,7 @@ static void runTestRom(
 	gambatte::GB gb;
 
 	if (gb.load(file, forceDmg)) {
-		std::printf("\nFailed to load ROM file %s\n", file.c_str());
+		std::fprintf(stderr, "Failed to load ROM image file %s\n", file.c_str());
 		std::abort();
 	}
 
