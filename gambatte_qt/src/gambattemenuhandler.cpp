@@ -615,9 +615,9 @@ void GambatteMenuHandler::about() {
 			"</a>"
 		"</p>"
 		"<p>"
-			"Gambatte is an open-source Game Boy Color emulator written for fun "
-			"and made available in the hope that it will be useful. It is based "
-			"on some stupid amount of hardware accuracy tests."
+			"Gambatte is an accuracy-focused, open-source Game Boy Color emulator "
+			"written with a desire to preserve something and distributed in the hope "
+			"that it will be useful."
 		"</p>"
 	);
 }
