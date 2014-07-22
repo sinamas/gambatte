@@ -1,21 +1,22 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by Sindre Aamås
+//   sinamas@users.sourceforge.net
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 #include "memory.h"
 #include "inputgetter.h"
 #include "savestate.h"
@@ -371,21 +372,22 @@ unsigned long Memory::resetCounters(unsigned long cc) {
 }
 
 void Memory::updateInput() {
-	unsigned button = 0xFF;
-	unsigned dpad = 0xFF;
+	unsigned state = 0xF;
 
-	if (getInput_) {
-		unsigned is = (*getInput_)();
-		button ^= is      & 0x0F;
-		dpad   ^= is >> 4 & 0x0F;
+	if ((ioamhram_[0x100] & 0x30) != 0x30 && getInput_) {
+		unsigned input = (*getInput_)();
+		unsigned dpad_state = ~input >> 4;
+		unsigned button_state = ~input;
+		if (!(ioamhram_[0x100] & 0x10))
+			state &= dpad_state;
+		if (!(ioamhram_[0x100] & 0x20))
+			state &= button_state;
 	}
 
-	ioamhram_[0x100] |= 0xF;
+	if (state != 0xF && (ioamhram_[0x100] & 0xF) == 0xF)
+		intreq_.flagIrq(0x10);
 
-	if (!(ioamhram_[0x100] & 0x10))
-		ioamhram_[0x100] &= dpad;
-	if (!(ioamhram_[0x100] & 0x20))
-		ioamhram_[0x100] &= button;
+	ioamhram_[0x100] = (ioamhram_[0x100] & -0x10) | state;
 }
 
 void Memory::updateOamDma(unsigned long const cc) {
@@ -591,8 +593,12 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 
 	switch (p & 0xFF) {
 	case 0x00:
-		data = (ioamhram_[0x100] & 0xCF) | (data & 0xF0);
-		break;
+		if ((data ^ ioamhram_[0x100]) & 0x30) {
+			ioamhram_[0x100] = (ioamhram_[0x100] & ~0x30u) | (data & 0x30);
+			updateInput();
+		}
+
+		return;
 	case 0x01:
 		updateSerial(cc);
 		break;
