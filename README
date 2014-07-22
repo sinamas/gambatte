@@ -28,7 +28,8 @@ disgruntledly concluded that reverse engineering is a lot of work).
 
 The core emulation code is contained in a separate library backend
 (libgambatte) written in platform-independent C++. There is currently a Qt GUI
-frontend (gambatte_qt), and a simple command line SDL frontend (gambatte_sdl).
+frontend (gambatte_qt), and a simplistic command-line interface SDL frontend
+(gambatte_sdl).
 
 The Qt frontend has been ported to Windows, Mac OS X, and Linux/BSD/Unix-like
 OSes with audio/video engines utilizing native APIs on these platforms.
