@@ -278,7 +278,7 @@ public:
 			break;
 		case 1:
 			rombank_ = data & 0x7F;
-			memptrs_.setRombank(rombank_ & (rombanks(memptrs_) - 1));
+			setRombank();
 			break;
 		case 2:
 			rambank_ = data;
@@ -303,7 +303,7 @@ public:
 		rambank_ = ss.rambank;
 		enableRam_ = ss.enableRam;
 		setRambank();
-		memptrs_.setRombank(rombank_ & (rombanks(memptrs_) - 1));
+		setRombank();
 	}
 
 private:
@@ -324,6 +324,10 @@ private:
 		}
 
 		memptrs_.setRambank(flags, rambank_ & (rambanks(memptrs_) - 1));
+	}
+
+	void setRombank() const {
+		memptrs_.setRombank(std::max(rombank_ & (rombanks(memptrs_) - 1), 1u));
 	}
 };
 
