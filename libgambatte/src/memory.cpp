@@ -311,7 +311,7 @@ unsigned long Memory::stop(unsigned long cc) {
 	if (ioamhram_[0x14D] & isCgb()) {
 		psg_.generateSamples(cc, isDoubleSpeed());
 		lcd_.speedChange(cc);
-		ioamhram_[0x14D] = ~ioamhram_[0x14D] & 0x80;
+		ioamhram_[0x14D] ^= 0x81;
 		intreq_.setEventTime<intevent_blit>(ioamhram_[0x140] & lcdc_en
 			? lcd_.nextMode1IrqTime()
 			: cc + (70224 << isDoubleSpeed()));
@@ -387,7 +387,7 @@ void Memory::updateInput() {
 	if (state != 0xF && (ioamhram_[0x100] & 0xF) == 0xF)
 		intreq_.flagIrq(0x10);
 
-	ioamhram_[0x100] = (ioamhram_[0x100] & -0x10) | state;
+	ioamhram_[0x100] = (ioamhram_[0x100] & -0x10u) | state;
 }
 
 void Memory::updateOamDma(unsigned long const cc) {
@@ -902,7 +902,9 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		break;
 
 	case 0x4D:
-		ioamhram_[0x14D] |= data & 0x01;
+		if (isCgb())
+			ioamhram_[0x14D] = (ioamhram_[0x14D] & ~1u) | (data & 1);
+
 		return;
 	case 0x4F:
 		if (isCgb()) {
