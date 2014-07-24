@@ -13,4 +13,4 @@ gambatte_sdl/gambatte_sdl
 gambatte_qt/src/moc_*.cpp
 gambatte_qt/src/release/
 gambatte_qt/bin/
-testrunner/testrunner
+test/testrunner
