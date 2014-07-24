@@ -23,8 +23,9 @@ About
 --------------------------------------------------------------------------------
 Gambatte is an accuracy-focused, open-source Game Boy Color emulator written
 with a wish to preserve something and distributed in the hope that it will be
-useful. It is based on a substantial amount of hardware tests (how one
-disgruntledly concluded that reverse engineering is a lot of work).
+useful. It is based on a substantial amount of hardware tests, which cannot
+verify faithfulness beyond what they happen to test, which, in turn, does not
+necessarily correlate with what existing software happens to depend on.
 
 The core emulation code is contained in a separate library backend
 (libgambatte) written in platform-independent C++. There is currently a Qt GUI
