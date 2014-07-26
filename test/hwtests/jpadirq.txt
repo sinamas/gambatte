@@ -1,0 +1,21 @@
+joypad irq observations.
+
+joypad irq appears to trigger on P1/JOYP (mmio FF00h) transitions
+from all bits in the least significant nibble high to at least one
+bit low. no irq triggers on additional high->low transitions when a
+bit is already low.
+
+P1/JOYP high<->low transitions tend to happen multiple times per
+button press/release on the DMG and CGB, but seems much more stable
+on a GBA SP.
+
+mostly predictable consequences:
+
+if a dpad direction is in the pressed state and a button is also in
+the pressed state, no new irq will trigger when switching P1/JOYP
+from dpad to button input or vv.
+
+similarly, if a dpad/button is already in the pressed state and
+dpad/button input, respectively, gets enabled, that will cause an irq
+to trigger given that no other enabled input was in the pressed state
+(thereby causing a low bit in P1/JOYP) prior to this.
