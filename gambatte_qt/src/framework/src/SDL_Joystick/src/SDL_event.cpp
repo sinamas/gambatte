@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2007 Sindre Aamås <sinamas@users.sourceforge.net>
+    Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public

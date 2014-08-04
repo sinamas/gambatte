@@ -1,6 +1,5 @@
 //
-//   Copyright (C) 2007-2010 by Sindre Aamås
-//   sinamas@users.sourceforge.net
+//   Copyright (C) 2007-2010 by sinamas <sinamas at users.sourceforge.net>
 //
 //   This program is free software; you can redistribute it and/or modify
 //   it under the terms of the GNU General Public License version 2 as

@@ -1,4 +1,4 @@
-// Public domain header written by Sindre Aamås
+// Public domain header written by sinamas <sinamas at users.sourceforge.net>
 #ifndef WASAPIINC_H
 #define WASAPIINC_H
 
