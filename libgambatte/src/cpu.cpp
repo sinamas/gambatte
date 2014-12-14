@@ -464,10 +464,11 @@ void CPU::loadState(SaveState const &state) {
 
 // CALLS, RESTARTS AND RETURNS:
 // call nn (24 cycles):
-// Push address of next instruction onto stack and then jump to address stored in next two bytes in memory:
+// Jump to 16-bit immediate operand and push return address onto stack:
 #define call_nn() do { \
-	PUSH(((pc + 2) >> 8) & 0xFF, (pc + 2) & 0xFF); \
+	unsigned const npc = (pc + 2) & 0xFFFF; \
 	jp_nn(); \
+	PUSH(npc >> 8, npc & 0xFF); \
 } while (0)
 
 // rst n (16 Cycles):

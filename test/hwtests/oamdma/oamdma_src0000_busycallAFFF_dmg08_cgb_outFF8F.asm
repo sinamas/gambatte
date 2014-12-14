@@ -1,46 +1,82 @@
 .size 8000
 
-.text@58
-	jp lstartserial
+.text@48
+	jp ff80
+
+.data@9c
+	02 03 04 05
 
 .text@100
 	jp lbegin
 
 .data@143
-	80
+	80 00 00 00 1a 00 03
+
+.text@200
+	ld c, 26
+	ld a, 00
+	ldff(46), a
+lwaitdma:
+	dec c
+	jrnz lwaitdma
+	ld sp, afff
+	call ldummytarget
+ldummytarget:
+	ld a, (fe9d)
+	ld b, a
+	ld a, (fe9e)
+	ld c, a
+	jp lprint_bc
 
 .text@150
 lbegin:
+	ld bc, 0200
+	ld hl, ff80
+	ld d, 40
+lcopydmaroutine:
+	ld a, (bc)
+	ld(hl++), a
+	inc c
+	cmp a, cd
+	jrnz lcopydmaroutine_notcall
+	ld a, l
+	inc a
+	inc a
+	ld(hl++), a
+	ld a, h
+	ld(hl++), a
+	inc c
+	inc c
+lcopydmaroutine_notcall:
+	dec d
+	jrnz lcopydmaroutine
+	ld b, 90
+	call lwaitly_b
+	ld a, 0a
+	ld(0000), a
+	ld bc, fe00
+	ld d, a0
+	ld a, 06
+lfill_oam:
+	ld(bc), a
+	inc c
+	dec d
+	jrnz lfill_oam
+	ld a, 90
+	ldff(45), a
+	ld a, 40
+	ldff(41), a
 	xor a, a
 	ldff(0f), a
-	ld a, 08
+	ld a, 02
 	ldff(ff), a
-	ld a, 81
-	ldff(02), a
 	ei
-
-.text@1000
-lstartserial:
-	xor a, a
-	ldff(01), a
-	ld a, 81
-	ldff(02), a
-
-.text@1200
-	ldff(02), a
-
-.text@1500
-	xor a, a
-	ldff(0f), a
-
-.text@15f0
-	ldff a, (0f)
-	jp lprint_a
+	halt
 
 .text@7000
-lprint_a:
-	push af
-	ld b, 91
+lprint_bc:
+	push bc
+	ld b, 90
 	call lwaitly_b
 	xor a, a
 	ldff(40), a
@@ -53,8 +89,8 @@ lprint_copytiles:
 	ld(hl++), a
 	dec d
 	jrnz lprint_copytiles
-	pop af
-	ld b, a
+	pop bc
+	ld a, b
 	srl a
 	srl a
 	srl a
@@ -63,6 +99,15 @@ lprint_copytiles:
 	ld a, b
 	and a, 0f
 	ld(9801), a
+	ld a, c
+	srl a
+	srl a
+	srl a
+	srl a
+	ld(9802), a
+	ld a, c
+	and a, 0f
+	ld(9803), a
 	ld a, c0
 	ldff(47), a
 	ld a, 80

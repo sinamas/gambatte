@@ -31,7 +31,7 @@ lstartserial:
 
 .text@1500
 	xor a, a
-	ldff(0f), a,
+	ldff(0f), a
 
 .text@15f1
 	ldff a, (0f)

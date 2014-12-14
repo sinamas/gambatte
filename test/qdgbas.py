@@ -98,6 +98,7 @@ def makeoplist():
 	addop('dec a', 0x3d)
 	addop('ld a, imm8', 0x3e)
 	addop('ld b, a', 0x47)
+	addop('ld c, a', 0x4f)
 	addop('ld d, a', 0x57)
 	addop('halt', 0x76)
 	addop('ld(hl), a', 0x77)
@@ -105,6 +106,8 @@ def makeoplist():
 	addop('ld a, c', 0x79)
 	addop('ld a, d', 0x7a)
 	addop('ld a, e', 0x7b)
+	addop('ld a, h', 0x7c)
+	addop('ld a, l', 0x7d)
 	addop('ld a, (hl)', 0x7e)
 	addop('sub a, b', 0x90)
 	addop('sub a, c', 0x91)
@@ -119,8 +122,10 @@ def makeoplist():
 	addop('cmp a, d', 0xba)
 	addop('cmp a, e', 0xbb)
 	addop('cmp a, h', 0xbc)
+	addop('pop bc', 0xc1)
 	addop('jpnz target', 0xc2)
 	addop('jp target', 0xc3)
+	addop('push bc', 0xc5)
 	addop('ret', 0xc9)
 	addop('call target', 0xcd)
 	addop('pop de', 0xd1)
@@ -147,7 +152,7 @@ def makeoplist():
 def makeopregexp(oplist):
 	rxps = ''
 	for e in oplist:
-		rxps += '(' + mkrestr(e.string) + ')|'
+		rxps += '(' + mkrestr(e.string) + '$)|'
 	return re.compile(rxps[0:len(rxps)-1].replace('imm8', imm8).replace('imm16', imm16).replace('target', r'\s\w+'))
 
 oplist = makeoplist()
