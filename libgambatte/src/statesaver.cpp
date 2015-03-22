@@ -83,10 +83,6 @@ static void write(std::ofstream &file, unsigned long data) {
 	put32(file, data);
 }
 
-static inline void write(std::ofstream &file, bool data) {
-	write(file, static_cast<unsigned char>(data));
-}
-
 static void write(std::ofstream &file, unsigned char const *data, std::size_t size) {
 	put24(file, size);
 	file.write(reinterpret_cast<char const *>(data), size);
@@ -131,10 +127,6 @@ static inline void read(std::ifstream &file, unsigned short &data) {
 }
 
 static inline void read(std::ifstream &file, unsigned long &data) {
-	data = read(file);
-}
-
-static inline void read(std::ifstream &file, bool &data) {
 	data = read(file);
 }
 
