@@ -17,6 +17,7 @@
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
 #include "chainresampler.h"
+#include "upsampler.h"
 #include <cassert>
 #include <cmath>
 

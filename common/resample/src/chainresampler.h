@@ -23,7 +23,6 @@
 #include "../resamplerinfo.h"
 #include "array.h"
 #include "transfer_ptr.h"
-#include "upsampler.h"
 #include <algorithm>
 #include <list>
 
