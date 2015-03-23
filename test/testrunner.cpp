@@ -337,14 +337,14 @@ int main(int const argc, char *argv[]) {
 		char const *dmgout = 0;
 		char const *cgbout = 0;
 
-		if (s.find("dmg08_cgb_out") != std::string::npos) {
-			dmgout = cgbout = "dmg08_cgb_out";
+		if (s.find("dmg08_cgb04c_out") != std::string::npos) {
+			dmgout = cgbout = "dmg08_cgb04c_out";
 		} else {
 			if (s.find("dmg08_out") != std::string::npos) {
 				dmgout = "dmg08_out";
 
-				if (s.find("cgb_out") != std::string::npos)
-					cgbout = "cgb_out";
+				if (s.find("cgb04c_out") != std::string::npos)
+					cgbout = "cgb04c_out";
 			} else if (s.find("_out") != std::string::npos)
 				cgbout = "_out";
 		}
@@ -357,12 +357,12 @@ int main(int const argc, char *argv[]) {
 			++numTestsRun;
 		}
 
-		if (file_ptr png = openFile(s + "_dmg08_cgb.png")) {
+		if (file_ptr png = openFile(s + "_dmg08_cgb04c.png")) {
 			numTestsSucceeded += runPngTest(argv[i], false, *png);
 			numTestsSucceeded += runPngTest(argv[i],  true, *png);
 			numTestsRun += 2;
 		} else {
-			if (file_ptr p = openFile(s + "_cgb.png")) {
+			if (file_ptr p = openFile(s + "_cgb04c.png")) {
 				numTestsSucceeded += runPngTest(argv[i], false, *p);
 				++numTestsRun;
 			}
