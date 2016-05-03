@@ -340,7 +340,7 @@ void InputOption::exec(char const *const *argv, int index) {
 			if (num < 0 || num > 255)
 				continue;
 
-			s += (dev_num > 9) + (dev_num > 99);
+			s += (num > 9) + (num > 99);
 
 			InputId id;
 			id.jdata.dev_num = dev_num;
