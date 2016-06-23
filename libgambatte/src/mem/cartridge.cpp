@@ -22,6 +22,7 @@
 #include "pakinfo_internal.h"
 #include <cstring>
 #include <fstream>
+#include <algorithm>
 
 namespace gambatte {
 

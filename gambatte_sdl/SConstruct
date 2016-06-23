@@ -1,17 +1,18 @@
 import subprocess
 
-cflags   = ARGUMENTS.get('CFLAGS', '-Wall -Wextra -O2 -fomit-frame-pointer')
+cflags   = ARGUMENTS.get('CFLAGS', '-DHAVE_STDINT_H -Wall -Wextra -O2 -fomit-frame-pointer')
 cxxflags = ARGUMENTS.get('CXXFLAGS', cflags + ' -fno-exceptions -fno-rtti')
 vars = Variables()
 vars.Add('CC')
 vars.Add('CXX')
 
-env = Environment(CPPPATH = ['src', '../libgambatte/include', '../common'],
-                  CFLAGS = cflags,
-                  CXXFLAGS = cxxflags,
-                  CPPDEFINES = [ 'HAVE_STDINT_H', None ],
-                  variables = vars)
-env.ParseConfig('sdl-config --cflags --libs')
+env = Environment(
+    CPPPATH = ['src', '../libgambatte/include', '../common'],
+    CFLAGS = cflags,
+    CXXFLAGS = cxxflags,
+    variables = vars
+)
+
 
 sourceFiles = Split('''
 			src/audiosink.cpp
@@ -40,6 +41,20 @@ sourceFiles = Split('''
 			../libgambatte/libgambatte.a
 		   ''')
 
+if env['PLATFORM'] == "win32":
+    env['LIBS'] = [
+        r"C:\Program Files (x86)\SDL-1.2.15\lib\x64\SDLmain.lib",
+        r"C:\Program Files (x86)\SDL-1.2.15\lib\x64\SDL.lib",
+    ]
+    env['CPPPATH'].append("C:\Program Files (x86)\SDL-1.2.15\include")
+    env['LINKFLAGS'] = ['-SUBSYSTEM:CONSOLE']
+
+    env['CFLAGS'] = "".join(env['CFLAGS'].split('-Wextra'))
+    env['CXXFLAGS'] = "".join(env['CXXFLAGS'].split('-Wextra'))
+    sourceFiles[-1] = '../libgambatte/gambatte.lib'
+else:
+    env.ParseConfig('sdl-config --cflags --libs')
+
 conf = env.Configure()
 conf.CheckLib('z')
 conf.Finish()
@@ -54,5 +69,5 @@ if Dir('../.git').exists():
 
 env.Program('gambatte_sdl',
             [env.Object('src/gambatte_sdl.cpp',
-                        CPPDEFINES = env['CPPDEFINES'] + [version_str_def])]
+                        CPPDEFINES = [version_str_def])]
             + sourceFiles)
