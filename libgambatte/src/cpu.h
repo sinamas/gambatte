@@ -79,6 +79,7 @@ private:
 	unsigned hf1, hf2, zf, cf;
 	unsigned char a_, b, c, d, e, /*f,*/ h, l;
 	bool skip_;
+	bool hang_;
 
 	void process(unsigned long cycles);
 };

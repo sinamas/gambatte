@@ -55,6 +55,7 @@ struct SaveState {
 		unsigned char h;
 		unsigned char l;
 		unsigned char /*bool*/ skip;
+		unsigned char /*bool*/ hang;
 	} cpu;
 
 	struct Mem {

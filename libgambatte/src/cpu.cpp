@@ -39,6 +39,7 @@ CPU::CPU()
 , h(0x01)
 , l(0x4D)
 , skip_(false)
+, hang_(false)
 {
 }
 
@@ -100,6 +101,7 @@ void CPU::saveState(SaveState &state) {
 	state.cpu.h = h;
 	state.cpu.l = l;
 	state.cpu.skip = skip_;
+	state.cpu.hang = hang_;
 }
 
 void CPU::loadState(SaveState const &state) {
@@ -119,6 +121,7 @@ void CPU::loadState(SaveState const &state) {
 	h = state.cpu.h & 0xFF;
 	l = state.cpu.l & 0xFF;
 	skip_ = state.cpu.skip;
+	hang_ = state.cpu.hang;
 }
 
 // The main reasons for the use of macros is to more conveniently be able to tweak
@@ -496,12 +499,12 @@ void CPU::process(unsigned long const cycles) {
 	while (mem_.isActive()) {
 		unsigned short pc = pc_;
 
-		if (mem_.halted()) {
+		if (mem_.halted() || hang_) {
 			if (cycleCounter < mem_.nextEventTime()) {
 				unsigned long cycles = mem_.nextEventTime() - cycleCounter;
 				cycleCounter += cycles + (-cycles & 3);
 			}
-		} else while (cycleCounter < mem_.nextEventTime()) {
+		} else while (cycleCounter < mem_.nextEventTime() && !hang_) {
 			unsigned char opcode;
 
 			PC_READ(opcode);
@@ -588,7 +591,13 @@ void CPU::process(unsigned long const cycles) {
 				// stop (4 cycles):
 				// Halt CPU and LCD display until button pressed:
 			case 0x10:
-				pc = (pc + 1) & 0xFFFF;
+				unsigned char nextByte;
+				PC_READ(nextByte);
+				cycleCounter -= 4;
+				if (nextByte != 0x00) {
+					hang_ = true;
+					break;
+				}
 
 				cycleCounter = mem_.stop(cycleCounter);
 
@@ -1679,9 +1688,6 @@ void CPU::process(unsigned long const cycles) {
 
 				break;
 
-			case 0xD3: // not specified. should freeze.
-				break;
-
 				// call nc,nn (24;12 cycles):
 				// Push address of next instruction onto stack and then jump to
 				// address stored in next two bytes in memory, if CF is unset:
@@ -1746,9 +1752,6 @@ void CPU::process(unsigned long const cycles) {
 
 				break;
 
-			case 0xDB: // not specified. should freeze.
-				break;
-
 				// call z,nn (24;12 cycles):
 				// Push address of next instruction onto stack and then jump to
 				// address stored in next two bytes in memory, if CF is set:
@@ -1796,11 +1799,6 @@ void CPU::process(unsigned long const cycles) {
 				FF_WRITE(c, a);
 				break;
 
-			case 0xE3: // not specified. should freeze.
-				break;
-			case 0xE4: // not specified. should freeze.
-				break;
-
 			case 0xE5:
 				push_rr(h, l);
 				break;
@@ -1842,13 +1840,6 @@ void CPU::process(unsigned long const cycles) {
 					WRITE(immh << 8 | imml, a);
 				}
 
-				break;
-
-			case 0xEB: // not specified. should freeze.
-				break;
-			case 0xEC: // not specified. should freeze.
-				break;
-			case 0xED: // not specified. should freeze.
 				break;
 
 			case 0xEE:
@@ -1895,9 +1886,6 @@ void CPU::process(unsigned long const cycles) {
 				// di (4 cycles):
 			case 0xF3:
 				mem_.di();
-				break;
-
-			case 0xF4: // not specified. should freeze.
 				break;
 
 			case 0xF5:
@@ -1961,10 +1949,6 @@ void CPU::process(unsigned long const cycles) {
 				mem_.ei(cycleCounter);
 				break;
 
-			case 0xFC: // not specified. should freeze.
-				break;
-			case 0xFD: // not specified. should freeze
-				break;
 			case 0xFE:
 				{
 					unsigned data;
@@ -1977,6 +1961,10 @@ void CPU::process(unsigned long const cycles) {
 
 			case 0xFF:
 				rst_n(0x38);
+				break;
+				
+			default: // Invalid opcode; freeze the CPU.
+				hang_ = true;
 				break;
 			}
 		}
