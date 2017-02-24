@@ -35,7 +35,7 @@ public:
 	{
 		if (stream_) {
 			stream_.seekg(0, std::ios::end);
-			fsize_ = stream_.tellg();
+			fsize_ = (std::size_t)stream_.tellg();
 			stream_.seekg(0, std::ios::beg);
 		}
 	}

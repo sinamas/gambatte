@@ -135,11 +135,11 @@ static void read(std::ifstream &file, unsigned char *buf, std::size_t bufsize) {
 	std::size_t const minsize = std::min(size, bufsize);
 	file.read(reinterpret_cast<char*>(buf), minsize);
 	file.ignore(size - minsize);
-
-	if (static_cast<unsigned char>(0x100)) {
-		for (std::size_t i = 0; i < minsize; ++i)
-			buf[i] &= 0xFF;
-	}
+ 
+//	if (static_cast<unsigned char>(0x100)) {
+//		for (std::size_t i = 0; i < minsize; ++i)
+//			buf[i] &= 0xFF;
+//	}
 }
 
 static void read(std::ifstream &file, bool *buf, std::size_t bufsize) {
@@ -347,7 +347,7 @@ namespace {
 
 struct PxlSum { unsigned long rb, g; };
 
-static void addPxlPairs(PxlSum *const sum, uint_least32_t const *const p) {
+static void addPxlPairs(PxlSum *const sum, gambatte::uint_least32_t const *const p) {
 	sum[0].rb += (p[0] & 0xFF00FF) + (p[3] & 0xFF00FF);
 	sum[0].g  += (p[0] & 0x00FF00) + (p[3] & 0x00FF00);
 	sum[1].rb += (p[1] & 0xFF00FF) + (p[2] & 0xFF00FF);
@@ -359,15 +359,15 @@ static void blendPxlPairs(PxlSum *const dst, PxlSum const *const sums) {
 	dst->g  = sums[1].g  * 8 + (sums[0].g  - sums[1].g ) * 3;
 }
 
-static void writeSnapShot(std::ofstream &file, uint_least32_t const *pixels, std::ptrdiff_t const pitch) {
-	put24(file, pixels ? StateSaver::ss_width * StateSaver::ss_height * sizeof(uint_least32_t) : 0);
+static void writeSnapShot(std::ofstream &file, gambatte::uint_least32_t const *pixels, std::ptrdiff_t const pitch) {
+	put24(file, pixels ? StateSaver::ss_width * StateSaver::ss_height * sizeof(gambatte::uint_least32_t) : 0);
 
 	if (pixels) {
-		uint_least32_t buf[StateSaver::ss_width];
+		gambatte::uint_least32_t buf[StateSaver::ss_width];
 
 		for (unsigned h = StateSaver::ss_height; h--;) {
 			for (unsigned x = 0; x < StateSaver::ss_width; ++x) {
-				uint_least32_t const *const p = pixels + x * StateSaver::ss_div;
+				gambatte::uint_least32_t const *const p = pixels + x * StateSaver::ss_div;
 				PxlSum pxlsum[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
 
 				addPxlPairs(pxlsum    , p            );

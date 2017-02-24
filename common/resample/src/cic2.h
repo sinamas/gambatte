@@ -160,7 +160,7 @@ Cic2<channels>::Cic2(unsigned div) {
 
 template<unsigned channels>
 std::size_t Cic2<channels>::resample(short *out, short const *in, std::size_t inlen) {
-	std::size_t samplesOut;
+	std::size_t samplesOut = 0;
 	for (unsigned i = 0; i < channels; ++i)
 		samplesOut = cics_[i].filter(out + i, in + i, inlen);
 

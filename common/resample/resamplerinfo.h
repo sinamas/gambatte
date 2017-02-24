@@ -34,7 +34,7 @@ struct ResamplerInfo {
 	/** Short character string description of the resampler. */
 	char const *desc;
 
-	/**
+	/*
 	  * Points to a function that can be used to create an instance of the resampler.
 	  *
 	  * @param inRate  The input sampling rate.
