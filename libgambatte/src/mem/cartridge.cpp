@@ -17,7 +17,7 @@
 //
 
 #include "cartridge.h"
-#include "file/file.h"
+#include "file.h"
 #include "../savestate.h"
 #include "pakinfo_internal.h"
 #include <cstring>
@@ -515,9 +515,10 @@ void Cartridge::setSaveDir(std::string const &dir) {
 }
 
 static void enforce8bit(unsigned char *data, std::size_t size) {
-	if (static_cast<unsigned char>(0x100))
-		while (size--)
-			*data++ &= 0xFF;
+	// Will never be executed
+//	if (static_cast<unsigned char>(0x100))
+//		while (size--)
+//			*data++ &= 0xFF;
 }
 
 static unsigned pow2ceil(unsigned n) {

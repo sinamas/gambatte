@@ -129,7 +129,7 @@ Cic3<channels>::Cic3(unsigned div) {
 
 template<unsigned channels>
 std::size_t Cic3<channels>::resample(short *out, short const *in, std::size_t inlen) {
-	std::size_t samplesOut;
+	std::size_t samplesOut = 0;
 	for (unsigned i = 0; i < channels; ++i)
 		samplesOut = cics_[i].filter(out + i, in + i, inlen);
 

@@ -317,7 +317,7 @@ namespace M3Start {
 
 namespace M3Loop {
 
-static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const dbufline,
+static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, gambatte::uint_least32_t *const dbufline,
 		unsigned char const *const tileMapLine, unsigned const tileline, unsigned tileMapXpos) {
 	unsigned const tileIndexSign = ~p.lcdc << 3 & 0x80;
 	unsigned char const *const tileDataLine = p.vram + tileIndexSign * 32 + tileline * 2;
@@ -378,8 +378,8 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *c
 			p.cycles -= n;
 
 			unsigned ntileword = p.ntileword;
-			uint_least32_t *      dst    = dbufline + xpos - 8;
-			uint_least32_t *const dstend = dst + n;
+			gambatte::uint_least32_t *      dst    = dbufline + xpos - 8;
+			gambatte::uint_least32_t *const dstend = dst + n;
 			xpos += n;
 
 			if (!lcdcBgEn(p)) {
@@ -417,7 +417,7 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *c
 		}
 
 		{
-			uint_least32_t *const dst = dbufline + (xpos - 8);
+			gambatte::uint_least32_t *const dst = dbufline + (xpos - 8);
 			unsigned const tileword = -(p.lcdc & 1U) & p.ntileword;
 
 			dst[0] = p.bgPalette[ tileword & 0x0003       ];
@@ -450,7 +450,7 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *c
 					unsigned const attrib = p.spriteList[i].attrib;
 					unsigned spword       = p.spwordList[i];
 					unsigned long const *const spPalette = p.spPalette + (attrib >> 2 & 4);
-					uint_least32_t *d = dst + pos;
+					gambatte::uint_least32_t *d = dst + pos;
 
 					if (!(attrib & attr_bgpriority)) {
 						switch (n) {
@@ -507,7 +507,7 @@ static void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *c
 	p.xpos = xpos;
 }
 
-static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const dbufline,
+static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, gambatte::uint_least32_t *const dbufline,
 		unsigned char const *const tileMapLine, unsigned const tileline, unsigned tileMapXpos) {
 	int xpos = p.xpos;
 	unsigned char const *const vram = p.vram;
@@ -559,8 +559,8 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 
 			unsigned ntileword = p.ntileword;
 			unsigned nattrib   = p.nattrib;
-			uint_least32_t *      dst    = dbufline + xpos - 8;
-			uint_least32_t *const dstend = dst + n;
+			gambatte::uint_least32_t *      dst    = dbufline + xpos - 8;
+			gambatte::uint_least32_t *const dstend = dst + n;
 			xpos += n;
 
 			do {
@@ -600,7 +600,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 		}
 
 		{
-			uint_least32_t *const dst = dbufline + (xpos - 8);
+			gambatte::uint_least32_t *const dst = dbufline + (xpos - 8);
 			unsigned const tileword = p.ntileword;
 			unsigned const attrib   = p.nattrib;
 			unsigned long const *const bgPalette = p.bgPalette + (attrib & 7) * 4;
@@ -643,7 +643,7 @@ static void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *c
 
 					if (!((attrib | sattrib) & bgprioritymask)) {
 						unsigned char  *const idt = idtab + pos;
-						uint_least32_t *const   d =   dst + pos;
+						gambatte::uint_least32_t *const   d =   dst + pos;
 
 						switch (n) {
 						case 8: if ((spword >> 14    ) && id < idt[7]) {
@@ -742,7 +742,7 @@ static void doFullTilesUnrolled(PPUPriv &p) {
 	if (xpos >= xend)
 		return;
 
-	uint_least32_t *const dbufline = p.framebuf.fbline();
+	gambatte::uint_least32_t *const dbufline = p.framebuf.fbline();
 	unsigned char const *tileMapLine;
 	unsigned tileline;
 	unsigned tileMapXpos;
@@ -760,7 +760,7 @@ static void doFullTilesUnrolled(PPUPriv &p) {
 	}
 
 	if (xpos < 8) {
-		uint_least32_t prebuf[16];
+		gambatte::uint_least32_t prebuf[16];
 
 		if (p.cgb) {
 			doFullTilesUnrolledCgb(p, xend < 8 ? xend : 8, prebuf + (8 - xpos),
@@ -792,7 +792,7 @@ static void doFullTilesUnrolled(PPUPriv &p) {
 static void plotPixel(PPUPriv &p) {
 	int const xpos = p.xpos;
 	unsigned const tileword = p.tileword;
-	uint_least32_t *const fbline = p.framebuf.fbline();
+	gambatte::uint_least32_t *const fbline = p.framebuf.fbline();
 
 	if (static_cast<int>(p.wx) == xpos
 			&& (p.weMaster || (p.wy2 == p.lyCounter.ly() && lcdcWinEn(p)))

@@ -37,7 +37,7 @@ static const std::size_t stateSavedWidth  = getWidth(stateSaved);
 
 class ShadedTextOsdElment : public OsdElement {
 	struct ShadeFill {
-		void operator()(uint_least32_t *dest, const std::ptrdiff_t pitch) const {
+		void operator()(gambatte::uint_least32_t *dest, const std::ptrdiff_t pitch) const {
 			dest[2] = dest[1] = dest[0] = 0x000000ul;
 			dest += pitch;
 			dest[2] = dest[0] = 0x000000ul;
@@ -46,11 +46,11 @@ class ShadedTextOsdElment : public OsdElement {
 		}
 	};
 
-	Array<uint_least32_t> const pixels;
+	Array<gambatte::uint_least32_t> const pixels;
 	unsigned life;
 public:
 	ShadedTextOsdElment(unsigned w, const char *txt);
-	const uint_least32_t* update();
+	const gambatte::uint_least32_t* update();
 };
 
 ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
@@ -75,7 +75,7 @@ ShadedTextOsdElment::ShadedTextOsdElment(unsigned width, const char *txt)
 	bitmapfont::print(pixels.get() + 1 * w() + 1, w(), 0xE0E0E0ul , txt);
 }
 
-const uint_least32_t* ShadedTextOsdElment::update() {
+const gambatte::uint_least32_t* ShadedTextOsdElment::update() {
 	if (life--)
 		return pixels;
 
@@ -107,12 +107,12 @@ const uint_least32_t* FramedTextOsdElment::update() {
 }*/
 
 class SaveStateOsdElement : public OsdElement {
-	uint_least32_t pixels[StateSaver::ss_width * StateSaver::ss_height];
+	gambatte::uint_least32_t pixels[StateSaver::ss_width * StateSaver::ss_height];
 	unsigned life;
 
 public:
 	SaveStateOsdElement(const std::string &fileName, unsigned stateNo);
-	const uint_least32_t* update();
+	const gambatte::uint_least32_t* update();
 };
 
 SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned stateNo)
@@ -136,7 +136,7 @@ SaveStateOsdElement::SaveStateOsdElement(const std::string &fileName, unsigned s
 	}
 }
 
-const uint_least32_t* SaveStateOsdElement::update() {
+const gambatte::uint_least32_t* SaveStateOsdElement::update() {
 	if (life--)
 		return pixels;
 
