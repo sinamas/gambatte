@@ -29,6 +29,8 @@
 
 namespace gambatte {
 
+class File;
+
 class Mbc {
 public:
 	virtual ~Mbc() {}
@@ -65,7 +67,7 @@ public:
 	void saveSavedata();
 	std::string const saveBasePath() const;
 	void setSaveDir(std::string const &dir);
-	LoadRes loadROM(std::string const &romfile, bool forceDmg, bool multicartCompat);
+	LoadRes loadROM(File &file, std::string const &filename, bool forceDmg, bool multicartCompat);
 	char const * romTitle() const { return reinterpret_cast<char const *>(memptrs_.romdata() + 0x134); }
 	class PakInfo const pakInfo(bool multicartCompat) const;
 	void setGameGenie(std::string const &codes);

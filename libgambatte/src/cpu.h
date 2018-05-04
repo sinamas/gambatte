@@ -23,6 +23,8 @@
 
 namespace gambatte {
 
+class File;
+
 class CPU {
 public:
 	CPU();
@@ -53,8 +55,8 @@ public:
 		mem_.setOsdElement(osdElement);
 	}
 
-	LoadRes load(std::string const &romfile, bool forceDmg, bool multicartCompat) {
-		return mem_.loadROM(romfile, forceDmg, multicartCompat);
+	LoadRes load(File &file, std::string const &filename, bool forceDmg, bool multicartCompat) {
+		return mem_.loadROM(file, filename, forceDmg, multicartCompat);
 	}
 
 	bool loaded() const { return mem_.loaded(); }

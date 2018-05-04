@@ -16,6 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+#include "file/file.h"
 #include "gambatte.h"
 #include "cpu.h"
 #include "initstate.h"
@@ -91,11 +92,16 @@ void GB::setSaveDir(std::string const &sdir) {
 	p_->cpu.setSaveDir(sdir);
 }
 
-LoadRes GB::load(std::string const &romfile, unsigned const flags) {
+LoadRes GB::load(std::string const &filename, unsigned const flags) {
+	transfer_ptr<File> file = newFileInstance(filename);
+	return load(*file, filename, flags);
+}
+
+LoadRes GB::load(File &file, std::string const &filename, unsigned const flags) {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
 
-	LoadRes const loadres = p_->cpu.load(romfile,
+	LoadRes const loadres = p_->cpu.load(file, filename,
 	                                     flags & FORCE_DMG,
 	                                     flags & MULTICART_COMPAT);
 	if (loadres == LOADRES_OK) {

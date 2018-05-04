@@ -27,6 +27,8 @@
 
 namespace gambatte {
 
+class File;
+
 enum { BG_PALETTE = 0, SP1_PALETTE = 1, SP2_PALETTE = 2 };
 
 class GB {
@@ -181,6 +183,8 @@ public:
 	void setGameShark(std::string const &codes);
 
 private:
+	LoadRes load(File &file, std::string const &filename, unsigned flags);
+
 	struct Priv;
 	Priv *const p_;
 
