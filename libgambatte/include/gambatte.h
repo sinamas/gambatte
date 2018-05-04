@@ -55,6 +55,17 @@ public:
 	LoadRes load(std::string const &romfile, unsigned flags = 0);
 
 	/**
+	 * Load an in-memory ROM image.
+	 *
+	 * @param rom       The ROM image data to load.
+	 * @param size      The size of the ROM image, in bytes.
+	 * @param filename  A filename, which is only used for naming save files.
+	 * @param flags     ORed combination of LoadFlags.
+	 * @return 0 on success, negative value on failure.
+	 */
+	LoadRes load(const void *rom, size_t size, std::string const &filename, unsigned flags = 0);
+
+	/**
 	  * Emulates until at least 'samples' audio samples are produced in the
 	  * supplied audio buffer, or until a video frame has been drawn.
 	  *

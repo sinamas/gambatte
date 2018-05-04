@@ -17,6 +17,7 @@
 //
 
 #include "file/file.h"
+#include "file/memfile.h"
 #include "gambatte.h"
 #include "cpu.h"
 #include "initstate.h"
@@ -95,6 +96,14 @@ void GB::setSaveDir(std::string const &sdir) {
 LoadRes GB::load(std::string const &filename, unsigned const flags) {
 	transfer_ptr<File> file = newFileInstance(filename);
 	return load(*file, filename, flags);
+}
+
+LoadRes GB::load(const void *rom,
+                 size_t size,
+                 std::string const &filename,
+                 unsigned const flags) {
+	MemFile file(rom, size);
+	return load(file, filename, flags);
 }
 
 LoadRes GB::load(File &file, std::string const &filename, unsigned const flags) {
