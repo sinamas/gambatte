@@ -448,14 +448,12 @@ private:
 	unsigned char rambank_;
 	bool enableRam_;
 
-	static unsigned adjustedRombank(unsigned bank) { return bank ? bank : 1; }
-
 	void setRambank() const {
 		memptrs_.setRambank(enableRam_ ? MemPtrs::read_en | MemPtrs::write_en : 0,
 		                    rambank_ & (rambanks(memptrs_) - 1));
 	}
 
-	void setRombank() const { memptrs_.setRombank(adjustedRombank(rombank_) & (rombanks(memptrs_) - 1)); }
+	void setRombank() const { memptrs_.setRombank(rombank_ & (rombanks(memptrs_) - 1)); }
 };
 
 static bool hasRtc(unsigned headerByte0x147) {
