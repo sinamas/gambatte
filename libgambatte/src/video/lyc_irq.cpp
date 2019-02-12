@@ -37,9 +37,11 @@ LycIrq::LycIrq()
 
 static unsigned long schedule(unsigned statReg,
 		unsigned lycReg, LyCounter const &lyCounter, unsigned long cc) {
-	return (statReg & lcdstat_lycirqen) && lycReg < 154
-	     ? lyCounter.nextFrameCycle(lycReg ? lycReg * 456 : 153 * 456 + 8, cc)
-	     : static_cast<unsigned long>(disabled_time);
+	return (statReg & lcdstat_lycirqen) && lycReg < lcd_lines_per_frame
+	? lyCounter.nextFrameCycle(lycReg
+		? 1l * lycReg * lcd_cycles_per_line
+		: (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + 8, cc)
+	: static_cast<unsigned long>(disabled_time);
 }
 
 void LycIrq::regChange(unsigned const statReg,
@@ -50,10 +52,10 @@ void LycIrq::regChange(unsigned const statReg,
 	time_ = std::min(time_, timeSrc);
 
 	if (cgb_) {
-		if (time_ - cc > 8 || (timeSrc != time_ && time_ - cc > 4U - lyCounter.isDoubleSpeed() * 4U))
+		if (time_ - cc > 8 || (timeSrc != time_ && time_ - cc > 4u - lyCounter.isDoubleSpeed() * 4))
 			lycReg_ = lycReg;
 
-		if (time_ - cc > 4U - lyCounter.isDoubleSpeed() * 4U)
+		if (time_ - cc > 4u - lyCounter.isDoubleSpeed() * 4)
 			statReg_ = statReg;
 	} else {
 		if (time_ - cc > 4 || timeSrc != time_)
@@ -67,7 +69,7 @@ void LycIrq::regChange(unsigned const statReg,
 }
 
 static bool lycIrqBlockedByM2OrM1StatIrq(unsigned ly, unsigned statreg) {
-	return ly - 1u < 144u - 1u
+	return ly - 1u < lcd_vres - 1u
 	     ? statreg & lcdstat_m2irqen
 	     : statreg & lcdstat_m1irqen;
 }

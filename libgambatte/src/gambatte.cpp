@@ -25,17 +25,21 @@
 #include <cstring>
 #include <sstream>
 
-static std::string const itos(int i) {
+using namespace gambatte;
+
+namespace {
+
+std::string to_string(int i) {
 	std::stringstream ss;
 	ss << i;
 	return ss.str();
 }
 
-static std::string const statePath(std::string const &basePath, int stateNo) {
-	return basePath + "_" + itos(stateNo) + ".gqs";
+std::string statePath(std::string const &basePath, int stateNo) {
+	return basePath + '_' + to_string(stateNo) + ".gqs";
 }
 
-namespace gambatte {
+}
 
 struct GB::Priv {
 	CPU cpu;
@@ -207,6 +211,4 @@ void GB::setGameGenie(std::string const &codes) {
 
 void GB::setGameShark(std::string const &codes) {
 	p_->cpu.setGameShark(codes);
-}
-
 }

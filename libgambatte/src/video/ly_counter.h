@@ -19,6 +19,8 @@
 #ifndef LY_COUNTER_H
 #define LY_COUNTER_H
 
+#include "lcddef.h"
+
 namespace gambatte {
 
 struct SaveState;
@@ -30,11 +32,11 @@ public:
 	bool isDoubleSpeed() const { return ds_; }
 
 	unsigned long frameCycles(unsigned long cc) const {
-		return ly_ * 456ul + lineCycles(cc);
+		return 1l * ly_ * lcd_cycles_per_line + lineCycles(cc);
 	}
 
 	unsigned lineCycles(unsigned long cc) const {
-		return 456u - ((time_ - cc) >> isDoubleSpeed());
+		return lcd_cycles_per_line - ((time_ - cc) >> isDoubleSpeed());
 	}
 
 	unsigned lineTime() const { return lineTime_; }

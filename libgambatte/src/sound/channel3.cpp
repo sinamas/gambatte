@@ -65,7 +65,7 @@ void Channel3::setNr4(unsigned const data) {
 
 	if (data & nr0_/* & 0x80*/) {
 		if (!cgb_ && waveCounter_ == cycleCounter_ + 1) {
-			unsigned const pos = ((wavePos_ + 1) & 0x1F) >> 1;
+			int const pos = ((wavePos_ + 1) & 0x1F) >> 1;
 
 			if (pos < 4)
 				waveRam_[0] = waveRam_[pos];
@@ -152,7 +152,7 @@ void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 			unsigned long const nextMajorEvent =
 				std::min(lengthCounter_.counter(), endCycles);
 			unsigned long out = master_
-				? ((sampleBuf_ >> (~wavePos_ << 2 & 4) & 0xF) >> rshift_) * 2 - 15ul
+				? (((wavePos_ & 1 ? sampleBuf_ : sampleBuf_ >> 4) & 0xF) >> rshift_) * 2 - 15ul
 				: 0 - 15ul;
 			out *= outBase;
 
@@ -167,7 +167,7 @@ void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 				++wavePos_;
 				wavePos_ &= 0x1F;
 				sampleBuf_ = waveRam_[wavePos_ >> 1];
-				out = ((sampleBuf_ >> (~wavePos_ << 2 & 4) & 0xF) >> rshift_) * 2 - 15ul;
+				out = (((wavePos_ & 1 ? sampleBuf_ : sampleBuf_ >> 4) & 0xF) >> rshift_) * 2 - 15ul;
 				out *= outBase;
 			}
 

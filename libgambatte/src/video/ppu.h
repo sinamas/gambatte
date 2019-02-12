@@ -27,6 +27,11 @@
 
 namespace gambatte {
 
+enum {
+	max_num_palettes = 8,
+	num_palette_entries = 4,
+	ppu_force_signed_enum = -1 };
+
 class PPUFrameBuf {
 public:
 	PPUFrameBuf() : buf_(0), fbline_(nullfbline()), pitch_(0) {}
@@ -53,10 +58,10 @@ struct PPUState {
 };
 
 struct PPUPriv {
-	unsigned long bgPalette[8 * 4];
-	unsigned long spPalette[8 * 4];
-	struct Sprite { unsigned char spx, oampos, line, attrib; } spriteList[11];
-	unsigned short spwordList[11];
+	unsigned long bgPalette[max_num_palettes * num_palette_entries];
+	unsigned long spPalette[max_num_palettes * num_palette_entries];
+	struct Sprite { unsigned char spx, oampos, line, attrib; } spriteList[lcd_max_num_sprites_per_line + 1];
+	unsigned short spwordList[lcd_max_num_sprites_per_line + 1];
 	unsigned char nextSprite;
 	unsigned char currentSprite;
 

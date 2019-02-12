@@ -18,9 +18,8 @@
 
 #include "memptrs.h"
 #include <algorithm>
-#include <cstring>
 
-namespace gambatte {
+using namespace gambatte;
 
 MemPtrs::MemPtrs()
 : rmem_()
@@ -30,38 +29,33 @@ MemPtrs::MemPtrs()
 , vrambankptr_(0)
 , rsrambankptr_(0)
 , wsrambankptr_(0)
-, memchunk_(0)
 , rambankdata_(0)
 , wramdataend_(0)
 , oamDmaSrc_(oam_dma_src_off)
 {
 }
 
-MemPtrs::~MemPtrs() {
-	delete []memchunk_;
-}
-
 void MemPtrs::reset(unsigned const rombanks, unsigned const rambanks, unsigned const wrambanks) {
-	delete []memchunk_;
-	memchunk_ = new unsigned char[
-		  0x4000
-		+ rombanks * 0x4000ul
-		+ 0x4000
-		+ rambanks * 0x2000ul
-		+ wrambanks * 0x1000ul
-		+ 0x4000];
+	int const num_disabled_ram_areas = 2;
+	memchunk_.reset(
+		  pre_rom_pad_size()
+		+ rombanks * rombank_size()
+		+ max_num_vrambanks * vrambank_size()
+		+ rambanks * rambank_size()
+		+ wrambanks * wrambank_size()
+		+ num_disabled_ram_areas * rambank_size());
 
 	romdata_[0] = romdata();
-	rambankdata_ = romdata_[0] + rombanks * 0x4000ul + 0x4000;
-	wramdata_[0] = rambankdata_ + rambanks * 0x2000ul;
-	wramdataend_ = wramdata_[0] + wrambanks * 0x1000ul;
+	rambankdata_ = romdata_[0] + rombanks * rombank_size() + max_num_vrambanks * vrambank_size();
+	wramdata_[0] = rambankdata_ + rambanks * rambank_size();
+	wramdataend_ = wramdata_[0] + wrambanks * wrambank_size();
 
-	std::memset(rdisabledRamw(), 0xFF, 0x2000);
+	std::fill_n(rdisabledRamw(), rambank_size(), 0xFF);
 
 	oamDmaSrc_ = oam_dma_src_off;
 	rmem_[0x3] = rmem_[0x2] = rmem_[0x1] = rmem_[0x0] = romdata_[0];
-	rmem_[0xC] = wmem_[0xC] = wramdata_[0] - 0xC000;
-	rmem_[0xE] = wmem_[0xE] = wramdata_[0] - 0xE000;
+	rmem_[0xC] = wmem_[0xC] = wramdata_[0] - mm_wram_begin;
+	rmem_[0xE] = wmem_[0xE] = wramdata_[0] - mm_wram_mirror_begin;
 	setRombank(1);
 	setRambank(0, 0);
 	setVrambank(0);
@@ -69,13 +63,13 @@ void MemPtrs::reset(unsigned const rombanks, unsigned const rambanks, unsigned c
 }
 
 void MemPtrs::setRombank0(unsigned bank) {
-	romdata_[0] = romdata() + bank * 0x4000ul;
+	romdata_[0] = romdata() + bank * rombank_size();
 	rmem_[0x3] = rmem_[0x2] = rmem_[0x1] = rmem_[0x0] = romdata_[0];
 	disconnectOamDmaAreas();
 }
 
 void MemPtrs::setRombank(unsigned bank) {
-	romdata_[1] = romdata() + bank * 0x4000ul - 0x4000;
+	romdata_[1] = romdata() + bank * rombank_size() - mm_rom1_begin;
 	rmem_[0x7] = rmem_[0x6] = rmem_[0x5] = rmem_[0x4] = romdata_[1];
 	disconnectOamDmaAreas();
 }
@@ -84,22 +78,24 @@ void MemPtrs::setRambank(unsigned const flags, unsigned const rambank) {
 	unsigned char *srambankptr = 0;
 	if (!(flags & rtc_en)) {
 		srambankptr = rambankdata() != rambankdataend()
-		            ? rambankdata_ + rambank * 0x2000ul - 0xA000
-		            : wdisabledRam() - 0xA000;
+			? rambankdata_ + rambank * rambank_size()
+			: wdisabledRam();
 	}
 
-	rsrambankptr_ = (flags & read_en) && srambankptr != wdisabledRam() - 0xA000
-	              ? srambankptr
-	              : rdisabledRamw() - 0xA000;
-	wsrambankptr_ = flags & write_en ? srambankptr : wdisabledRam() - 0xA000;
+	rsrambankptr_ = (flags & read_en) && srambankptr != wdisabledRam()
+		? srambankptr - mm_sram_begin
+		: rdisabledRamw() - mm_sram_begin;
+	wsrambankptr_ = flags & write_en
+		? srambankptr - mm_sram_begin
+		: wdisabledRam() - mm_sram_begin;
 	rmem_[0xB] = rmem_[0xA] = rsrambankptr_;
 	wmem_[0xB] = wmem_[0xA] = wsrambankptr_;
 	disconnectOamDmaAreas();
 }
 
 void MemPtrs::setWrambank(unsigned bank) {
-	wramdata_[1] = wramdata_[0] + (bank & 0x07 ? bank & 0x07 : 1) * 0x1000;
-	rmem_[0xD] = wmem_[0xD] = wramdata_[1] - 0xD000;
+	wramdata_[1] = wramdata_[0] + (bank & 0x07 ? bank & 0x07 : 1) * wrambank_size();
+	rmem_[0xD] = wmem_[0xD] = wramdata_[1] - mm_wram1_begin;
 	disconnectOamDmaAreas();
 }
 
@@ -108,9 +104,9 @@ void MemPtrs::setOamDmaSrc(OamDmaSrc oamDmaSrc) {
 	rmem_[0x7] = rmem_[0x6] = rmem_[0x5] = rmem_[0x4] = romdata_[1];
 	rmem_[0xB] = rmem_[0xA] = rsrambankptr_;
 	wmem_[0xB] = wmem_[0xA] = wsrambankptr_;
-	rmem_[0xC] = wmem_[0xC] = wramdata_[0] - 0xC000;
-	rmem_[0xD] = wmem_[0xD] = wramdata_[1] - 0xD000;
-	rmem_[0xE] = wmem_[0xE] = wramdata_[0] - 0xE000;
+	rmem_[0xC] = wmem_[0xC] = wramdata_[0] - mm_wram_begin;
+	rmem_[0xD] = wmem_[0xD] = wramdata_[1] - mm_wram1_begin;
+	rmem_[0xE] = wmem_[0xE] = wramdata_[0] - mm_wram_mirror_begin;
 
 	oamDmaSrc_ = oamDmaSrc;
 	disconnectOamDmaAreas();
@@ -153,6 +149,4 @@ void MemPtrs::disconnectOamDmaAreas() {
 			break;
 		}
 	}
-}
-
 }

@@ -196,9 +196,9 @@ private:
 	};
 
 	PPU ppu_;
-	unsigned long dmgColorsRgb32_[3 * 4];
-	unsigned char  bgpData_[8 * 8];
-	unsigned char objpData_[8 * 8];
+	unsigned long dmgColorsRgb32_[3 * num_palette_entries];
+	unsigned char  bgpData_[2 * max_num_palettes * num_palette_entries];
+	unsigned char objpData_[2 * max_num_palettes * num_palette_entries];
 	EventTimes eventTimes_;
 	M0Irq m0Irq_;
 	LycIrq lycIrq_;

@@ -52,12 +52,12 @@ void Channel4::Lfsr::updateBackupCounter(unsigned long const cc) {
 			if (nr3_ & 8) {
 				while (periods > 6) {
 					unsigned const xored = (reg_ << 1 ^ reg_) & 0x7E;
-					reg_ = (reg_ >> 6 & ~0x7E) | xored | xored << 8;
+					reg_ = (reg_ >> 6 & ~0x7Eu) | xored | xored << 8;
 					periods -= 6;
 				}
 
 				unsigned const xored = ((reg_ ^ reg_ >> 1) << (7 - periods)) & 0x7F;
-				reg_ = (reg_ >> periods & ~(0x80 - (0x80 >> periods))) | xored | xored << 8;
+				reg_ = (reg_ >> periods & ~(0x80u - (0x80 >> periods))) | xored | xored << 8;
 			} else {
 				while (periods > 15) {
 					reg_ = reg_ ^ reg_ >> 1;
@@ -82,7 +82,7 @@ inline void Channel4::Lfsr::event() {
 		reg_ = shifted | xored << 14;
 
 		if (nr3_ & 8)
-			reg_ = (reg_ & ~0x40) | xored << 6;
+			reg_ = (reg_ & ~0x40u) | xored << 6;
 	}
 
 	counter_ += toPeriod(nr3_);

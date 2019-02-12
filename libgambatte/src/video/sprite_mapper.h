@@ -34,7 +34,7 @@ public:
 	void reset(unsigned char const *oamram, bool cgb);
 	unsigned long doEvent(unsigned long time);
 	bool largeSprites(unsigned spNo) const { return oamReader_.largeSprites(spNo); }
-	unsigned numSprites(unsigned ly) const { return num_[ly] & ~need_sorting_mask; }
+	unsigned numSprites(unsigned ly) const { return num_[ly] & ~(1u * need_sorting_flag); }
 	void oamChange(unsigned long cc) { oamReader_.change(cc); }
 	void oamChange(unsigned char const *oamram, unsigned long cc) { oamReader_.change(oamram, cc); }
 	unsigned char const * oamram() const { return oamReader_.oam(); }
@@ -50,10 +50,10 @@ public:
 	void setLargeSpritesSource(bool src) { oamReader_.setLargeSpritesSrc(src); }
 
 	unsigned char const * sprites(unsigned ly) const {
-		if (num_[ly] & need_sorting_mask)
+		if (num_[ly] & need_sorting_flag)
 			sortLine(ly);
 
-		return spritemap_ + ly * 10;
+		return spritemap_[ly];
 	}
 
 	void setStatePtrs(SaveState &state) { oamReader_.setStatePtrs(state); }
@@ -70,7 +70,7 @@ public:
 	}
 
 	static unsigned long schedule(LyCounter const &lyCounter, unsigned long cc) {
-		return lyCounter.nextLineCycle(80, cc);
+		return lyCounter.nextLineCycle(2 * lcd_num_oam_entries, cc);
 	}
 
 private:
@@ -95,8 +95,8 @@ private:
 		unsigned lineTime() const { return lyCounter_.lineTime(); }
 
 	private:
-		unsigned char buf_[80];
-		bool szbuf_[40];
+		unsigned char buf_[2 * lcd_num_oam_entries];
+		bool szbuf_[lcd_num_oam_entries];
 		LyCounter const &lyCounter_;
 		unsigned char const *oamram_;
 		unsigned long lu_;
@@ -105,10 +105,10 @@ private:
 		bool cgb_;
 	};
 
-	enum { need_sorting_mask = 0x80 };
+	enum { need_sorting_flag = 0x80 };
 
-	mutable unsigned char spritemap_[144 * 10];
-	mutable unsigned char num_[144];
+	mutable unsigned char spritemap_[lcd_vres][lcd_max_num_sprites_per_line];
+	mutable unsigned char num_[lcd_vres];
 	NextM0Time &nextM0Time_;
 	OamReader oamReader_;
 
