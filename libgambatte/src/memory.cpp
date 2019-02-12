@@ -419,15 +419,10 @@ void Memory::updateOamDma(unsigned long const cc) {
 void Memory::oamDmaInitSetup() {
 	if (ioamhram_[0x146] < oam_size) {
 		cart_.setOamDmaSrc(ioamhram_[0x146] < 0x80 ? oam_dma_src_rom : oam_dma_src_vram);
-	} else if (ioamhram_[0x146] < 0xFE - isCgb() * 0x1E) {
+	} else if (ioamhram_[0x146] < 0x100 - isCgb() * 0x20) {
 		cart_.setOamDmaSrc(ioamhram_[0x146] < 0xC0 ? oam_dma_src_sram : oam_dma_src_wram);
 	} else
 		cart_.setOamDmaSrc(oam_dma_src_invalid);
-}
-
-static unsigned char const * oamDmaSrcZero() {
-	static unsigned char zeroMem[0xA0];
-	return zeroMem;
 }
 
 unsigned char const * Memory::oamDmaSrcPtr() const {
@@ -445,7 +440,7 @@ unsigned char const * Memory::oamDmaSrcPtr() const {
 		break;
 	}
 
-	return ioamhram_[0x146] == 0xFF && !isCgb() ? oamDmaSrcZero() : cart_.rdisabledRam();
+	return cart_.rdisabledRam();
 }
 
 void Memory::startOamDma(unsigned long cc) {
@@ -526,39 +521,20 @@ unsigned Memory::nontrivial_ff_read(unsigned const p, unsigned long const cc) {
 	return ioamhram_[p + 0x100];
 }
 
-static bool isInOamDmaConflictArea(OamDmaSrc const oamDmaSrc, unsigned const p, bool const cgb) {
-	struct Area { unsigned short areaUpper, exceptAreaLower, exceptAreaWidth, pad; };
-
-	static Area const cgbAreas[] = {
-		{ 0xC000, 0x8000, 0x2000, 0 },
-		{ 0xC000, 0x8000, 0x2000, 0 },
-		{ 0xA000, 0x0000, 0x8000, 0 },
-		{ 0xFE00, 0x0000, 0xC000, 0 },
-		{ 0xC000, 0x8000, 0x2000, 0 },
-		{ 0x0000, 0x0000, 0x0000, 0 }
-	};
-
-	static Area const dmgAreas[] = {
-		{ 0xFE00, 0x8000, 0x2000, 0 },
-		{ 0xFE00, 0x8000, 0x2000, 0 },
-		{ 0xA000, 0x0000, 0x8000, 0 },
-		{ 0xFE00, 0x8000, 0x2000, 0 },
-		{ 0xFE00, 0x8000, 0x2000, 0 },
-		{ 0x0000, 0x0000, 0x0000, 0 }
-	};
-
-	Area const *a = cgb ? cgbAreas : dmgAreas;
-	return p < a[oamDmaSrc].areaUpper
-	    && p - a[oamDmaSrc].exceptAreaLower >= a[oamDmaSrc].exceptAreaWidth;
-}
-
 unsigned Memory::nontrivial_read(unsigned const p, unsigned long const cc) {
 	if (p < mm_hram_begin) {
 		if (lastOamDmaUpdate_ != disabled_time) {
 			updateOamDma(cc);
 
-			if (isInOamDmaConflictArea(cart_.oamDmaSrc(), p, isCgb()) && oamDmaPos_ < oam_size)
-				return ioamhram_[oamDmaPos_];
+			if (cart_.isInOamDmaConflictArea(p) && oamDmaPos_ < oam_size) {
+				int const r = isCgb() && cart_.oamDmaSrc() != oam_dma_src_wram && p >= mm_wram_begin
+					? cart_.wramdata(ioamhram_[0x146] >> 4 & 1)[p & 0xFFF]
+					: ioamhram_[oamDmaPos_];
+				if (isCgb() && cart_.oamDmaSrc() == oam_dma_src_vram)
+					ioamhram_[oamDmaPos_] = 0;
+
+				return r;
+			}
 		}
 
 		if (p < mm_wram_begin) {
@@ -1021,8 +997,18 @@ void Memory::nontrivial_write(unsigned const p, unsigned const data, unsigned lo
 	if (lastOamDmaUpdate_ != disabled_time) {
 		updateOamDma(cc);
 
-		if (isInOamDmaConflictArea(cart_.oamDmaSrc(), p, isCgb()) && oamDmaPos_ < oam_size) {
-			ioamhram_[oamDmaPos_] = data;
+		if (cart_.isInOamDmaConflictArea(p) && oamDmaPos_ < oam_size) {
+			if (isCgb()) {
+				if (p < mm_wram_begin)
+					ioamhram_[oamDmaPos_] = cart_.oamDmaSrc() != oam_dma_src_vram ? data : 0;
+                else if (cart_.oamDmaSrc() != oam_dma_src_wram)
+			        cart_.wramdata(ioamhram_[0x146] >> 4 & 1)[p & 0xFFF] = data;
+			} else {
+				ioamhram_[oamDmaPos_] = cart_.oamDmaSrc() == oam_dma_src_wram
+					? ioamhram_[oamDmaPos_] & data
+					: data;
+			}
+
 			return;
 		}
 	}

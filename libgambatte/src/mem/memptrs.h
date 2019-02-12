@@ -72,6 +72,7 @@ public:
 	unsigned char * wsrambankptr() const { return wsrambankptr_; }
 	unsigned char * vrambankptr() const { return vrambankptr_; }
 	OamDmaSrc oamDmaSrc() const { return oamDmaSrc_; }
+	bool isInOamDmaConflictArea(unsigned p) const;
 
 	void setRombank0(unsigned bank);
 	void setRombank(unsigned bank);

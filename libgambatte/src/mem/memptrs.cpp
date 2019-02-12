@@ -21,6 +21,60 @@
 
 using namespace gambatte;
 
+namespace {
+
+template <OamDmaSrc src, bool cgb> struct OamDmaConflictMap;
+template <> struct OamDmaConflictMap<oam_dma_src_rom, true> { enum { r = 0xFCFF }; };
+template <> struct OamDmaConflictMap<oam_dma_src_sram, true> { enum { r = 0xFCFF }; };
+template <> struct OamDmaConflictMap<oam_dma_src_vram, true> { enum { r = 0x0300 }; };
+template <> struct OamDmaConflictMap<oam_dma_src_wram, true> { enum { r = 0xF000 }; };
+template <> struct OamDmaConflictMap<oam_dma_src_invalid, true> { enum { r = 0xFCFF }; };
+template <> struct OamDmaConflictMap<oam_dma_src_rom, false> { enum { r = 0xFCFF }; };
+template <> struct OamDmaConflictMap<oam_dma_src_sram, false> { enum { r = 0xFCFF }; };
+template <> struct OamDmaConflictMap<oam_dma_src_vram, false> { enum { r = 0x0300 }; };
+template <> struct OamDmaConflictMap<oam_dma_src_wram, false> { enum { r = 0xFCFF }; };
+template <> struct OamDmaConflictMap<oam_dma_src_invalid, false> { enum { r = 0x0000 }; };
+
+template <bool cgb>
+bool isInOamDmaConflictArea(OamDmaSrc src, unsigned p)
+{
+	static unsigned short const m[] = {
+		OamDmaConflictMap<oam_dma_src_rom, cgb>::r,
+		OamDmaConflictMap<oam_dma_src_sram, cgb>::r,
+		OamDmaConflictMap<oam_dma_src_vram, cgb>::r,
+		OamDmaConflictMap<oam_dma_src_wram, cgb>::r,
+		OamDmaConflictMap<oam_dma_src_invalid, cgb>::r,
+		0 };
+	return p < mm_oam_begin && (m[src] >> (p >> 12) & 1);
+}
+
+template <OamDmaSrc src, bool cgb>
+void disconnectOamDmaAreas(unsigned char const *(&rmem)[0x10], unsigned char *(&wmem)[0x10])
+{
+	if (OamDmaConflictMap<src, cgb>::r & 0x00FF)
+		std::fill(rmem, rmem + 8, static_cast<unsigned char *>(0));
+	if (OamDmaConflictMap<src, cgb>::r & 0x0C00)
+		rmem[0xB] = rmem[0xA] = wmem[0xB] = wmem[0xA] = 0;
+	if (OamDmaConflictMap<src, cgb>::r & 0x7000)
+		rmem[0xE] = rmem[0xD] = rmem[0xC] = wmem[0xE] = wmem[0xD] = wmem[0xC] = 0;
+}
+
+template <bool cgb>
+void disconnectOamDmaAreas(unsigned char const *(&rmem)[0x10], unsigned char *(&wmem)[0x10],
+		OamDmaSrc src)
+{
+	switch (src) {
+	case oam_dma_src_rom: disconnectOamDmaAreas<oam_dma_src_rom, cgb>(rmem, wmem); break;
+	case oam_dma_src_sram: disconnectOamDmaAreas<oam_dma_src_sram, cgb>(rmem, wmem); break;
+	case oam_dma_src_vram: disconnectOamDmaAreas<oam_dma_src_vram, cgb>(rmem, wmem); break;
+	case oam_dma_src_wram: disconnectOamDmaAreas<oam_dma_src_wram, cgb>(rmem, wmem); break;
+	case oam_dma_src_invalid: disconnectOamDmaAreas<oam_dma_src_invalid, cgb>(rmem, wmem); break;
+	case oam_dma_src_off: break;
+	}
+}
+
+} // unnamed namespace.
+
 MemPtrs::MemPtrs()
 : rmem_()
 , wmem_()
@@ -113,40 +167,14 @@ void MemPtrs::setOamDmaSrc(OamDmaSrc oamDmaSrc) {
 }
 
 void MemPtrs::disconnectOamDmaAreas() {
-	if (isCgb(*this)) {
-		switch (oamDmaSrc_) {
-		case oam_dma_src_rom:  // fall through
-		case oam_dma_src_sram:
-		case oam_dma_src_invalid:
-			std::fill(rmem_, rmem_ + 8, static_cast<unsigned char *>(0));
-			rmem_[0xB] = rmem_[0xA] = 0;
-			wmem_[0xB] = wmem_[0xA] = 0;
-			break;
-		case oam_dma_src_vram:
-			break;
-		case oam_dma_src_wram:
-			rmem_[0xE] = rmem_[0xD] = rmem_[0xC] = 0;
-			wmem_[0xE] = wmem_[0xD] = wmem_[0xC] = 0;
-			break;
-		case oam_dma_src_off:
-			break;
-		}
-	} else {
-		switch (oamDmaSrc_) {
-		case oam_dma_src_rom:  // fall through
-		case oam_dma_src_sram:
-		case oam_dma_src_wram:
-		case oam_dma_src_invalid:
-			std::fill(rmem_, rmem_ + 8, static_cast<unsigned char *>(0));
-			rmem_[0xB] = rmem_[0xA] = 0;
-			wmem_[0xB] = wmem_[0xA] = 0;
-			rmem_[0xE] = rmem_[0xD] = rmem_[0xC] = 0;
-			wmem_[0xE] = wmem_[0xD] = wmem_[0xC] = 0;
-			break;
-		case oam_dma_src_vram:
-			break;
-		case oam_dma_src_off:
-			break;
-		}
-	}
+	return isCgb(*this)
+	? ::disconnectOamDmaAreas<true>(rmem_, wmem_, oamDmaSrc_)
+	: ::disconnectOamDmaAreas<false>(rmem_, wmem_, oamDmaSrc_);
+}
+
+bool MemPtrs::isInOamDmaConflictArea(unsigned p) const
+{
+	return isCgb(*this)
+	? ::isInOamDmaConflictArea<true>(oamDmaSrc_, p)
+	: ::isInOamDmaConflictArea<false>(oamDmaSrc_, p);
 }
