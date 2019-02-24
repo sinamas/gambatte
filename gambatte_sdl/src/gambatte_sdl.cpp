@@ -369,10 +369,10 @@ void InputOption::exec(char const *const *argv, int index) {
 					break;
 				case 'h':
 					switch (dir) {
-					case 'u': id.jdata.dir = JoyData::dir_up;
-					case 'd': id.jdata.dir = JoyData::dir_down;
-					case 'l': id.jdata.dir = JoyData::dir_left;
-					case 'r': id.jdata.dir = JoyData::dir_right;
+					case 'u': id.jdata.dir = JoyData::dir_up; break;
+					case 'd': id.jdata.dir = JoyData::dir_down; break;
+					case 'l': id.jdata.dir = JoyData::dir_left; break;
+					case 'r': id.jdata.dir = JoyData::dir_right; break;
 					default: continue;
 					}
 
@@ -723,7 +723,7 @@ bool GambatteSdl::handleEvents(BlitterWrapper &blitter) {
 		jd.num = e.jhat.hat;
 
 		for (std::pair<jmap_t::iterator, jmap_t::iterator> range =
-				jaMap.equal_range(jd); range.first != range.second; ++range.first) {
+				jhMap.equal_range(jd); range.first != range.second; ++range.first) {
 			if (e.jhat.value & range.first->first.dir)
 				inputGetter.is |= range.first->second;
 			else
