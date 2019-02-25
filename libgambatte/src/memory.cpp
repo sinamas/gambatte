@@ -1001,8 +1001,8 @@ void Memory::nontrivial_write(unsigned const p, unsigned const data, unsigned lo
 			if (isCgb()) {
 				if (p < mm_wram_begin)
 					ioamhram_[oamDmaPos_] = cart_.oamDmaSrc() != oam_dma_src_vram ? data : 0;
-                else if (cart_.oamDmaSrc() != oam_dma_src_wram)
-			        cart_.wramdata(ioamhram_[0x146] >> 4 & 1)[p & 0xFFF] = data;
+				else if (cart_.oamDmaSrc() != oam_dma_src_wram)
+					cart_.wramdata(ioamhram_[0x146] >> 4 & 1)[p & 0xFFF] = data;
 			} else {
 				ioamhram_[oamDmaPos_] = cart_.oamDmaSrc() == oam_dma_src_wram
 					? ioamhram_[oamDmaPos_] & data
