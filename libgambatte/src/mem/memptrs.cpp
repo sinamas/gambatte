@@ -24,16 +24,11 @@ using namespace gambatte;
 namespace {
 
 template <OamDmaSrc src, bool cgb> struct OamDmaConflictMap;
-template <> struct OamDmaConflictMap<oam_dma_src_rom, true> { enum { r = 0xFCFF }; };
-template <> struct OamDmaConflictMap<oam_dma_src_sram, true> { enum { r = 0xFCFF }; };
-template <> struct OamDmaConflictMap<oam_dma_src_vram, true> { enum { r = 0x0300 }; };
-template <> struct OamDmaConflictMap<oam_dma_src_wram, true> { enum { r = 0xF000 }; };
-template <> struct OamDmaConflictMap<oam_dma_src_invalid, true> { enum { r = 0xFCFF }; };
-template <> struct OamDmaConflictMap<oam_dma_src_rom, false> { enum { r = 0xFCFF }; };
-template <> struct OamDmaConflictMap<oam_dma_src_sram, false> { enum { r = 0xFCFF }; };
-template <> struct OamDmaConflictMap<oam_dma_src_vram, false> { enum { r = 0x0300 }; };
-template <> struct OamDmaConflictMap<oam_dma_src_wram, false> { enum { r = 0xFCFF }; };
-template <> struct OamDmaConflictMap<oam_dma_src_invalid, false> { enum { r = 0x0000 }; };
+template <bool cgb> struct OamDmaConflictMap<oam_dma_src_rom, cgb> { enum { r = 0xFCFF }; };
+template <bool cgb> struct OamDmaConflictMap<oam_dma_src_sram, cgb> { enum { r = 0xFCFF }; };
+template <bool cgb> struct OamDmaConflictMap<oam_dma_src_vram, cgb> { enum { r = 0x0300 }; };
+template <bool cgb> struct OamDmaConflictMap<oam_dma_src_wram, cgb> { enum { r = cgb ? 0xF000 : 0xFCFF }; };
+template <bool cgb> struct OamDmaConflictMap<oam_dma_src_invalid, cgb> { enum { r = cgb ? 0xFCFF : 0x0000 }; };
 
 template <bool cgb>
 bool isInOamDmaConflictArea(OamDmaSrc src, unsigned p)
@@ -52,7 +47,7 @@ template <OamDmaSrc src, bool cgb>
 void disconnectOamDmaAreas(unsigned char const *(&rmem)[0x10], unsigned char *(&wmem)[0x10])
 {
 	if (OamDmaConflictMap<src, cgb>::r & 0x00FF)
-		std::fill(rmem, rmem + 8, static_cast<unsigned char *>(0));
+		std::fill_n(rmem, 8, static_cast<unsigned char *>(0));
 	if (OamDmaConflictMap<src, cgb>::r & 0x0C00)
 		rmem[0xB] = rmem[0xA] = wmem[0xB] = wmem[0xA] = 0;
 	if (OamDmaConflictMap<src, cgb>::r & 0x7000)

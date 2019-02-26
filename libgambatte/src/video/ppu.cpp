@@ -96,12 +96,22 @@ namespace StartWindowDraw {
 
 #undef DECLARE_FUNC
 
-enum { attr_xflip = 0x20, attr_yflip = 0x40, attr_bgpriority = 0x80 };
+enum { attr_cgbpalno = 0x07, attr_tdbank = 0x08, attr_dmgpalno = 0x10, attr_xflip = 0x20,
+	attr_yflip = 0x40, attr_bgpriority = 0x80 };
 enum { win_draw_start = 1, win_draw_started = 2 };
 
 int const m2_ds_offset = 3;
 int const max_m3start_cycles = 80;
+int const tile_bpp = 2;
+int const tile_bpp_mask = (1 << tile_bpp) - 1;
 int const tile_len = 8;
+int const tile_line_size = tile_bpp * tile_len / 8;
+int const tile_size = tile_line_size * tile_len;
+int const tile_map_begin = 0x1800;
+int const tile_map_len = 0x20;
+int const tile_map_size = tile_map_len * tile_map_len;
+int const tile_pattern_table_size = 0x1000;
+int const vram_bank_size = 0x2000;
 int const xpos_end = 168;
 
 inline int spx(PPUPriv::Sprite const &s) { return s.spx; }
@@ -138,14 +148,14 @@ namespace M2_Ly0 {
 namespace M2_LyNon0 {
 	void f0(PPUPriv &p) {
 		p.weMaster |= lcdcWinEn(p) && p.lyCounter.ly() == p.wy;
-		nextCall(   weMasterCheckAfterLyIncLineCycle(p.cgb)
-		          - weMasterCheckPriorToLyIncLineCycle(p.cgb), f1_, p);
+		nextCall(weMasterCheckAfterLyIncLineCycle(p.cgb)
+			- weMasterCheckPriorToLyIncLineCycle(p.cgb), f1_, p);
 	}
 
 	void f1(PPUPriv &p) {
 		p.weMaster |= lcdcWinEn(p) && p.lyCounter.ly() + 1 == p.wy;
 		nextCall(lcd_cycles_per_line - weMasterCheckAfterLyIncLineCycle(p.cgb) + m3StartLineCycle(p.cgb),
-		         M3Start::f0_, p);
+			M3Start::f0_, p);
 	}
 }
 
@@ -166,37 +176,39 @@ namespace M2 {
 	}
 
 	void f1(PPUPriv &p) {
+		int const oam_entry_size = 4;
+		int const oam_size = oam_entry_size * lcd_num_oam_entries;
 		int cycles = p.cycles;
 		unsigned oampos = p.reg0;
 		unsigned nextSprite = p.nextSprite;
-		unsigned const nly = (p.lyCounter.ly() + 1 == 154 ? 0 : p.lyCounter.ly() + 1)
-		                   + ((p.lyCounter.time()-(p.now-p.cycles)) <= 4);
+		unsigned const nly = (p.lyCounter.ly() + 1 == lcd_lines_per_frame ? 0 : p.lyCounter.ly() + 1)
+			+ (p.lyCounter.time() - (p.now - p.cycles) <= 4);
 		bool const ls = p.spriteMapper.largeSpritesSource();
 
 		do {
-			unsigned const spy = p.spriteMapper.oamram()[oampos  ];
-			unsigned const spx = p.spriteMapper.oamram()[oampos+1];
+			unsigned const spy = p.spriteMapper.oamram()[oampos];
+			unsigned const spx = p.spriteMapper.oamram()[oampos + 1];
 			unsigned const ydiff = spy - nly;
 
-			if (ls ? ydiff < 16u : ydiff - 8u < 8u) {
+			if (ls ? ydiff < 2u * tile_len : ydiff - 1u * tile_len < 1u * tile_len) {
 				p.spriteList[nextSprite].spx = spx;
-				p.spriteList[nextSprite].line = 15u - ydiff;
+				p.spriteList[nextSprite].line = 2 * tile_len - 1 - ydiff;
 				p.spriteList[nextSprite].oampos = oampos;
 
 				if (++nextSprite == lcd_max_num_sprites_per_line) {
-					cycles -= (0xA0 - 4 - oampos) >> 1;
-					oampos = 0xA0 - 4;
+					cycles -= (oam_size - oam_entry_size - oampos) >> 1;
+					oampos = oam_size - oam_entry_size;
 				}
 			}
 
-			oampos += 4;
-		} while ((cycles-=2) >= 0 && oampos != 0xA0);
+			oampos += oam_entry_size;
+		} while ((cycles -= 2) >= 0 && oampos != oam_size);
 
 		p.reg0 = oampos;
 		p.nextSprite = nextSprite;
 		p.cycles = cycles;
 
-		if (oampos == 0xA0) {
+		if (oampos == oam_size) {
 			insertionSort(p.spriteList, p.spriteList + nextSprite, SpriteLess());
 			p.spriteList[nextSprite].spx = 0xFF;
 			p.nextSprite = 0;
@@ -211,10 +223,12 @@ int loadTileDataByte0(PPUPriv const &p) {
 		? p.winYPos
 		: p.scy + p.lyCounter.ly();
 
-	return p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-	                     - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-	                     + p.reg1 * 16
-	                     + (-(p.nattrib >> 6 & 1) ^ yoffset) % tile_len * 2];
+	return p.vram[tile_pattern_table_size
+		+ vram_bank_size / attr_tdbank * (p.nattrib & attr_tdbank)
+		- ((2 * tile_size * p.reg1 | tile_pattern_table_size / lcdc_tdsel * p.lcdc)
+			& tile_pattern_table_size)
+		+ p.reg1 * tile_size
+		+ ((p.nattrib & attr_yflip ? -1 : 0) ^ yoffset) % tile_len * tile_line_size];
 }
 
 int loadTileDataByte1(PPUPriv const &p) {
@@ -222,10 +236,12 @@ int loadTileDataByte1(PPUPriv const &p) {
 		? p.winYPos
 		: p.scy + p.lyCounter.ly();
 
-	return p.vram[0x1000 + (p.nattrib << 10             & 0x2000)
-	                     - ((p.reg1 * 32 | p.lcdc << 8) & 0x1000)
-	                     + p.reg1 * 16
-	                     + (-(p.nattrib >> 6 & 1) ^ yoffset) % tile_len * 2 + 1];
+	return p.vram[tile_pattern_table_size
+		+ vram_bank_size / attr_tdbank * (p.nattrib & attr_tdbank)
+		- ((2 * tile_size * p.reg1 | tile_pattern_table_size / lcdc_tdsel * p.lcdc)
+			& tile_pattern_table_size)
+		+ p.reg1 * tile_size
+		+ ((p.nattrib & attr_yflip ? -1 : 0) ^ yoffset) % tile_len * tile_line_size + 1];
 }
 
 namespace M3Start {
@@ -251,15 +267,23 @@ namespace M3Start {
 			switch (p.xpos % tile_len) {
 			case 0:
 				if (p.winDrawState & win_draw_started) {
-					p.reg1    = p.vram[(p.lcdc << 4 & 0x400) + (p.winYPos & 0xF8) * 4
-					                 + (p.wscx / tile_len & 0x1F) + 0x1800];
-					p.nattrib = p.vram[(p.lcdc << 4 & 0x400) + (p.winYPos & 0xF8) * 4
-					                 + (p.wscx / tile_len & 0x1F) + 0x3800];
+					p.reg1    = p.vram[tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+					                 + tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+					                 + p.wscx / tile_len % tile_map_len
+					                 + tile_map_begin];
+					p.nattrib = p.vram[tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+					                 + tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+					                 + p.wscx / tile_len % tile_map_len
+					                 + tile_map_begin + vram_bank_size];
 				} else {
-					p.reg1    = p.vram[((p.lcdc << 7 | p.scx / tile_len) & 0x41F)
-					                 + ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x1800];
-					p.nattrib = p.vram[((p.lcdc << 7 | p.scx / tile_len) & 0x41F)
-					                 + ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x3800];
+					p.reg1    = p.vram[((tile_map_size / lcdc_bgtmsel * p.lcdc | p.scx / tile_len)
+					                     & (tile_map_size + tile_map_len - 1))
+					                 + tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+					                 + tile_map_begin];
+					p.nattrib = p.vram[((tile_map_size / lcdc_bgtmsel * p.lcdc | p.scx / tile_len)
+					                     & (tile_map_size + tile_map_len - 1))
+					                 + tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+					                 + tile_map_begin + vram_bank_size];
 				}
 
 				break;
@@ -293,7 +317,7 @@ namespace M3Start {
 				unsigned spx = p.spriteMapper.posbuf()[pos + 1];
 
 				p.spriteList[i].spx = spx;
-				p.spriteList[i].line = ly + 16 - spy;
+				p.spriteList[i].line = ly + 2 * tile_len - spy;
 				p.spriteList[i].oampos = pos * 2;
 				p.spwordList[i] = 0;
 			}
@@ -324,8 +348,9 @@ namespace M3Loop {
 
 void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const dbufline,
 		unsigned char const *const tileMapLine, unsigned const tileline, unsigned tileMapXpos) {
-	unsigned const tileIndexSign = ~(p.lcdc * 8u) & 0x80;
-	unsigned char const *const tileDataLine = p.vram + tileIndexSign * 32 + tileline * 2;
+	unsigned const tileIndexSign = (~p.lcdc & lcdc_tdsel) * 8;
+	unsigned char const *const tileDataLine = p.vram + 2 * tile_size * tileIndexSign
+		+ tileline * tile_line_size;
 	int xpos = p.xpos;
 
 	do {
@@ -336,7 +361,6 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 
 			if (lcdcObjEn(p)) {
 				cycles -= std::max(11 - (spx(p.spriteList[nextSprite]) - xpos), 6);
-
 				for (int i = nextSprite + 1; spx(p.spriteList[i]) < xpos + tile_len; ++i)
 					cycles -= 6;
 
@@ -347,14 +371,14 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 
 				do {
 					unsigned char const *const oam = p.spriteMapper.oamram();
-					unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * 16;
+					unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * tile_size;
 					unsigned const attrib = oam[p.spriteList[nextSprite].oampos + 3];
 					unsigned const spline = (  attrib & attr_yflip
-					                         ? p.spriteList[nextSprite].line ^ 15
-					                         : p.spriteList[nextSprite].line     ) * 2;
-
-					reg0 = p.vram[(lcdcObj2x(p) ? (reg1 & ~16u) | spline : reg1 | (spline & ~16u))    ];
-					reg1 = p.vram[(lcdcObj2x(p) ? (reg1 & ~16u) | spline : reg1 | (spline & ~16u)) + 1];
+					                         ? p.spriteList[nextSprite].line ^ 2 * tile_len - 1
+					                         : p.spriteList[nextSprite].line     ) * tile_line_size;
+					unsigned const ts = tile_size;
+					reg0 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts))    ];
+					reg1 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
 
 					p.spwordList[nextSprite] = expand_lut[reg0 + (attrib & attr_xflip) * 8]
 					                         + expand_lut[reg1 + (attrib & attr_xflip) * 8] * 2;
@@ -390,24 +414,26 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 				do { *dst++ = p.bgPalette[0]; } while (dst != dstend);
 				tileMapXpos += n / (1u * tile_len);
 
-				unsigned const tno = tileMapLine[(tileMapXpos - 1) & 0x1F];
-				ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
-				          + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
+				unsigned const tno = tileMapLine[(tileMapXpos - 1) % tile_map_len];
+				int const ts = tile_size;
+				ntileword = expand_lut[(tileDataLine + ts * tno - 2 * ts * (tno & tileIndexSign))[0]]
+				          + expand_lut[(tileDataLine + ts * tno - 2 * ts * (tno & tileIndexSign))[1]] * 2;
 			} else do {
-				dst[0] = p.bgPalette[ ntileword & 0x0003       ];
-				dst[1] = p.bgPalette[(ntileword & 0x000C) >>  2];
-				dst[2] = p.bgPalette[(ntileword & 0x0030) >>  4];
-				dst[3] = p.bgPalette[(ntileword & 0x00C0) >>  6];
-				dst[4] = p.bgPalette[(ntileword & 0x0300) >>  8];
-				dst[5] = p.bgPalette[(ntileword & 0x0C00) >> 10];
-				dst[6] = p.bgPalette[(ntileword & 0x3000) >> 12];
-				dst[7] = p.bgPalette[ ntileword           >> 14];
+				dst[0] = p.bgPalette[ ntileword & tile_bpp_mask                                 ];
+				dst[1] = p.bgPalette[(ntileword & tile_bpp_mask << 1 * tile_bpp) >> 1 * tile_bpp];
+				dst[2] = p.bgPalette[(ntileword & tile_bpp_mask << 2 * tile_bpp) >> 2 * tile_bpp];
+				dst[3] = p.bgPalette[(ntileword & tile_bpp_mask << 3 * tile_bpp) >> 3 * tile_bpp];
+				dst[4] = p.bgPalette[(ntileword & tile_bpp_mask << 4 * tile_bpp) >> 4 * tile_bpp];
+				dst[5] = p.bgPalette[(ntileword & tile_bpp_mask << 5 * tile_bpp) >> 5 * tile_bpp];
+				dst[6] = p.bgPalette[(ntileword & tile_bpp_mask << 6 * tile_bpp) >> 6 * tile_bpp];
+				dst[7] = p.bgPalette[ ntileword                                  >> 7 * tile_bpp];
 				dst += tile_len;
 
-				unsigned const tno = tileMapLine[tileMapXpos & 0x1F];
-				tileMapXpos = (tileMapXpos & 0x1F) + 1;
-				ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
-				          + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
+				unsigned const tno = tileMapLine[tileMapXpos % tile_map_len];
+				int const ts = tile_size;
+				tileMapXpos = tileMapXpos % tile_map_len + 1;
+				ntileword = expand_lut[(tileDataLine + ts * tno - 2 * ts * (tno & tileIndexSign))[0]]
+				          + expand_lut[(tileDataLine + ts * tno - 2 * ts * (tno & tileIndexSign))[1]] * 2;
 			} while (dst != dstend);
 
 			p.ntileword = ntileword;
@@ -422,23 +448,26 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 
 		{
 			uint_least32_t *const dst = dbufline + (xpos - tile_len);
-			unsigned const tileword = -(p.lcdc & 1u) & p.ntileword;
+			unsigned const tileword = -(p.lcdc & 1u * lcdc_bgen) & p.ntileword;
 
-			dst[0] = p.bgPalette[ tileword & 0x0003       ];
-			dst[1] = p.bgPalette[(tileword & 0x000C) >>  2];
-			dst[2] = p.bgPalette[(tileword & 0x0030) >>  4];
-			dst[3] = p.bgPalette[(tileword & 0x00C0) >>  6];
-			dst[4] = p.bgPalette[(tileword & 0x0300) >>  8];
-			dst[5] = p.bgPalette[(tileword & 0x0C00) >> 10];
-			dst[6] = p.bgPalette[(tileword & 0x3000) >> 12];
-			dst[7] = p.bgPalette[ tileword           >> 14];
+			dst[0] = p.bgPalette[ tileword & tile_bpp_mask                                 ];
+			dst[1] = p.bgPalette[(tileword & tile_bpp_mask << 1 * tile_bpp) >> 1 * tile_bpp];
+			dst[2] = p.bgPalette[(tileword & tile_bpp_mask << 2 * tile_bpp) >> 2 * tile_bpp];
+			dst[3] = p.bgPalette[(tileword & tile_bpp_mask << 3 * tile_bpp) >> 3 * tile_bpp];
+			dst[4] = p.bgPalette[(tileword & tile_bpp_mask << 4 * tile_bpp) >> 4 * tile_bpp];
+			dst[5] = p.bgPalette[(tileword & tile_bpp_mask << 5 * tile_bpp) >> 5 * tile_bpp];
+			dst[6] = p.bgPalette[(tileword & tile_bpp_mask << 6 * tile_bpp) >> 6 * tile_bpp];
+			dst[7] = p.bgPalette[ tileword                                  >> 7 * tile_bpp];
 
 			int i = nextSprite - 1;
 
 			if (!lcdcObjEn(p)) {
 				do {
-					int pos = spx(p.spriteList[i]) - xpos;
-					p.spwordList[i] >>= pos * 2 >= 0 ? 16 - pos * 2 : 16 + pos * 2;
+					int const pos = spx(p.spriteList[i]) - xpos;
+					int const sa = pos * tile_bpp >= 0
+						? tile_len * tile_bpp - pos * tile_bpp
+						: tile_len * tile_bpp + pos * tile_bpp;
+					p.spwordList[i] = 1l * p.spwordList[i] >> sa;
 					--i;
 				} while (i >= 0 && spx(p.spriteList[i]) > xpos - tile_len);
 			} else {
@@ -452,45 +481,47 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 						n = tile_len - pos;
 
 					unsigned const attrib = p.spriteList[i].attrib;
-					unsigned spword       = p.spwordList[i];
-					unsigned long const *const spPalette = p.spPalette + (attrib >> 2 & 4);
+					long spword = p.spwordList[i];
+					unsigned long const *const spPalette = p.spPalette
+						+ (attrib & attr_dmgpalno) / (attr_dmgpalno / num_palette_entries);
 					uint_least32_t *d = dst + pos;
 
 					if (!(attrib & attr_bgpriority)) {
+						int const bpp = tile_bpp, m = tile_bpp_mask;
 						switch (n) {
-						case 8: if (spword >> 14    ) { d[7] = spPalette[spword >> 14    ]; }
-						case 7: if (spword >> 12 & 3) { d[6] = spPalette[spword >> 12 & 3]; }
-						case 6: if (spword >> 10 & 3) { d[5] = spPalette[spword >> 10 & 3]; }
-						case 5: if (spword >>  8 & 3) { d[4] = spPalette[spword >>  8 & 3]; }
-						case 4: if (spword >>  6 & 3) { d[3] = spPalette[spword >>  6 & 3]; }
-						case 3: if (spword >>  4 & 3) { d[2] = spPalette[spword >>  4 & 3]; }
-						case 2: if (spword >>  2 & 3) { d[1] = spPalette[spword >>  2 & 3]; }
-						case 1: if (spword       & 3) { d[0] = spPalette[spword       & 3]; }
+						case 8: if (spword >> 7 * bpp    ) { d[7] = spPalette[spword >> 7 * bpp    ]; } // fall through
+						case 7: if (spword >> 6 * bpp & m) { d[6] = spPalette[spword >> 6 * bpp & m]; } // fall through
+						case 6: if (spword >> 5 * bpp & m) { d[5] = spPalette[spword >> 5 * bpp & m]; } // fall through
+						case 5: if (spword >> 4 * bpp & m) { d[4] = spPalette[spword >> 4 * bpp & m]; } // fall through
+						case 4: if (spword >> 3 * bpp & m) { d[3] = spPalette[spword >> 3 * bpp & m]; } // fall through
+						case 3: if (spword >> 2 * bpp & m) { d[2] = spPalette[spword >> 2 * bpp & m]; } // fall through
+						case 2: if (spword >> 1 * bpp & m) { d[1] = spPalette[spword >> 1 * bpp & m]; } // fall through
+						case 1: if (spword            & m) { d[0] = spPalette[spword            & m]; }
 						}
 
-						spword >>= n * 2;
+						spword >>= n * bpp;
 
 						/*do {
-							if (spword & 3)
-								dst[pos] = spPalette[spword & 3];
+							if (spword & tile_bpp_mask)
+								dst[pos] = spPalette[spword & tile_bpp_mask];
 
-							spword >>= 2;
+							spword >>= tile_bpp;
 							++pos;
 						} while (--n);*/
 					} else {
-						unsigned tw = tileword >> pos * 2;
+						unsigned tw = tileword >> pos * tile_bpp;
 						d += n;
 						n = -n;
 
 						do {
-							if (spword & 3) {
-								d[n] = tw & 3
-								     ? p.bgPalette[    tw & 3]
-								     :   spPalette[spword & 3];
+							if (spword & tile_bpp_mask) {
+								d[n] = tw & tile_bpp_mask
+								     ? p.bgPalette[    tw & tile_bpp_mask]
+								     :   spPalette[spword & tile_bpp_mask];
 							}
 
-							spword >>= 2;
-							tw     >>= 2;
+							spword >>= tile_bpp;
+							tw     >>= tile_bpp;
 						} while (++n);
 					}
 
@@ -500,10 +531,11 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 			}
 		}
 
-		unsigned const tno = tileMapLine[tileMapXpos & 0x1F];
-		tileMapXpos = (tileMapXpos & 0x1F) + 1;
-		p.ntileword = expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[0]]
-		            + expand_lut[(tileDataLine + tno * 16 - (tno & tileIndexSign) * 32)[1]] * 2;
+		unsigned const tno = tileMapLine[tileMapXpos % tile_map_len];
+		int const ts = tile_size;
+		tileMapXpos = tileMapXpos % tile_map_len + 1;
+		p.ntileword = expand_lut[(tileDataLine + ts * tno - 2 * ts * (tno & tileIndexSign))[0]]
+		            + expand_lut[(tileDataLine + ts * tno - 2 * ts * (tno & tileIndexSign))[1]] * 2;
 
 		xpos = xpos + tile_len;
 	} while (xpos < xend);
@@ -515,7 +547,7 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 		unsigned char const *const tileMapLine, unsigned const tileline, unsigned tileMapXpos) {
 	int xpos = p.xpos;
 	unsigned char const *const vram = p.vram;
-	unsigned const tdoffset = tileline * 2 + (~p.lcdc & 0x10) * 0x100;
+	unsigned const tdoffset = tileline * tile_line_size + (~p.lcdc & lcdc_tdsel) * 0x100;
 
 	do {
 		int nextSprite = p.nextSprite;
@@ -523,7 +555,6 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 		if (spx(p.spriteList[nextSprite]) < xpos + tile_len) {
 			int cycles = p.cycles - tile_len;
 			cycles -= std::max(11 - (spx(p.spriteList[nextSprite]) - xpos), 6);
-
 			for (int i = nextSprite + 1; spx(p.spriteList[i]) < xpos + tile_len; ++i)
 				cycles -= 6;
 
@@ -534,16 +565,16 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 
 			do {
 				unsigned char const *const oam = p.spriteMapper.oamram();
-				unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * 16;
+				unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * tile_size;
 				unsigned const attrib = oam[p.spriteList[nextSprite].oampos + 3];
 				unsigned const spline = (  attrib & attr_yflip
-				                         ? p.spriteList[nextSprite].line ^ 15
-				                         : p.spriteList[nextSprite].line     ) * 2;
-
-				reg0 = vram[(attrib << 10 & 0x2000)
-				          + (lcdcObj2x(p) ? (reg1 & ~16u) | spline : reg1 | (spline & ~16u))    ];
-				reg1 = vram[(attrib << 10 & 0x2000)
-				          + (lcdcObj2x(p) ? (reg1 & ~16u) | spline : reg1 | (spline & ~16u)) + 1];
+				                         ? p.spriteList[nextSprite].line ^ 2 * tile_len - 1
+				                         : p.spriteList[nextSprite].line     ) * tile_line_size;
+				unsigned const ts = tile_size;
+				reg0 = vram[vram_bank_size / attr_tdbank * (attrib & attr_tdbank)
+				          + (lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts))    ];
+				reg1 = vram[vram_bank_size / attr_tdbank * (attrib & attr_tdbank)
+				          + (lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
 
 				p.spwordList[nextSprite] = expand_lut[reg0 + (attrib & attr_xflip) * 8]
 				                         + expand_lut[reg1 + (attrib & attr_xflip) * 8] * 2;
@@ -567,35 +598,35 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 			xpos += n;
 
 			do {
-				unsigned long const *const bgPalette = p.bgPalette + (nattrib & 7) * 4;
-				dst[0] = bgPalette[ ntileword & 0x0003       ];
-				dst[1] = bgPalette[(ntileword & 0x000C) >>  2];
-				dst[2] = bgPalette[(ntileword & 0x0030) >>  4];
-				dst[3] = bgPalette[(ntileword & 0x00C0) >>  6];
-				dst[4] = bgPalette[(ntileword & 0x0300) >>  8];
-				dst[5] = bgPalette[(ntileword & 0x0C00) >> 10];
-				dst[6] = bgPalette[(ntileword & 0x3000) >> 12];
-				dst[7] = bgPalette[ ntileword           >> 14];
+				unsigned long const *const bgPalette = p.bgPalette
+					+ (nattrib & attr_cgbpalno) * num_palette_entries;
+				dst[0] = bgPalette[ ntileword & tile_bpp_mask                                 ];
+				dst[1] = bgPalette[(ntileword & tile_bpp_mask << 1 * tile_bpp) >> 1 * tile_bpp];
+				dst[2] = bgPalette[(ntileword & tile_bpp_mask << 2 * tile_bpp) >> 2 * tile_bpp];
+				dst[3] = bgPalette[(ntileword & tile_bpp_mask << 3 * tile_bpp) >> 3 * tile_bpp];
+				dst[4] = bgPalette[(ntileword & tile_bpp_mask << 4 * tile_bpp) >> 4 * tile_bpp];
+				dst[5] = bgPalette[(ntileword & tile_bpp_mask << 5 * tile_bpp) >> 5 * tile_bpp];
+				dst[6] = bgPalette[(ntileword & tile_bpp_mask << 6 * tile_bpp) >> 6 * tile_bpp];
+				dst[7] = bgPalette[ ntileword                                  >> 7 * tile_bpp];
 				dst += tile_len;
 
-				unsigned const tno = tileMapLine[ tileMapXpos & 0x1F          ];
-				nattrib            = tileMapLine[(tileMapXpos & 0x1F) + 0x2000];
-				tileMapXpos = (tileMapXpos & 0x1F) + 1;
+				unsigned const tno = tileMapLine[tileMapXpos % tile_map_len                 ];
+				nattrib            = tileMapLine[tileMapXpos % tile_map_len + vram_bank_size];
+				tileMapXpos = tileMapXpos % tile_map_len + 1;
 
 				unsigned const tdo = tdoffset & ~(tno << 5);
-				unsigned char const *const td = vram + tno * 16
-					+ (nattrib & attr_yflip ? tdo ^ 14 : tdo)
-					+ (nattrib << 10 & 0x2000);
+				unsigned char const *const td = vram + tno * tile_size
+					+ (nattrib & attr_yflip ? tdo ^ tile_line_size * (tile_len - 1) : tdo)
+					+ vram_bank_size / attr_tdbank * (nattrib & attr_tdbank);
 				unsigned short const *const explut = expand_lut + (nattrib & attr_xflip) * 8;
 				ntileword = explut[td[0]] + explut[td[1]] * 2;
 			} while (dst != dstend);
 
 			p.ntileword = ntileword;
-			p.nattrib   = nattrib;
+			p.nattrib = nattrib;
 			continue;
 		} else {
 			int cycles = p.cycles - tile_len;
-
 			if (cycles < 0)
 				break;
 
@@ -606,23 +637,26 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 			uint_least32_t *const dst = dbufline + (xpos - tile_len);
 			unsigned const tileword = p.ntileword;
 			unsigned const attrib   = p.nattrib;
-			unsigned long const *const bgPalette = p.bgPalette + (attrib & 7) * 4;
-
-			dst[0] = bgPalette[ tileword & 0x0003       ];
-			dst[1] = bgPalette[(tileword & 0x000C) >>  2];
-			dst[2] = bgPalette[(tileword & 0x0030) >>  4];
-			dst[3] = bgPalette[(tileword & 0x00C0) >>  6];
-			dst[4] = bgPalette[(tileword & 0x0300) >>  8];
-			dst[5] = bgPalette[(tileword & 0x0C00) >> 10];
-			dst[6] = bgPalette[(tileword & 0x3000) >> 12];
-			dst[7] = bgPalette[ tileword           >> 14];
+			unsigned long const *const bgPalette = p.bgPalette
+				+ (attrib & attr_cgbpalno) * num_palette_entries;
+			dst[0] = bgPalette[ tileword & tile_bpp_mask                                 ];
+			dst[1] = bgPalette[(tileword & tile_bpp_mask << 1 * tile_bpp) >> 1 * tile_bpp];
+			dst[2] = bgPalette[(tileword & tile_bpp_mask << 2 * tile_bpp) >> 2 * tile_bpp];
+			dst[3] = bgPalette[(tileword & tile_bpp_mask << 3 * tile_bpp) >> 3 * tile_bpp];
+			dst[4] = bgPalette[(tileword & tile_bpp_mask << 4 * tile_bpp) >> 4 * tile_bpp];
+			dst[5] = bgPalette[(tileword & tile_bpp_mask << 5 * tile_bpp) >> 5 * tile_bpp];
+			dst[6] = bgPalette[(tileword & tile_bpp_mask << 6 * tile_bpp) >> 6 * tile_bpp];
+			dst[7] = bgPalette[ tileword                                  >> 7 * tile_bpp];
 
 			int i = nextSprite - 1;
 
 			if (!lcdcObjEn(p)) {
 				do {
-					int pos = spx(p.spriteList[i]) - xpos;
-					p.spwordList[i] >>= pos * 2 >= 0 ? 16 - pos * 2 : 16 + pos * 2;
+					int const pos = spx(p.spriteList[i]) - xpos;
+					int const sa = pos * tile_bpp >= 0
+						? tile_len * tile_bpp - pos * tile_bpp
+						: tile_len * tile_bpp + pos * tile_bpp;
+					p.spwordList[i] = 1l * p.spwordList[i] >> sa;
 					--i;
 				} while (i >= 0 && spx(p.spriteList[i]) > xpos - tile_len);
 			} else {
@@ -632,7 +666,6 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 				do {
 					int n;
 					int pos = spx(p.spriteList[i]) - xpos;
-
 					if (pos < 0) {
 						n = pos + tile_len;
 						pos = 0;
@@ -641,72 +674,73 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 
 					unsigned char const id = p.spriteList[i].oampos;
 					unsigned const sattrib = p.spriteList[i].attrib;
-					unsigned spword = p.spwordList[i];
-					unsigned long const *const spPalette = p.spPalette + (sattrib & 7) * 4;
+					long spword = p.spwordList[i];
+					unsigned long const *const spPalette = p.spPalette
+						+ (sattrib & attr_cgbpalno) * num_palette_entries;
 
 					if (!((attrib | sattrib) & bgprioritymask)) {
 						unsigned char  *const idt = idtab + pos;
 						uint_least32_t *const   d =   dst + pos;
 
 						switch (n) {
-						case 8: if ((spword >> 14    ) && id < idt[7]) {
+						case 8: if ((spword >> 7 * tile_bpp) && id < idt[7]) {
 						        	idt[7] = id;
-						        	  d[7] = spPalette[spword >> 14    ];
-						        }
-						case 7: if ((spword >> 12 & 3) && id < idt[6]) {
+						        	  d[7] = spPalette[spword >> 7 * tile_bpp];
+						        } // fall through
+						case 7: if ((spword >> 6 * tile_bpp & tile_bpp_mask) && id < idt[6]) {
 						        	idt[6] = id;
-						        	  d[6] = spPalette[spword >> 12 & 3];
-						        }
-						case 6: if ((spword >> 10 & 3) && id < idt[5]) {
+						        	  d[6] = spPalette[spword >> 6 * tile_bpp & tile_bpp_mask];
+						        } // fall through
+						case 6: if ((spword >> 5 * tile_bpp & tile_bpp_mask) && id < idt[5]) {
 						        	idt[5] = id;
-						        	  d[5] = spPalette[spword >> 10 & 3];
-						        }
-						case 5: if ((spword >>  8 & 3) && id < idt[4]) {
+						        	  d[5] = spPalette[spword >> 5 * tile_bpp & tile_bpp_mask];
+						        } // fall through
+						case 5: if ((spword >> 4 * tile_bpp & tile_bpp_mask) && id < idt[4]) {
 						        	idt[4] = id;
-						        	  d[4] = spPalette[spword >>  8 & 3];
-						        }
-						case 4: if ((spword >>  6 & 3) && id < idt[3]) {
+						        	  d[4] = spPalette[spword >> 4 * tile_bpp & tile_bpp_mask];
+						        } // fall through
+						case 4: if ((spword >> 3 * tile_bpp & tile_bpp_mask) && id < idt[3]) {
 						        	idt[3] = id;
-						        	  d[3] = spPalette[spword >>  6 & 3];
-						        }
-						case 3: if ((spword >>  4 & 3) && id < idt[2]) {
+						        	  d[3] = spPalette[spword >> 3 * tile_bpp & tile_bpp_mask];
+						        } // fall through
+						case 3: if ((spword >> 2 * tile_bpp & tile_bpp_mask) && id < idt[2]) {
 						        	idt[2] = id;
-						        	  d[2] = spPalette[spword >>  4 & 3];
-						        }
-						case 2: if ((spword >>  2 & 3) && id < idt[1]) {
+						        	  d[2] = spPalette[spword >> 2 * tile_bpp & tile_bpp_mask];
+						        } // fall through
+						case 2: if ((spword >> 1 * tile_bpp & tile_bpp_mask) && id < idt[1]) {
 						        	idt[1] = id;
-						        	  d[1] = spPalette[spword >>  2 & 3];
-						        }
-						case 1: if ((spword       & 3) && id < idt[0]) {
+						        	  d[1] = spPalette[spword >> 1 * tile_bpp & tile_bpp_mask];
+						        } // fall through
+						case 1: if ((spword & tile_bpp_mask) && id < idt[0]) {
 						        	idt[0] = id;
-						        	  d[0] = spPalette[spword       & 3];
+						        	  d[0] = spPalette[spword & tile_bpp_mask];
 						        }
 						}
 
-						spword >>= n * 2;
+						spword >>= n * tile_bpp;
 
 						/*do {
-							if ((spword & 3) && id < idtab[pos]) {
+							if ((spword & tile_bpp_mask) && id < idtab[pos]) {
 								idtab[pos] = id;
-									dst[pos] = spPalette[spword & 3];
+									dst[pos] = spPalette[spword & tile_bpp_mask];
 							}
 
-							spword >>= 2;
+							spword >>= tile_bpp;
 							++pos;
 						} while (--n);*/
 					} else {
-						unsigned tw = tileword >> pos * 2;
+						unsigned tw = tileword >> pos * tile_bpp;
 
 						do {
-							if ((spword & 3) && id < idtab[pos]) {
+							if ((spword & tile_bpp_mask) && id < idtab[pos]) {
 								idtab[pos] = id;
-								  dst[pos] = tw & 3
-								           ? bgPalette[    tw & 3]
-								           : spPalette[spword & 3];
+								  dst[pos] = tw & tile_bpp_mask
+								           ? bgPalette[    tw & tile_bpp_mask]
+								           : spPalette[spword & tile_bpp_mask];
 							}
 
-							spword >>= 2;
-							tw     >>= 2;
+							spword >>= tile_bpp;
+							tw     >>= tile_bpp;
 							++pos;
 						} while (--n);
 					}
@@ -718,17 +752,17 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 		}
 
 		{
-			unsigned const tno     = tileMapLine[ tileMapXpos & 0x1F          ];
-			unsigned const nattrib = tileMapLine[(tileMapXpos & 0x1F) + 0x2000];
-			tileMapXpos = (tileMapXpos & 0x1F) + 1;
+			unsigned const tno     = tileMapLine[tileMapXpos % tile_map_len                 ];
+			unsigned const nattrib = tileMapLine[tileMapXpos % tile_map_len + vram_bank_size];
+			tileMapXpos = tileMapXpos % tile_map_len + 1;
 
 			unsigned const tdo = tdoffset & ~(tno << 5);
-			unsigned char const *const td = vram + tno * 16
-				+ (nattrib & attr_yflip ? tdo ^ 14 : tdo)
-				+ (nattrib << 10 & 0x2000);
+			unsigned char const *const td = vram + tno * tile_size
+				+ (nattrib & attr_yflip ? tdo ^ tile_line_size * (tile_len - 1) : tdo)
+				+ vram_bank_size / attr_tdbank * (nattrib & attr_tdbank);
 			unsigned short const *const explut = expand_lut + (nattrib & attr_xflip) * 8;
 			p.ntileword = explut[td[0]] + explut[td[1]] * 2;
-			p.nattrib   = nattrib;
+			p.nattrib = nattrib;
 		}
 
 		xpos = xpos + tile_len;
@@ -749,22 +783,22 @@ void doFullTilesUnrolled(PPUPriv &p) {
 	unsigned char const *tileMapLine;
 	unsigned tileline;
 	unsigned tileMapXpos;
-
 	if (p.winDrawState & win_draw_started) {
-		tileMapLine = p.vram + (p.lcdc << 4 & 0x400)
-			+ (p.winYPos & 0xF8) * 4 + 0x1800;
+		tileMapLine = p.vram + tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+			+ tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+			+ tile_map_begin;
 		tileMapXpos = (xpos + p.wscx) / (1u * tile_len);
 		tileline = p.winYPos % tile_len;
 	} else {
-		tileMapLine = p.vram + (p.lcdc << 7 & 0x400)
-			+ ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x1800;
+		tileMapLine = p.vram + tile_map_size / lcdc_bgtmsel * (p.lcdc & lcdc_bgtmsel)
+			+ tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+			+ tile_map_begin;
 		tileMapXpos = (p.scx + xpos + 1 - p.cgb) / (1u * tile_len);
 		tileline = (p.scy + p.lyCounter.ly()) % tile_len;
 	}
 
 	if (xpos < tile_len) {
 		uint_least32_t prebuf[2 * tile_len];
-
 		if (p.cgb) {
 			doFullTilesUnrolledCgb(p, std::min(tile_len, xend), prebuf + (tile_len - xpos),
 			                       tileMapLine, tileline, tileMapXpos);
@@ -774,7 +808,6 @@ void doFullTilesUnrolled(PPUPriv &p) {
 		}
 
 		int const newxpos = p.xpos;
-
 		if (newxpos > tile_len) {
 			std::memcpy(dbufline, prebuf + (tile_len - xpos), (newxpos - tile_len) * sizeof *dbufline);
 		} else if (newxpos < tile_len)
@@ -786,10 +819,9 @@ void doFullTilesUnrolled(PPUPriv &p) {
 		tileMapXpos += (newxpos - xpos) / (1u * tile_len);
 	}
 
-	if (p.cgb) {
-		doFullTilesUnrolledCgb(p, xend, dbufline, tileMapLine, tileline, tileMapXpos);
-	} else
-		doFullTilesUnrolledDmg(p, xend, dbufline, tileMapLine, tileline, tileMapXpos);
+	p.cgb
+	? doFullTilesUnrolledCgb(p, xend, dbufline, tileMapLine, tileline, tileMapXpos)
+	: doFullTilesUnrolledDmg(p, xend, dbufline, tileMapLine, tileline, tileMapXpos);
 }
 
 void plotPixel(PPUPriv &p) {
@@ -807,8 +839,8 @@ void plotPixel(PPUPriv &p) {
 			p.winDrawState |= win_draw_start;
 	}
 
-	unsigned const twdata = tileword & ((p.lcdc & 1) | p.cgb) * 3;
-	unsigned long pixel = p.bgPalette[twdata + (p.attrib & 7) * 4];
+	unsigned const twdata = tileword & ((p.lcdc & lcdc_bgen) | p.cgb) * tile_bpp_mask;
+	unsigned long pixel = p.bgPalette[twdata + (p.attrib & attr_cgbpalno) * num_palette_entries];
 	int i = static_cast<int>(p.nextSprite) - 1;
 
 	if (i >= 0 && spx(p.spriteList[i]) > xpos - tile_len) {
@@ -819,33 +851,33 @@ void plotPixel(PPUPriv &p) {
 			unsigned minId = 0xFF;
 
 			do {
-				if ((p.spwordList[i] & 3) && p.spriteList[i].oampos < minId) {
-					spdata = p.spwordList[i] & 3;
+				if ((p.spwordList[i] & tile_bpp_mask) && p.spriteList[i].oampos < minId) {
+					spdata = p.spwordList[i] & tile_bpp_mask;
 					attrib = p.spriteList[i].attrib;
 					minId  = p.spriteList[i].oampos;
 				}
 
-				p.spwordList[i] >>= 2;
+				p.spwordList[i] >>= tile_bpp;
 				--i;
 			} while (i >= 0 && spx(p.spriteList[i]) > xpos - tile_len);
 
 			if (spdata && lcdcObjEn(p)
 					&& (!((attrib | p.attrib) & attr_bgpriority) || !twdata || !lcdcBgEn(p))) {
-				pixel = p.spPalette[(attrib & 7) * 4 + spdata];
+				pixel = p.spPalette[(attrib & attr_cgbpalno) * num_palette_entries + spdata];
 			}
 		} else {
 			do {
-				if (p.spwordList[i] & 3) {
-					spdata = p.spwordList[i] & 3;
+				if (p.spwordList[i] & tile_bpp_mask) {
+					spdata = p.spwordList[i] & tile_bpp_mask;
 					attrib = p.spriteList[i].attrib;
 				}
 
-				p.spwordList[i] >>= 2;
+				p.spwordList[i] >>= tile_bpp;
 				--i;
 			} while (i >= 0 && spx(p.spriteList[i]) > xpos - tile_len);
 
 			if (spdata && lcdcObjEn(p) && (!(attrib & attr_bgpriority) || !twdata))
-				pixel = p.spPalette[(attrib >> 2 & 4) + spdata];
+				pixel = p.spPalette[(attrib & attr_dmgpalno) / (attr_dmgpalno / num_palette_entries) + spdata];
 		}
 	}
 
@@ -853,7 +885,7 @@ void plotPixel(PPUPriv &p) {
 		fbline[xpos - tile_len] = pixel;
 
 	p.xpos = xpos + 1;
-	p.tileword = tileword >> 2;
+	p.tileword = tileword >> tile_bpp;
 }
 
 void plotPixelIfNoSprite(PPUPriv &p) {
@@ -935,15 +967,19 @@ namespace StartWindowDraw {
 		p.wscx = tile_len - p.xpos;
 
 		if (p.winDrawState & win_draw_started) {
-			p.reg1    = p.vram[(p.lcdc << 4 & 0x400)
-			                 + (p.winYPos & 0xF8) * 4 + 0x1800];
-			p.nattrib = p.vram[(p.lcdc << 4 & 0x400)
-			                 + (p.winYPos & 0xF8) * 4 + 0x3800];
+			p.reg1    = p.vram[tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+			                 + tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+			                 + tile_map_begin];
+			p.nattrib = p.vram[tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+			                 + tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+			                 + tile_map_begin + vram_bank_size];
 		} else {
-			p.reg1    = p.vram[(p.lcdc << 7 & 0x400)
-			                 + ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x1800];
-			p.nattrib = p.vram[(p.lcdc << 7 & 0x400)
-			                 + ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x3800];
+			p.reg1    = p.vram[tile_map_size / lcdc_bgtmsel * (p.lcdc & lcdc_bgtmsel)
+			                 + tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+			                 + tile_map_begin];
+			p.nattrib = p.vram[tile_map_size / lcdc_bgtmsel * (p.lcdc & lcdc_bgtmsel)
+			                 + tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+			                 + tile_map_begin + vram_bank_size];
 		}
 
 		inc(f1_, p);
@@ -1009,10 +1045,12 @@ namespace LoadSprites {
 
 		unsigned const spline =
 			(  p.spriteList[p.currentSprite].attrib & attr_yflip
-			 ? p.spriteList[p.currentSprite].line ^ 15
-			 : p.spriteList[p.currentSprite].line         ) * 2;
-		p.reg0 = p.vram[(p.spriteList[p.currentSprite].attrib << 10 & p.cgb * 0x2000)
-		              + (lcdcObj2x(p) ? (p.reg1 * 16 & ~16u) | spline : p.reg1 * 16 | (spline & ~16u))];
+			 ? p.spriteList[p.currentSprite].line ^ 2 * tile_len - 1
+			 : p.spriteList[p.currentSprite].line         ) * tile_line_size;
+		unsigned const ts = tile_size;
+		p.reg0 = p.vram[vram_bank_size / attr_tdbank
+				* (p.spriteList[p.currentSprite].attrib & p.cgb * attr_tdbank)
+			+ (lcdcObj2x(p) ? (p.reg1 * ts & ~ts) | spline : p.reg1 * ts | (spline & ~ts))];
 		inc(f3_, p);
 	}
 
@@ -1029,10 +1067,12 @@ namespace LoadSprites {
 
 		unsigned const spline =
 			(  p.spriteList[p.currentSprite].attrib & attr_yflip
-			 ? p.spriteList[p.currentSprite].line ^ 15
-			 : p.spriteList[p.currentSprite].line         ) * 2;
-		p.reg1 = p.vram[(p.spriteList[p.currentSprite].attrib << 10 & p.cgb * 0x2000)
-		              + (lcdcObj2x(p) ? (p.reg1 * 16 & ~16u) | spline : p.reg1 * 16 | (spline & ~16u)) + 1];
+			 ? p.spriteList[p.currentSprite].line ^ 2 * tile_len - 1
+			 : p.spriteList[p.currentSprite].line         ) * tile_line_size;
+		unsigned const ts = tile_size;
+		p.reg1 = p.vram[vram_bank_size / attr_tdbank
+				* (p.spriteList[p.currentSprite].attrib & p.cgb * attr_tdbank)
+			+ (lcdcObj2x(p) ? (p.reg1 * ts & ~ts) | spline : p.reg1 * ts | (spline & ~ts)) + 1];
 		inc(f5_, p);
 	}
 
@@ -1093,15 +1133,22 @@ namespace Tile {
 		p.endx = std::min(1u * xpos_end, p.xpos + 1u * tile_len);
 
 		if (p.winDrawState & win_draw_started) {
-			p.reg1    = p.vram[(p.lcdc << 4 & 0x400) + (p.winYPos & 0xF8) * 4
-			                 + ((p.xpos + p.wscx) / tile_len & 0x1F) + 0x1800];
-			p.nattrib = p.vram[(p.lcdc << 4 & 0x400) + (p.winYPos & 0xF8) * 4
-			                 + ((p.xpos + p.wscx) / tile_len & 0x1F) + 0x3800];
+			p.reg1    = p.vram[tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+			                 + tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+			                 + (p.xpos + p.wscx) / tile_len % tile_map_len + tile_map_begin];
+			p.nattrib = p.vram[tile_map_size / lcdc_wtmsel * (p.lcdc & lcdc_wtmsel)
+			                 + tile_map_len / tile_len * (p.winYPos & (0x100 - tile_len))
+			                 + (p.xpos + p.wscx) / tile_len % tile_map_len + tile_map_begin
+			                 + vram_bank_size];
 		} else {
-			p.reg1    = p.vram[((p.lcdc << 7 | (p.scx + p.xpos + 1u - p.cgb) / tile_len) & 0x41F)
-			                 + ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x1800];
-			p.nattrib = p.vram[((p.lcdc << 7 | (p.scx + p.xpos + 1u - p.cgb) / tile_len) & 0x41F)
-			                 + ((p.scy + p.lyCounter.ly()) & 0xF8) * 4 + 0x3800];
+			p.reg1    = p.vram[((tile_map_size / lcdc_bgtmsel * p.lcdc | (p.scx + p.xpos + 1u - p.cgb) / tile_len)
+			                     & (tile_map_size + tile_map_len - 1))
+			                 + tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+			                 + tile_map_begin];
+			p.nattrib = p.vram[((tile_map_size / lcdc_bgtmsel * p.lcdc | (p.scx + p.xpos + 1u - p.cgb) / tile_len)
+			                     & (tile_map_size + tile_map_len - 1))
+			                 + tile_map_len / tile_len * ((p.scy + p.lyCounter.ly()) & (0x100 - tile_len))
+			                 + tile_map_begin + vram_bank_size];
 		}
 
 		inc(f1_, p);
@@ -1275,7 +1322,7 @@ namespace Tile {
 				                                                 // because fno will be used.
 				unsigned prevSpriteTileNo = (xpos - firstTileXpos) & -tile_len; // this tile. all sprites on this
 				                                                                // tile will now add 6 cycles.
-				// except this one
+				// except this one.
 				if (fno + spx - xpos < 5 && spx <= nwx) {
 					cycles += 11 - (fno + spx - xpos);
 					sprite += 1;
@@ -1608,7 +1655,7 @@ void loadSpriteList(PPUPriv &p, SaveState const &ss) {
 			unsigned spx = p.spriteMapper.posbuf()[pos + 1];
 
 			p.spriteList[i].spx = spx;
-			p.spriteList[i].line = ly + 16 - spy;
+			p.spriteList[i].line = ly + 2 * tile_len - spy;
 			p.spriteList[i].oampos = pos * 2;
 			p.spriteList[i].attrib = ss.ppu.spAttribList[i] & 0xFF;
 			p.spwordList[i] = (ss.ppu.spByte1List[i] * 0x100 + ss.ppu.spByte0List[i]) & 0xFFFF;

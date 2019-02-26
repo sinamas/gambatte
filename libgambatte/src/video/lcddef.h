@@ -7,8 +7,10 @@ enum {
 	lcdc_bgen = 0x01,
 	lcdc_objen = 0x02,
 	lcdc_obj2x = 0x04,
+	lcdc_bgtmsel = 0x08,
 	lcdc_tdsel = 0x10,
 	lcdc_we = 0x20,
+	lcdc_wtmsel = 0x40,
 	lcdc_en = 0x80 };
 
 enum {
