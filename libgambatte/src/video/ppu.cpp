@@ -348,7 +348,7 @@ namespace M3Loop {
 
 void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const dbufline,
 		unsigned char const *const tileMapLine, unsigned const tileline, unsigned tileMapXpos) {
-	unsigned const tileIndexSign = (~p.lcdc & lcdc_tdsel) * 8;
+	int const tileIndexSign = p.lcdc & lcdc_tdsel ? 0 : tile_pattern_table_size / tile_size / 2;
 	unsigned char const *const tileDataLine = p.vram + 2 * tile_size * tileIndexSign
 		+ tileline * tile_line_size;
 	int xpos = p.xpos;
@@ -547,7 +547,8 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 		unsigned char const *const tileMapLine, unsigned const tileline, unsigned tileMapXpos) {
 	int xpos = p.xpos;
 	unsigned char const *const vram = p.vram;
-	unsigned const tdoffset = tileline * tile_line_size + (~p.lcdc & lcdc_tdsel) * 0x100;
+	unsigned const tdoffset = tileline * tile_line_size
+		+ tile_pattern_table_size / lcdc_tdsel * (~p.lcdc & lcdc_tdsel);
 
 	do {
 		int nextSprite = p.nextSprite;

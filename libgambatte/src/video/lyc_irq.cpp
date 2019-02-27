@@ -23,7 +23,26 @@
 #include "savestate.h"
 #include <algorithm>
 
-namespace gambatte {
+using namespace gambatte;
+
+namespace {
+
+unsigned long schedule(unsigned statReg,
+		unsigned lycReg, LyCounter const &lyCounter, unsigned long cc) {
+	return (statReg & lcdstat_lycirqen) && lycReg < lcd_lines_per_frame
+	? lyCounter.nextFrameCycle(lycReg
+		? 1l * lycReg * lcd_cycles_per_line
+		: (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + 8, cc)
+	: static_cast<unsigned long>(disabled_time);
+}
+
+bool lycIrqBlockedByM2OrM1StatIrq(unsigned ly, unsigned statreg) {
+	return ly < lcd_vres && ly > 0
+	? statreg & lcdstat_m2irqen
+	: statreg & lcdstat_m1irqen;
+}
+
+}
 
 LycIrq::LycIrq()
 : time_(disabled_time)
@@ -33,15 +52,6 @@ LycIrq::LycIrq()
 , statReg_(0)
 , cgb_(false)
 {
-}
-
-static unsigned long schedule(unsigned statReg,
-		unsigned lycReg, LyCounter const &lyCounter, unsigned long cc) {
-	return (statReg & lcdstat_lycirqen) && lycReg < lcd_lines_per_frame
-	? lyCounter.nextFrameCycle(lycReg
-		? 1l * lycReg * lcd_cycles_per_line
-		: (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + 8, cc)
-	: static_cast<unsigned long>(disabled_time);
 }
 
 void LycIrq::regChange(unsigned const statReg,
@@ -64,14 +74,8 @@ void LycIrq::regChange(unsigned const statReg,
 		if (time_ - cc > 4 || lycReg_ != 0)
 			statReg_ = statReg;
 
-		statReg_ = (statReg_ & lcdstat_lycirqen) | (statReg & ~lcdstat_lycirqen);
+		statReg_ = (statReg_ & lcdstat_lycirqen) | (statReg & ~(1u * lcdstat_lycirqen));
 	}
-}
-
-static bool lycIrqBlockedByM2OrM1StatIrq(unsigned ly, unsigned statreg) {
-	return ly - 1u < lcd_vres - 1u
-	     ? statreg & lcdstat_m2irqen
-	     : statreg & lcdstat_m1irqen;
 }
 
 void LycIrq::doEvent(unsigned char *const ifreg, LyCounter const &lyCounter) {
@@ -105,6 +109,4 @@ void LycIrq::reschedule(LyCounter const &lyCounter, unsigned long cc) {
 void LycIrq::lcdReset() {
 	statReg_ = statRegSrc_;
 	lycReg_ = lycRegSrc_;
-}
-
 }
