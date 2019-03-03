@@ -60,19 +60,19 @@ public:
 	void dmgBgPaletteChange(unsigned data, unsigned long cycleCounter) {
 		update(cycleCounter);
 		bgpData_[0] = data;
-		setDmgPalette(ppu_.bgPalette(), dmgColorsRgb32_, data);
+		setDmgPalette(ppu_.bgPalette(), dmgColorsRgb32_[0], data);
 	}
 
 	void dmgSpPalette1Change(unsigned data, unsigned long cycleCounter) {
 		update(cycleCounter);
 		objpData_[0] = data;
-		setDmgPalette(ppu_.spPalette(), dmgColorsRgb32_ + 4, data);
+		setDmgPalette(ppu_.spPalette(), dmgColorsRgb32_[1], data);
 	}
 
 	void dmgSpPalette2Change(unsigned data, unsigned long cycleCounter) {
 		update(cycleCounter);
 		objpData_[1] = data;
-		setDmgPalette(ppu_.spPalette() + 4, dmgColorsRgb32_ + 8, data);
+		setDmgPalette(ppu_.spPalette() + num_palette_entries, dmgColorsRgb32_[2], data);
 	}
 
 	void cgbBgColorChange(unsigned index, unsigned data, unsigned long cycleCounter) {
@@ -86,11 +86,11 @@ public:
 	}
 
 	unsigned cgbBgColorRead(unsigned index, unsigned long cycleCounter) {
-		return ppu_.cgb() & cgbpAccessible(cycleCounter) ? bgpData_[index] : 0xFF;
+		return ppu_.cgb() && cgbpAccessible(cycleCounter) ? bgpData_[index] : 0xFF;
 	}
 
 	unsigned cgbSpColorRead(unsigned index, unsigned long cycleCounter) {
-		return ppu_.cgb() & cgbpAccessible(cycleCounter) ? objpData_[index] : 0xFF;
+		return ppu_.cgb() && cgbpAccessible(cycleCounter) ? objpData_[index] : 0xFF;
 	}
 
 	void updateScreen(bool blanklcd, unsigned long cc);
@@ -196,7 +196,7 @@ private:
 	};
 
 	PPU ppu_;
-	unsigned long dmgColorsRgb32_[3 * num_palette_entries];
+	unsigned long dmgColorsRgb32_[3][num_palette_entries];
 	unsigned char  bgpData_[2 * max_num_palettes * num_palette_entries];
 	unsigned char objpData_[2 * max_num_palettes * num_palette_entries];
 	EventTimes eventTimes_;

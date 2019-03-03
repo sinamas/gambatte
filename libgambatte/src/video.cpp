@@ -116,14 +116,14 @@ void doCgbColorChange(unsigned char *pdata,
 		unsigned long *palette, unsigned index, unsigned data) {
 	pdata[index] = data;
 	index >>= 1;
-	palette[index] = gbcToRgb32(pdata[index * 2] | pdata[index * 2 + 1] << 8);
+	palette[index] = gbcToRgb32(pdata[index * 2] | pdata[index * 2 + 1] * 0x100l);
 }
 
 } // unnamed namespace.
 
 void LCD::setDmgPalette(unsigned long palette[], unsigned long const dmgColors[], unsigned data) {
-    for (int i = 0; i < num_palette_entries; ++i)
-        palette[i] = dmgColors[(data >> 2 * i) % num_palette_entries];
+	for (int i = 0; i < num_palette_entries; ++i, data /= num_palette_entries)
+		palette[i] = dmgColors[data % num_palette_entries];
 }
 
 LCD::LCD(unsigned char const *oamram, unsigned char const *vram,
@@ -136,8 +136,9 @@ LCD::LCD(unsigned char const *oamram, unsigned char const *vram,
 , m2IrqStatReg_(0)
 , m1IrqStatReg_(0)
 {
-	for (std::size_t i = 0; i < sizeof dmgColorsRgb32_ / sizeof dmgColorsRgb32_[0]; ++i)
-		dmgColorsRgb32_[i] = 85 * 0x010101l * ((num_palette_entries - 1 - i) % num_palette_entries);
+	for (std::size_t pno = 0; pno < sizeof dmgColorsRgb32_ / sizeof dmgColorsRgb32_[0]; ++pno)
+	for (std::size_t i = 0; i < num_palette_entries; ++i)
+		dmgColorsRgb32_[pno][i] = 85 * 0x010101l * (num_palette_entries - 1 - i);
 
 	reset(oamram, vram, false);
 	setVideoBuffer(0, lcd_hres);
@@ -210,13 +211,13 @@ void LCD::loadState(SaveState const &state, unsigned char const *const oamram) {
 void LCD::refreshPalettes() {
 	if (ppu_.cgb()) {
 		for (int i = 0; i < max_num_palettes * num_palette_entries; ++i) {
-			ppu_.bgPalette()[i] = gbcToRgb32( bgpData_[2 * i] |  bgpData_[2 * i + 1] << 8);
-			ppu_.spPalette()[i] = gbcToRgb32(objpData_[2 * i] | objpData_[2 * i + 1] << 8);
+			ppu_.bgPalette()[i] = gbcToRgb32( bgpData_[2 * i] |  bgpData_[2 * i + 1] * 0x100l);
+			ppu_.spPalette()[i] = gbcToRgb32(objpData_[2 * i] | objpData_[2 * i + 1] * 0x100l);
 		}
 	} else {
-		setDmgPalette(ppu_.bgPalette()    , dmgColorsRgb32_    ,  bgpData_[0]);
-		setDmgPalette(ppu_.spPalette()    , dmgColorsRgb32_ + 4, objpData_[0]);
-		setDmgPalette(ppu_.spPalette() + 4, dmgColorsRgb32_ + 8, objpData_[1]);
+		setDmgPalette(ppu_.bgPalette(), dmgColorsRgb32_[0],  bgpData_[0]);
+		setDmgPalette(ppu_.spPalette(), dmgColorsRgb32_[1], objpData_[0]);
+		setDmgPalette(ppu_.spPalette() + num_palette_entries, dmgColorsRgb32_[2], objpData_[1]);
 	}
 }
 
@@ -257,7 +258,7 @@ void LCD::updateScreen(bool const blanklcd, unsigned long const cycleCounter) {
 	update(cycleCounter);
 
 	if (blanklcd && ppu_.frameBuf().fb()) {
-		unsigned long color = ppu_.cgb() ? gbcToRgb32(0xFFFF) : dmgColorsRgb32_[0];
+		unsigned long color = ppu_.cgb() ? gbcToRgb32(0xFFFF) : dmgColorsRgb32_[0][0];
 		clear(ppu_.frameBuf().fb(), color, ppu_.frameBuf().pitch());
 	}
 
@@ -913,9 +914,9 @@ void LCD::setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch) {
 }
 
 void LCD::setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32) {
-	if (palNum < sizeof dmgColorsRgb32_ / sizeof dmgColorsRgb32_[0] / num_palette_entries
+	if (palNum < sizeof dmgColorsRgb32_ / sizeof dmgColorsRgb32_[0]
 			&& colorNum < num_palette_entries) {
-		dmgColorsRgb32_[palNum * num_palette_entries + colorNum] = rgb32;
+		dmgColorsRgb32_[palNum][colorNum] = rgb32;
 		refreshPalettes();
 	}
 }

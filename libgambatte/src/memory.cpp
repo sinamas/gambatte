@@ -428,13 +428,13 @@ void Memory::oamDmaInitSetup() {
 unsigned char const * Memory::oamDmaSrcPtr() const {
 	switch (cart_.oamDmaSrc()) {
 	case oam_dma_src_rom:
-		return cart_.romdata(ioamhram_[0x146] >> 6) + (ioamhram_[0x146] << 8);
+		return cart_.romdata(ioamhram_[0x146] >> 6) + ioamhram_[0x146] * 0x100l;
 	case oam_dma_src_sram:
-		return cart_.rsrambankptr() ? cart_.rsrambankptr() + (ioamhram_[0x146] << 8) : 0;
+		return cart_.rsrambankptr() ? cart_.rsrambankptr() + ioamhram_[0x146] * 0x100l : 0;
 	case oam_dma_src_vram:
-		return cart_.vrambankptr() + (ioamhram_[0x146] << 8);
+		return cart_.vrambankptr() + ioamhram_[0x146] * 0x100l;
 	case oam_dma_src_wram:
-		return cart_.wramdata(ioamhram_[0x146] >> 4 & 1) + (ioamhram_[0x146] << 8 & 0xFFF);
+		return cart_.wramdata(ioamhram_[0x146] >> 4 & 1) + (ioamhram_[0x146] * 0x100l & 0xFFF);
 	case oam_dma_src_invalid:
 	case oam_dma_src_off:
 		break;

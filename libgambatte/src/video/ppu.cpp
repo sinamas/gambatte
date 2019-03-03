@@ -293,8 +293,8 @@ namespace M3Start {
 			case 4:
 				{
 					int const r1 = loadTileDataByte1(p);
-					p.ntileword = (expand_lut + (p.nattrib & attr_xflip) * 8)[p.reg0]
-					            + (expand_lut + (p.nattrib & attr_xflip) * 8)[r1    ] * 2;
+					p.ntileword = (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[p.reg0]
+					            + (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[r1    ] * 2;
 				}
 
 				break;
@@ -380,8 +380,9 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 					reg0 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts))    ];
 					reg1 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
 
-					p.spwordList[nextSprite] = expand_lut[reg0 + (attrib & attr_xflip) * 8]
-					                         + expand_lut[reg1 + (attrib & attr_xflip) * 8] * 2;
+					p.spwordList[nextSprite] =
+						  expand_lut[reg0 + 0x100 / attr_xflip * (attrib & attr_xflip)]
+						+ expand_lut[reg1 + 0x100 / attr_xflip * (attrib & attr_xflip)] * 2;
 					p.spriteList[nextSprite].attrib = attrib;
 					++nextSprite;
 				} while (spx(p.spriteList[nextSprite]) < xpos + tile_len);
@@ -577,8 +578,9 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 				reg1 = vram[vram_bank_size / attr_tdbank * (attrib & attr_tdbank)
 				          + (lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
 
-				p.spwordList[nextSprite] = expand_lut[reg0 + (attrib & attr_xflip) * 8]
-				                         + expand_lut[reg1 + (attrib & attr_xflip) * 8] * 2;
+				p.spwordList[nextSprite] =
+					  expand_lut[reg0 + 0x100 / attr_xflip * (attrib & attr_xflip)]
+					+ expand_lut[reg1 + 0x100 / attr_xflip * (attrib & attr_xflip)] * 2;
 				p.spriteList[nextSprite].attrib = attrib;
 				++nextSprite;
 			} while (spx(p.spriteList[nextSprite]) < xpos + tile_len);
@@ -619,7 +621,7 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 				unsigned char const *const td = vram + tno * tile_size
 					+ (nattrib & attr_yflip ? tdo ^ tile_line_size * (tile_len - 1) : tdo)
 					+ vram_bank_size / attr_tdbank * (nattrib & attr_tdbank);
-				unsigned short const *const explut = expand_lut + (nattrib & attr_xflip) * 8;
+				unsigned short const *const explut = expand_lut + 0x100 / attr_xflip * (nattrib & attr_xflip);
 				ntileword = explut[td[0]] + explut[td[1]] * 2;
 			} while (dst != dstend);
 
@@ -761,7 +763,7 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 			unsigned char const *const td = vram + tno * tile_size
 				+ (nattrib & attr_yflip ? tdo ^ tile_line_size * (tile_len - 1) : tdo)
 				+ vram_bank_size / attr_tdbank * (nattrib & attr_tdbank);
-			unsigned short const *const explut = expand_lut + (nattrib & attr_xflip) * 8;
+			unsigned short const *const explut = expand_lut + 0x100 / attr_xflip * (nattrib & attr_xflip);
 			p.ntileword = explut[td[0]] + explut[td[1]] * 2;
 			p.nattrib = nattrib;
 		}
@@ -1002,8 +1004,8 @@ namespace StartWindowDraw {
 	void f4(PPUPriv &p) {
 		int const r1 = loadTileDataByte1(p);
 
-		p.ntileword = (expand_lut + (p.nattrib & attr_xflip) * 8)[p.reg0]
-		            + (expand_lut + (p.nattrib & attr_xflip) * 8)[r1    ] * 2;
+		p.ntileword = (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[p.reg0]
+		            + (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[r1    ] * 2;
 
 		inc(f5_, p);
 	}
@@ -1092,8 +1094,9 @@ namespace LoadSprites {
 			p.spriteList[entry] = p.spriteList[p.currentSprite];
 		}
 
-		p.spwordList[entry] = expand_lut[p.reg0 + (p.spriteList[entry].attrib & attr_xflip) * 8]
-		                    + expand_lut[p.reg1 + (p.spriteList[entry].attrib & attr_xflip) * 8] * 2;
+		p.spwordList[entry] =
+			  expand_lut[p.reg0 + 0x100 / attr_xflip * (p.spriteList[entry].attrib & attr_xflip)]
+			+ expand_lut[p.reg1 + 0x100 / attr_xflip * (p.spriteList[entry].attrib & attr_xflip)] * 2;
 		p.spriteList[entry].spx = p.xpos;
 
 		if (p.xpos == p.endx) {
@@ -1183,8 +1186,8 @@ namespace Tile {
 
 		int const r1 = loadTileDataByte1(p);
 
-		p.ntileword = (expand_lut + (p.nattrib & attr_xflip) * 8)[p.reg0]
-		            + (expand_lut + (p.nattrib & attr_xflip) * 8)[r1    ] * 2;
+		p.ntileword = (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[p.reg0]
+		            + (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[r1    ] * 2;
 
 		plotPixelIfNoSprite(p);
 
@@ -1659,7 +1662,7 @@ void loadSpriteList(PPUPriv &p, SaveState const &ss) {
 			p.spriteList[i].line = ly + 2 * tile_len - spy;
 			p.spriteList[i].oampos = pos * 2;
 			p.spriteList[i].attrib = ss.ppu.spAttribList[i] & 0xFF;
-			p.spwordList[i] = (ss.ppu.spByte1List[i] * 0x100 + ss.ppu.spByte0List[i]) & 0xFFFF;
+			p.spwordList[i] = (ss.ppu.spByte1List[i] * 0x100l + ss.ppu.spByte0List[i]) & 0xFFFF;
 		}
 
 		p.spriteList[numSprites].spx = 0xFF;
