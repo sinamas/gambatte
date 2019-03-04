@@ -880,7 +880,7 @@ void plotPixel(PPUPriv &p) {
 			} while (i >= 0 && spx(p.spriteList[i]) > xpos - tile_len);
 
 			if (spdata && lcdcObjEn(p) && (!(attrib & attr_bgpriority) || !twdata))
-				pixel = p.spPalette[(attrib & attr_dmgpalno) / (attr_dmgpalno / num_palette_entries) + spdata];
+				pixel = p.spPalette[(attrib & attr_dmgpalno ? num_palette_entries : 0) + spdata];
 		}
 	}
 
