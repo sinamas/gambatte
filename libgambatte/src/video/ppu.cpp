@@ -373,9 +373,9 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 					unsigned char const *const oam = p.spriteMapper.oamram();
 					unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * tile_size;
 					unsigned const attrib = oam[p.spriteList[nextSprite].oampos + 3];
-					unsigned const spline = (  attrib & attr_yflip
-					                         ? p.spriteList[nextSprite].line ^ 2 * tile_len - 1
-					                         : p.spriteList[nextSprite].line     ) * tile_line_size;
+					unsigned const spline = (attrib & attr_yflip
+						? p.spriteList[nextSprite].line ^ (2 * tile_len - 1)
+						: p.spriteList[nextSprite].line) * tile_line_size;
 					unsigned const ts = tile_size;
 					reg0 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts))    ];
 					reg1 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
@@ -569,9 +569,9 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 				unsigned char const *const oam = p.spriteMapper.oamram();
 				unsigned reg0, reg1   = oam[p.spriteList[nextSprite].oampos + 2] * tile_size;
 				unsigned const attrib = oam[p.spriteList[nextSprite].oampos + 3];
-				unsigned const spline = (  attrib & attr_yflip
-				                         ? p.spriteList[nextSprite].line ^ 2 * tile_len - 1
-				                         : p.spriteList[nextSprite].line     ) * tile_line_size;
+				unsigned const spline = (attrib & attr_yflip
+					? p.spriteList[nextSprite].line ^ (2 * tile_len - 1)
+					: p.spriteList[nextSprite].line) * tile_line_size;
 				unsigned const ts = tile_size;
 				reg0 = vram[vram_bank_size / attr_tdbank * (attrib & attr_tdbank)
 				          + (lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts))    ];
@@ -1048,8 +1048,8 @@ namespace LoadSprites {
 
 		unsigned const spline =
 			(  p.spriteList[p.currentSprite].attrib & attr_yflip
-			 ? p.spriteList[p.currentSprite].line ^ 2 * tile_len - 1
-			 : p.spriteList[p.currentSprite].line         ) * tile_line_size;
+			 ? p.spriteList[p.currentSprite].line ^ (2 * tile_len - 1)
+			 : p.spriteList[p.currentSprite].line) * tile_line_size;
 		unsigned const ts = tile_size;
 		p.reg0 = p.vram[vram_bank_size / attr_tdbank
 				* (p.spriteList[p.currentSprite].attrib & p.cgb * attr_tdbank)
@@ -1070,8 +1070,8 @@ namespace LoadSprites {
 
 		unsigned const spline =
 			(  p.spriteList[p.currentSprite].attrib & attr_yflip
-			 ? p.spriteList[p.currentSprite].line ^ 2 * tile_len - 1
-			 : p.spriteList[p.currentSprite].line         ) * tile_line_size;
+			 ? p.spriteList[p.currentSprite].line ^ (2 * tile_len - 1)
+			 : p.spriteList[p.currentSprite].line) * tile_line_size;
 		unsigned const ts = tile_size;
 		p.reg1 = p.vram[vram_bank_size / attr_tdbank
 				* (p.spriteList[p.currentSprite].attrib & p.cgb * attr_tdbank)
