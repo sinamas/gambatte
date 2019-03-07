@@ -293,8 +293,8 @@ namespace M3Start {
 			case 4:
 				{
 					int const r1 = loadTileDataByte1(p);
-					p.ntileword = (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[p.reg0]
-					            + (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[r1    ] * 2;
+					p.ntileword = (expand_lut + (0x100 / attr_xflip * p.nattrib & 0x100))[p.reg0]
+					            + (expand_lut + (0x100 / attr_xflip * p.nattrib & 0x100))[r1    ] * 2;
 				}
 
 				break;
@@ -381,8 +381,8 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 					reg1 = p.vram[(lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
 
 					p.spwordList[nextSprite] =
-						  expand_lut[reg0 + 0x100 / attr_xflip * (attrib & attr_xflip)]
-						+ expand_lut[reg1 + 0x100 / attr_xflip * (attrib & attr_xflip)] * 2;
+						  expand_lut[reg0 + (0x100 / attr_xflip * attrib & 0x100)]
+						+ expand_lut[reg1 + (0x100 / attr_xflip * attrib & 0x100)] * 2;
 					p.spriteList[nextSprite].attrib = attrib;
 					++nextSprite;
 				} while (spx(p.spriteList[nextSprite]) < xpos + tile_len);
@@ -579,8 +579,8 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 				          + (lcdcObj2x(p) ? (reg1 & ~ts) | spline : reg1 | (spline & ~ts)) + 1];
 
 				p.spwordList[nextSprite] =
-					  expand_lut[reg0 + 0x100 / attr_xflip * (attrib & attr_xflip)]
-					+ expand_lut[reg1 + 0x100 / attr_xflip * (attrib & attr_xflip)] * 2;
+					  expand_lut[reg0 + (0x100 / attr_xflip * attrib & 0x100)]
+					+ expand_lut[reg1 + (0x100 / attr_xflip * attrib & 0x100)] * 2;
 				p.spriteList[nextSprite].attrib = attrib;
 				++nextSprite;
 			} while (spx(p.spriteList[nextSprite]) < xpos + tile_len);
@@ -621,7 +621,7 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 				unsigned char const *const td = vram + tno * tile_size
 					+ (nattrib & attr_yflip ? tdo ^ tile_line_size * (tile_len - 1) : tdo)
 					+ vram_bank_size / attr_tdbank * (nattrib & attr_tdbank);
-				unsigned short const *const explut = expand_lut + 0x100 / attr_xflip * (nattrib & attr_xflip);
+				unsigned short const *const explut = expand_lut + (0x100 / attr_xflip * nattrib & 0x100);
 				ntileword = explut[td[0]] + explut[td[1]] * 2;
 			} while (dst != dstend);
 
@@ -763,7 +763,7 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 			unsigned char const *const td = vram + tno * tile_size
 				+ (nattrib & attr_yflip ? tdo ^ tile_line_size * (tile_len - 1) : tdo)
 				+ vram_bank_size / attr_tdbank * (nattrib & attr_tdbank);
-			unsigned short const *const explut = expand_lut + 0x100 / attr_xflip * (nattrib & attr_xflip);
+			unsigned short const *const explut = expand_lut + (0x100 / attr_xflip * nattrib & 0x100);
 			p.ntileword = explut[td[0]] + explut[td[1]] * 2;
 			p.nattrib = nattrib;
 		}
@@ -1004,8 +1004,8 @@ namespace StartWindowDraw {
 	void f4(PPUPriv &p) {
 		int const r1 = loadTileDataByte1(p);
 
-		p.ntileword = (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[p.reg0]
-		            + (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[r1    ] * 2;
+		p.ntileword = (expand_lut + (0x100 / attr_xflip * p.nattrib & 0x100))[p.reg0]
+		            + (expand_lut + (0x100 / attr_xflip * p.nattrib & 0x100))[r1    ] * 2;
 
 		inc(f5_, p);
 	}
@@ -1186,8 +1186,8 @@ namespace Tile {
 
 		int const r1 = loadTileDataByte1(p);
 
-		p.ntileword = (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[p.reg0]
-		            + (expand_lut + 0x100 / attr_xflip * (p.nattrib & attr_xflip))[r1    ] * 2;
+		p.ntileword = (expand_lut + (0x100 / attr_xflip * p.nattrib & 0x100))[p.reg0]
+		            + (expand_lut + (0x100 / attr_xflip * p.nattrib & 0x100))[r1    ] * 2;
 
 		plotPixelIfNoSprite(p);
 
