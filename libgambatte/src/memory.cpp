@@ -288,25 +288,14 @@ unsigned long Memory::event(unsigned long cc) {
 		break;
 	case intevent_interrupts:
 		if (halted()) {
-			if (isCgb())
-				cc += 4;
-
+			cc += 4;
 			intreq_.unhalt();
 			intreq_.setEventTime<intevent_unhalt>(disabled_time);
 		}
 
 		if (ime()) {
-			unsigned const pendingIrqs = intreq_.pendingIrqs();
-			unsigned const n = pendingIrqs & -pendingIrqs;
-			unsigned address;
-			if (n <= 4) {
-				static unsigned char const lut[] = { 0x40, 0x48, 0x48, 0x50 };
-				address = lut[n - 1];
-			} else
-				address = 0x50 + n;
-
-			intreq_.ackIrq(n);
-			cc = interrupter_.interrupt(address, cc, *this);
+			di();
+			cc = interrupter_.interrupt(cc, *this);
 		}
 
 		break;

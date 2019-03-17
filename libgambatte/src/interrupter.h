@@ -35,7 +35,7 @@ class Memory;
 class Interrupter {
 public:
 	Interrupter(unsigned short &sp, unsigned short &pc);
-	unsigned long interrupt(unsigned address, unsigned long cycleCounter, Memory &memory);
+	unsigned long interrupt(unsigned long cycleCounter, Memory &memory);
 	void setGameShark(std::string const &codes);
 
 private:

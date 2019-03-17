@@ -89,11 +89,6 @@ void InterruptRequester::flagIrq(unsigned bit) {
 		eventTimes_.setValue<intevent_interrupts>(minIntTime_);
 }
 
-void InterruptRequester::ackIrq(unsigned bit) {
-	ifreg_ ^= bit;
-	di();
-}
-
 void InterruptRequester::setIereg(unsigned iereg) {
 	iereg_ = iereg & 0x1F;
 

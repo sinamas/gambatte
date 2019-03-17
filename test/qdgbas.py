@@ -150,6 +150,7 @@ def makeoplist():
 	addop('ld a, (imm16)', 0xfa)
 	addop('ei', 0xfb)
 	addop('cmp a, imm8', 0xfe)
+	addop('swap a', 0xcb37)
 	addop('srl a', 0xcb3f)
 	addop('\w* : ', -1)
 	

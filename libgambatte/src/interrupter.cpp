@@ -27,15 +27,29 @@ Interrupter::Interrupter(unsigned short &sp, unsigned short &pc)
 {
 }
 
-unsigned long Interrupter::interrupt(unsigned const address, unsigned long cc, Memory &memory) {
-	cc += 8;
+unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
+	cc += 12;
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ >> 8, cc);
 	cc += 4;
+
+	unsigned const ie = memory.ff_read(0xFF, cc);
+	unsigned const if_ = memory.ff_read(0x0F, cc);
+	unsigned const pendingIrqs = ie & if_ & 0x1F;
+	unsigned const n = pendingIrqs & -pendingIrqs;
+	unsigned address;
+	if (n <= 4) {
+		static unsigned char const lut[] = { 0x00, 0x40, 0x48, 0x48, 0x50 };
+		address = lut[n];
+	} else
+		address = 0x50 + n;
+
+	memory.ff_write(0x0F, if_ ^ n, cc);
+
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ & 0xFF, cc);
 	pc_ = address;
-	cc += 8;
+	cc += 4;
 
 	if (address == 0x40 && !gsCodes_.empty())
 		applyVblankCheats(cc, memory);

@@ -43,7 +43,6 @@ public:
 	void loadState(SaveState const &);
 	void resetCc(unsigned long oldCc, unsigned long newCc);
 	unsigned ifreg() const { return ifreg_; }
-	unsigned pendingIrqs() const { return ifreg_ & iereg_; }
 	bool ime() const { return intFlags_.ime(); }
 	bool halted() const { return intFlags_.halted(); }
 	void ei(unsigned long cc);
@@ -51,7 +50,6 @@ public:
 	void halt();
 	void unhalt();
 	void flagIrq(unsigned bit);
-	void ackIrq(unsigned bit);
 	void setIereg(unsigned iereg);
 	void setIfreg(unsigned ifreg);
 
@@ -84,6 +82,8 @@ private:
 	unsigned ifreg_;
 	unsigned iereg_;
 	IntFlags intFlags_;
+
+	unsigned pendingIrqs() const { return ifreg_ & iereg_; }
 };
 
 inline void flagHdmaReq(InterruptRequester &intreq) { intreq.setEventTime<intevent_dma>(0); }
