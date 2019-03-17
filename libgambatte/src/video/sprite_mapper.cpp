@@ -62,9 +62,11 @@ void SpriteMapper::OamReader::reset(unsigned char const *const oamram, bool cons
 	setLargeSpritesSrc(false);
 	lu_ = 0;
 	lastChange_ = 0xFF;
-	std::fill_n(szbuf_, sizeof szbuf_ / sizeof *szbuf_, largeSpritesSrc_);
-	for (unsigned pos = 0, n = 2 * lcd_num_oam_entries; n--; ++pos)
-		buf_[pos] = oamram[(pos * 2 & ~3u) | (pos & 1)];
+	std::fill_n(lsbuf_, sizeof lsbuf_ / sizeof *lsbuf_, largeSpritesSrc_);
+	for (int i = 0; i < lcd_num_oam_entries; ++i) {
+		buf_[2 * i] = oamram[4 * i];
+		buf_[2 * i + 1] = oamram[4 * i + 1];
+	}
 }
 
 void SpriteMapper::OamReader::update(unsigned long const cc) {
@@ -94,12 +96,12 @@ void SpriteMapper::OamReader::update(unsigned long const cc) {
 					if (pos == 2 * lcd_num_oam_entries)
 						pos = 0;
 					if (cgb_)
-						szbuf_[pos / 2] = largeSpritesSrc_;
+						lsbuf_[pos / 2] = largeSpritesSrc_;
 
-					buf_[pos    ] = oamram_[pos * 2    ];
-					buf_[pos + 1] = oamram_[pos * 2 + 1];
+					buf_[pos] = oamram_[2 * pos];
+					buf_[pos + 1] = oamram_[2 * pos + 1];
 				} else
-					szbuf_[pos / 2] = (szbuf_[pos / 2] & cgb_) | largeSpritesSrc_;
+					lsbuf_[pos / 2] = (lsbuf_[pos / 2] & cgb_) | largeSpritesSrc_;
 
 				++pos;
 			}
@@ -116,7 +118,7 @@ void SpriteMapper::OamReader::change(unsigned long cc) {
 
 void SpriteMapper::OamReader::setStatePtrs(SaveState &state) {
 	state.ppu.oamReaderBuf.set(buf_, sizeof buf_ / sizeof *buf_);
-	state.ppu.oamReaderSzbuf.set(szbuf_, sizeof szbuf_ / sizeof *szbuf_);
+	state.ppu.oamReaderSzbuf.set(lsbuf_, sizeof lsbuf_ / sizeof *lsbuf_);
 }
 
 void SpriteMapper::OamReader::loadState(SaveState const &ss, unsigned char const *const oamram) {
@@ -128,7 +130,7 @@ void SpriteMapper::OamReader::loadState(SaveState const &ss, unsigned char const
 
 void SpriteMapper::OamReader::enableDisplay(unsigned long cc) {
 	std::fill_n(buf_, sizeof buf_ / sizeof *buf_, 0);
-	std::fill_n(szbuf_, sizeof szbuf_ / sizeof *szbuf_, false);
+	std::fill_n(lsbuf_, sizeof lsbuf_ / sizeof *lsbuf_, false);
 	lu_ = cc + (2 * lcd_num_oam_entries << lyCounter_.isDoubleSpeed());
 	lastChange_ = 2 * lcd_num_oam_entries;
 }
@@ -154,9 +156,9 @@ void SpriteMapper::clearMap() {
 void SpriteMapper::mapSprites() {
 	clearMap();
 
-	for (unsigned i = 0x00; i < 0x50; i += 2) {
-		int const spriteHeight = 8 << largeSprites(i / 2);
-		unsigned const bottomPos = posbuf()[i] - (17 - spriteHeight);
+	for (int i = 0; i < lcd_num_oam_entries; ++i) {
+		int const spriteHeight = 8 + 8 * largeSprites(i);
+		unsigned const bottomPos = posbuf()[2 * i] - 17 + spriteHeight;
 
 		if (bottomPos < lcd_vres - 1u + spriteHeight) {
 			int ly = std::max(static_cast<int>(bottomPos) + 1 - spriteHeight, 0);
@@ -164,7 +166,7 @@ void SpriteMapper::mapSprites() {
 
 			do {
 				if (num_[ly] < need_sorting_flag + lcd_max_num_sprites_per_line)
-					spritemap_[ly][num_[ly]++ - need_sorting_flag] = i;
+					spritemap_[ly][num_[ly]++ - need_sorting_flag] = 2 * i;
 			} while (++ly != end);
 		}
 	}

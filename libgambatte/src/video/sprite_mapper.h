@@ -33,8 +33,8 @@ public:
 	             unsigned char const *oamram);
 	void reset(unsigned char const *oamram, bool cgb);
 	unsigned long doEvent(unsigned long time);
-	bool largeSprites(unsigned spNo) const { return oamReader_.largeSprites(spNo); }
-	unsigned numSprites(unsigned ly) const { return num_[ly] & ~(1u * need_sorting_flag); }
+	bool largeSprites(int spno) const { return oamReader_.largeSprites(spno); }
+	int numSprites(unsigned ly) const { return num_[ly] & ~(1u * need_sorting_flag); }
 	void oamChange(unsigned long cc) { oamReader_.change(cc); }
 	void oamChange(unsigned char const *oamram, unsigned long cc) { oamReader_.change(oamram, cc); }
 	unsigned char const * oamram() const { return oamReader_.oam(); }
@@ -81,7 +81,7 @@ private:
 		void change(unsigned long cc);
 		void change(unsigned char const *oamram, unsigned long cc) { change(cc); oamram_ = oamram; }
 		bool changed() const { return lastChange_ != 0xFF; }
-		bool largeSprites(unsigned spNo) const { return szbuf_[spNo]; }
+		bool largeSprites(int spno) const { return lsbuf_[spno]; }
 		unsigned char const * oam() const { return oamram_; }
 		void resetCycleCounter(unsigned long oldCc, unsigned long newCc) { lu_ -= oldCc - newCc; }
 		void setLargeSpritesSrc(bool src) { largeSpritesSrc_ = src; }
@@ -96,7 +96,7 @@ private:
 
 	private:
 		unsigned char buf_[2 * lcd_num_oam_entries];
-		bool szbuf_[lcd_num_oam_entries];
+		bool lsbuf_[lcd_num_oam_entries];
 		LyCounter const &lyCounter_;
 		unsigned char const *oamram_;
 		unsigned long lu_;

@@ -307,14 +307,13 @@ namespace M3Start {
 		}
 
 		{
-			unsigned const ly = p.lyCounter.ly();
-			unsigned const numSprites = p.spriteMapper.numSprites(ly);
+			int const ly = p.lyCounter.ly();
+			int const numSprites = p.spriteMapper.numSprites(ly);
 			unsigned char const *const sprites = p.spriteMapper.sprites(ly);
-
-			for (unsigned i = 0; i < numSprites; ++i) {
-				unsigned pos = sprites[i];
-				unsigned spy = p.spriteMapper.posbuf()[pos];
-				unsigned spx = p.spriteMapper.posbuf()[pos + 1];
+			for (int i = 0; i < numSprites; ++i) {
+				int const pos = sprites[i];
+				int const spy = p.spriteMapper.posbuf()[pos];
+				int const spx = p.spriteMapper.posbuf()[pos + 1];
 
 				p.spriteList[i].spx = spx;
 				p.spriteList[i].line = ly + 2 * tile_len - spy;
@@ -832,7 +831,7 @@ void plotPixel(PPUPriv &p) {
 	unsigned const tileword = p.tileword;
 	uint_least32_t *const fbline = p.framebuf.fbline();
 
-	if (static_cast<int>(p.wx) == xpos
+	if (p.wx == xpos
 			&& (p.weMaster || (p.wy2 == p.lyCounter.ly() && lcdcWinEn(p)))
 			&& xpos < lcd_hres + 7) {
 		if (p.winDrawState == 0 && lcdcWinEn(p)) {
@@ -1095,8 +1094,8 @@ namespace LoadSprites {
 		}
 
 		p.spwordList[entry] =
-			  expand_lut[p.reg0 + 0x100 / attr_xflip * (p.spriteList[entry].attrib & attr_xflip)]
-			+ expand_lut[p.reg1 + 0x100 / attr_xflip * (p.spriteList[entry].attrib & attr_xflip)] * 2;
+			  expand_lut[p.reg0 + (0x100 / attr_xflip * p.spriteList[entry].attrib & 0x100)]
+			+ expand_lut[p.reg1 + (0x100 / attr_xflip * p.spriteList[entry].attrib & 0x100)] * 2;
 		p.spriteList[entry].spx = p.xpos;
 
 		if (p.xpos == p.endx) {
@@ -1269,11 +1268,11 @@ namespace Tile {
 			unsigned char const *spriteEnd, unsigned char const *const spxOf,
 			unsigned const maxSpx, unsigned const firstTileXpos,
 			unsigned prevSpriteTileNo, unsigned *const cyclesAccumulator) {
-		unsigned sum = 0;
+		int sum = 0;
 
-		while (nextSprite < spriteEnd && spxOf[*nextSprite] <= maxSpx) {
-			unsigned cycles = 6;
-			unsigned const distanceFromTileStart = (spxOf[*nextSprite] - firstTileXpos) % tile_len;
+		for (; nextSprite < spriteEnd && spxOf[*nextSprite] <= maxSpx; ++nextSprite) {
+			int cycles = 6;
+			int const distanceFromTileStart = (spxOf[*nextSprite] - firstTileXpos) % tile_len;
 			unsigned const tileNo = (spxOf[*nextSprite] - firstTileXpos) & -tile_len;
 
 			if (distanceFromTileStart < 5 && tileNo != prevSpriteTileNo)
@@ -1281,7 +1280,6 @@ namespace Tile {
 
 			prevSpriteTileNo = tileNo;
 			sum += cycles;
-			++nextSprite;
 		}
 
 		*cyclesAccumulator += sum;
@@ -1380,10 +1378,10 @@ namespace StartWindowDraw {
 		if (xpos > targetx)
 			return predictCyclesUntilXposNextLine(p, winDrawState, targetx);
 
-		unsigned cinc = 6 - fno;
+		int cinc = 6 - fno;
 
 		if (!lcdcWinEn(p) && p.cgb) {
-			unsigned xinc = std::min<int>(cinc, std::min(endx, targetx + 1) - xpos);
+			int const xinc = std::min(cinc, std::min(endx, targetx + 1) - xpos);
 
 			if ((lcdcObjEn(p) | p.cgb) && p.spriteList[nextSprite].spx < xpos + xinc) {
 				xpos = p.spriteList[nextSprite].spx;
@@ -1649,14 +1647,14 @@ void saveSpriteList(PPUPriv const &p, SaveState &ss) {
 
 void loadSpriteList(PPUPriv &p, SaveState const &ss) {
 	if (ss.ppu.videoCycles < 1ul * lcd_vres * lcd_cycles_per_line && ss.ppu.xpos < xpos_end) {
-		unsigned const ly = ss.ppu.videoCycles / lcd_cycles_per_line;
-		unsigned const numSprites = p.spriteMapper.numSprites(ly);
+		int const ly = ss.ppu.videoCycles / lcd_cycles_per_line;
+		int const numSprites = p.spriteMapper.numSprites(ly);
 		unsigned char const *const sprites = p.spriteMapper.sprites(ly);
 
-		for (unsigned i = 0; i < numSprites; ++i) {
-			unsigned pos = sprites[i];
-			unsigned spy = p.spriteMapper.posbuf()[pos];
-			unsigned spx = p.spriteMapper.posbuf()[pos + 1];
+		for (int i = 0; i < numSprites; ++i) {
+			int const pos = sprites[i];
+			int const spy = p.spriteMapper.posbuf()[pos];
+			int const spx = p.spriteMapper.posbuf()[pos + 1];
 
 			p.spriteList[i].spx = spx;
 			p.spriteList[i].line = ly + 2 * tile_len - spy;
@@ -1666,7 +1664,7 @@ void loadSpriteList(PPUPriv &p, SaveState const &ss) {
 		}
 
 		p.spriteList[numSprites].spx = 0xFF;
-		p.nextSprite = std::min(1u * ss.ppu.nextSprite, numSprites);
+		p.nextSprite = std::min(1u * ss.ppu.nextSprite, 1u * numSprites);
 
 		while (p.spriteList[p.nextSprite].spx < ss.ppu.xpos)
 			++p.nextSprite;
@@ -1830,7 +1828,7 @@ void PPU::setLcdc(unsigned const lcdc, unsigned long const cc) {
 }
 
 void PPU::update(unsigned long const cc) {
-	int const cycles = (cc - p_.now) >> p_.lyCounter.isDoubleSpeed();
+	long const cycles = (cc - p_.now) >> p_.lyCounter.isDoubleSpeed();
 
 	p_.now += cycles << p_.lyCounter.isDoubleSpeed();
 	p_.cycles += cycles;
