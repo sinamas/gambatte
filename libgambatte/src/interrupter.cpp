@@ -44,10 +44,10 @@ unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
 	} else
 		address = 0x50 + n;
 
-	memory.ff_write(0x0F, if_ ^ n, cc);
-
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ & 0xFF, cc);
+	// TODO: more efficient.
+	memory.ff_write(0x0F, memory.ff_read(0x0F, cc + 2) & ~n, cc + 2);
 	pc_ = address;
 	cc += 4;
 
