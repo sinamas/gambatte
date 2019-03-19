@@ -316,7 +316,11 @@ void Memory::ackIrq(unsigned bit, unsigned long cc) {
 	if (lastOamDmaUpdate_ != disabled_time)
 		updateOamDma(cc);
 
-	updateIrqs(cc);
+	// TODO: adjust/extend IRQ assertion time rather than use the odd cc offsets?
+	// NOTE: a minimum offset of 2 is required for the LCD due to implementation assumptions w.r.t. cc headroom.
+	updateSerial(cc + 3 + isCgb());
+	updateTimaIrq(cc + 2 + isCgb());
+	lcd_.update(cc + 2);
 	intreq_.ackIrq(bit);
 }
 
@@ -616,7 +620,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		tima_.setTac(data, cc, TimaInterruptRequester(intreq_));
 		break;
 	case 0x0F:
-		updateIrqs(cc);
+		updateIrqs(cc + 1 + isDoubleSpeed());
 		intreq_.setIfreg(0xE0 | data);
 		return;
 	case 0x10:

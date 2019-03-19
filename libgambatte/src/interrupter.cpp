@@ -44,7 +44,7 @@ unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
 
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ & 0xFF, cc);
-	memory.ackIrq(n, cc + 2);
+	memory.ackIrq(n, cc);
 	pc_ = address;
 	cc += 4;
 

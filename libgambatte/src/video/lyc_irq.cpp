@@ -29,10 +29,11 @@ namespace {
 
 unsigned long schedule(unsigned statReg,
 		unsigned lycReg, LyCounter const &lyCounter, unsigned long cc) {
+	bool const ds = lyCounter.isDoubleSpeed();
 	return (statReg & lcdstat_lycirqen) && lycReg < lcd_lines_per_frame
 	? lyCounter.nextFrameCycle(lycReg
-		? 1l * lycReg * lcd_cycles_per_line
-		: (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + 8, cc)
+		? 1l * lycReg * lcd_cycles_per_line - 2 + 2 * ds
+		: (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + 6 + 2 * ds, cc)
 	: static_cast<unsigned long>(disabled_time);
 }
 
@@ -80,7 +81,10 @@ void LycIrq::regChange(unsigned const statReg,
 
 void LycIrq::doEvent(unsigned char *const ifreg, LyCounter const &lyCounter) {
 	if ((statReg_ | statRegSrc_) & lcdstat_lycirqen) {
-		unsigned cmpLy = lyCounter.time() - time_ < lyCounter.lineTime() ? 0 : lyCounter.ly();
+		unsigned const cmpLy = lyCounter.ly() == lcd_lines_per_frame - 1
+			&& lyCounter.time() - time_ < lyCounter.lineTime()
+			? 0
+			: lyCounter.ly() + (lyCounter.time() - time_ < 4);
 		if (lycReg_ == cmpLy && !lycIrqBlockedByM2OrM1StatIrq(lycReg_, statReg_))
 			*ifreg |= 2;
 	}

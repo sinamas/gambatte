@@ -64,23 +64,25 @@ unsigned long gbcToUyvy(unsigned const bgr15) {
 #endif
 }*/
 
+long m1IrqFrameCycle(bool ds) { return 1l * lcd_vres * lcd_cycles_per_line - 2 + 2 * ds; }
+int m2IrqLineCycle(bool ds) { return lcd_cycles_per_line - 4 + 2 * ds; }
+int m2IrqLineCycleLy0(bool ds) { return lcd_cycles_per_line - 2 + 2 * ds; }
+
+unsigned long mode1IrqSchedule(LyCounter const &lyCounter, unsigned long cc) {
+	return lyCounter.nextFrameCycle(m1IrqFrameCycle(lyCounter.isDoubleSpeed()), cc);
+}
+
 unsigned long mode2IrqSchedule(unsigned const statReg,
 		LyCounter const &lyCounter, unsigned long const cc) {
 	if (!(statReg & lcdstat_m2irqen))
 		return disabled_time;
 
-	long next = lyCounter.time() - cc;
-	if (lyCounter.ly() >= lcd_vres - 1
-			|| (lyCounter.ly() == lcd_vres - 2 && next <= 4)
-			|| (statReg & lcdstat_m0irqen)) {
-		next += (lcd_lines_per_frame - 1l - lyCounter.ly()) * lyCounter.lineTime();
-	} else {
-		next -= 4;
-		if (next <= 0)
-			next += lyCounter.lineTime();
-	}
-
-	return cc + next;
+	bool const ds = lyCounter.isDoubleSpeed();
+	unsigned long const lastM2Fc = (lcd_vres - 2l) * lcd_cycles_per_line + m2IrqLineCycle(ds);
+	unsigned long const ly0M2Fc = (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + m2IrqLineCycleLy0(ds);
+	return lyCounter.frameCycles(cc) - lastM2Fc < ly0M2Fc - lastM2Fc || (statReg & lcdstat_m0irqen)
+	? lyCounter.nextFrameCycle(ly0M2Fc, cc)
+	: lyCounter.nextLineCycle(m2IrqLineCycle(ds), cc);
 }
 
 unsigned long m0IrqTimeFromXpos166Time(unsigned long xpos166Time, bool cgb, bool ds) {
@@ -191,8 +193,7 @@ void LCD::loadState(SaveState const &state, unsigned char const *const oamram) {
 		eventTimes_.setm<memevent_spritemap>(
 			SpriteMapper::schedule(ppu_.lyCounter(), ppu_.now()));
 		eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
-		eventTimes_.setm<memevent_m1irq>(
-			ppu_.lyCounter().nextFrameCycle(1l * lcd_vres * lcd_cycles_per_line, ppu_.now()));
+		eventTimes_.setm<memevent_m1irq>(mode1IrqSchedule(ppu_.lyCounter(), ppu_.now()));
 		eventTimes_.setm<memevent_m2irq>(
 			mode2IrqSchedule(statReg_, ppu_.lyCounter(), ppu_.now()));
 		eventTimes_.setm<memevent_m0irq>(statReg_ & lcdstat_m0irqen
@@ -313,8 +314,7 @@ void LCD::speedChange(unsigned long const cc) {
 		eventTimes_.set<event_ly>(ppu_.lyCounter().time());
 		eventTimes_.setm<memevent_spritemap>(SpriteMapper::schedule(ppu_.lyCounter(), cc));
 		eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
-		eventTimes_.setm<memevent_m1irq>(ppu_.lyCounter().nextFrameCycle(
-			1l * lcd_vres * lcd_cycles_per_line, cc));
+		eventTimes_.setm<memevent_m1irq>(mode1IrqSchedule(ppu_.lyCounter(), cc));
 		eventTimes_.setm<memevent_m2irq>(mode2IrqSchedule(statReg_, ppu_.lyCounter(), cc));
 
 		if (eventTimes_(memevent_m0irq) != disabled_time
@@ -520,8 +520,7 @@ void LCD::lcdcChange(unsigned const data, unsigned long const cc) {
 			eventTimes_.setm<memevent_spritemap>(
 				SpriteMapper::schedule(ppu_.lyCounter(), cc));
 			eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
-			eventTimes_.setm<memevent_m1irq>(ppu_.lyCounter().nextFrameCycle(
-				1l * lcd_vres * lcd_cycles_per_line, cc));
+			eventTimes_.setm<memevent_m1irq>(mode1IrqSchedule(ppu_.lyCounter(), cc));
 			eventTimes_.setm<memevent_m2irq>(
 				mode2IrqSchedule(statReg_, ppu_.lyCounter(), cc));
 			if (statReg_ & lcdstat_m0irqen) {
@@ -811,18 +810,18 @@ inline void LCD::doMode2IrqEvent() {
 
 	m2IrqStatReg_ = statReg_;
 
+	bool const ds = isDoubleSpeed();
+	unsigned long next = lcd_cycles_per_frame;
 	if (!(statReg_ & lcdstat_m0irqen)) {
-		unsigned long nextTime = eventTimes_(memevent_m2irq) + ppu_.lyCounter().lineTime();
+		next = lcd_cycles_per_line;
 		if (ly == 0) {
-			nextTime -= 4;
-		} else if (ly == lcd_vres - 1)
-			nextTime += ppu_.lyCounter().lineTime() * (lcd_lines_per_frame - lcd_vres) + 4;
-
-		eventTimes_.setm<memevent_m2irq>(nextTime);
-	} else {
-		eventTimes_.setm<memevent_m2irq>(eventTimes_(memevent_m2irq)
-			+ (lcd_cycles_per_frame << isDoubleSpeed()));
+			next -= m2IrqLineCycleLy0(ds) - m2IrqLineCycle(ds);
+		} else if (ly == lcd_vres - 1) {
+			next += lcd_cycles_per_line * (lcd_lines_per_frame - lcd_vres)
+				+ m2IrqLineCycleLy0(ds) - m2IrqLineCycle(ds);
+		}
 	}
+	eventTimes_.setm<memevent_m2irq>(eventTimes_(memevent_m2irq) + (next << ds));
 }
 
 inline void LCD::event() {
