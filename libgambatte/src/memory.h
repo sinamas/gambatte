@@ -65,6 +65,8 @@ public:
 	void halt() { intreq_.halt(); }
 	void ei(unsigned long cycleCounter) { if (!ime()) { intreq_.ei(cycleCounter); } }
 	void di() { intreq_.di(); }
+	unsigned pendingIrqs(unsigned long cc);
+	void ackIrq(unsigned bit, unsigned long cc);
 
 	unsigned ff_read(unsigned p, unsigned long cc) {
 		return p < 0x80 ? nontrivial_ff_read(p, cc) : ioamhram_[p + 0x100];

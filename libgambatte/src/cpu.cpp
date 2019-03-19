@@ -996,9 +996,7 @@ void CPU::process(unsigned long const cycles) {
 
 				// halt (4 cycles):
 			case 0x76:
-				if (!mem_.ime()
-					&& (   mem_.ff_read(0x0F, cycleCounter)
-					     & mem_.ff_read(0xFF, cycleCounter) & 0x1F)) {
+				if (!mem_.ime() && mem_.pendingIrqs(cycleCounter)) {
 					if (mem_.isCgb())
 						cycleCounter += 4;
 					else

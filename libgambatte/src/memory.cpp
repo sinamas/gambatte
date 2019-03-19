@@ -304,6 +304,22 @@ unsigned long Memory::event(unsigned long cc) {
 	return cc;
 }
 
+unsigned Memory::pendingIrqs(unsigned long cc) {
+	if (lastOamDmaUpdate_ != disabled_time)
+		updateOamDma(cc);
+
+	updateIrqs(cc);
+	return intreq_.pendingIrqs();
+}
+
+void Memory::ackIrq(unsigned bit, unsigned long cc) {
+	if (lastOamDmaUpdate_ != disabled_time)
+		updateOamDma(cc);
+
+	updateIrqs(cc);
+	intreq_.ackIrq(bit);
+}
+
 unsigned long Memory::stop(unsigned long cc) {
 	cc += 4 + 4 * isDoubleSpeed();
 

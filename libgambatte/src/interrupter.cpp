@@ -33,9 +33,7 @@ unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
 	memory.write(sp_, pc_ >> 8, cc);
 	cc += 4;
 
-	unsigned const ie = memory.ff_read(0xFF, cc);
-	unsigned const if_ = memory.ff_read(0x0F, cc);
-	unsigned const pendingIrqs = ie & if_ & 0x1F;
+	unsigned const pendingIrqs = memory.pendingIrqs(cc);
 	unsigned const n = pendingIrqs & -pendingIrqs;
 	unsigned address;
 	if (n <= 4) {
@@ -46,8 +44,7 @@ unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
 
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ & 0xFF, cc);
-	// TODO: more efficient.
-	memory.ff_write(0x0F, memory.ff_read(0x0F, cc + 2) & ~n, cc + 2);
+	memory.ackIrq(n, cc + 2);
 	pc_ = address;
 	cc += 4;
 
