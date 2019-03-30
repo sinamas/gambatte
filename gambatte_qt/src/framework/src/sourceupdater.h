@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SOURCEUPDATER_H
-#define SOURCEUPDATER_H
+#pragma once
 
 #include "array.h"
 #include "rational.h"
@@ -73,5 +72,3 @@ private:
 
 	void reset();
 };
-
-#endif

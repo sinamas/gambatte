@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef TIMA_H
-#define TIMA_H
+#pragma once
 
 #include "interruptrequester.h"
 
@@ -62,5 +61,3 @@ private:
 };
 
 }
-
-#endif

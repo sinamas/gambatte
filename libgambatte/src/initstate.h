@@ -16,13 +16,10 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef INITSTATE_H
-#define INITSTATE_H
+#pragma once
 
 namespace gambatte {
 
 void setInitState(struct SaveState &state, bool cgb, bool gbaCgbMode);
 
 }
-
-#endif

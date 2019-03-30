@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MMPRIORITY_H_
-#define MMPRIORITY_H_
+#pragma once
 
 #include "uncopyable.h"
 #include <QtGlobal> // Q_WS_WIN define
@@ -32,5 +31,3 @@ private:
 	void *const handle_;
 #endif
 };
-
-#endif /* MMPRIORITY_H_ */

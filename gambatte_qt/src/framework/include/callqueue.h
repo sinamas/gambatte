@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef CALLQUEUE_H
-#define CALLQUEUE_H
+#pragma once
 
 #include "uncopyable.h"
 #include <algorithm>
@@ -234,5 +233,3 @@ private:
 		pq.template pop<T>();
 	}
 };
-
-#endif

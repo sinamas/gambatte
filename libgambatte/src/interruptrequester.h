@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef INTERRUPT_REQUESTER_H
-#define INTERRUPT_REQUESTER_H
+#pragma once
 
 #include "counterdef.h"
 #include "minkeeper.h"
@@ -93,5 +92,3 @@ inline bool hdmaReqFlagged(InterruptRequester const &intreq) { return intreq.eve
 inline bool gdmaReqFlagged(InterruptRequester const &intreq) { return intreq.eventTime(intevent_dma) == 1; }
 
 }
-
-#endif

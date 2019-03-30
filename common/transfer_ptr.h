@@ -1,5 +1,4 @@
-#ifndef TRANSFER_PTR_H
-#define TRANSFER_PTR_H
+#pragma once
 
 #include "defined_ptr.h"
 
@@ -23,5 +22,3 @@ private:
 	T *p_;
 	transfer_ptr & operator=(transfer_ptr const &);
 };
-
-#endif

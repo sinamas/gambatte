@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef RINGBUFFER_H
-#define RINGBUFFER_H
+#pragma once
 
 #include "array.h"
 #include <algorithm>
@@ -105,5 +104,3 @@ void RingBuffer<T>::write(T const *in, std::size_t num) {
 	if ((wpos_ += num) == endpos_)
 		wpos_ = 0;
 }
-
-#endif

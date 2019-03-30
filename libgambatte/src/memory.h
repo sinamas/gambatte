@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MEMORY_H
-#define MEMORY_H
+#pragma once
 
 #include "mem/cartridge.h"
 #include "interrupter.h"
@@ -145,5 +144,3 @@ private:
 };
 
 }
-
-#endif

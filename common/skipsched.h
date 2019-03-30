@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef SKIPSCHED_H
-#define SKIPSCHED_H
+#pragma once
 
 class SkipSched {
 public:
@@ -28,5 +27,3 @@ private:
 	unsigned skipped_;
 	unsigned skippedmax_;
 };
-
-#endif

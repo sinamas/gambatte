@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef HAMMINGSINC_H
-#define HAMMINGSINC_H
+#pragma once
 
 #include "array.h"
 #include "cic3.h"
@@ -88,5 +87,3 @@ private:
 		return 0.53836 - 0.46164 * std::cos(2 * pi * i / M);
 	}
 };
-
-#endif

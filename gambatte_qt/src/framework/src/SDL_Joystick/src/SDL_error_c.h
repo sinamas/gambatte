@@ -25,8 +25,7 @@
    error messages
 */
 
-#ifndef _SDL_error_c_h
-#define _SDL_error_c_h
+#pragma once
 
 #define ERR_MAX_STRLEN	128
 #define ERR_MAX_ARGS	5
@@ -54,5 +53,3 @@ typedef struct SDL_error {
 		char buf[ERR_MAX_STRLEN];
 	} args[ERR_MAX_ARGS];
 } SDL_error;
-
-#endif /* _SDL_error_c_h */

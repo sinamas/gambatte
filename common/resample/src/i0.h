@@ -16,9 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef I0_H
-#define I0_H
+#pragma once
 
 double i0(double x);
-
-#endif

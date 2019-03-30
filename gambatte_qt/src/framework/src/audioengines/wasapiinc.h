@@ -1,6 +1,5 @@
 // Public domain header written by sinamas <sinamas at users.sourceforge.net>
-#ifndef WASAPIINC_H
-#define WASAPIINC_H
+#pragma once
 
 #include <objbase.h>
 #include <objidl.h>
@@ -99,5 +98,3 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE RegisterEndpointNotificationCallback(IMMNotificationClient *pClient) = 0;
 	virtual HRESULT STDMETHODCALLTYPE UnregisterEndpointNotificationCallback(IMMNotificationClient *pClient) = 0;
 };
-
-#endif /* WASAPIINC_H */

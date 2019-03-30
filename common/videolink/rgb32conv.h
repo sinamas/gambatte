@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef RGB32CONV_H
-#define RGB32CONV_H
+#pragma once
 
 class VideoLink;
 
@@ -26,5 +25,3 @@ public:
 	enum PixelFormat { RGB32, RGB16, UYVY };
 	static VideoLink * create(PixelFormat pf, unsigned width, unsigned height);
 };
-
-#endif

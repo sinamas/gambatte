@@ -1,5 +1,4 @@
-#ifndef GAMBATTE_LOADRES_H
-#define GAMBATTE_LOADRES_H
+#pragma once
 
 #include <string>
 
@@ -21,5 +20,3 @@ enum LoadRes {
 std::string const to_string(LoadRes);
 
 }
-
-#endif

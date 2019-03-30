@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef BLITTERCONTAINER_H
-#define BLITTERCONTAINER_H
+#pragma once
 
 #include "scalingmethod.h"
 #include <QSize>
@@ -54,5 +53,3 @@ private:
 	void updateLayout();
 	void testExclusive();
 };
-
-#endif

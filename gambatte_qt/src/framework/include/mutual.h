@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MUTUAL_H
-#define MUTUAL_H
+#pragma once
 
 #include "uncopyable.h"
 #include <QMutex>
@@ -65,5 +64,3 @@ private:
 	mutable QMutex mut;
 	T t;
 };
-
-#endif

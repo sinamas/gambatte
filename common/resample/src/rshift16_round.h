@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef RSHIFT16_ROUND_H
-#define RSHIFT16_ROUND_H
+#pragma once
 
 // negative shift is not defined in c++98
 #ifdef NO_NEGATIVE_SHIFT
@@ -28,6 +27,4 @@ inline long rshift16_round(long const l) {
 inline long rshift16_round(long l) {
 	return (l + 0x8000) >> 16;
 }
-#endif
-
 #endif

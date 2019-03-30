@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef XF86VIDMODETOGGLER_H
-#define XF86VIDMODETOGGLER_H
+#pragma once
 
 #include "../fullmodetoggler.h"
 #include <QCoreApplication>
@@ -59,5 +58,3 @@ private:
 	WId winId_;
 	bool isFull_;
 };
-
-#endif

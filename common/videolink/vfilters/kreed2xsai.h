@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef KREED2XSAI_H
-#define KREED2XSAI_H
+#pragma once
 
 #include "../videolink.h"
 #include "../vfilterinfo.h"
@@ -37,5 +36,3 @@ public:
 private:
 	Array<gambatte::uint_least32_t> const buffer_;
 };
-
-#endif

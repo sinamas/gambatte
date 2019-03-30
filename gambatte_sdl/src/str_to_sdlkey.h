@@ -16,12 +16,9 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef STR_TO_SDLKEY_H
-#define STR_TO_SDLKEY_H
+#pragma once
 
 #include <SDL.h>
 
 SDLKey const * strToSdlkey(char const *str);
 void printStrSdlkeys();
-
-#endif

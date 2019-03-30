@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SDLBLITTER_H
-#define SDLBLITTER_H
+#pragma once
 
 #include "scoped_ptr.h"
 #include <cstddef>
@@ -52,5 +51,3 @@ private:
 
 	template<typename T> void swScale();
 };
-
-#endif

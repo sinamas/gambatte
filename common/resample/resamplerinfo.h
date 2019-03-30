@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef RESAMPLER_INFO_H
-#define RESAMPLER_INFO_H
+#pragma once
 
 #include <cstddef>
 
@@ -55,5 +54,3 @@ private:
 	static ResamplerInfo const resamplers_[];
 	static std::size_t const num_;
 };
-
-#endif

@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef UNCOPYABLE_H
-#define UNCOPYABLE_H
+#pragma once
 
 class Uncopyable {
 protected:
@@ -26,5 +25,3 @@ private:
 	Uncopyable(Uncopyable const &);
 	Uncopyable& operator=(Uncopyable const &);
 };
-
-#endif

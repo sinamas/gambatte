@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef AUDIOENGINECONF_H
-#define AUDIOENGINECONF_H
+#pragma once
 
 class AudioEngine;
 class QString;
@@ -50,5 +49,3 @@ public:
 private:
 	AudioEngine *ae_;
 };
-
-#endif

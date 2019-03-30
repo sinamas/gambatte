@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef PIXELBUFFER_H
-#define PIXELBUFFER_H
+#pragma once
 
 #include <cstddef>
 
@@ -47,5 +46,3 @@ struct PixelBuffer {
 	{
 	}
 };
-
-#endif

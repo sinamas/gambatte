@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef INPUTBOX_H
-#define INPUTBOX_H
+#pragma once
 
 #include "joysticklock.h"
 #include "scoped_ptr.h"
@@ -57,5 +56,3 @@ private:
 private slots:
 	void textEditedSlot() { setData(data_); }
 };
-
-#endif

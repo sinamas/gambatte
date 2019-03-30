@@ -16,13 +16,10 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef OSSENGINE_H
-#define OSSENGINE_H
+#pragma once
 
 #include "transfer_ptr.h"
 
 class AudioEngine;
 
 transfer_ptr<AudioEngine> createOssEngine();
-
-#endif

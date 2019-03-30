@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef INPUTDIALOG_H
-#define INPUTDIALOG_H
+#pragma once
 
 #include "auto_vector.h"
 #include "mutual.h"
@@ -133,5 +132,3 @@ private:
 	void store();
 	void restore();
 };
-
-#endif

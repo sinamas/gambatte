@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MASTER_DISABLER_H
-#define MASTER_DISABLER_H
+#pragma once
 
 namespace gambatte {
 
@@ -32,5 +31,3 @@ private:
 };
 
 }
-
-#endif

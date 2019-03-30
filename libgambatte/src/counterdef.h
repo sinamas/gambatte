@@ -1,10 +1,7 @@
-#ifndef COUNTERDEF_H
-#define COUNTERDEF_H
+#pragma once
 
 namespace gambatte {
 
 enum { disabled_time = 0xfffffffful };
 
 }
-
-#endif

@@ -16,9 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef U48DIV_H
-#define U48DIV_H
+#pragma once
 
 unsigned long u48div(unsigned long numeratorLow, unsigned numeratorHigh, unsigned long denominator);
-
-#endif

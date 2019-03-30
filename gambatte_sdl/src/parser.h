@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef PARSER_H
-#define PARSER_H
+#pragma once
 
 #include <cstring>
 #include <map>
@@ -60,5 +59,3 @@ private:
 	int parseLong(int argc, char const *const *argv, int index) const;
 	int parseShort(int argc, char const *const *argv, int index) const;
 };
-
-#endif

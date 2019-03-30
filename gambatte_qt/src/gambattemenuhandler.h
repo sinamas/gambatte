@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GAMBATTEMENUHANDLER_H
-#define GAMBATTEMENUHANDLER_H
+#pragma once
 
 #include "scalingmethod.h"
 #include <QList>
@@ -191,5 +190,3 @@ private slots:
 	void toggleFullScreen();
 	void saveWindowSizeIfNotFullScreen();
 };
-
-#endif

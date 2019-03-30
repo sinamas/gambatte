@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef XRANDRTOGGLER_H
-#define XRANDRTOGGLER_H
+#pragma once
 
 #include "../fullmodetoggler.h"
 #include "scoped_ptr.h"
@@ -57,5 +56,3 @@ private:
 	short originalRate_;
 	bool isFull_;
 };
-
-#endif

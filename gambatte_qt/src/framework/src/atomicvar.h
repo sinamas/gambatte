@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef ATOMICVAR_H
-#define ATOMICVAR_H
+#pragma once
 
 #include "uncopyable.h"
 #include <QMutex>
@@ -53,5 +52,3 @@ private:
 	mutable QMutex mut_;
 	T var_;
 };
-
-#endif

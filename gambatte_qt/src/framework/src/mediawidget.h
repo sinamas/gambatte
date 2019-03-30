@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MEDIAWIDGET_H
-#define MEDIAWIDGET_H
+#pragma once
 
 #include "audioengineconf.h"
 #include "auto_vector.h"
@@ -212,5 +211,3 @@ private slots:
 	void refreshRateChange(int refreshRate);
 	void updateJoysticks();
 };
-
-#endif

@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef NULLAUDIOENGINE_H
-#define NULLAUDIOENGINE_H
+#pragma once
 
 #include "../audioengine.h"
 
@@ -29,5 +28,3 @@ public:
 protected:
 	virtual long doInit(long rate, int /*latency*/) { return rate; }
 };
-
-#endif

@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef CORE_AUDIO_ENGINE_H
-#define CORE_AUDIO_ENGINE_H
+#pragma once
 
 #include "../audioengine.h"
 #include "ringbuffer.h"
@@ -56,5 +55,3 @@ private:
 	std::size_t read(void *stream, std::size_t frames, Float64 rateScalar);
 	int doWrite(void *buffer, std::size_t frames);
 };
-
-#endif

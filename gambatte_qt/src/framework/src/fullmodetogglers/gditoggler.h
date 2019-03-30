@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GDITOGGLER_H_
-#define GDITOGGLER_H_
+#pragma once
 
 #include "../fullmodetoggler.h"
 #include "scoped_ptr.h"
@@ -52,5 +51,3 @@ private:
 	std::size_t widgetScreen;
 	bool isFull;
 };
-
-#endif /*GDITOGGLER_H_*/

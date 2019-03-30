@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MEDIASOURCE_H
-#define MEDIASOURCE_H
+#pragma once
 
 #include "SDL_event.h"
 #include <QtGlobal>
@@ -91,5 +90,3 @@ public:
 
 	virtual ~MediaSource() {}
 };
-
-#endif

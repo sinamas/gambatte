@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef FRAME_RATE_CONTROL_H
-#define FRAME_RATE_CONTROL_H
+#pragma once
 
 #include "rational.h"
 
@@ -41,5 +40,3 @@ private:
 
 	void update();
 };
-
-#endif

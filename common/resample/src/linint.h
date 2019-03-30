@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef LININT_H
-#define LININT_H
+#pragma once
 
 #include "../resampler.h"
 #include "rshift16_round.h"
@@ -140,5 +139,3 @@ std::size_t Linint<channels>::resample(short *out, short const *in, std::size_t 
 
 	return outlen;
 }
-
-#endif

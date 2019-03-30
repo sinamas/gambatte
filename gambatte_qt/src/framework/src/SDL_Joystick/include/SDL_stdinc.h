@@ -22,8 +22,7 @@
 
 /* This is a general header that includes C language support */
 
-#ifndef _SDL_stdinc_h
-#define _SDL_stdinc_h
+#pragma once
 
 #include "SDL_config.h"
 
@@ -588,5 +587,3 @@ extern char * SDL_iconv_string(const char *tocode, const char *fromcode, const c
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _SDL_stdinc_h */

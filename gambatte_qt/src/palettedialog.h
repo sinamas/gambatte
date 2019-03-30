@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef PALETTEDIALOG_H
-#define PALETTEDIALOG_H
+#pragma once
 
 #include <QColor>
 #include <QDialog>
@@ -128,5 +127,3 @@ private slots:
 	void saveScheme();
 	void schemeChanged(QModelIndex const &current);
 };
-
-#endif

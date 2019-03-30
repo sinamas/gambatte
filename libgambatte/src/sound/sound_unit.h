@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SOUND_UNIT_H
-#define SOUND_UNIT_H
+#pragma once
 
 namespace gambatte {
 
@@ -41,5 +40,3 @@ protected:
 };
 
 }
-
-#endif

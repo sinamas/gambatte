@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef RATIONAL_H
-#define RATIONAL_H
+#pragma once
 
 struct Rational {
 	long num;
@@ -42,5 +41,3 @@ inline bool operator==(Rational const &lhs, Rational const &rhs) {
 inline bool operator!=(Rational const &lhs, Rational const &rhs) {
 	return lhs.num != rhs.num || lhs.denom != rhs.denom;
 }
-
-#endif

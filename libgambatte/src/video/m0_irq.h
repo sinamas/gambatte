@@ -1,5 +1,4 @@
-#ifndef M0_IRQ_H
-#define M0_IRQ_H
+#pragma once
 
 #include "lcddef.h"
 #include "../savestate.h"
@@ -59,5 +58,3 @@ private:
 };
 
 }
-
-#endif

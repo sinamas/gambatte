@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef INSERTION_SORT_H
-#define INSERTION_SORT_H
+#pragma once
 
 #include <functional>
 
@@ -45,5 +44,3 @@ template<typename T>
 inline void insertionSort(T *start, T *end) {
 	insertionSort(start, end, std::less<T>());
 }
-
-#endif /*INSERTION_SORT_H*/

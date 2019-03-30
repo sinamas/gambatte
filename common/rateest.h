@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef RATEEST_H
-#define RATEEST_H
+#pragma once
 
 #include "usec.h"
 #include <cstddef>
@@ -57,5 +56,3 @@ private:
 	usec_t last_;
 	double t_, s_, st_, t2_;
 };
-
-#endif

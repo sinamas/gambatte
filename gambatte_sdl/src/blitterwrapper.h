@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef BLITTERWRAPPER_H
-#define BLITTERWRAPPER_H
+#pragma once
 
 #include "gbint.h"
 #include "scoped_ptr.h"
@@ -42,5 +41,3 @@ private:
 	scoped_ptr<VideoLink> const cconvert_;
 	scoped_ptr<VideoLink> const vfilter_;
 };
-
-#endif

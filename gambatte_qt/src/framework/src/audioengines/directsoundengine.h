@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef DIRECTSOUNDENGINE_H
-#define DIRECTSOUNDENGINE_H
+#pragma once
 
 #include "../audioengine.h"
 #include "rateest.h"
@@ -73,5 +72,3 @@ private:
 	int doWrite(void *buffer, std::size_t frames, DWORD status, DWORD pc, DWORD wc);
 	void fillBufferState(BufferState &s, DWORD pc, DWORD wc) const;
 };
-
-#endif

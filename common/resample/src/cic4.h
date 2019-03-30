@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef CIC4_H
-#define CIC4_H
+#pragma once
 
 #include "rshift16_round.h"
 #include "subresampler.h"
@@ -190,5 +189,3 @@ std::size_t Cic4<channels>::resample(short *out, short const *in, std::size_t in
 
 	return samplesOut;
 }
-
-#endif

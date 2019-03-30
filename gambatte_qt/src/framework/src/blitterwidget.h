@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef BLITTERWIDGET_H
-#define BLITTERWIDGET_H
+#pragma once
 
 #include "pixelbuffer.h"
 #include "uncopyable.h"
@@ -122,5 +121,3 @@ private:
 	PixelBuffer pixbuf_;
 	bool paused_;
 };
-
-#endif

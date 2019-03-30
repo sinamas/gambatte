@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef STATIC_OUTPUT_TESTER_H
-#define STATIC_OUTPUT_TESTER_H
+#pragma once
 
 #include "envelope_unit.h"
 
@@ -43,5 +42,3 @@ void StaticOutputTester<Channel, Unit>::operator()(unsigned long cc) {
 }
 
 }
-
-#endif

@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GAMBATTE_INT_H
-#define GAMBATTE_INT_H
+#pragma once
 
 #ifdef HAVE_CSTDINT
 
@@ -56,7 +55,5 @@ typedef unsigned char uint_least16_t;
 typedef unsigned short uint_least16_t;
 #endif
 }
-
-#endif
 
 #endif

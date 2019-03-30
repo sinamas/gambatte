@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef WASAPIENGINE_H
-#define WASAPIENGINE_H
+#pragma once
 
 #include "../audioengine.h"
 #include "dialoghelpers.h"
@@ -69,5 +68,3 @@ private:
 	int waitForSpace(UINT32 &numFramesPadding, UINT32 space);
 	int write(void *buffer, std::size_t frames, UINT32 numFramesPadding);
 };
-
-#endif /* WASAPIENGINE_H */

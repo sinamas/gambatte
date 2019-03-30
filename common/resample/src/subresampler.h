@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef SUBRESAMPLER_H
-#define SUBRESAMPLER_H
+#pragma once
 
 #include <cstddef>
 
@@ -29,5 +28,3 @@ public:
 	virtual unsigned div() const = 0;
 	virtual void adjustDiv(unsigned /*div*/) {}
 };
-
-#endif

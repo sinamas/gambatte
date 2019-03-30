@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef CUSTOMDEVCONF_H
-#define CUSTOMDEVCONF_H
+#pragma once
 
 #include "scoped_ptr.h"
 #include <QString>
@@ -47,5 +46,3 @@ private:
 	QString customDev_;
 	bool useCustomDev_;
 };
-
-#endif

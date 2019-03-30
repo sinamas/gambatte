@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef STATE_OSD_ELEMENTS_H
-#define STATE_OSD_ELEMENTS_H
+#pragma once
 
 #include "osd_element.h"
 #include "transfer_ptr.h"
@@ -28,5 +27,3 @@ transfer_ptr<OsdElement> newStateLoadedOsdElement(unsigned stateNo);
 transfer_ptr<OsdElement> newStateSavedOsdElement(unsigned stateNo);
 transfer_ptr<OsdElement> newSaveStateOsdElement(const std::string &fileName, unsigned stateNo);
 }
-
-#endif

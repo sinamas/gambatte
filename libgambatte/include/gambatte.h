@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GAMBATTE_H
-#define GAMBATTE_H
+#pragma once
 
 #include "gbint.h"
 #include "inputgetter.h"
@@ -189,5 +188,3 @@ private:
 };
 
 }
-
-#endif

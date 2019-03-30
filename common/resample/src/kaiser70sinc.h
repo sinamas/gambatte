@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef KAISER70SINC_H
-#define KAISER70SINC_H
+#pragma once
 
 #include "array.h"
 #include "cic4.h"
@@ -85,5 +84,3 @@ private:
 	Array<short> const kernel_;
 	PolyphaseFir<channels, phases> polyfir_;
 };
-
-#endif

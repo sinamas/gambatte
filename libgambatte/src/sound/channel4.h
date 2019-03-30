@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SOUND_CHANNEL4_H
-#define SOUND_CHANNEL4_H
+#pragma once
 
 #include "envelope_unit.h"
 #include "gbint.h"
@@ -95,5 +94,3 @@ private:
 };
 
 }
-
-#endif

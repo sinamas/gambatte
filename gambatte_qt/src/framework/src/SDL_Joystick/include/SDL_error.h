@@ -22,8 +22,7 @@
 
 /* Simple error message routines for SDL */
 
-#ifndef _SDL_error_h
-#define _SDL_error_h
+#pragma once
 
 #include "SDL_stdinc.h"
 
@@ -55,5 +54,3 @@ extern void SDL_Error(SDL_errorcode code);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _SDL_error_h */

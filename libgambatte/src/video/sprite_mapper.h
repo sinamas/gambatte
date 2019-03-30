@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SPRITE_MAPPER_H
-#define SPRITE_MAPPER_H
+#pragma once
 
 #include "ly_counter.h"
 #include "../savestate.h"
@@ -118,5 +117,3 @@ private:
 };
 
 }
-
-#endif

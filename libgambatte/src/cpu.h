@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef CPU_H
-#define CPU_H
+#pragma once
 
 #include "memory.h"
 
@@ -84,5 +83,3 @@ private:
 };
 
 }
-
-#endif

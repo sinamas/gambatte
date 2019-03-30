@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef UPSAMPLER_H
-#define UPSAMPLER_H
+#pragma once
 
 #include "subresampler.h"
 #include <cstring>
@@ -49,5 +48,3 @@ std::size_t Upsampler<channels>::resample(short *out, short const *in, std::size
 
 	return inlen * mul;
 }
-
-#endif

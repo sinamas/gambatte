@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef FULLMODETOGGLER_H
-#define FULLMODETOGGLER_H
+#pragma once
 
 #include "resinfo.h"
 #include <QObject>
@@ -47,5 +46,3 @@ public:
 signals:
 	void rateChange(int newHz);
 };
-
-#endif

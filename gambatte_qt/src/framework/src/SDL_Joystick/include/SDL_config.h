@@ -20,8 +20,7 @@
     slouken@libsdl.org
 */
 
-#ifndef _SDL_config_h
-#define _SDL_config_h
+#pragma once
 
 #define SDL_HAS_64BIT_TYPE	1
 #define HAVE_STDIO_H	1
@@ -61,5 +60,3 @@
 #define HAVE_SNPRINTF	1
 #define HAVE_VSNPRINTF	1
 #define HAVE_SETJMP	1
-
-#endif /* _SDL_config_h */

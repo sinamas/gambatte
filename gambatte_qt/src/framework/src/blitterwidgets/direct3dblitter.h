@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef DIRECT3DBLITTER_H_
-#define DIRECT3DBLITTER_H_
+#pragma once
 
 #include "../blitterwidget.h"
 #include "dialoghelpers.h"
@@ -90,5 +89,3 @@ private:
 	void exclusiveChange();
 	void doPresent();
 };
-
-#endif /*DIRECT3DBLITTER_H_*/

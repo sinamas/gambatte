@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GDISETTINGS_H_
-#define GDISETTINGS_H_
+#pragma once
 
 #include "uncopyable.h"
 #include <windows.h>
@@ -57,5 +56,3 @@ private:
 };
 
 extern GdiSettings const gdiSettings;
-
-#endif /*GDISETTINGS_H_*/

@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef VIDEO_LYC_IRQ_H
-#define VIDEO_LYC_IRQ_H
+#pragma once
 
 namespace gambatte {
 
@@ -57,5 +56,3 @@ private:
 };
 
 }
-
-#endif

@@ -16,10 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef MAKE_SINC_KERNEL_H
-#define MAKE_SINC_KERNEL_H
+#pragma once
 
 void makeSincKernel(short *kernel, int phases, int phaseLen,
                     double fc, double (*win)(long m, long M), double gain);
-
-#endif

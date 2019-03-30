@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include "callqueue.h"
 #include "pixelbuffer.h"
@@ -301,5 +300,3 @@ void MainWindow::callInWorkerThread(T const &fun) {
 	PushMediaWorkerCall pushMediaWorkerCall(*w_);
 	pushMediaWorkerCall(fun);
 }
-
-#endif

@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef RECTSINC_H
-#define RECTSINC_H
+#pragma once
 
 #include "array.h"
 #include "cic2.h"
@@ -85,5 +84,3 @@ private:
 
 	static double rectWin(long /*i*/, long /*M*/) { return 1; }
 };
-
-#endif

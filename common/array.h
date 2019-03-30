@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef ARRAY_H
-#define ARRAY_H
+#pragma once
 
 #include "defined_ptr.h"
 #include "uncopyable.h"
@@ -49,5 +48,3 @@ private:
 	SimpleArray<T> a_;
 	std::size_t size_;
 };
-
-#endif

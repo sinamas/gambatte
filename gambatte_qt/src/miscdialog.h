@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MISCDIALOG_H
-#define MISCDIALOG_H
+#pragma once
 
 #include "dialoghelpers.h"
 #include "fpsselector.h"
@@ -54,5 +53,3 @@ private:
 
 	void restore();
 };
-
-#endif

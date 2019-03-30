@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef CHAINRESAMPLER_H
-#define CHAINRESAMPLER_H
+#pragma once
 
 #include "../resampler.h"
 #include "../resamplerinfo.h"
@@ -106,5 +105,3 @@ void ChainResampler::downinit(long const inRate,
 	                          gain);
 	reallocateBuffer();
 }
-
-#endif

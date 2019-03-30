@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MEDIAWORKER_H
-#define MEDIAWORKER_H
+#pragma once
 
 #include "atomicvar.h"
 #include "callqueue.h"
@@ -201,5 +200,3 @@ void MediaWorker::PauseVar::pushCall(T const &t, bool const stopped) {
 	if (stopped)
 		callq_.pop_all();
 }
-
-#endif

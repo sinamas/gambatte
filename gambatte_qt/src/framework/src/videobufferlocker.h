@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef VIDEOBUFFERLOCKER_H
-#define VIDEOBUFFERLOCKER_H
+#pragma once
 
 #include <QMutex>
 
@@ -28,6 +27,3 @@ public:
 	void lock() const { vbmut.lock(); }
 	void unlock() const { vbmut.unlock(); }
 };
-
-#endif
-

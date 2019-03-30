@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef RESINFO_H
-#define RESINFO_H
+#pragma once
 
 #include <vector>
 
@@ -27,5 +26,3 @@ struct ResInfo {
 	unsigned h;
 	std::vector<short> rates;
 };
-
-#endif

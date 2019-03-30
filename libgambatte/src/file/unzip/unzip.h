@@ -42,8 +42,7 @@
       ftp://ftp.pkware.com/probdesc.zip
 */
 
-#ifndef _unz_H
-#define _unz_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -354,5 +353,3 @@ extern int ZEXPORT unzSetOffset (unzFile file, uLong pos);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _unz_H */

@@ -22,8 +22,7 @@
 
 /* Include file for SDL joystick event handling */
 
-#ifndef _SDL_joystick_h
-#define _SDL_joystick_h
+#pragma once
 
 #include "SDL_stdinc.h"
 #include "SDL_error.h"
@@ -165,5 +164,3 @@ extern void SDL_JoystickClose(SDL_Joystick *joystick);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _SDL_joystick_h */

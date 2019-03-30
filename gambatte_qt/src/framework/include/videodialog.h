@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef VIDEODIALOG_H
-#define VIDEODIALOG_H
+#pragma once
 
 #include "auto_vector.h"
 #include "dialoghelpers.h"
@@ -92,5 +91,3 @@ private slots:
 };
 
 void applySettings(MainWindow &mw, VideoDialog const &vd);
-
-#endif

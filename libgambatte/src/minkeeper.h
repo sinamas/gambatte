@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MINKEEPER_H
-#define MINKEEPER_H
+#pragma once
 
 #include <algorithm>
 
@@ -152,5 +151,3 @@ void MinKeeper<ids>::updateValue(MinKeeper<ids> &m) {
 	m.a_[Sum<height - 1>::r + id] = m.values_[c0] < m.values_[c1] ? c0 : c1;
 	UpdateValue<id / 2, height - 1>::updateValue(m);
 }
-
-#endif

@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef BLITTERCONF_H
-#define BLITTERCONF_H
+#pragma once
 
 class BlitterWidget;
 class QString;
@@ -52,5 +51,3 @@ public:
 private:
 	BlitterWidget *blitter_;
 };
-
-#endif

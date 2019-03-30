@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef X11BLITTER_H
-#define X11BLITTER_H
+#pragma once
 
 #include "transfer_ptr.h"
 
@@ -26,5 +25,3 @@ class QWidget;
 class VideoBufferLocker;
 
 transfer_ptr<BlitterWidget> createX11Blitter(VideoBufferLocker vbl, QWidget *parent = 0);
-
-#endif

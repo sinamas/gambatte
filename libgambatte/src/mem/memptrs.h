@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef MEMPTRS_H
-#define MEMPTRS_H
+#pragma once
 
 #include "array.h"
 
@@ -107,5 +106,3 @@ inline bool isCgb(MemPtrs const &memptrs) {
 }
 
 }
-
-#endif

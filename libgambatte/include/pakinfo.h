@@ -1,5 +1,4 @@
-#ifndef GAMBATTE_PAKINFO_H
-#define GAMBATTE_PAKINFO_H
+#pragma once
 
 #include <string>
 
@@ -21,5 +20,3 @@ private:
 };
 
 }
-
-#endif

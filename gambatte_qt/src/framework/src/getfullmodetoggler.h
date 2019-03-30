@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GET_FULL_MODE_TOGGLER_H
-#define GET_FULL_MODE_TOGGLER_H
+#pragma once
 
 #include "transfer_ptr.h"
 #include <QWidget>
@@ -25,5 +24,3 @@
 class FullModeToggler;
 
 transfer_ptr<FullModeToggler> getFullModeToggler(WId winId);
-
-#endif

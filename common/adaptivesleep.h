@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef ADAPTIVE_SLEEP_H
-#define ADAPTIVE_SLEEP_H
+#pragma once
 
 #include "usec.h"
 
@@ -31,5 +30,3 @@ private:
 	usec_t oversleepVar_;
 	unsigned noSleep_;
 };
-
-#endif

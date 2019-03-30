@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SWSCALE_H
-#define SWSCALE_H
+#pragma once
 
 #include "array.h"
 #include <cstddef>
@@ -250,5 +249,3 @@ void semiLinearScale(
 		src += srcPitch;
 	} while (--h);
 }
-
-#endif

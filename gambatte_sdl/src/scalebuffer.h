@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SCALEBUFFER_H_
-#define SCALEBUFFER_H_
+#pragma once
 
 #include <cstddef>
 #include <cstring>
@@ -58,5 +57,3 @@ void scaleBuffer(const T *s, T *d,
 	default: do_scaleBuffer(s, d, srcW, srcH, dstPitch, scale); break;
 	}
 }
-
-#endif /*SCALEBUFFER_H_*/

@@ -16,8 +16,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef SDL_EVENT_H
-#define SDL_EVENT_H
+#pragma once
 
 #include <stdint.h>
 
@@ -61,6 +60,4 @@ extern int SDL_PollEvent(SDL_Event *event);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

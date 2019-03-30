@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef VFILTERINFO_H
-#define VFILTERINFO_H
+#pragma once
 
 #include <cstddef>
 
@@ -35,5 +34,3 @@ struct VfilterInfo {
 	static VfilterInfo const & get(std::size_t n);
 	static std::size_t numVfilters();
 };
-
-#endif

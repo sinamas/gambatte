@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef PPU_H
-#define PPU_H
+#pragma once
 
 #include "lcddef.h"
 #include "ly_counter.h"
@@ -146,5 +145,3 @@ private:
 };
 
 }
-
-#endif

@@ -16,12 +16,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef USEC_H
-#define USEC_H
+#pragma once
 
 typedef unsigned long usec_t;
 
 usec_t getusecs();
 void usecsleep(usec_t usecs);
-
-#endif

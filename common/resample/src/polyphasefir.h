@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef POLYPHASEFIR_H
-#define POLYPHASEFIR_H
+#pragma once
 
 #include "array.h"
 #include "rshift16_round.h"
@@ -172,5 +171,3 @@ std::size_t PolyphaseFir<channels, phases>::filter(short *out,
 
 	return produced;
 }
-
-#endif

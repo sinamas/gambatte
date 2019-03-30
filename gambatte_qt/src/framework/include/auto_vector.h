@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef AUTO_VECTOR_H
-#define AUTO_VECTOR_H
+#pragma once
 
 #include "defined_ptr.h"
 #include <algorithm>
@@ -113,5 +112,3 @@ private:
 	auto_vector& operator=(auto_vector const &v);
 	typename base::iterator baseit(iterator it) { return base::begin() + (it - begin()); }
 };
-
-#endif

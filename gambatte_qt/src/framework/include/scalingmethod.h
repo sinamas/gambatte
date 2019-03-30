@@ -16,12 +16,9 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SCALINGMETHOD_H
-#define SCALINGMETHOD_H
+#pragma once
 
 enum ScalingMethod { scaling_unrestricted,
                      scaling_keep_ratio,
                      scaling_integer, };
 enum { num_scaling_methods = scaling_integer + 1 };
-
-#endif

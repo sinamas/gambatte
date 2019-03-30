@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef CHEATDIALOG_H
-#define CHEATDIALOG_H
+#pragma once
 
 #include <QDialog>
 #include <QString>
@@ -88,5 +87,3 @@ private slots:
 	void removeCheat();
 	void selectionChanged(QModelIndex const &current);
 };
-
-#endif

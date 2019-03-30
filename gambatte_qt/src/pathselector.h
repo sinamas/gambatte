@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef PATHSELECTOR_H
-#define PATHSELECTOR_H
+#pragma once
 
 #include <QObject>
 #include <QString>
@@ -52,5 +51,3 @@ private:
 private slots:
 	void indexChanged(int index);
 };
-
-#endif

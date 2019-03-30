@@ -1,5 +1,4 @@
-#ifndef SCOPED_PTR_H
-#define SCOPED_PTR_H
+#pragma once
 
 #include "transfer_ptr.h"
 #include "uncopyable.h"
@@ -25,5 +24,3 @@ public:
 private:
 	T *p_;
 };
-
-#endif

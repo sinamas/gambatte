@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef CARTRIDGE_H
-#define CARTRIDGE_H
+#pragma once
 
 #include "loadres.h"
 #include "memptrs.h"
@@ -89,5 +88,3 @@ private:
 };
 
 }
-
-#endif

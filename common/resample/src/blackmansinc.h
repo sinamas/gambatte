@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef BLACKMANSINC_H
-#define BLACKMANSINC_H
+#pragma once
 
 #include "array.h"
 #include "cic4.h"
@@ -89,5 +88,3 @@ private:
 		            + 0.08 * std::cos(4 * pi * i / M);
 	}
 };
-
-#endif

@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef QUARTZTOGGLER_H_
-#define QUARTZTOGGLER_H_
+#pragma once
 
 #include "../fullmodetoggler.h"
 #include "array.h"
@@ -53,5 +52,3 @@ private:
 	std::size_t widgetScreen;
 	bool isFull;
 };
-
-#endif

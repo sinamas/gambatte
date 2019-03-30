@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef AUDIOSINK_H
-#define AUDIOSINK_H
+#pragma once
 
 #include "ringbuffer.h"
 #include "rateest.h"
@@ -57,5 +56,3 @@ private:
 
 	void read(Uint8 *stream, std::size_t len);
 };
-
-#endif

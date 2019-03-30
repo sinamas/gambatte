@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef AUDIOENGINE_H
-#define AUDIOENGINE_H
+#pragma once
 
 #include <QMutex>
 #include <QMutexLocker>
@@ -90,5 +89,3 @@ private:
 	QString const nameString_;
 	long rate_;
 };
-
-#endif

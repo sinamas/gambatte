@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef DIALOGHELPERS_H
-#define DIALOGHELPERS_H
+#pragma once
 
 #include <QString>
 
@@ -79,5 +78,3 @@ private:
 	QComboBox *const box_;
 	int index_;
 };
-
-#endif

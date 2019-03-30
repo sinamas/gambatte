@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef JOYSTICKLOCK_H
-#define JOYSTICKLOCK_H
+#pragma once
 
 #include "SDL_Joystick/include/SDL_event.h"
 #include "SDL_Joystick/include/SDL_joystick.h"
@@ -67,5 +66,3 @@ private:
 	SdlJoystick();
 	static QMutex mutex_;
 };
-
-#endif

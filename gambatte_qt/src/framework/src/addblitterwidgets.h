@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef ADD_BLITTER_WIDGETS_H
-#define ADD_BLITTER_WIDGETS_H
+#pragma once
 
 #include "videobufferlocker.h"
 #include "auto_vector.h"
@@ -25,5 +24,3 @@
 class BlitterWidget;
 
 void addBlitterWidgets(auto_vector<BlitterWidget> &blitters, VideoBufferLocker vbl);
-
-#endif

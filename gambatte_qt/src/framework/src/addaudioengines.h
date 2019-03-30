@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef ADD_AUDIO_ENGINES_H
-#define ADD_AUDIO_ENGINES_H
+#pragma once
 
 #include "auto_vector.h"
 #include <QtGui>
@@ -25,5 +24,3 @@
 class AudioEngine;
 
 void addAudioEngines(auto_vector<AudioEngine> &audioEngines, WId winId);
-
-#endif

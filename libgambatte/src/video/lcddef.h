@@ -1,5 +1,4 @@
-#ifndef LCDDEF_H
-#define LCDDEF_H
+#pragma once
 
 namespace gambatte {
 
@@ -33,5 +32,3 @@ enum {
 	lcd_force_signed_enum2 = -1 };
 
 }
-
-#endif

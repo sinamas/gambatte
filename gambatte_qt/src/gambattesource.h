@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef GAMBATTESOURCE_H
-#define GAMBATTESOURCE_H
+#pragma once
 
 #include "mediasource.h"
 #include "inputdialog.h"
@@ -111,5 +110,3 @@ private:
 	void emitLoadState() { emit loadStateSignal(); }
 	void emitQuit() { emit quit(); }
 };
-
-#endif

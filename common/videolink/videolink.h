@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.             *
  ***************************************************************************/
-#ifndef VIDEOLINK_H
-#define VIDEOLINK_H
+#pragma once
 
 #include <cstddef>
 
@@ -28,5 +27,3 @@ public:
 	virtual std::ptrdiff_t inPitch() const = 0;
 	virtual void draw(void *dst, std::ptrdiff_t dstpitch) = 0;
 };
-
-#endif

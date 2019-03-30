@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef BITMAP_FONT_H
-#define BITMAP_FONT_H
+#pragma once
 
 #include "gbint.h"
 #include <cstddef>
@@ -83,5 +82,3 @@ void print(RandomAccessIterator dest, std::ptrdiff_t const pitch, Fill fill, cha
 }
 
 }
-
-#endif

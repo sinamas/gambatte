@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef NULLTOGGLER_H
-#define NULLTOGGLER_H
+#pragma once
 
 #include "../fullmodetoggler.h"
 
@@ -44,5 +43,3 @@ private:
 	std::vector<ResInfo> const nullVector;
 	bool fullRes;
 };
-
-#endif

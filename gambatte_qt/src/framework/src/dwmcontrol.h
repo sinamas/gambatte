@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef DWMCONTROL_H_
-#define DWMCONTROL_H_
+#pragma once
 
 #include <QWidget>
 #include <QtGlobal> // Q_WS_WIN define
@@ -55,5 +54,3 @@ public:
 private:
 	DwmControl &dwmc_;
 };
-
-#endif /* DWMCONTROL_H_ */

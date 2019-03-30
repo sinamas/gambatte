@@ -16,8 +16,7 @@
 //   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef SOUNDDIALOG_H
-#define SOUNDDIALOG_H
+#pragma once
 
 #include "dialoghelpers.h"
 #include <QDialog>
@@ -63,5 +62,3 @@ private slots:
 };
 
 void applySettings(MainWindow &mw, SoundDialog const &sd);
-
-#endif
