@@ -806,7 +806,7 @@ inline void LCD::doMode2IrqEvent() {
 		? incLy(ppu_.lyCounter().ly())
 		: ppu_.lyCounter().ly();
 	if (!isMode2IrqEventBlocked(ly, m2IrqStatReg_, lycIrq_.lycReg()))
-		eventTimes_.flagIrq(2);
+		eventTimes_.flagIrq(2, eventTimes_(memevent_m2irq));
 
 	m2IrqStatReg_ = statReg_;
 
@@ -830,7 +830,7 @@ inline void LCD::event() {
 		switch (eventTimes_.nextMemEvent()) {
 		case memevent_m1irq:
 			eventTimes_.flagIrq((m1IrqStatReg_ & (lcdstat_m1irqen | lcdstat_m0irqen))
-				== lcdstat_m1irqen ? 3 : 1);
+				== lcdstat_m1irqen ? 3 : 1, eventTimes_(memevent_m1irq));
 			m1IrqStatReg_ = statReg_;
 			eventTimes_.setm<memevent_m1irq>(eventTimes_(memevent_m1irq)
 				+ (lcd_cycles_per_frame << isDoubleSpeed()));
@@ -839,7 +839,7 @@ inline void LCD::event() {
 		case memevent_lycirq: {
 			unsigned char ifreg = 0;
 			lycIrq_.doEvent(&ifreg, ppu_.lyCounter());
-			eventTimes_.flagIrq(ifreg);
+			eventTimes_.flagIrq(ifreg, eventTimes_(memevent_lycirq));
 			eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
 			break;
 		}
@@ -866,7 +866,7 @@ inline void LCD::event() {
 				unsigned char ifreg = 0;
 				m0Irq_.doEvent(&ifreg, ppu_.lyCounter().ly(), statReg_,
 				               lycIrq_.lycReg());
-				eventTimes_.flagIrq(ifreg);
+				eventTimes_.flagIrq(ifreg, eventTimes_(memevent_m0irq));
 			}
 
 			eventTimes_.setm<memevent_m0irq>(statReg_ & lcdstat_m0irqen

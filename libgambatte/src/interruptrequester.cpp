@@ -89,6 +89,16 @@ void InterruptRequester::flagIrq(unsigned bit) {
 		eventTimes_.setValue<intevent_interrupts>(minIntTime_);
 }
 
+void InterruptRequester::flagIrq(unsigned bit, unsigned long cc) {
+	unsigned const prevPending = pendingIrqs();
+	ifreg_ |= bit;
+
+	if (!prevPending && pendingIrqs() && intFlags_.imeOrHalted()) {
+		minIntTime_ = std::max(minIntTime_, cc);
+		eventTimes_.setValue<intevent_interrupts>(minIntTime_);
+	}
+}
+
 void InterruptRequester::setIereg(unsigned iereg) {
 	iereg_ = iereg & 0x1F;
 

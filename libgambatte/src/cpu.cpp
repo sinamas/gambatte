@@ -994,15 +994,14 @@ void CPU::process(unsigned long const cycles) {
 			case 0x74: WRITE(hl(), h); break;
 			case 0x75: WRITE(hl(), l); break;
 
-				// halt (4 cycles):
+				// halt (4n cycles):
 			case 0x76:
-				if (!mem_.ime() && mem_.pendingIrqs(cycleCounter)) {
-					if (mem_.isCgb())
-						cycleCounter += 4;
-					else
-						skip_ = true;
+				if (mem_.pendingIrqs(cycleCounter)) {
+					pc = (pc - mem_.ime()) & 0xFFFF;
+					skip_ = !mem_.ime();
 				} else {
 					mem_.halt();
+					cycleCounter += 8 * !mem_.isCgb();
 
 					if (cycleCounter < mem_.nextEventTime()) {
 						unsigned long cycles = mem_.nextEventTime() - cycleCounter;

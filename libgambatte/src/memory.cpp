@@ -143,8 +143,8 @@ void Memory::updateSerial(unsigned long const cc) {
 		if (intreq_.eventTime(intevent_serial) <= cc) {
 			ioamhram_[0x101] = (((ioamhram_[0x101] + 1) << serialCnt_) - 1) & 0xFF;
 			ioamhram_[0x102] &= 0x7F;
+			intreq_.flagIrq(8, intreq_.eventTime(intevent_serial));
 			intreq_.setEventTime<intevent_serial>(disabled_time);
-			intreq_.flagIrq(8);
 		} else {
 			int const targetCnt = serialCntFrom(intreq_.eventTime(intevent_serial) - cc,
 				ioamhram_[0x102] & isCgb() * 2);
@@ -288,7 +288,7 @@ unsigned long Memory::event(unsigned long cc) {
 		break;
 	case intevent_interrupts:
 		if (halted()) {
-			cc += 4;
+			cc += 4 * (isCgb() || cc - intreq_.eventTime(intevent_interrupts) < 2);
 			intreq_.unhalt();
 			intreq_.setEventTime<intevent_unhalt>(disabled_time);
 		}

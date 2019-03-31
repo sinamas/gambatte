@@ -39,6 +39,7 @@ public:
 
 	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq_); }
 	void flagIrq(unsigned bit) const { intreq_.flagIrq(bit); }
+	void flagIrq(unsigned bit, unsigned long cc) const { intreq_.flagIrq(bit, cc); }
 	void setNextEventTime(unsigned long time) const { intreq_.setEventTime<intevent_video>(time); }
 
 private:
@@ -181,6 +182,7 @@ private:
 		void set(MemEvent e, unsigned long time) { memEventMin_.setValue(e, time); setMemEvent(); }
 
 		void flagIrq(unsigned bit) { memEventRequester_.flagIrq(bit); }
+		void flagIrq(unsigned bit, unsigned long cc) { memEventRequester_.flagIrq(bit, cc); }
 		void flagHdmaReq() { memEventRequester_.flagHdmaReq(); }
 
 	private:

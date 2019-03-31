@@ -51,6 +51,7 @@ public:
 	void halt();
 	void unhalt();
 	void flagIrq(unsigned bit);
+	void flagIrq(unsigned bit, unsigned long cc);
 	void ackIrq(unsigned bit) { ifreg_ &= ~bit; }
 	void setIereg(unsigned iereg);
 	void setIfreg(unsigned ifreg);

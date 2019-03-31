@@ -27,6 +27,7 @@ class TimaInterruptRequester {
 public:
 	explicit TimaInterruptRequester(InterruptRequester &intreq) : intreq_(intreq) {}
 	void flagIrq() const { intreq_.flagIrq(4); }
+	void flagIrq(unsigned long cc) const { intreq_.flagIrq(4, cc); }
 	unsigned long nextIrqEventTime() const { return intreq_.eventTime(intevent_tima); }
 	void setNextIrqEventTime(unsigned long time) const { intreq_.setEventTime<intevent_tima>(time); }
 
