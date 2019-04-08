@@ -64,6 +64,8 @@ unsigned long gbcToUyvy(unsigned const bgr15) {
 #endif
 }*/
 
+// TODO: simplify cycle offsets.
+
 long m1IrqFrameCycle(bool ds) { return 1l * lcd_vres * lcd_cycles_per_line - 2 + 2 * ds; }
 int m2IrqLineCycle(bool ds) { return lcd_cycles_per_line - 4 + 2 * ds; }
 int m2IrqLineCycleLy0(bool ds) { return lcd_cycles_per_line - 2 + 2 * ds; }
@@ -372,6 +374,7 @@ bool LCD::vramAccessible(unsigned long const cc) {
 
 	return !(ppu_.lcdc() & lcdc_en)
 	    || ppu_.lyCounter().ly() >= lcd_vres
+	    || ppu_.inactivePeriodAfterDisplayEnable(cc + 1 - ppu_.cgb() + isDoubleSpeed())
 	    || ppu_.lyCounter().lineCycles(cc) < 80
 	    || cc + isDoubleSpeed() - ppu_.cgb() + 2 >= m0TimeOfCurrentLine(cc);
 }
@@ -382,6 +385,7 @@ bool LCD::cgbpAccessible(unsigned long const cc) {
 
 	return !(ppu_.lcdc() & lcdc_en)
 	    || ppu_.lyCounter().ly() >= lcd_vres
+	    || ppu_.inactivePeriodAfterDisplayEnable(cc)
 	    || ppu_.lyCounter().lineCycles(cc) < 80u + isDoubleSpeed()
 	    || cc >= m0TimeOfCurrentLine(cc) + 3 - isDoubleSpeed();
 }
@@ -401,7 +405,7 @@ void LCD::doCgbSpColorChange(unsigned index, unsigned data, unsigned long cc) {
 }
 
 bool LCD::oamReadable(unsigned long const cc) {
-	if (!(ppu_.lcdc() & lcdc_en) || ppu_.inactivePeriodAfterDisplayEnable(cc))
+	if (!(ppu_.lcdc() & lcdc_en) || ppu_.inactivePeriodAfterDisplayEnable(cc + 4))
 		return true;
 
 	if (cc >= eventTimes_.nextEventTime())
@@ -415,7 +419,7 @@ bool LCD::oamReadable(unsigned long const cc) {
 }
 
 bool LCD::oamWritable(unsigned long const cc) {
-	if (!(ppu_.lcdc() & lcdc_en) || ppu_.inactivePeriodAfterDisplayEnable(cc))
+	if (!(ppu_.lcdc() & lcdc_en) || ppu_.inactivePeriodAfterDisplayEnable(cc + 4 + isDoubleSpeed()))
 		return true;
 
 	if (cc >= eventTimes_.nextEventTime())

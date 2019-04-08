@@ -1806,7 +1806,7 @@ void PPU::setLcdc(unsigned const lcdc, unsigned long const cc) {
 		p_.weMaster = (lcdc & lcdc_we) && 0 == p_.wy;
 		p_.winDrawState = 0;
 		p_.nextCallPtr = &M3Start::f0_;
-		p_.cycles = -static_cast<int>(m3StartLineCycle(p_.cgb) + m2_ds_offset * p_.lyCounter.isDoubleSpeed());
+		p_.cycles = -static_cast<int>(m3StartLineCycle(p_.cgb) + 2 + p_.lyCounter.isDoubleSpeed());
 	} else if ((p_.lcdc ^ lcdc) & lcdc_we) {
 		if (!(lcdc & lcdc_we)) {
 			if (p_.winDrawState == win_draw_started || p_.xpos == xpos_end)

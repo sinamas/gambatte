@@ -131,7 +131,7 @@ void SpriteMapper::OamReader::loadState(SaveState const &ss, unsigned char const
 void SpriteMapper::OamReader::enableDisplay(unsigned long cc) {
 	std::fill_n(buf_, sizeof buf_ / sizeof *buf_, 0);
 	std::fill_n(lsbuf_, sizeof lsbuf_ / sizeof *lsbuf_, false);
-	lu_ = cc + (2 * lcd_num_oam_entries << lyCounter_.isDoubleSpeed());
+	lu_ = cc + (2 * lcd_num_oam_entries << lyCounter_.isDoubleSpeed()) + 1;
 	lastChange_ = 2 * lcd_num_oam_entries;
 }
 
