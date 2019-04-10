@@ -221,7 +221,7 @@ private:
 	bool cgbpAccessible(unsigned long cycleCounter);
 	bool lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned long cc);
 	bool lycRegChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc);
-	bool statChangeTriggersM0LycOrM1StatIrqCgb(unsigned old, unsigned data, unsigned long cc);
+	bool statChangeTriggersM0LycOrM1StatIrqCgb(unsigned old, unsigned data, bool lycperiod, unsigned long cc);
 	bool statChangeTriggersStatIrqCgb(unsigned old, unsigned data, unsigned long cc);
 	bool statChangeTriggersStatIrqDmg(unsigned old, unsigned long cc);
 	bool statChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc);

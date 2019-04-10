@@ -80,7 +80,7 @@ unsigned long mode2IrqSchedule(unsigned const statReg,
 		return disabled_time;
 
 	bool const ds = lyCounter.isDoubleSpeed();
-	unsigned long const lastM2Fc = (lcd_vres - 2l) * lcd_cycles_per_line + m2IrqLineCycle(ds);
+	unsigned long const lastM2Fc = (lcd_vres - 1l) * lcd_cycles_per_line + m2IrqLineCycle(ds);
 	unsigned long const ly0M2Fc = (lcd_lines_per_frame - 1l) * lcd_cycles_per_line + m2IrqLineCycleLy0(ds);
 	return lyCounter.frameCycles(cc) - lastM2Fc < ly0M2Fc - lastM2Fc || (statReg & lcdstat_m0irqen)
 	? lyCounter.nextFrameCycle(ly0M2Fc, cc)
@@ -591,7 +591,7 @@ LyCnt const getLycCmpLy(LyCounter const &lyCounter, unsigned long cc) {
 }
 
 bool statChangeTriggersM2IrqCgb(unsigned const old,
-		unsigned const data, unsigned const ly, int const timeToNextLy) {
+		unsigned const data, int const ly, int const timeToNextLy, bool const ds) {
 	if ((old & lcdstat_m2irqen)
 			|| (data & (lcdstat_m2irqen | lcdstat_m0irqen)) != lcdstat_m2irqen
 			|| ly >= lcd_vres) {
@@ -599,7 +599,7 @@ bool statChangeTriggersM2IrqCgb(unsigned const old,
 	}
 
 	return  timeToNextLy == 2 * lcd_cycles_per_line
-	    || (timeToNextLy <= 4 && ly < lcd_vres - 1);
+	    || (timeToNextLy <= 4 && ly < lcd_vres - 1 + ds);
 }
 
 unsigned incLy(unsigned ly) { return ly == lcd_lines_per_frame - 1 ? 0 : ly + 1; }
@@ -622,18 +622,16 @@ inline bool LCD::statChangeTriggersStatIrqDmg(unsigned const old, unsigned long 
 }
 
 inline bool LCD::statChangeTriggersM0LycOrM1StatIrqCgb(
-		unsigned const old, unsigned const data, unsigned long const cc) {
-	unsigned const ly = ppu_.lyCounter().ly();
+		unsigned const old, unsigned const data, bool const lycperiod,
+		unsigned long const cc) {
+	int const ly = ppu_.lyCounter().ly();
 	int const timeToNextLy = ppu_.lyCounter().time() - cc;
-	LyCnt const lycCmp = getLycCmpLy(ppu_.lyCounter(), cc);
-	bool const lycperiod = lycCmp.ly == lycIrq_.lycReg()
-		&& lycCmp.timeToNextLy > 4 - isDoubleSpeed() * 4;
-	if (lycperiod && (old & lcdstat_lycirqen))
-		return false;
 
 	if (ly < lcd_vres) {
-		if (cc + isDoubleSpeed() * 2 < m0TimeOfCurrentLine(cc) || timeToNextLy <= 4)
+		if (cc + isDoubleSpeed() * 2 < m0TimeOfCurrentLine(cc)
+				|| (timeToNextLy <= 4 && ly < lcd_vres - isDoubleSpeed())) {
 			return lycperiod && (data & lcdstat_lycirqen);
+		}
 
 		if (old & lcdstat_m0irqen)
 			return false;
@@ -659,10 +657,16 @@ inline bool LCD::statChangeTriggersStatIrqCgb(
 		return false;
 	}
 
-	unsigned const ly = ppu_.lyCounter().ly();
+	int const ly = ppu_.lyCounter().ly();
 	int const timeToNextLy = ppu_.lyCounter().time() - cc;
-	return statChangeTriggersM0LycOrM1StatIrqCgb(old, data, cc)
-	    || statChangeTriggersM2IrqCgb(old, data, ly, timeToNextLy);
+	LyCnt const lycCmp = getLycCmpLy(ppu_.lyCounter(), cc);
+	bool const lycperiod = lycCmp.ly == lycIrq_.lycReg()
+		&& lycCmp.timeToNextLy > 4 - isDoubleSpeed() * 4;
+	if (lycperiod && (old & lcdstat_lycirqen))
+		return false;
+
+	return statChangeTriggersM0LycOrM1StatIrqCgb(old, data, lycperiod, cc)
+	    || statChangeTriggersM2IrqCgb(old, data, ly, timeToNextLy, isDoubleSpeed());
 }
 
 inline bool LCD::statChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc) {
@@ -693,12 +697,14 @@ void LCD::lcdstatChange(unsigned const data, unsigned long const cc) {
 		eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
 	}
 
-	m2IrqStatReg_ = eventTimes_(memevent_m2irq) - cc > (ppu_.cgb() - isDoubleSpeed()) * 4u
+	m2IrqStatReg_ = eventTimes_(memevent_m2irq) - cc > 2u * ppu_.cgb()
 		? data
-		: (m2IrqStatReg_ & lcdstat_m1irqen) | (statReg_ & ~(1u * lcdstat_m1irqen));
-	m1IrqStatReg_ = eventTimes_(memevent_m1irq) - cc > (ppu_.cgb() - isDoubleSpeed()) * 4u
+		: (m2IrqStatReg_ & (lcdstat_lycirqen | lcdstat_m1irqen))
+			| (data & ~static_cast<unsigned>(lcdstat_lycirqen | lcdstat_m1irqen));
+	m1IrqStatReg_ = eventTimes_(memevent_m1irq) - cc > 2u * ppu_.cgb()
 		? data
-		: (m1IrqStatReg_ & lcdstat_m0irqen) | (statReg_ & ~(1u * lcdstat_m0irqen));
+		: (m1IrqStatReg_ & (lcdstat_m2irqen | lcdstat_m0irqen))
+			| (data & ~static_cast<unsigned>(lcdstat_m2irqen | lcdstat_m0irqen));
 
 	m0Irq_.statRegChange(data, eventTimes_(memevent_m0irq), cc, ppu_.cgb());
 }
@@ -820,8 +826,8 @@ inline void LCD::doMode2IrqEvent() {
 		next = lcd_cycles_per_line;
 		if (ly == 0) {
 			next -= m2IrqLineCycleLy0(ds) - m2IrqLineCycle(ds);
-		} else if (ly == lcd_vres - 1) {
-			next += lcd_cycles_per_line * (lcd_lines_per_frame - lcd_vres)
+		} else if (ly == lcd_vres) {
+			next += lcd_cycles_per_line * (lcd_lines_per_frame - lcd_vres - 1)
 				+ m2IrqLineCycleLy0(ds) - m2IrqLineCycle(ds);
 		}
 	}
@@ -833,7 +839,7 @@ inline void LCD::event() {
 	case event_mem:
 		switch (eventTimes_.nextMemEvent()) {
 		case memevent_m1irq:
-			eventTimes_.flagIrq((m1IrqStatReg_ & (lcdstat_m1irqen | lcdstat_m0irqen))
+			eventTimes_.flagIrq((m1IrqStatReg_ & (lcdstat_m2irqen | lcdstat_m1irqen | lcdstat_m0irqen))
 				== lcdstat_m1irqen ? 3 : 1, eventTimes_(memevent_m1irq));
 			m1IrqStatReg_ = statReg_;
 			eventTimes_.setm<memevent_m1irq>(eventTimes_(memevent_m1irq)
