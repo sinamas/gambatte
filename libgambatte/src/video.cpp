@@ -840,13 +840,12 @@ inline void LCD::event() {
 				+ (lcd_cycles_per_frame << isDoubleSpeed()));
 			break;
 
-		case memevent_lycirq: {
-			unsigned char ifreg = 0;
-			lycIrq_.doEvent(&ifreg, ppu_.lyCounter());
-			eventTimes_.flagIrq(ifreg, eventTimes_(memevent_lycirq));
+		case memevent_lycirq:
+			if (lycIrq_.doEvent(ppu_.lyCounter()))
+				eventTimes_.flagIrq(2, eventTimes_(memevent_lycirq));
+
 			eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
 			break;
-		}
 
 		case memevent_spritemap:
 			eventTimes_.setm<memevent_spritemap>(
@@ -866,15 +865,10 @@ inline void LCD::event() {
 			break;
 
 		case memevent_m0irq:
-			{
-				unsigned char ifreg = 0;
-				m0Irq_.doEvent(&ifreg, ppu_.lyCounter().ly(), delayedStatReg_,
-					statReg_, lycIrq_.lycReg());
-				eventTimes_.flagIrq(ifreg, eventTimes_(memevent_m0irq));
-			}
+			if (m0Irq_.doEvent(ppu_.lyCounter().ly(), delayedStatReg_, statReg_, lycIrq_.lycReg()))
+				eventTimes_.flagIrq(2, eventTimes_(memevent_m0irq));
 
 			delayedStatReg_ = statReg_;
-
 			eventTimes_.setm<memevent_m0irq>(statReg_ & lcdstat_m0irqen
 				? m0IrqTimeFromXpos166Time(ppu_.predictedNextXposTime(lcd_hres + 6),
 				                           ppu_.cgb(), isDoubleSpeed())

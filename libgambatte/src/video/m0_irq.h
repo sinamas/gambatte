@@ -19,14 +19,11 @@ public:
 			lycReg_ = lycReg;
 	}
 
-	void doEvent(unsigned char *ifreg, unsigned ly, unsigned delayedStatReg,
-			unsigned statReg, unsigned lycReg) {
-		if (((statReg | delayedStatReg) & lcdstat_m0irqen)
-				&& (!(delayedStatReg & lcdstat_lycirqen) || ly != lycReg_)) {
-			*ifreg |= 2;
-		}
-
+	bool doEvent(unsigned ly, unsigned delayedStatReg, unsigned statReg, unsigned lycReg) {
+		bool const flagIrq = ((statReg | delayedStatReg) & lcdstat_m0irqen)
+			&& (!(delayedStatReg & lcdstat_lycirqen) || ly != lycReg_);
 		lycReg_ = lycReg;
+		return flagIrq;
 	}
 
 	void saveState(SaveState &state) const {
