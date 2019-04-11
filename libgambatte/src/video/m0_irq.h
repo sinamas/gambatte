@@ -8,22 +8,9 @@ namespace gambatte {
 
 class M0Irq {
 public:
-	M0Irq()
-	: statReg_(0)
-	, lycReg_(0)
-	{
-	}
+	M0Irq() : lycReg_(0) {}
 
-	void lcdReset(unsigned statReg, unsigned lycReg) {
-		statReg_ = statReg;
-		 lycReg_ =  lycReg;
-	}
-
-	void statRegChange(unsigned statReg,
-	                   unsigned long nextM0IrqTime, unsigned long cc, bool cgb) {
-		if (nextM0IrqTime - cc > cgb * 2U)
-			statReg_ = statReg;
-	}
+	void lcdReset(unsigned lycReg) { lycReg_ = lycReg; }
 
 	void lycRegChange(unsigned lycReg,
 	                  unsigned long nextM0IrqTime, unsigned long cc,
@@ -32,14 +19,14 @@ public:
 			lycReg_ = lycReg;
 	}
 
-	void doEvent(unsigned char *ifreg, unsigned ly, unsigned statReg, unsigned lycReg) {
-		if (((statReg_ | statReg) & lcdstat_m0irqen)
-				&& (!(statReg_ & lcdstat_lycirqen) || ly != lycReg_)) {
+	void doEvent(unsigned char *ifreg, unsigned ly, unsigned delayedStatReg,
+			unsigned statReg, unsigned lycReg) {
+		if (((statReg | delayedStatReg) & lcdstat_m0irqen)
+				&& (!(delayedStatReg & lcdstat_lycirqen) || ly != lycReg_)) {
 			*ifreg |= 2;
 		}
 
-		statReg_ = statReg;
-		 lycReg_ =  lycReg;
+		lycReg_ = lycReg;
 	}
 
 	void saveState(SaveState &state) const {
@@ -47,14 +34,10 @@ public:
 	}
 
 	void loadState(SaveState const &state) {
-		 lycReg_ = state.ppu.m0lyc;
-		statReg_ = state.mem.ioamhram.get()[0x141];
+		lycReg_ = state.ppu.m0lyc;
 	}
 
-	unsigned statReg() const { return statReg_; }
-
 private:
-	unsigned char statReg_;
 	unsigned char lycReg_;
 };
 

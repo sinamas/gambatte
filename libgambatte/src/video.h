@@ -207,8 +207,7 @@ private:
 	NextM0Time nextM0Time_;
 	scoped_ptr<OsdElement> osdElement_;
 	unsigned char statReg_;
-	unsigned char m2IrqStatReg_;
-	unsigned char m1IrqStatReg_;
+	unsigned char delayedStatReg_;
 
 	static void setDmgPalette(unsigned long palette[],
 	                          unsigned long const dmgColors[],
