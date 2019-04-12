@@ -24,7 +24,7 @@
 #include "osd_element.h"
 #include "scoped_ptr.h"
 #include "video/lyc_irq.h"
-#include "video/m0_irq.h"
+#include "video/mstat_irq.h"
 #include "video/next_m0_time.h"
 #include "video/ppu.h"
 
@@ -202,12 +202,11 @@ private:
 	unsigned char  bgpData_[2 * max_num_palettes * num_palette_entries];
 	unsigned char objpData_[2 * max_num_palettes * num_palette_entries];
 	EventTimes eventTimes_;
-	M0Irq m0Irq_;
+	MStatIrqEvent mstatIrq_;
 	LycIrq lycIrq_;
 	NextM0Time nextM0Time_;
 	scoped_ptr<OsdElement> osdElement_;
 	unsigned char statReg_;
-	unsigned char delayedStatReg_;
 
 	static void setDmgPalette(unsigned long palette[],
 	                          unsigned long const dmgColors[],

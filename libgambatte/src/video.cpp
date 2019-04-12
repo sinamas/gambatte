@@ -137,7 +137,6 @@ LCD::LCD(unsigned char const *oamram, unsigned char const *vram,
 , objpData_()
 , eventTimes_(memEventRequester)
 , statReg_(0)
-, delayedStatReg_(0)
 {
 	for (std::size_t pno = 0; pno < sizeof dmgColorsRgb32_ / sizeof dmgColorsRgb32_[0]; ++pno)
 	for (std::size_t i = 0; i < num_palette_entries; ++i)
@@ -165,17 +164,16 @@ void LCD::saveState(SaveState &state) const {
 	state.ppu.pendingLcdstatIrq = eventTimes_(memevent_oneshot_statirq) != disabled_time;
 
 	lycIrq_.saveState(state);
-	m0Irq_.saveState(state);
+	mstatIrq_.saveState(state);
 	ppu_.saveState(state);
 }
 
 void LCD::loadState(SaveState const &state, unsigned char const *const oamram) {
 	statReg_ = state.mem.ioamhram.get()[0x141];
-	delayedStatReg_ = statReg_;
 
 	ppu_.loadState(state, oamram);
 	lycIrq_.loadState(state);
-	m0Irq_.loadState(state);
+	mstatIrq_.loadState(state);
 
 	if (ppu_.lcdc() & lcdc_en) {
 		nextM0Time_.predictNextM0Time(ppu_);
@@ -510,7 +508,7 @@ void LCD::lcdcChange(unsigned const data, unsigned long const cc) {
 
 		if (data & lcdc_en) {
 			lycIrq_.lcdReset();
-			m0Irq_.lcdReset(lycIrq_.lycReg());
+			mstatIrq_.lcdReset(lycIrq_.lycReg());
 
 			if (lycIrq_.lycReg() == 0 && (statReg_ & lcdstat_lycirqen))
 				eventTimes_.flagIrq(2);
@@ -695,11 +693,8 @@ void LCD::lcdstatChange(unsigned const data, unsigned long const cc) {
 		eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
 	}
 
-	delayedStatReg_ = cc + 2u * ppu_.cgb() >= eventTimes_(memevent_m2irq)
-		|| cc + 2u * ppu_.cgb() >= eventTimes_(memevent_m1irq)
-		|| cc + 2u * ppu_.cgb() >= eventTimes_(memevent_m0irq)
-		? old
-		: data;
+	mstatIrq_.statRegChange(data, eventTimes_(memevent_m0irq), eventTimes_(memevent_m1irq),
+		eventTimes_(memevent_m2irq), cc, ppu_.cgb());
 }
 
 inline bool LCD::lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned long const cc) {
@@ -742,8 +737,9 @@ void LCD::lycRegChange(unsigned const data, unsigned long const cc) {
 	if (cc >= eventTimes_.nextEventTime())
 		update(cc);
 
-	m0Irq_.lycRegChange(data, eventTimes_(memevent_m0irq), cc, isDoubleSpeed(), ppu_.cgb());
 	lycIrq_.lycRegChange(data, ppu_.lyCounter(), cc);
+	mstatIrq_.lycRegChange(data, eventTimes_(memevent_m0irq),
+		eventTimes_(memevent_m2irq), cc, isDoubleSpeed(), ppu_.cgb());
 
 	if (ppu_.lcdc() & lcdc_en) {
 		eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
@@ -786,32 +782,12 @@ unsigned LCD::getStat(unsigned const lycReg, unsigned long const cc) {
 	return stat;
 }
 
-namespace {
-
-bool isMode2IrqEventBlockedByM1Irq(unsigned ly, unsigned statreg) {
-	return ly == 0 && (statreg & lcdstat_m1irqen);
-}
-
-bool isMode2IrqEventBlockedByLycIrq(unsigned ly, unsigned statreg, unsigned lycreg) {
-	return (statreg & lcdstat_lycirqen)
-	    && (ly == 0 ? ly : ly - 1) == lycreg;
-}
-
-bool isMode2IrqEventBlocked(unsigned ly, unsigned statreg, unsigned lycreg) {
-	return isMode2IrqEventBlockedByM1Irq(ly, statreg)
-	    || isMode2IrqEventBlockedByLycIrq(ly, statreg, lycreg);
-}
-
-}
-
 inline void LCD::doMode2IrqEvent() {
 	unsigned const ly = eventTimes_(event_ly) - eventTimes_(memevent_m2irq) < 8
 		? incLy(ppu_.lyCounter().ly())
 		: ppu_.lyCounter().ly();
-	if (!isMode2IrqEventBlocked(ly, delayedStatReg_, lycIrq_.lycReg()))
+	if (mstatIrq_.doM2Event(ly, statReg_, lycIrq_.lycReg()))
 		eventTimes_.flagIrq(2, eventTimes_(memevent_m2irq));
-
-	delayedStatReg_ = statReg_;
 
 	bool const ds = isDoubleSpeed();
 	unsigned long next = lcd_cycles_per_frame;
@@ -832,10 +808,8 @@ inline void LCD::event() {
 	case event_mem:
 		switch (eventTimes_.nextMemEvent()) {
 		case memevent_m1irq:
-			eventTimes_.flagIrq((statReg_ & lcdstat_m1irqen)
-				&& !(delayedStatReg_ & (lcdstat_m2irqen | lcdstat_m0irqen))
-				? 3 : 1, eventTimes_(memevent_m1irq));
-			delayedStatReg_ = statReg_;
+			eventTimes_.flagIrq(mstatIrq_.doM1Event(statReg_) * 2 + 1,
+				eventTimes_(memevent_m1irq));
 			eventTimes_.setm<memevent_m1irq>(eventTimes_(memevent_m1irq)
 				+ (lcd_cycles_per_frame << isDoubleSpeed()));
 			break;
@@ -865,10 +839,9 @@ inline void LCD::event() {
 			break;
 
 		case memevent_m0irq:
-			if (m0Irq_.doEvent(ppu_.lyCounter().ly(), delayedStatReg_, statReg_, lycIrq_.lycReg()))
+			if (mstatIrq_.doM0Event(ppu_.lyCounter().ly(), statReg_, lycIrq_.lycReg()))
 				eventTimes_.flagIrq(2, eventTimes_(memevent_m0irq));
 
-			delayedStatReg_ = statReg_;
 			eventTimes_.setm<memevent_m0irq>(statReg_ & lcdstat_m0irqen
 				? m0IrqTimeFromXpos166Time(ppu_.predictedNextXposTime(lcd_hres + 6),
 				                           ppu_.cgb(), isDoubleSpeed())
