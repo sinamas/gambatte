@@ -702,7 +702,7 @@ inline bool LCD::lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned long const c
 	if (ppu_.lyCounter().ly() < lcd_vres) {
 		return (statReg_ & lcdstat_m0irqen)
 		    && cc >= m0TimeOfCurrentLine(cc)
-		    && timeToNextLy > 4 << ppu_.cgb();
+		    && timeToNextLy > 4 + 4 * ppu_.cgb();
 	}
 
 	return (statReg_ & lcdstat_m1irqen)
@@ -718,7 +718,7 @@ bool LCD::lycRegChangeTriggersStatIrq(
 	}
 
 	LyCnt lycCmp = getLycCmpLy(ppu_.lyCounter(), cc);
-	if (lycCmp.timeToNextLy <= 4 << ppu_.cgb()) {
+	if (lycCmp.timeToNextLy <= 4 + 4 * ppu_.cgb()) {
 		bool const ds = isDoubleSpeed();
 		if (old == lycCmp.ly && !(lycCmp.timeToNextLy <= 4 && ppu_.cgb() && !ds))
 			return false; // simultaneous ly/lyc inc. lyc flag never goes low -> no trigger.
@@ -808,7 +808,7 @@ inline void LCD::event() {
 	case event_mem:
 		switch (eventTimes_.nextMemEvent()) {
 		case memevent_m1irq:
-			eventTimes_.flagIrq(mstatIrq_.doM1Event(statReg_) * 2 + 1,
+			eventTimes_.flagIrq(mstatIrq_.doM1Event(statReg_) ? 3 : 1,
 				eventTimes_(memevent_m1irq));
 			eventTimes_.setm<memevent_m1irq>(eventTimes_(memevent_m1irq)
 				+ (lcd_cycles_per_frame << isDoubleSpeed()));

@@ -909,7 +909,8 @@ unsigned long nextM2Time(PPUPriv const &p) {
 			- lcd_cycles_per_line * 2
 		: p.lyCounter.time() + weMasterCheckPriorToLyIncLineCycle(p.cgb) - lcd_cycles_per_line;
 	if (p.lyCounter.ly() == lcd_vres - 1) {
-		nextm2 += (lcd_cycles_per_line * 11 - weMasterCheckPriorToLyIncLineCycle(p.cgb))
+		nextm2 += (lcd_cycles_per_line * (lcd_lines_per_frame - lcd_vres + 1)
+				- weMasterCheckPriorToLyIncLineCycle(p.cgb))
 			<< p.lyCounter.isDoubleSpeed();
 	}
 

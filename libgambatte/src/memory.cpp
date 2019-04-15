@@ -217,7 +217,7 @@ unsigned long Memory::event(unsigned long cc) {
 			bool const doubleSpeed = isDoubleSpeed();
 			unsigned dmaSrc = dmaSource_;
 			unsigned dmaDest = dmaDestination_;
-			unsigned dmaLength = ((ioamhram_[0x155] & 0x7F) + 0x1) * 0x10;
+			unsigned dmaLength = ((ioamhram_[0x155] & 0x7F) + 1) * 0x10;
 			unsigned length = hdmaReqFlagged(intreq_) ? 0x10 : dmaLength;
 
 			ackDmaReq(intreq_);
@@ -242,7 +242,7 @@ unsigned long Memory::event(unsigned long cc) {
 						? 0xFF
 						: read(src, cc);
 
-					cc += 2 << doubleSpeed;
+					cc += 2 + 2 * doubleSpeed;
 
 					if (cc - 3 > lOamDmaUpdate) {
 						oamDmaPos_ = (oamDmaPos_ + 1) & 0xFF;
@@ -269,7 +269,7 @@ unsigned long Memory::event(unsigned long cc) {
 
 			dmaSource_ = dmaSrc;
 			dmaDestination_ = dmaDest;
-			ioamhram_[0x155] = ((dmaLength / 0x10 - 0x1) & 0xFF) | (ioamhram_[0x155] & 0x80);
+			ioamhram_[0x155] = ((dmaLength / 0x10 - 1) & 0xFF) | (ioamhram_[0x155] & 0x80);
 
 			if ((ioamhram_[0x155] & 0x80) && lcd_.hdmaIsEnabled()) {
 				if (lastOamDmaUpdate_ != disabled_time)
@@ -426,10 +426,10 @@ void Memory::updateOamDma(unsigned long const cc) {
 }
 
 void Memory::oamDmaInitSetup() {
-	if (ioamhram_[0x146] < oam_size) {
-		cart_.setOamDmaSrc(ioamhram_[0x146] < 0x80 ? oam_dma_src_rom : oam_dma_src_vram);
+	if (ioamhram_[0x146] < mm_sram_begin / 0x100) {
+		cart_.setOamDmaSrc(ioamhram_[0x146] < mm_vram_begin / 0x100 ? oam_dma_src_rom : oam_dma_src_vram);
 	} else if (ioamhram_[0x146] < 0x100 - isCgb() * 0x20) {
-		cart_.setOamDmaSrc(ioamhram_[0x146] < 0xC0 ? oam_dma_src_sram : oam_dma_src_wram);
+		cart_.setOamDmaSrc(ioamhram_[0x146] < mm_wram_begin / 0x100 ? oam_dma_src_sram : oam_dma_src_wram);
 	} else
 		cart_.setOamDmaSrc(oam_dma_src_invalid);
 }
