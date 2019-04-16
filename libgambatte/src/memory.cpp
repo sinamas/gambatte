@@ -325,6 +325,7 @@ void Memory::ackIrq(unsigned bit, unsigned long cc) {
 }
 
 unsigned long Memory::stop(unsigned long cc) {
+	// FIXME: this is crap.
 	cc += 4 + 4 * isDoubleSpeed();
 
 	if (ioamhram_[0x14D] & isCgb()) {
