@@ -1,7 +1,7 @@
 .size 8000
 
-.text@50
-	jp ltimaint
+.text@48
+	jp lstatint
 
 .text@100
 	jp lbegin
@@ -11,32 +11,32 @@
 
 .text@150
 lbegin:
-	xor a, a
-	ldff(06), a
-	ld a, 05
-	ldff(07), a
-	ld a, f0
-	ldff(05), a
-	ld a, 04
+	ld a, 01
+	ldff(43), a
+	ld b, 42
+	call lwaitly_b
+	ld a, 40
+	ldff(41), a
+	ld a, 02
 	ldff(ff), a
 	xor a, a
 	ldff(0f), a
 	ei
+	ld a, 44
+	ldff(45), a
 
 .text@1000
-ltimaint:
-	ld a, 00
-	ldff(ff), a
+lstatint:
 	ld a, 30
 	ldff(00), a
-	ld a, 01
+	xor a, a
+	ldff(ff), a
+	inc a
 	ldff(4d), a
 	stop, 00
-	nop
-	nop
-	nop
-	nop
-	ldff a, (05)
+
+.text@1097
+	ldff a, (41)
 	jp lprint_a
 
 .text@7000
@@ -57,10 +57,8 @@ lprint_copytiles:
 	jrnz lprint_copytiles
 	pop af
 	ld b, a
-	srl a
-	srl a
-	srl a
-	srl a
+	swap a
+	and a, 0f
 	ld(9800), a
 	ld a, b
 	and a, 0f

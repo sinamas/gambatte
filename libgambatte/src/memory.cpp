@@ -325,27 +325,51 @@ void Memory::ackIrq(unsigned bit, unsigned long cc) {
 }
 
 unsigned long Memory::stop(unsigned long cc) {
-	// FIXME: this is crap.
-	cc += 4 + 4 * isDoubleSpeed();
+	// FIXME: this is incomplete.
+	intreq_.halt();
+	// the following lets the TIMA speed change tests pass.
+	intreq_.setEventTime<intevent_unhalt>(cc + (-cc & 12) + 0x20000 + 4);
 
+	// speed change.
 	if (ioamhram_[0x14D] & isCgb()) {
-		psg_.generateSamples(cc, isDoubleSpeed());
-		lcd_.speedChange(cc);
+		// the following is so far consistent for the display speed change.
+		// (there is also an internal skip of 4 cycles for the forward case).
+		// the odd cc used for the inverse case effects the LCD to end up at
+		// an odd cycle offset relative to the CPU (all mod 4 offsets are
+		// possible with repeated speed changes, and, can also carry over
+		// to the forward case).
+		unsigned long const cc_ = cc + (isDoubleSpeed()
+			? 6 + 2 * ((12 - cc) & 12)
+			: (cc - 4) & 12);
+		if (lastOamDmaUpdate_ != disabled_time)
+			updateOamDma(cc_);
+
+		// simply use the same cc as the switching point for the PSG as well,
+		// for now, which lets the limited PSG double speed tests pass, and
+		// should keep the number of audio samples produced consistent with
+		// the number of video frames completed (less the 4-cycle skip).
+		psg_.generateSamples(cc_, isDoubleSpeed());
+		lcd_.speedChange(cc_);
 		ioamhram_[0x14D] ^= 0x81;
+		// TODO: perhaps make this a bit nicer?
 		intreq_.setEventTime<intevent_blit>(ioamhram_[0x140] & lcdc_en
 			? lcd_.nextMode1IrqTime()
 			: cc + (lcd_cycles_per_frame << isDoubleSpeed()));
-
-		if (intreq_.eventTime(intevent_end) > cc) {
-			intreq_.setEventTime<intevent_end>(cc
+		if (intreq_.eventTime(intevent_end) > cc_) {
+			intreq_.setEventTime<intevent_end>(cc_
 				+ (  isDoubleSpeed()
-				   ? (intreq_.eventTime(intevent_end) - cc) << 1
-				   : (intreq_.eventTime(intevent_end) - cc) >> 1));
+				   ? (intreq_.eventTime(intevent_end) - cc_) << 1
+				   : (intreq_.eventTime(intevent_end) - cc_) >> 1));
 		}
+		// force a cc increment to ensure that no updates with a previous cc occur.
+		// FIXME: this is likely incorrect for eventual HDMA events (but unlikely to
+		// matter unless the HDMA has conflicts, which may require some effort).
+		cc = cc_ + 4 - (cc_ & 2);
+	} else {
+		// FIXME: test and implement stop correctly.
+		cc += 4;
 	}
 
-	intreq_.halt();
-	intreq_.setEventTime<intevent_unhalt>(cc + 0x20000 + isDoubleSpeed() * 8);
 	return cc;
 }
 

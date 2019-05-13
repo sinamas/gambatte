@@ -1,7 +1,7 @@
 .size 8000
 
-.text@50
-	jp ltimaint
+.text@48
+	jp lstatint
 
 .text@100
 	jp lbegin
@@ -11,21 +11,10 @@
 
 .text@150
 lbegin:
+	ld b, 91
+	call lwaitly_b
 	xor a, a
-	ldff(06), a
-	ld a, 05
-	ldff(07), a
-	ld a, f0
-	ldff(05), a
-	ld a, 04
-	ldff(ff), a
-	xor a, a
-	ldff(0f), a
-	ei
-
-.text@1000
-ltimaint:
-	ld a, 00
+	ldff(40), a
 	ldff(ff), a
 	ld a, 30
 	ldff(00), a
@@ -33,11 +22,36 @@ ltimaint:
 	ldff(4d), a
 	stop, 00
 	nop
+	ld a, 91
+	ldff(40), a
+	ld a, 01
+	ldff(4d), a
 	nop
 	nop
-	nop
-	nop
-	ldff a, (05)
+	stop, 00
+	ld c, 41
+	ld b, 03
+lbegin_waitm3:
+	ldff a, (c)
+	and a, b
+	cmp a, b
+	jrnz lbegin_waitm3
+	ld a, 20
+	ldff(c), a
+	ld a, 02
+	ldff(ff), a
+	xor a, a
+	ldff(0f), a
+	ei
+
+.text@1000
+lstatint:
+	ld a, 02
+	ldff(43), a
+
+.text@1033
+	ldff a, (41)
+	and a, 07
 	jp lprint_a
 
 .text@7000
@@ -47,25 +61,17 @@ lprint_a:
 	call lwaitly_b
 	xor a, a
 	ldff(40), a
+	pop af
+	ld(9800), a
 	ld bc, 7a00
 	ld hl, 8000
-	ld d, 00
+	ld d, a0
 lprint_copytiles:
 	ld a, (bc)
 	inc bc
 	ld(hl++), a
 	dec d
 	jrnz lprint_copytiles
-	pop af
-	ld b, a
-	srl a
-	srl a
-	srl a
-	srl a
-	ld(9800), a
-	ld a, b
-	and a, 0f
-	ld(9801), a
 	ld a, c0
 	ldff(47), a
 	ld a, 80
@@ -116,16 +122,4 @@ lwaitly_b_loop:
 	3e 3e 41 41 41 41 3e 3e
 	00 00 7f 7f 41 41 41 41
 	7f 7f 01 01 01 01 7f 7f
-	00 00 08 08 22 22 41 41
-	7f 7f 41 41 41 41 41 41
-	00 00 7e 7e 41 41 41 41
-	7e 7e 41 41 41 41 7e 7e
-	00 00 3e 3e 41 41 40 40
-	40 40 40 40 41 41 3e 3e
-	00 00 7e 7e 41 41 41 41
-	41 41 41 41 41 41 7e 7e
-	00 00 7f 7f 40 40 40 40
-	7f 7f 40 40 40 40 7f 7f
-	00 00 7f 7f 40 40 40 40
-	7f 7f 40 40 40 40 40 40
 
