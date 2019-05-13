@@ -129,6 +129,8 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 			updateIrq(cc, timaIrq);
 			updateTima(cc);
 
+			// FIXME: this looks naive.
+			// TODO: more TIMA tests.
 			lastUpdate_ -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
 			tmatime_ -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
 			nextIrqEventTime -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
