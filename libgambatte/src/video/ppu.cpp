@@ -100,7 +100,6 @@ enum { attr_cgbpalno = 0x07, attr_tdbank = 0x08, attr_dmgpalno = 0x10, attr_xfli
 	attr_yflip = 0x40, attr_bgpriority = 0x80 };
 enum { win_draw_start = 1, win_draw_started = 2 };
 
-int const m2_ds_offset = 3;
 int const max_m3start_cycles = 80;
 int const tile_bpp = 2;
 int const tile_bpp_mask = (1 << tile_bpp) - 1;
@@ -122,9 +121,10 @@ inline int lcdcObj2x(PPUPriv const &p) { return p.lcdc & lcdc_obj2x; }
 inline int lcdcObjEn(PPUPriv const &p) { return p.lcdc & lcdc_objen; }
 inline int lcdcBgEn( PPUPriv const &p) { return p.lcdc & lcdc_bgen;  }
 
-inline int weMasterCheckPriorToLyIncLineCycle(bool cgb) { return 450 - cgb; }
-inline int weMasterCheckAfterLyIncLineCycle(bool cgb) { return 454 - cgb; }
-inline int m3StartLineCycle(bool /*cgb*/) { return 83; }
+inline int weMasterCheckLy0LineCycle(bool /*cgb*/) { return 1; }
+inline int weMasterCheckPriorToLyIncLineCycle(bool /*cgb*/) { return 450; }
+inline int weMasterCheckAfterLyIncLineCycle(bool /*cgb*/) { return 454; }
+inline int m3StartLineCycle(bool cgb) { return 83 + cgb; }
 
 inline void nextCall(int const cycles, PPUState const &state, PPUPriv &p) {
 	int const c = p.cycles - cycles;
@@ -141,7 +141,7 @@ namespace M2_Ly0 {
 	void f0(PPUPriv &p) {
 		p.weMaster = lcdcWinEn(p) && 0 == p.wy;
 		p.winYPos = 0xFF;
-		nextCall(m3StartLineCycle(p.cgb), M3Start::f0_, p);
+		nextCall(m3StartLineCycle(p.cgb) - weMasterCheckLy0LineCycle(p.cgb), M3Start::f0_, p);
 	}
 }
 
@@ -904,28 +904,20 @@ void plotPixelIfNoSprite(PPUPriv &p) {
 }
 
 unsigned long nextM2Time(PPUPriv const &p) {
-	unsigned long nextm2 = p.lyCounter.isDoubleSpeed()
-		? p.lyCounter.time() + (weMasterCheckPriorToLyIncLineCycle(true) + m2_ds_offset) * 2
-			- lcd_cycles_per_line * 2
-		: p.lyCounter.time() + weMasterCheckPriorToLyIncLineCycle(p.cgb) - lcd_cycles_per_line;
-	if (p.lyCounter.ly() == lcd_vres - 1) {
-		nextm2 += (lcd_cycles_per_line * (lcd_lines_per_frame - lcd_vres + 1)
-				- weMasterCheckPriorToLyIncLineCycle(p.cgb))
-			<< p.lyCounter.isDoubleSpeed();
-	}
-
-	return nextm2;
+	int const nm2 = p.lyCounter.ly() < lcd_vres - 1
+		? weMasterCheckPriorToLyIncLineCycle(p.cgb)
+		: lcd_cycles_per_line * (lcd_lines_per_frame - p.lyCounter.ly())
+			+ weMasterCheckLy0LineCycle(p.cgb);
+	return p.lyCounter.time() - p.lyCounter.lineTime() + (nm2 << p.lyCounter.isDoubleSpeed());
 }
 
 void xposEnd(PPUPriv &p) {
 	p.lastM0Time = p.now - (p.cycles << p.lyCounter.isDoubleSpeed());
 
 	unsigned long const nextm2 = nextM2Time(p);
-
 	p.cycles = p.now >= nextm2
 		? static_cast<long>((p.now - nextm2) >> p.lyCounter.isDoubleSpeed())
 		: -static_cast<long>((nextm2 - p.now) >> p.lyCounter.isDoubleSpeed());
-
 	nextCall(0, p.lyCounter.ly() == lcd_vres - 1 ? M2_Ly0::f0_ : M2_LyNon0::f0_, p);
 }
 
@@ -1497,8 +1489,8 @@ namespace M2_Ly0 {
 		bool weMaster = lcdcWinEn(p) && 0 == p.wy;
 		unsigned ly = 0;
 
-		return M3Start::predictCyclesUntilXpos_f0(p, ly, weMaster,
-			winDrawState, targetx, cycles + m3StartLineCycle(p.cgb));
+		return M3Start::predictCyclesUntilXpos_f0(p, ly, weMaster, winDrawState, targetx,
+			cycles + m3StartLineCycle(p.cgb) - weMasterCheckLy0LineCycle(p.cgb));
 
 	}
 
@@ -1701,15 +1693,12 @@ void PPU::loadState(SaveState const &ss, unsigned char const *const oamram) {
 	PPUState const *const m3loopState = decodeM3LoopState(ss.ppu.state);
 	long const videoCycles = std::min(ss.ppu.videoCycles, lcd_cycles_per_frame - 1ul);
 	bool const ds = p_.cgb & ss.mem.ioamhram.get()[0x14D] >> 7;
-	long const vcycs = videoCycles - ds * m2_ds_offset < 0
-	                 ? videoCycles - ds * m2_ds_offset + lcd_cycles_per_frame
-	                 : videoCycles - ds * m2_ds_offset;
-	long const lineCycles = static_cast<unsigned long>(vcycs) % lcd_cycles_per_line;
+	long const lineCycles = static_cast<unsigned long>(videoCycles) % lcd_cycles_per_line;
 
 	p_.now = ss.cpu.cycleCounter;
 	p_.lcdc = ss.mem.ioamhram.get()[0x140];
 	p_.lyCounter.setDoubleSpeed(ds);
-	p_.lyCounter.reset(std::min(ss.ppu.videoCycles, lcd_cycles_per_frame - 1ul), ss.cpu.cycleCounter);
+	p_.lyCounter.reset(videoCycles, ss.cpu.cycleCounter);
 	p_.spriteMapper.loadState(ss, oamram);
 	p_.winYPos = ss.ppu.winYPos;
 	p_.scy = ss.mem.ioamhram.get()[0x142];
@@ -1736,7 +1725,7 @@ void PPU::loadState(SaveState const &ss, unsigned char const *const oamram) {
 			&& lineCycles + cyclesUntilM0Upperbound(p_) < weMasterCheckPriorToLyIncLineCycle(p_.cgb)) {
 		p_.nextCallPtr = m3loopState;
 		p_.cycles = -1;
-	} else if (vcycs < (lcd_vres - 1l) * lcd_cycles_per_line + m3StartLineCycle(p_.cgb) + max_m3start_cycles) {
+	} else if (videoCycles < (lcd_vres - 1l) * lcd_cycles_per_line + m3StartLineCycle(p_.cgb) + max_m3start_cycles) {
 		CycleState const lineCycleStates[] = {
 			{   &M3Start::f0_, m3StartLineCycle(p_.cgb) },
 			{   &M3Start::f1_, m3StartLineCycle(p_.cgb) + max_m3start_cycles },
@@ -1756,7 +1745,7 @@ void PPU::loadState(SaveState const &ss, unsigned char const *const oamram) {
 			p_.cycles = -1;
 		}
 	} else {
-		p_.cycles = vcycs - lcd_cycles_per_frame;
+		p_.cycles = videoCycles - lcd_cycles_per_frame - weMasterCheckLy0LineCycle(p_.cgb);
 		p_.nextCallPtr = &M2_Ly0::f0_;
 	}
 }
@@ -1784,13 +1773,6 @@ void PPU::speedChange(unsigned long const cycleCounter) {
 	p_.lyCounter.setDoubleSpeed(!p_.lyCounter.isDoubleSpeed());
 	p_.lyCounter.reset(videoCycles, p_.now);
 	p_.spriteMapper.postSpeedChange(cycleCounter);
-
-	if (&M2_Ly0::f0_ == p_.nextCallPtr || &M2_LyNon0::f0_ == p_.nextCallPtr) {
-		if (p_.lyCounter.isDoubleSpeed()) {
-			p_.cycles -= m2_ds_offset;
-		} else
-			p_.cycles += m2_ds_offset;
-	}
 }
 
 unsigned long PPU::predictedNextXposTime(unsigned xpos) const {
@@ -1807,7 +1789,7 @@ void PPU::setLcdc(unsigned const lcdc, unsigned long const cc) {
 		p_.weMaster = (lcdc & lcdc_we) && 0 == p_.wy;
 		p_.winDrawState = 0;
 		p_.nextCallPtr = &M3Start::f0_;
-		p_.cycles = -static_cast<int>(m3StartLineCycle(p_.cgb) + 2 + p_.lyCounter.isDoubleSpeed());
+		p_.cycles = -(m3StartLineCycle(p_.cgb) + 2);
 	} else if ((p_.lcdc ^ lcdc) & lcdc_we) {
 		if (!(lcdc & lcdc_we)) {
 			if (p_.winDrawState == win_draw_started || p_.xpos == xpos_end)

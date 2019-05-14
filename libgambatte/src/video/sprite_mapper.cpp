@@ -39,7 +39,7 @@ private:
 };
 
 unsigned toPosCycles(unsigned long const cc, LyCounter const &lyCounter) {
-	unsigned lc = lyCounter.lineCycles(cc) + 3 - lyCounter.isDoubleSpeed() * 3;
+	unsigned lc = lyCounter.lineCycles(cc) + 1;
 	if (lc >= lcd_cycles_per_line)
 		lc -= lcd_cycles_per_line;
 

@@ -250,11 +250,11 @@ unsigned long Memory::event(unsigned long cc) {
 
 						if (oamDmaPos_ < oam_size) {
 							if (oamDmaPos_ == 0)
-								startOamDma(lOamDmaUpdate - 1);
+								startOamDma(lOamDmaUpdate);
 
 							ioamhram_[src & 0xFF] = data;
 						} else if (oamDmaPos_ == oam_size) {
-							endOamDma(lOamDmaUpdate - 1);
+							endOamDma(lOamDmaUpdate);
 							lOamDmaUpdate = disabled_time;
 						}
 					}
@@ -415,11 +415,11 @@ void Memory::updateOamDma(unsigned long const cc) {
 
 		if (oamDmaPos_ < oam_size) {
 			if (oamDmaPos_ == 0)
-				startOamDma(lastOamDmaUpdate_ - 1);
+				startOamDma(lastOamDmaUpdate_);
 
 			ioamhram_[oamDmaPos_] = oamDmaSrc ? oamDmaSrc[oamDmaPos_] : cart_.rtcRead();
 		} else if (oamDmaPos_ == oam_size) {
-			endOamDma(lastOamDmaUpdate_ - 1);
+			endOamDma(lastOamDmaUpdate_);
 			lastOamDmaUpdate_ = disabled_time;
 			break;
 		}
