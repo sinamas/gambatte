@@ -37,7 +37,7 @@ unsigned long schedule(unsigned statReg,
 }
 
 bool lycIrqBlockedByM2OrM1StatIrq(unsigned ly, unsigned statreg) {
-	return ly < lcd_vres && ly > 0
+	return ly <= lcd_vres && ly > 0
 	? statreg & lcdstat_m2irqen
 	: statreg & lcdstat_m1irqen;
 }
