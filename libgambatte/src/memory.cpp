@@ -873,6 +873,10 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		return;
 	case 0x41:
 		lcd_.lcdstatChange(data, cc);
+		if (!(ioamhram_[0x140] & lcdc_en) && (ioamhram_[0x141] & lcdstat_lycflag)
+				&& (~ioamhram_[0x141] & lcdstat_lycirqen & (isCgb() ? data : -1))) {
+			intreq_.flagIrq(2);
+		}
 		data = (ioamhram_[0x141] & 0x87) | (data & 0x78);
 		break;
 	case 0x42:
