@@ -219,7 +219,6 @@ unsigned long Memory::event(unsigned long cc) {
 			unsigned dmaDest = dmaDestination_;
 			unsigned dmaLength = ((ioamhram_[0x155] & 0x7F) + 1) * 0x10;
 			unsigned length = hdmaReqFlagged(intreq_) ? 0x10 : dmaLength;
-
 			ackDmaReq(intreq_);
 
 			if ((static_cast<unsigned long>(dmaDest) + length) & 0x10000) {
@@ -289,9 +288,16 @@ unsigned long Memory::event(unsigned long cc) {
 	case intevent_interrupts:
 		if (halted()) {
 			cc += 4 * (isCgb() || cc - intreq_.eventTime(intevent_interrupts) < 2);
+			if (cc > lastOamDmaUpdate_)
+				updateOamDma(cc);
+
 			intreq_.unhalt();
 			intreq_.setEventTime<intevent_unhalt>(disabled_time);
 		}
+		if (cc >= intreq_.eventTime(intevent_video))
+			lcd_.update(cc);
+		if (cc >= intreq_.eventTime(intevent_dma))
+			break;
 
 		if (ime()) {
 			di();
