@@ -89,6 +89,7 @@ def makeoplist():
 	addop('ld(hl++), a', 0x22)
 	addop('inc h', 0x24)
 	addop('dec h', 0x25)
+	addop('ld a, (hl++)', 0x2a)
 	addop('inc l', 0x2c)
 	addop('dec l', 0x2d)
 	addop('ld sp, imm16', 0x31)

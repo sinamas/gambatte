@@ -1000,8 +1000,9 @@ void CPU::process(unsigned long const cycles) {
 					pc = (pc - mem_.ime()) & 0xFFFF;
 					skip_ = !mem_.ime();
 				} else {
-					mem_.halt();
-					cycleCounter += 8 * !mem_.isCgb();
+					cycleCounter += 4;
+					mem_.halt(cycleCounter);
+					cycleCounter += 4 * !mem_.isCgb();
 
 					if (cycleCounter < mem_.nextEventTime()) {
 						unsigned long cycles = mem_.nextEventTime() - cycleCounter;

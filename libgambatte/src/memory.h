@@ -62,7 +62,7 @@ public:
 		return (cc - intreq_.eventTime(intevent_blit)) >> isDoubleSpeed();
 	}
 
-	void halt() { intreq_.halt(); }
+	void halt(unsigned long cc);
 	void ei(unsigned long cycleCounter) { if (!ime()) { intreq_.ei(cycleCounter); } }
 	void di() { intreq_.di(); }
 	unsigned pendingIrqs(unsigned long cc);

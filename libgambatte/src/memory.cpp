@@ -208,9 +208,13 @@ unsigned long Memory::event(unsigned long cc) {
 		updateSerial(cc);
 		break;
 	case intevent_oam:
-		intreq_.setEventTime<intevent_oam>(lastOamDmaUpdate_ == disabled_time
-			? static_cast<unsigned long>(disabled_time)
-			: intreq_.eventTime(intevent_oam) + oam_size * 4);
+		if (lastOamDmaUpdate_ != disabled_time) {
+			unsigned const oamEventPos = oamDmaPos_ < oam_size ? oam_size : 0x100;
+			intreq_.setEventTime<intevent_oam>(
+				lastOamDmaUpdate_ + (oamEventPos - oamDmaPos_) * 4);
+		} else
+			intreq_.setEventTime<intevent_oam>(disabled_time);
+
 		break;
 	case intevent_dma:
 		{
@@ -310,6 +314,13 @@ unsigned long Memory::event(unsigned long cc) {
 	return cc;
 }
 
+void Memory::halt(unsigned long cc) {
+	if (lastOamDmaUpdate_ != disabled_time)
+		updateOamDma(cc);
+
+	intreq_.halt();
+}
+
 unsigned Memory::pendingIrqs(unsigned long cc) {
 	if (lastOamDmaUpdate_ != disabled_time)
 		updateOamDma(cc);
@@ -332,7 +343,6 @@ void Memory::ackIrq(unsigned bit, unsigned long cc) {
 
 unsigned long Memory::stop(unsigned long cc) {
 	// FIXME: this is incomplete.
-	intreq_.halt();
 	// the following lets the TIMA speed change tests pass.
 	intreq_.setEventTime<intevent_unhalt>(cc + (-cc & 12) + 0x20000 + 4);
 
@@ -347,9 +357,8 @@ unsigned long Memory::stop(unsigned long cc) {
 		unsigned long const cc_ = cc + (isDoubleSpeed()
 			? 6 + 2 * ((12 - cc) & 12)
 			: (cc - 4) & 12);
-		if (lastOamDmaUpdate_ != disabled_time)
-			updateOamDma(cc_);
-
+		if (cc_ >= cc + 4)
+			halt(cc + 4);
 		// simply use the same cc as the switching point for the PSG as well,
 		// for now, which lets the limited PSG double speed tests pass, and
 		// should keep the number of audio samples produced consistent with
@@ -367,13 +376,14 @@ unsigned long Memory::stop(unsigned long cc) {
 				   ? (intreq_.eventTime(intevent_end) - cc_) << 1
 				   : (intreq_.eventTime(intevent_end) - cc_) >> 1));
 		}
+		if (cc_ < cc + 4)
+			halt(cc + 4);
 		// force a cc increment to ensure that no updates with a previous cc occur.
-		// FIXME: this is likely incorrect for eventual HDMA events (but unlikely to
-		// matter unless the HDMA has conflicts, which may require some effort).
 		cc = cc_ + 4 - (cc_ & 2);
 	} else {
 		// FIXME: test and implement stop correctly.
 		cc += 4;
+		halt(cc);
 	}
 
 	return cc;
@@ -439,7 +449,9 @@ void Memory::updateOamDma(unsigned long const cc) {
 	unsigned char const *const oamDmaSrc = oamDmaSrcPtr();
 	unsigned cycles = (cc - lastOamDmaUpdate_) >> 2;
 
-	while (cycles--) {
+	if (halted()) {
+		lastOamDmaUpdate_ += 4 * cycles;
+	} else while (cycles--) {
 		oamDmaPos_ = (oamDmaPos_ + 1) & 0xFF;
 		lastOamDmaUpdate_ += 4;
 
