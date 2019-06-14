@@ -118,11 +118,13 @@ public:
 
 			lyReg = ppu_.lyCounter().ly();
 			if (lyReg == lcd_lines_per_frame - 1) {
-				if (ppu_.lyCounter().time() - cc <= 2 * lcd_cycles_per_line - 4)
+				if (ppu_.lyCounter().time() - cc <= 2 * lcd_cycles_per_line - 2)
 					lyReg = 0;
-			} else if (ppu_.lyCounter().time() - cc <= 8
-					&& ppu_.lyCounter().time() - cc <= 4u * (1 + isDoubleSpeed())) {
-				++lyReg;
+			} else if (ppu_.lyCounter().time() - cc <= 10
+					&& ppu_.lyCounter().time() - cc <= 5u * (1 + isDoubleSpeed())) {
+				lyReg = ppu_.lyCounter().time() - cc == 5u * (1 + isDoubleSpeed())
+					? lyReg & (lyReg + 1)
+					: lyReg + 1;
 			}
 		}
 
