@@ -750,10 +750,12 @@ unsigned LCD::getStat(unsigned const lycReg, unsigned long const cc) {
 		int const timeToNextLy = ppu_.lyCounter().time() - cc;
 		int const lineCycles = lcd_cycles_per_line - (timeToNextLy >> isDoubleSpeed());
 		long const frameCycles = 1l * ly * lcd_cycles_per_line + lineCycles;
-		if (frameCycles >= lcd_vres * lcd_cycles_per_line - 2 && frameCycles < lcd_cycles_per_frame - 2) {
-			if (frameCycles < lcd_cycles_per_frame - 4 + isDoubleSpeed())
+		if (frameCycles >= lcd_vres * lcd_cycles_per_line - 3 && frameCycles < lcd_cycles_per_frame - 3) {
+			if (frameCycles >= lcd_vres * lcd_cycles_per_line - 2
+					&& frameCycles < lcd_cycles_per_frame - 4 + isDoubleSpeed()) {
 				stat = 1;
-		} else if (lineCycles < 78 || lineCycles >= lcd_cycles_per_line - 2) {
+			}
+		} else if (lineCycles < 77 || lineCycles >= lcd_cycles_per_line - 3) {
 			if (!ppu_.inactivePeriodAfterDisplayEnable(cc + 1))
 				stat = 2;
 		} else if (cc + 2 < m0TimeOfCurrentLine(cc)) {
