@@ -37,7 +37,7 @@ public:
 	{
 	}
 
-	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq_); }
+	void flagHdmaReq() const { if (!intreq_.halted()) gambatte::flagHdmaReq(intreq_); }
 	void flagIrq(unsigned bit) const { intreq_.flagIrq(bit); }
 	void flagIrq(unsigned bit, unsigned long cc) const { intreq_.flagIrq(bit, cc); }
 	void setNextEventTime(unsigned long time) const { intreq_.setEventTime<intevent_video>(time); }
@@ -137,6 +137,7 @@ public:
 	void lycRegChange(unsigned data, unsigned long cycleCounter);
 	void enableHdma(unsigned long cycleCounter);
 	void disableHdma(unsigned long cycleCounter);
+	bool isHdmaPeriod(unsigned long cycleCounter);
 	bool hdmaIsEnabled() const { return eventTimes_(memevent_hdma) != disabled_time; }
 	void update(unsigned long cycleCounter);
 	bool isCgb() const { return ppu_.cgb(); }

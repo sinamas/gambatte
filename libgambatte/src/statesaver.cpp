@@ -222,6 +222,7 @@ SaverList::SaverList() {
 	{ static char const label[] = { f,             NUL }; ADD(cpu.f); }
 	{ static char const label[] = { h,             NUL }; ADD(cpu.h); }
 	{ static char const label[] = { l,             NUL }; ADD(cpu.l); }
+	{ static char const label[] = { o,p,           NUL }; ADD(cpu.opcode); }
 	{ static char const label[] = { s,k,i,p,       NUL }; ADD(cpu.skip); }
 	{ static char const label[] = { h,a,l,t,       NUL }; ADD(mem.halted); }
 	{ static char const label[] = { v,r,a,m,       NUL }; ADDPTR(mem.vram); }
@@ -240,6 +241,7 @@ SaverList::SaverList() {
 	{ static char const label[] = { d,m,a,d,s,t,   NUL }; ADD(mem.dmaDestination); }
 	{ static char const label[] = { r,a,m,b,a,n,k, NUL }; ADD(mem.rambank); }
 	{ static char const label[] = { o,d,m,a,p,o,s, NUL }; ADD(mem.oamDmaPos); }
+	{ static char const label[] = { h,l,t,h,d,m,a, NUL }; ADD(mem.haltHdmaState); }
 	{ static char const label[] = { i,m,e,         NUL }; ADD(mem.IME); }
 	{ static char const label[] = { s,r,a,m,o,n,   NUL }; ADD(mem.enableRam); }
 	{ static char const label[] = { r,a,m,b,m,o,d, NUL }; ADD(mem.rambankMode); }
@@ -422,6 +424,7 @@ bool StateSaver::loadState(SaveState &state, std::string const &filename) {
 	Array<char> const labelbuf(list.maxLabelsize());
 	Saver const labelbufSaver = { labelbuf, 0, 0, list.maxLabelsize() };
 	SaverList::const_iterator done = list.begin();
+	state.cpu.opcode = 0x00;
 
 	while (file.good() && done != list.end()) {
 		file.getline(labelbuf, list.maxLabelsize(), NUL);

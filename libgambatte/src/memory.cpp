@@ -50,6 +50,7 @@ Memory::Memory(Interrupter const &interrupter)
 , dmaDestination_(0)
 , oamDmaPos_(0xFE)
 , serialCnt_(0)
+, haltHdmaState_(halt_hdma_low)
 , blanklcd_(false)
 {
 	intreq_.setEventTime<intevent_blit>(1l * lcd_vres * lcd_cycles_per_line);
@@ -77,6 +78,7 @@ unsigned long Memory::saveState(SaveState &state, unsigned long cc) {
 	state.mem.dmaSource = dmaSource_;
 	state.mem.dmaDestination = dmaDestination_;
 	state.mem.oamDmaPos = oamDmaPos_;
+	state.mem.haltHdmaState = haltHdmaState_;
 
 	intreq_.saveState(state);
 	cart_.saveState(state);
@@ -103,6 +105,7 @@ void Memory::loadState(SaveState const &state) {
 	dmaSource_ = state.mem.dmaSource;
 	dmaDestination_ = state.mem.dmaDestination;
 	oamDmaPos_ = state.mem.oamDmaPos;
+	haltHdmaState_ = static_cast<HaltHdmaState>(std::min(1u * state.mem.haltHdmaState, 1u * halt_hdma_transition));
 	serialCnt_ = intreq_.eventTime(intevent_serial) != disabled_time
 		? serialCntFrom(intreq_.eventTime(intevent_serial) - state.cpu.cycleCounter,
 			ioamhram_[0x102] & isCgb() * 2)
@@ -171,6 +174,11 @@ unsigned long Memory::event(unsigned long cc) {
 
 	switch (intreq_.minEventId()) {
 	case intevent_unhalt:
+		if ((lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc) && haltHdmaState_ == halt_hdma_low)
+				|| haltHdmaState_ == halt_hdma_transition) {
+			flagHdmaReq(intreq_);
+		}
+
 		intreq_.unhalt();
 		intreq_.setEventTime<intevent_unhalt>(disabled_time);
 		break;
@@ -217,71 +225,12 @@ unsigned long Memory::event(unsigned long cc) {
 
 		break;
 	case intevent_dma:
-		{
-			bool const doubleSpeed = isDoubleSpeed();
-			unsigned dmaSrc = dmaSource_;
-			unsigned dmaDest = dmaDestination_;
-			unsigned dmaLength = ((ioamhram_[0x155] & 0x7F) + 1) * 0x10;
-			unsigned length = hdmaReqFlagged(intreq_) ? 0x10 : dmaLength;
-			ackDmaReq(intreq_);
-
-			if ((static_cast<unsigned long>(dmaDest) + length) & 0x10000) {
-				length = 0x10000 - dmaDest;
-				ioamhram_[0x155] |= 0x80;
-			}
-
-			dmaLength -= length;
-
-			if (!(ioamhram_[0x140] & lcdc_en))
-				dmaLength = 0;
-
-			{
-				unsigned long lOamDmaUpdate = lastOamDmaUpdate_;
-				lastOamDmaUpdate_ = disabled_time;
-
-				while (length--) {
-					unsigned const src = dmaSrc++ & 0xFFFF;
-					unsigned const data = (src & -vrambank_size()) == mm_vram_begin || src >= mm_oam_begin
-						? 0xFF
-						: read(src, cc);
-
-					cc += 2 + 2 * doubleSpeed;
-
-					if (cc - 3 > lOamDmaUpdate) {
-						oamDmaPos_ = (oamDmaPos_ + 1) & 0xFF;
-						lOamDmaUpdate += 4;
-
-						if (oamDmaPos_ < oam_size) {
-							if (oamDmaPos_ == 0)
-								startOamDma(lOamDmaUpdate);
-
-							ioamhram_[src & 0xFF] = data;
-						} else if (oamDmaPos_ == oam_size) {
-							endOamDma(lOamDmaUpdate);
-							lOamDmaUpdate = disabled_time;
-						}
-					}
-
-					nontrivial_write(mm_vram_begin | dmaDest++ % vrambank_size(), data, cc);
-				}
-
-				lastOamDmaUpdate_ = lOamDmaUpdate;
-			}
-
-			cc += 4;
-
-			dmaSource_ = dmaSrc;
-			dmaDestination_ = dmaDest;
-			ioamhram_[0x155] = ((dmaLength / 0x10 - 1) & 0xFF) | (ioamhram_[0x155] & 0x80);
-
-			if ((ioamhram_[0x155] & 0x80) && lcd_.hdmaIsEnabled()) {
-				if (lastOamDmaUpdate_ != disabled_time)
-					updateOamDma(cc);
-
-				lcd_.disableHdma(cc);
-			}
+		cc = dma(cc);
+		if (haltHdmaState_ == halt_hdma_transition) {
+			haltHdmaState_ = halt_hdma_low;
+			intreq_.setMinIntTime(cc);
+			cc -= 4;
 		}
-
 		break;
 	case intevent_tima:
 		tima_.doIrqEvent(TimaInterruptRequester(intreq_));
@@ -294,6 +243,10 @@ unsigned long Memory::event(unsigned long cc) {
 			cc += 4 * (isCgb() || cc - intreq_.eventTime(intevent_interrupts) < 2);
 			if (cc > lastOamDmaUpdate_)
 				updateOamDma(cc);
+			if ((lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc) && haltHdmaState_ == halt_hdma_low)
+					|| haltHdmaState_ == halt_hdma_transition) {
+				flagHdmaReq(intreq_);
+			}
 
 			intreq_.unhalt();
 			intreq_.setEventTime<intevent_unhalt>(disabled_time);
@@ -314,11 +267,87 @@ unsigned long Memory::event(unsigned long cc) {
 	return cc;
 }
 
-void Memory::halt(unsigned long cc) {
+unsigned long Memory::dma(unsigned long cc) {
+	bool const doubleSpeed = isDoubleSpeed();
+	unsigned dmaSrc = dmaSource_;
+	unsigned dmaDest = dmaDestination_;
+	unsigned dmaLength = ((ioamhram_[0x155] & 0x7F) + 1) * 0x10;
+	unsigned length = hdmaReqFlagged(intreq_) ? 0x10 : dmaLength;
+
+	if (1ul * dmaDest + length >= 0x10000) {
+		length = 0x10000 - dmaDest;
+		ioamhram_[0x155] |= 0x80;
+	}
+
+	dmaLength -= length;
+
+	if (!(ioamhram_[0x140] & lcdc_en))
+		dmaLength = 0;
+
+	unsigned long lOamDmaUpdate = lastOamDmaUpdate_;
+	lastOamDmaUpdate_ = disabled_time;
+
+	while (length--) {
+		unsigned const src = dmaSrc++ & 0xFFFF;
+		unsigned const data = (src & -vrambank_size()) == mm_vram_begin || src >= mm_oam_begin
+			? 0xFF
+			: read(src, cc);
+
+		cc += 2 + 2 * doubleSpeed;
+
+		if (cc - 3 > lOamDmaUpdate && !halted()) {
+			oamDmaPos_ = (oamDmaPos_ + 1) & 0xFF;
+			lOamDmaUpdate += 4;
+
+			if (oamDmaPos_ < oam_size) {
+				if (oamDmaPos_ == 0)
+					startOamDma(lOamDmaUpdate);
+
+				ioamhram_[src & 0xFF] = data;
+			} else if (oamDmaPos_ == oam_size) {
+				endOamDma(lOamDmaUpdate);
+				lOamDmaUpdate = disabled_time;
+			}
+		}
+
+		nontrivial_write(mm_vram_begin | dmaDest++ % vrambank_size(), data, cc);
+	}
+
+	lastOamDmaUpdate_ = lOamDmaUpdate;
+	ackDmaReq(intreq_);
+	cc += 4;
+
+	dmaSource_ = dmaSrc;
+	dmaDestination_ = dmaDest;
+	ioamhram_[0x155] = halted()
+		? ioamhram_[0x155] | 0x80
+		: ((dmaLength / 0x10 - 1) & 0xFF) | (ioamhram_[0x155] & 0x80);
+
+	if ((ioamhram_[0x155] & 0x80) && lcd_.hdmaIsEnabled()) {
+		if (lastOamDmaUpdate_ != disabled_time)
+			updateOamDma(cc);
+
+		lcd_.disableHdma(cc);
+	}
+
+	return cc;
+}
+
+bool Memory::halt(unsigned long cc) {
 	if (lastOamDmaUpdate_ != disabled_time)
 		updateOamDma(cc);
 
+	haltHdmaState_ = lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc)
+		? halt_hdma_high : halt_hdma_low;
+	bool const hdmaReq = hdmaReqFlagged(intreq_);
+	if (hdmaReq)
+		haltHdmaState_ = halt_hdma_transition;
+	if (lastOamDmaUpdate_ != disabled_time)
+		updateOamDma(cc + 4);
+
+	ackDmaReq(intreq_);
 	intreq_.halt();
+	return hdmaReq;
 }
 
 unsigned Memory::pendingIrqs(unsigned long cc) {
@@ -341,13 +370,20 @@ void Memory::ackIrq(unsigned bit, unsigned long cc) {
 	intreq_.ackIrq(bit);
 }
 
-unsigned long Memory::stop(unsigned long cc) {
+unsigned long Memory::stop(unsigned long cc, bool &skip) {
 	// FIXME: this is incomplete.
 	// the following lets the TIMA speed change tests pass.
 	intreq_.setEventTime<intevent_unhalt>(cc + (-cc & 12) + 0x20000 + 4);
 
 	// speed change.
 	if (ioamhram_[0x14D] & isCgb()) {
+		if (lastOamDmaUpdate_ != disabled_time)
+			updateOamDma(cc);
+		haltHdmaState_ = lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc)
+			? halt_hdma_high : halt_hdma_low;
+		skip = hdmaReqFlagged(intreq_);
+		if (skip && isDoubleSpeed())
+			haltHdmaState_ = halt_hdma_transition;
 		// the following is so far consistent for the display speed change.
 		// (there is also an internal skip of 4 cycles for the forward case).
 		// the odd cc used for the inverse case effects the LCD to end up at
@@ -357,8 +393,13 @@ unsigned long Memory::stop(unsigned long cc) {
 		unsigned long const cc_ = cc + (isDoubleSpeed()
 			? 6 + 2 * ((12 - cc) & 12)
 			: (cc - 4) & 12);
-		if (cc_ >= cc + 4)
-			halt(cc + 4);
+		if (cc_ >= cc + 4) {
+			if (lastOamDmaUpdate_ != disabled_time)
+				updateOamDma(cc + 4);
+			if (!skip || isDoubleSpeed())
+				ackDmaReq(intreq_);
+			intreq_.halt();
+		}
 		// simply use the same cc as the switching point for the PSG as well,
 		// for now, which lets the limited PSG double speed tests pass, and
 		// should keep the number of audio samples produced consistent with
@@ -376,14 +417,19 @@ unsigned long Memory::stop(unsigned long cc) {
 				   ? (intreq_.eventTime(intevent_end) - cc_) << 1
 				   : (intreq_.eventTime(intevent_end) - cc_) >> 1));
 		}
-		if (cc_ < cc + 4)
-			halt(cc + 4);
+		if (cc_ < cc + 4) {
+			if (lastOamDmaUpdate_ != disabled_time)
+				updateOamDma(cc + 4);
+			if (!skip || !isDoubleSpeed())
+				ackDmaReq(intreq_);
+			intreq_.halt();
+		}
 		// force a cc increment to ensure that no updates with a previous cc occur.
 		cc = cc_ + 4 - (cc_ & 2);
 	} else {
 		// FIXME: test and implement stop correctly.
+		skip = halt(cc);
 		cc += 4;
-		halt(cc);
 	}
 
 	return cc;

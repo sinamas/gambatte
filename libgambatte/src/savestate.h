@@ -54,6 +54,7 @@ struct SaveState {
 		unsigned char f;
 		unsigned char h;
 		unsigned char l;
+		unsigned char opcode;
 		unsigned char /*bool*/ skip;
 	} cpu;
 
@@ -74,6 +75,7 @@ struct SaveState {
 		unsigned short dmaDestination;
 		unsigned char rambank;
 		unsigned char oamDmaPos;
+		unsigned char haltHdmaState;
 		unsigned char /*bool*/ IME;
 		unsigned char /*bool*/ halted;
 		unsigned char /*bool*/ enableRam;

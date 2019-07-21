@@ -55,6 +55,7 @@ public:
 	void ackIrq(unsigned bit) { ifreg_ &= ~bit; }
 	void setIereg(unsigned iereg);
 	void setIfreg(unsigned ifreg);
+	void setMinIntTime(unsigned long cc);
 
 	IntEventId minEventId() const { return static_cast<IntEventId>(eventTimes_.min()); }
 	unsigned long minEventTime() const { return eventTimes_.minValue(); }

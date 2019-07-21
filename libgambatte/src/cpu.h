@@ -78,6 +78,7 @@ private:
 	unsigned short sp;
 	unsigned hf1, hf2, zf, cf;
 	unsigned char a_, b, c, d, e, /*f,*/ h, l;
+	unsigned char opcode_;
 	bool skip_;
 
 	void process(unsigned long cycles);

@@ -119,4 +119,11 @@ void InterruptRequester::setIfreg(unsigned ifreg) {
 	}
 }
 
+void InterruptRequester::setMinIntTime(unsigned long cc) {
+	minIntTime_ = cc;
+
+	if (eventTimes_.value(intevent_interrupts) < minIntTime_)
+		eventTimes_.setValue<intevent_interrupts>(minIntTime_);
+}
+
 }

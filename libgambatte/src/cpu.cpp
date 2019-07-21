@@ -38,6 +38,7 @@ CPU::CPU()
 , e(0xD8)
 , h(0x01)
 , l(0x4D)
+, opcode_(0)
 , skip_(false)
 {
 }
@@ -99,6 +100,7 @@ void CPU::saveState(SaveState &state) {
 	state.cpu.f = toF(hf2, cf, zf);
 	state.cpu.h = h;
 	state.cpu.l = l;
+	state.cpu.opcode = opcode_;
 	state.cpu.skip = skip_;
 }
 
@@ -118,6 +120,7 @@ void CPU::loadState(SaveState const &state) {
 	cf  =  cfFromF(state.cpu.f);
 	h = state.cpu.h & 0xFF;
 	l = state.cpu.l & 0xFF;
+	opcode_ = state.cpu.opcode;
 	skip_ = state.cpu.skip;
 }
 
@@ -504,10 +507,11 @@ void CPU::process(unsigned long const cycles) {
 		} else while (cycleCounter < mem_.nextEventTime()) {
 			unsigned char opcode;
 
-			PC_READ(opcode);
-
-			if (skip_) {
-				pc = (pc - 1) & 0xFFFF;
+			if (!skip_) {
+				PC_READ(opcode);
+			} else {
+				opcode = opcode_;
+				cycleCounter += 4;
 				skip_ = false;
 			}
 
@@ -588,10 +592,8 @@ void CPU::process(unsigned long const cycles) {
 				// stop (4 cycles):
 				// Halt CPU and LCD display until button pressed:
 			case 0x10:
-				pc = (pc + 1) & 0xFFFF;
-
-				cycleCounter = mem_.stop(cycleCounter);
-
+				PC_READ(opcode_);
+				cycleCounter = mem_.stop(cycleCounter - 4, skip_);
 				if (cycleCounter < mem_.nextEventTime()) {
 					unsigned long cycles = mem_.nextEventTime() - cycleCounter;
 					cycleCounter += cycles + (-cycles & 3);
@@ -997,13 +999,18 @@ void CPU::process(unsigned long const cycles) {
 				// halt (4n cycles):
 			case 0x76:
 				if (mem_.pendingIrqs(cycleCounter)) {
-					pc = (pc - mem_.ime()) & 0xFFFF;
 					skip_ = !mem_.ime();
-				} else {
-					cycleCounter += 4;
-					mem_.halt(cycleCounter);
-					cycleCounter += 4 * !mem_.isCgb();
+					if (skip_) {
+						PC_READ(opcode_);
+						cycleCounter -= 4;
+					}
 
+					pc = (pc - 1) & 0xFFFF;
+				} else {
+					PC_READ(opcode_);
+					pc = (pc - 1) & 0xFFFF;
+					skip_ = mem_.halt(cycleCounter - 4);
+					cycleCounter += 4 * !mem_.isCgb();
 					if (cycleCounter < mem_.nextEventTime()) {
 						unsigned long cycles = mem_.nextEventTime() - cycleCounter;
 						cycleCounter += cycles + (-cycles & 3);

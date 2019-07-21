@@ -1178,6 +1178,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.cpu.f = 0xB0;
 	state.cpu.h = 0x01;
 	state.cpu.l = 0x4D;
+	state.cpu.opcode = 0x00;
 	state.cpu.skip = false;
 
 	std::memset(state.mem.sram.ptr, 0xFF, state.mem.sram.size());
@@ -1212,6 +1213,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.mem.dmaDestination = 0;
 	state.mem.rambank = 0;
 	state.mem.oamDmaPos = 0xFE;
+	state.mem.haltHdmaState = 0;
 	state.mem.IME = false;
 	state.mem.halted = false;
 	state.mem.enableRam = false;

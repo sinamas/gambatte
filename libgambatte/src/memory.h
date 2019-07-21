@@ -48,7 +48,7 @@ public:
 		lcd_.setOsdElement(osdElement);
 	}
 
-	unsigned long stop(unsigned long cycleCounter);
+	unsigned long stop(unsigned long cycleCounter, bool &skip);
 	bool isCgb() const { return lcd_.isCgb(); }
 	bool ime() const { return intreq_.ime(); }
 	bool halted() const { return intreq_.halted(); }
@@ -62,7 +62,7 @@ public:
 		return (cc - intreq_.eventTime(intevent_blit)) >> isDoubleSpeed();
 	}
 
-	void halt(unsigned long cc);
+	bool halt(unsigned long cc);
 	void ei(unsigned long cycleCounter) { if (!ime()) { intreq_.ei(cycleCounter); } }
 	void di() { intreq_.di(); }
 	unsigned pendingIrqs(unsigned long cc);
@@ -126,6 +126,7 @@ private:
 	unsigned short dmaDestination_;
 	unsigned char oamDmaPos_;
 	unsigned char serialCnt_;
+	enum HaltHdmaState { halt_hdma_low, halt_hdma_high, halt_hdma_transition } haltHdmaState_;
 	bool blanklcd_;
 
 	void decEventCycles(IntEventId eventId, unsigned long dec);
@@ -134,6 +135,7 @@ private:
 	void startOamDma(unsigned long cycleCounter);
 	void endOamDma(unsigned long cycleCounter);
 	unsigned char const * oamDmaSrcPtr() const;
+	unsigned long dma(unsigned long cc);
 	unsigned nontrivial_ff_read(unsigned p, unsigned long cycleCounter);
 	unsigned nontrivial_read(unsigned p, unsigned long cycleCounter);
 	void nontrivial_ff_write(unsigned p, unsigned data, unsigned long cycleCounter);

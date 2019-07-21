@@ -102,7 +102,7 @@ bool isHdmaPeriod(LyCounter const &lyCounter,
 		unsigned long m0TimeOfCurrentLy, unsigned long cc) {
 	int timeToNextLy = lyCounter.time() - cc;
 	return lyCounter.ly() < lcd_vres
-		&& timeToNextLy > 4 + 4 * lyCounter.isDoubleSpeed()
+		&& timeToNextLy > 3 + 3 * lyCounter.isDoubleSpeed()
 		&& cc >= m0TimeOfCurrentLy;
 }
 
@@ -325,22 +325,12 @@ unsigned long LCD::m0TimeOfCurrentLine(unsigned long const cc) {
 }
 
 void LCD::enableHdma(unsigned long const cycleCounter) {
-	if (cycleCounter >= nextM0Time_.predictedNextM0Time()) {
-		update(cycleCounter);
-		nextM0Time_.predictNextM0Time(ppu_);
-	} else if (cycleCounter >= eventTimes_.nextEventTime())
-		update(cycleCounter);
-
-	unsigned long const m0TimeCurLy =
-		::m0TimeOfCurrentLine(ppu_.lyCounter().time(),
-		                      ppu_.lastM0Time(),
-		                      nextM0Time_.predictedNextM0Time());
-	if (isHdmaPeriod(ppu_.lyCounter(), m0TimeCurLy, cycleCounter))
+	if (isHdmaPeriod(cycleCounter + 2))
 		eventTimes_.flagHdmaReq();
 
 	eventTimes_.setm<memevent_hdma>(nextHdmaTime(
 		ppu_.lastM0Time(), nextM0Time_.predictedNextM0Time(),
-		cycleCounter));
+		cycleCounter + 2));
 }
 
 void LCD::disableHdma(unsigned long const cycleCounter) {
@@ -348,6 +338,13 @@ void LCD::disableHdma(unsigned long const cycleCounter) {
 		update(cycleCounter);
 
 	eventTimes_.setm<memevent_hdma>(disabled_time);
+}
+
+bool LCD::isHdmaPeriod(unsigned long const cc) {
+	if (cc >= eventTimes_.nextEventTime())
+		update(cc);
+
+	return ::isHdmaPeriod(ppu_.lyCounter(), m0TimeOfCurrentLine(cc), cc);
 }
 
 bool LCD::vramAccessible(unsigned long const cc) {
