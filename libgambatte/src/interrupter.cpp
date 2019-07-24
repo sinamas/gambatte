@@ -21,13 +21,28 @@
 
 namespace gambatte {
 
-Interrupter::Interrupter(unsigned short &sp, unsigned short &pc)
+Interrupter::Interrupter(unsigned short &sp, unsigned short &pc, unsigned char &opcode, bool &skip)
 : sp_(sp)
 , pc_(pc)
+, opcode_(opcode)
+, skip_(skip)
 {
 }
 
+void Interrupter::prefetch(unsigned long cc, Memory &mem) {
+	if (!skip_) {
+		opcode_ = mem.read(pc_, cc);
+		pc_ = (pc_ + 1) & 0xFFFF;
+		skip_ = true;
+	}
+}
+
 unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
+	// undo prefetch (presumably unconditional on hw).
+	if (skip_) {
+		pc_ = (pc_ - 1) & 0xFFFF;
+		skip_ = false;
+	}
 	cc += 12;
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ >> 8, cc);

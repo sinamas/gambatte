@@ -23,7 +23,7 @@
 namespace gambatte {
 
 CPU::CPU()
-: mem_(Interrupter(sp, pc_))
+: mem_(Interrupter(sp, pc_, opcode_, skip_))
 , cycleCounter_(0)
 , pc_(0x100)
 , sp(0xFFFE)

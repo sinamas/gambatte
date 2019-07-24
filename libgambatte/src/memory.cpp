@@ -225,6 +225,7 @@ unsigned long Memory::event(unsigned long cc) {
 
 		break;
 	case intevent_dma:
+		interrupter_.prefetch(cc, *this);
 		cc = dma(cc);
 		if (haltHdmaState_ == halt_hdma_transition) {
 			haltHdmaState_ = halt_hdma_low;
