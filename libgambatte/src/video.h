@@ -121,8 +121,8 @@ public:
 				if (ppu_.lyCounter().time() - cc <= 2 * lcd_cycles_per_line - 2)
 					lyReg = 0;
 			} else if (ppu_.lyCounter().time() - cc <= 10
-					&& ppu_.lyCounter().time() - cc <= 5u * (1 + isDoubleSpeed())) {
-				lyReg = ppu_.lyCounter().time() - cc == 5u * (1 + isDoubleSpeed())
+					&& ppu_.lyCounter().time() - cc <= 6u + 4 * isDoubleSpeed()) {
+				lyReg = ppu_.lyCounter().time() - cc == 6u + 4 * isDoubleSpeed()
 					? lyReg & (lyReg + 1)
 					: lyReg + 1;
 			}
