@@ -998,19 +998,12 @@ void CPU::process(unsigned long const cycles) {
 
 				// halt (4n cycles):
 			case 0x76:
+				opcode_ = mem_.read(pc, cycleCounter);
 				if (mem_.pendingIrqs(cycleCounter)) {
-					skip_ = !mem_.ime();
-					if (skip_) {
-						PC_READ(opcode_);
-						cycleCounter -= 4;
-					}
-
-					pc = (pc - 1) & 0xFFFF;
+					skip_ = true;
 				} else {
-					PC_READ(opcode_);
-					pc = (pc - 1) & 0xFFFF;
-					skip_ = mem_.halt(cycleCounter - 4);
-					cycleCounter += 4 * !mem_.isCgb();
+					skip_ = mem_.halt(cycleCounter);
+					cycleCounter += 4 + 4 * !mem_.isCgb();
 					if (cycleCounter < mem_.nextEventTime()) {
 						unsigned long cycles = mem_.nextEventTime() - cycleCounter;
 						cycleCounter += cycles + (-cycles & 3);
