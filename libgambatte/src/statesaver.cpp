@@ -223,7 +223,7 @@ SaverList::SaverList() {
 	{ static char const label[] = { h,             NUL }; ADD(cpu.h); }
 	{ static char const label[] = { l,             NUL }; ADD(cpu.l); }
 	{ static char const label[] = { o,p,           NUL }; ADD(cpu.opcode); }
-	{ static char const label[] = { s,k,i,p,       NUL }; ADD(cpu.skip); }
+	{ static char const label[] = { f,e,t,c,h,e,d, NUL }; ADD(cpu.prefetched); }
 	{ static char const label[] = { h,a,l,t,       NUL }; ADD(mem.halted); }
 	{ static char const label[] = { v,r,a,m,       NUL }; ADDPTR(mem.vram); }
 	{ static char const label[] = { s,r,a,m,       NUL }; ADDPTR(mem.sram); }
@@ -425,6 +425,7 @@ bool StateSaver::loadState(SaveState &state, std::string const &filename) {
 	Saver const labelbufSaver = { labelbuf, 0, 0, list.maxLabelsize() };
 	SaverList::const_iterator done = list.begin();
 	state.cpu.opcode = 0x00;
+	state.cpu.prefetched = false;
 
 	while (file.good() && done != list.end()) {
 		file.getline(labelbuf, list.maxLabelsize(), NUL);

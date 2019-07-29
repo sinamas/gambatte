@@ -23,7 +23,7 @@
 namespace gambatte {
 
 CPU::CPU()
-: mem_(Interrupter(sp, pc_, opcode_, skip_))
+: mem_(Interrupter(sp, pc_, opcode_, prefetched_))
 , cycleCounter_(0)
 , pc_(0x100)
 , sp(0xFFFE)
@@ -39,7 +39,7 @@ CPU::CPU()
 , h(0x01)
 , l(0x4D)
 , opcode_(0)
-, skip_(false)
+, prefetched_(false)
 {
 }
 
@@ -101,7 +101,7 @@ void CPU::saveState(SaveState &state) {
 	state.cpu.h = h;
 	state.cpu.l = l;
 	state.cpu.opcode = opcode_;
-	state.cpu.skip = skip_;
+	state.cpu.prefetched = prefetched_;
 }
 
 void CPU::loadState(SaveState const &state) {
@@ -121,7 +121,7 @@ void CPU::loadState(SaveState const &state) {
 	h = state.cpu.h & 0xFF;
 	l = state.cpu.l & 0xFF;
 	opcode_ = state.cpu.opcode;
-	skip_ = state.cpu.skip;
+	prefetched_ = state.cpu.prefetched;
 }
 
 // The main reasons for the use of macros is to more conveniently be able to tweak
@@ -507,12 +507,12 @@ void CPU::process(unsigned long const cycles) {
 		} else while (cycleCounter < mem_.nextEventTime()) {
 			unsigned char opcode;
 
-			if (!skip_) {
+			if (!prefetched_) {
 				PC_READ(opcode);
 			} else {
 				opcode = opcode_;
 				cycleCounter += 4;
-				skip_ = false;
+				prefetched_ = false;
 			}
 
 			switch (opcode) {
@@ -593,7 +593,7 @@ void CPU::process(unsigned long const cycles) {
 				// Halt CPU and LCD display until button pressed:
 			case 0x10:
 				PC_READ(opcode_);
-				cycleCounter = mem_.stop(cycleCounter - 4, skip_);
+				cycleCounter = mem_.stop(cycleCounter - 4, prefetched_);
 				if (cycleCounter < mem_.nextEventTime()) {
 					unsigned long cycles = mem_.nextEventTime() - cycleCounter;
 					cycleCounter += cycles + (-cycles & 3);
@@ -1000,9 +1000,9 @@ void CPU::process(unsigned long const cycles) {
 			case 0x76:
 				opcode_ = mem_.read(pc, cycleCounter);
 				if (mem_.pendingIrqs(cycleCounter)) {
-					skip_ = true;
+					prefetched_ = true;
 				} else {
-					skip_ = mem_.halt(cycleCounter);
+					prefetched_ = mem_.halt(cycleCounter);
 					cycleCounter += 4 + 4 * !mem_.isCgb();
 					if (cycleCounter < mem_.nextEventTime()) {
 						unsigned long cycles = mem_.nextEventTime() - cycleCounter;
