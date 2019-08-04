@@ -128,15 +128,15 @@ void MemPtrs::setRambank(unsigned const flags, unsigned const rambank) {
 	unsigned char *srambankptr = 0;
 	if (!(flags & rtc_en)) {
 		srambankptr = rambankdata() != rambankdataend()
-			? rambankdata_ + rambank * rambank_size()
-			: wdisabledRam();
+			? rambankdata_ + rambank * rambank_size() - mm_sram_begin
+			: wdisabledRam() - mm_sram_begin;
 	}
 
-	rsrambankptr_ = (flags & read_en) && srambankptr != wdisabledRam()
-		? srambankptr - mm_sram_begin
+	rsrambankptr_ = (flags & read_en) && srambankptr != wdisabledRam() - mm_sram_begin
+		? srambankptr
 		: rdisabledRamw() - mm_sram_begin;
 	wsrambankptr_ = flags & write_en
-		? srambankptr - mm_sram_begin
+		? srambankptr
 		: wdisabledRam() - mm_sram_begin;
 	rmem_[0xB] = rmem_[0xA] = rsrambankptr_;
 	wmem_[0xB] = wmem_[0xA] = wsrambankptr_;
