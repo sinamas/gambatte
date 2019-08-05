@@ -334,14 +334,11 @@ SaverList::SaverList() {
 #undef ADDARRAY
 
 	list.resize(list.size());
+	// sort list for binary search/std::lower_bound use.
 	std::sort(list.begin(), list.end());
-
 	maxLabelsize_ = 0;
-
-	for (std::size_t i = 0; i < list.size(); ++i) {
-		if (list[i].labelsize > maxLabelsize_)
-			maxLabelsize_ = list[i].labelsize;
-	}
+	for (const_iterator it = list.begin(); it != list.end(); ++it)
+		maxLabelsize_ = std::max(maxLabelsize_, it->labelsize);
 }
 
 }
@@ -435,7 +432,6 @@ bool StateSaver::loadState(SaveState &state, std::string const &filename) {
 		SaverList::const_iterator it = done;
 		if (std::strcmp(labelbuf, it->label)) {
 			it = std::lower_bound(it + 1, list.end(), labelbufSaver);
-
 			if (it == list.end() || std::strcmp(labelbuf, it->label)) {
 				file.ignore(get24(file));
 				continue;
