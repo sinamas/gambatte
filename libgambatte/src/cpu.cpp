@@ -102,6 +102,7 @@ void CPU::saveState(SaveState &state) {
 	state.cpu.l = l;
 	state.cpu.opcode = opcode_;
 	state.cpu.prefetched = prefetched_;
+	state.cpu.skip = false;
 }
 
 void CPU::loadState(SaveState const &state) {
@@ -122,6 +123,10 @@ void CPU::loadState(SaveState const &state) {
 	l = state.cpu.l & 0xFF;
 	opcode_ = state.cpu.opcode;
 	prefetched_ = state.cpu.prefetched;
+	if (state.cpu.skip) {
+		opcode_ = mem_.read(pc_, cycleCounter_);
+		prefetched_ = true;
+	}
 }
 
 // The main reasons for the use of macros is to more conveniently be able to tweak

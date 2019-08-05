@@ -1180,6 +1180,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.cpu.l = 0x4D;
 	state.cpu.opcode = 0x00;
 	state.cpu.prefetched = false;
+	state.cpu.skip = false;
 
 	std::memset(state.mem.sram.ptr, 0xFF, state.mem.sram.size());
 

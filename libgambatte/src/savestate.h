@@ -56,6 +56,7 @@ struct SaveState {
 		unsigned char l;
 		unsigned char opcode;
 		unsigned char /*bool*/ prefetched;
+		unsigned char /*bool*/ skip;
 	} cpu;
 
 	struct Mem {
