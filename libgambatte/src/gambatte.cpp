@@ -138,7 +138,7 @@ bool GB::loadState(std::string const &filepath) {
 	if (p_->cpu.loaded()) {
 		p_->cpu.saveSavedata();
 
-		SaveState state;
+		SaveState state = SaveState();
 		p_->cpu.setStatePtrs(state);
 
 		if (StateSaver::loadState(state, filepath)) {

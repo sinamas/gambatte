@@ -422,9 +422,6 @@ bool StateSaver::loadState(SaveState &state, std::string const &filename) {
 	Array<char> const labelbuf(list.maxLabelsize());
 	Saver const labelbufSaver = { labelbuf, 0, 0, list.maxLabelsize() };
 	SaverList::const_iterator done = list.begin();
-	state.cpu.opcode = 0x00;
-	state.cpu.prefetched = false;
-	state.cpu.skip = false;
 
 	while (file.good() && done != list.end()) {
 		file.getline(labelbuf, list.maxLabelsize(), NUL);
