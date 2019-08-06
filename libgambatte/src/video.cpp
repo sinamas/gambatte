@@ -567,11 +567,11 @@ bool statChangeTriggersM2IrqCgb(unsigned const old,
 		return false;
 	}
 	if (ly < lcd_vres - 1)
-		return timeToNextLy <= (lcd_cycles_per_line - mode2_irq_line_cycle) * (1 + ds);
+		return timeToNextLy <= (lcd_cycles_per_line - mode2_irq_line_cycle) * (1 + ds) && timeToNextLy > 2;
 	if (ly == lcd_vres - 1)
 		return timeToNextLy <= (lcd_cycles_per_line - mode2_irq_line_cycle) * (1 + ds) && timeToNextLy > 4 + 2 * ds;
 	if (ly == lcd_lines_per_frame - 1)
-		return timeToNextLy <= (lcd_cycles_per_line - mode2_irq_line_cycle_ly0) * (1 + ds);
+		return timeToNextLy <= (lcd_cycles_per_line - mode2_irq_line_cycle_ly0) * (1 + ds) && timeToNextLy > 2;
 	return false;
 }
 
