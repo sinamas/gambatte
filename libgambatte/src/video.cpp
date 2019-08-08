@@ -432,7 +432,7 @@ void LCD::wxChange(unsigned newValue, unsigned long cycleCounter) {
 }
 
 void LCD::wyChange(unsigned const newValue, unsigned long const cc) {
-	update(cc + 1 + ppu_.cgb() - isDoubleSpeed());
+	update(cc + 1 + ppu_.cgb());
 	ppu_.setWy(newValue); 
 
 	// mode3CyclesChange();

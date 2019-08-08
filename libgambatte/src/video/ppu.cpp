@@ -121,7 +121,7 @@ inline int lcdcObj2x(PPUPriv const &p) { return p.lcdc & lcdc_obj2x; }
 inline int lcdcObjEn(PPUPriv const &p) { return p.lcdc & lcdc_objen; }
 inline int lcdcBgEn( PPUPriv const &p) { return p.lcdc & lcdc_bgen;  }
 
-inline int weMasterCheckLy0LineCycle(bool /*cgb*/) { return 1; }
+inline int weMasterCheckLy0LineCycle(bool cgb) { return 1 + cgb; }
 inline int weMasterCheckPriorToLyIncLineCycle(bool /*cgb*/) { return 450; }
 inline int weMasterCheckAfterLyIncLineCycle(bool /*cgb*/) { return 454; }
 inline int m3StartLineCycle(bool cgb) { return 83 + cgb; }
