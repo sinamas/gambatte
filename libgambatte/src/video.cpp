@@ -702,7 +702,7 @@ bool LCD::lycRegChangeTriggersStatIrq(
 	}
 
 	LyCnt lycCmp = getLycCmpLy(ppu_.lyCounter(), cc);
-	if (lycCmp.timeToNextLy <= 3 + 5 * ppu_.cgb()) {
+	if (lycCmp.timeToNextLy <= 4 + 4 * isDoubleSpeed() + 2 * ppu_.cgb()) {
 		if (old == lycCmp.ly && lycCmp.timeToNextLy > 2 * ppu_.cgb())
 			return false; // simultaneous ly/lyc inc. lyc flag never goes low -> no trigger.
 
