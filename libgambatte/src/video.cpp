@@ -681,23 +681,23 @@ void LCD::lcdstatChange(unsigned const data, unsigned long const cc) {
 		eventTimes_(memevent_m2irq), cc, ppu_.cgb());
 }
 
-inline bool LCD::lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned long const cc) {
+inline bool LCD::lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned data, unsigned long cc) {
 	int const timeToNextLy = ppu_.lyCounter().time() - cc;
 	if (ppu_.lyCounter().ly() < lcd_vres) {
 		return (statReg_ & lcdstat_m0irqen)
 		    && eventTimes_(memevent_m0irq) > ppu_.lyCounter().time()
-		    && timeToNextLy > 5 + 5 * ppu_.cgb() + 2 * isDoubleSpeed();
+		    && data == ppu_.lyCounter().ly();
 	}
 
 	return (statReg_ & lcdstat_m1irqen)
 	    && !(ppu_.lyCounter().ly() == lcd_lines_per_frame - 1
-	          && timeToNextLy <= 6 * ppu_.cgb() - isDoubleSpeed());
+	          && timeToNextLy <= 2 + 2 * isDoubleSpeed() + 2 * ppu_.cgb());
 }
 
 bool LCD::lycRegChangeTriggersStatIrq(
 		unsigned const old, unsigned const data, unsigned long const cc) {
 	if (!(statReg_ & lcdstat_lycirqen) || data >= lcd_lines_per_frame
-			|| lycRegChangeStatTriggerBlockedByM0OrM1Irq(cc)) {
+			|| lycRegChangeStatTriggerBlockedByM0OrM1Irq(data, cc)) {
 		return false;
 	}
 
