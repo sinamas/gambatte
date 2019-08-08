@@ -354,7 +354,7 @@ bool LCD::vramAccessible(unsigned long const cc) {
 	return !(ppu_.lcdc() & lcdc_en)
 	    || ppu_.lyCounter().ly() >= lcd_vres
 	    || ppu_.inactivePeriodAfterDisplayEnable(cc + 1 - ppu_.cgb() + isDoubleSpeed())
-	    || ppu_.lyCounter().lineCycles(cc) < 78
+	    || ppu_.lyCounter().lineCycles(cc) + isDoubleSpeed() < 79
 	    || cc + 2 >= m0TimeOfCurrentLine(cc);
 }
 
