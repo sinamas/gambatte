@@ -62,7 +62,7 @@ void LycIrq::regChange(unsigned const statReg,
 	time_ = std::min(time_, timeSrc);
 
 	if (cgb_) {
-		if (time_ - cc > 8 || (timeSrc != time_ && time_ - cc > 2))
+		if (time_ - cc > 6u + 4 * lyCounter.isDoubleSpeed() || (timeSrc != time_ && time_ - cc > 2))
 			lycReg_ = lycReg;
 		if (time_ - cc > 2)
 			statReg_ = statReg;
