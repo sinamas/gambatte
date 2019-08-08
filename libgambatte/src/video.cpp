@@ -365,7 +365,7 @@ bool LCD::cgbpAccessible(unsigned long const cc) {
 	return !(ppu_.lcdc() & lcdc_en)
 	    || ppu_.lyCounter().ly() >= lcd_vres
 	    || ppu_.inactivePeriodAfterDisplayEnable(cc)
-	    || ppu_.lyCounter().lineCycles(cc) < 80
+	    || ppu_.lyCounter().lineCycles(cc) + isDoubleSpeed() < 80
 	    || cc >= m0TimeOfCurrentLine(cc) + 2;
 }
 
