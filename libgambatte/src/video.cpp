@@ -100,9 +100,8 @@ unsigned long m0TimeOfCurrentLine(
 
 bool isHdmaPeriod(LyCounter const &lyCounter,
 		unsigned long m0TimeOfCurrentLy, unsigned long cc) {
-	int timeToNextLy = lyCounter.time() - cc;
 	return lyCounter.ly() < lcd_vres
-		&& timeToNextLy > 3 + 3 * lyCounter.isDoubleSpeed()
+		&& cc + 3 + 3 * lyCounter.isDoubleSpeed() < lyCounter.time()
 		&& cc >= m0TimeOfCurrentLy;
 }
 
@@ -324,13 +323,16 @@ unsigned long LCD::m0TimeOfCurrentLine(unsigned long const cc) {
 	                             nextM0Time_.predictedNextM0Time());
 }
 
-void LCD::enableHdma(unsigned long const cycleCounter) {
-	if (isHdmaPeriod(cycleCounter + 2))
+void LCD::enableHdma(unsigned long const cc) {
+	if (cc >= eventTimes_.nextEventTime())
+		update(cc);
+
+	if (::isHdmaPeriod(ppu_.lyCounter(), m0TimeOfCurrentLine(cc), cc + 4))
 		eventTimes_.flagHdmaReq();
 
 	eventTimes_.setm<memevent_hdma>(nextHdmaTime(
 		ppu_.lastM0Time(), nextM0Time_.predictedNextM0Time(),
-		cycleCounter + 2));
+		cc));
 }
 
 void LCD::disableHdma(unsigned long const cycleCounter) {
