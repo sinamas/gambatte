@@ -623,7 +623,7 @@ inline bool LCD::statChangeTriggersM0LycOrM1StatIrqCgb(
 		    || (lycperiod && (data & lcdstat_lycirqen));
 	}
 
-	if (old & lcdstat_m1irqen && (ly < lcd_lines_per_frame - 1 || timeToNextLy > 2 + 2 * ds))
+	if (old & lcdstat_m1irqen && (ly < lcd_lines_per_frame - 1 || timeToNextLy > 3 + 3 * ds))
 		return false;
 
 	return ((data & lcdstat_m1irqen)
