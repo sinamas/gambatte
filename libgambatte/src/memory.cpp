@@ -334,6 +334,15 @@ unsigned long Memory::dma(unsigned long cc) {
 	return cc;
 }
 
+void Memory::freeze(unsigned long cc) {
+	// permanently halt CPU.
+	// simply halt and clear IE to avoid unhalt from occuring,
+	// which avoids additional state to represent a "frozen" state.
+	nontrivial_ff_write(0xFF, 0, cc);
+	ackDmaReq(intreq_);
+	intreq_.halt();
+}
+
 bool Memory::halt(unsigned long cc) {
 	if (lastOamDmaUpdate_ != disabled_time)
 		updateOamDma(cc);

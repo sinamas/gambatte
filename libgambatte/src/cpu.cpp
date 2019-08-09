@@ -494,6 +494,20 @@ void CPU::loadState(SaveState const &state) {
 	PC_MOD(high << 8 | low); \
 } while (0)
 
+namespace {
+
+unsigned long freeze(Memory &mem, unsigned long cc) {
+	mem.freeze(cc);
+	if (cc < mem.nextEventTime()) {
+		unsigned long cycles = mem.nextEventTime() - cc;
+		cc += cycles + (-cycles & 3);
+	}
+
+	return cc;
+}
+
+}
+
 void CPU::process(unsigned long const cycles) {
 	mem_.setEndtime(cycleCounter_, cycles);
 	mem_.updateInput();
@@ -1683,6 +1697,7 @@ void CPU::process(unsigned long const cycles) {
 				break;
 
 			case 0xD3: // not specified. should freeze.
+				cycleCounter = freeze(mem_, cycleCounter);
 				break;
 
 				// call nc,nn (24;12 cycles):
@@ -1750,6 +1765,7 @@ void CPU::process(unsigned long const cycles) {
 				break;
 
 			case 0xDB: // not specified. should freeze.
+				cycleCounter = freeze(mem_, cycleCounter);
 				break;
 
 				// call z,nn (24;12 cycles):
@@ -1800,8 +1816,8 @@ void CPU::process(unsigned long const cycles) {
 				break;
 
 			case 0xE3: // not specified. should freeze.
-				break;
 			case 0xE4: // not specified. should freeze.
+				cycleCounter = freeze(mem_, cycleCounter);
 				break;
 
 			case 0xE5:
@@ -1848,10 +1864,9 @@ void CPU::process(unsigned long const cycles) {
 				break;
 
 			case 0xEB: // not specified. should freeze.
-				break;
 			case 0xEC: // not specified. should freeze.
-				break;
 			case 0xED: // not specified. should freeze.
+				cycleCounter = freeze(mem_, cycleCounter);
 				break;
 
 			case 0xEE:
@@ -1901,6 +1916,7 @@ void CPU::process(unsigned long const cycles) {
 				break;
 
 			case 0xF4: // not specified. should freeze.
+				cycleCounter = freeze(mem_, cycleCounter);
 				break;
 
 			case 0xF5:
@@ -1965,9 +1981,10 @@ void CPU::process(unsigned long const cycles) {
 				break;
 
 			case 0xFC: // not specified. should freeze.
-				break;
 			case 0xFD: // not specified. should freeze
+				cycleCounter = freeze(mem_, cycleCounter);
 				break;
+
 			case 0xFE:
 				{
 					unsigned data;
