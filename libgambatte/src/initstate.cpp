@@ -1194,7 +1194,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 		setInitialDmgIoamhram(state.mem.ioamhram.ptr);
 	}
 
-	state.mem.ioamhram.ptr[0x104] = 0x1C;
+	state.mem.ioamhram.ptr[0x104] = 0x00;
 	state.mem.ioamhram.ptr[0x140] = 0x91;
 	state.mem.ioamhram.ptr[0x144] = 0x00;
 
@@ -1202,7 +1202,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	// This also applies to the TIMA and PSG frame sequencer, which may suggest
 	// that div reset could affect the other two.
 	// TODO: test whether div reset can affect other counters.
-	state.mem.divLastUpdate = 0;
+	state.mem.divLastUpdate = -0x1C00;
 	state.mem.timaLastUpdate = 0;
 	state.mem.tmatime = disabled_time;
 	state.mem.nextSerialtime = disabled_time;
@@ -1220,7 +1220,6 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.mem.enableRam = false;
 	state.mem.rambankMode = false;
 	state.mem.hdmaTransfer = false;
-
 
 	for (int i = 0x00; i < 0x40; i += 0x02) {
 		state.ppu.bgpData.ptr[i    ] = 0xFF;

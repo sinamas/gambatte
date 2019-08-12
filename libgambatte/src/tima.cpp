@@ -19,9 +19,13 @@
 #include "tima.h"
 #include "savestate.h"
 
-static unsigned char const timaClock[4] = { 10, 4, 6, 8 };
+using namespace gambatte;
 
-namespace gambatte {
+namespace {
+
+unsigned char const timaClock[] = { 10, 4, 6, 8 };
+
+}
 
 Tima::Tima()
 : lastUpdate_(0)
@@ -47,8 +51,8 @@ void Tima::loadState(SaveState const &state, TimaInterruptRequester timaIrq) {
 	unsigned long nextIrqEventTime = disabled_time;
 	if (tac_ & 4) {
 		nextIrqEventTime = tmatime_ != disabled_time && tmatime_ > state.cpu.cycleCounter
-		                 ? tmatime_
-		                 : lastUpdate_ + ((256u - tima_) << timaClock[tac_ & 3]) + 3;
+			? tmatime_
+			: lastUpdate_ + ((256u - tima_) << timaClock[tac_ & 3]) + 3;
 	}
 
 	timaIrq.setNextIrqEventTime(nextIrqEventTime);
@@ -128,13 +132,10 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 		if (tac_ & 0x04) {
 			updateIrq(cc, timaIrq);
 			updateTima(cc);
-
 			// FIXME: this looks naive.
 			// TODO: more TIMA tests.
 			lastUpdate_ -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
-			tmatime_ -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
 			nextIrqEventTime -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
-
 			if (cc >= nextIrqEventTime)
 				timaIrq.flagIrq();
 
@@ -166,6 +167,4 @@ void Tima::doIrqEvent(TimaInterruptRequester timaIrq) {
 	timaIrq.flagIrq(timaIrq.nextIrqEventTime());
 	timaIrq.setNextIrqEventTime(timaIrq.nextIrqEventTime()
 	                          + ((256u - tma_) << timaClock[tac_ & 3]));
-}
-
 }

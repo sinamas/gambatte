@@ -67,6 +67,7 @@ void Memory::setStatePtrs(SaveState &state) {
 
 unsigned long Memory::saveState(SaveState &state, unsigned long cc) {
 	cc = resetCounters(cc);
+	ioamhram_[0x104] = 0;
 	nontrivial_ff_read(0x05, cc);
 	nontrivial_ff_read(0x0F, cc);
 	nontrivial_ff_read(0x26, cc);
@@ -96,7 +97,7 @@ void Memory::loadState(SaveState const &state) {
 	cart_.loadState(state);
 	intreq_.loadState(state);
 
-	divLastUpdate_ = state.mem.divLastUpdate;
+	divLastUpdate_ = state.mem.divLastUpdate - 0x100l * state.mem.ioamhram.get()[0x104];
 	intreq_.setEventTime<intevent_serial>(state.mem.nextSerialtime > state.cpu.cycleCounter
 		? state.mem.nextSerialtime
 		: state.cpu.cycleCounter);
@@ -456,16 +457,9 @@ unsigned long Memory::resetCounters(unsigned long cc) {
 
 	updateIrqs(cc);
 
-	{
-		unsigned long divinc = (cc - divLastUpdate_) >> 8;
-		ioamhram_[0x104] = (ioamhram_[0x104] + divinc) & 0xFF;
-		divLastUpdate_ += divinc << 8;
-	}
-
-	unsigned long const dec = cc < 0x10000
+	unsigned long const dec = cc < 0x20000
 		? 0
-		: (cc & ~0x7FFFul) - 0x8000;
-	decCycles(divLastUpdate_, dec);
+		: (cc & -0x10000l) - 0x10000;
 	decCycles(lastOamDmaUpdate_, dec);
 	decEventCycles(intevent_serial, dec);
 	decEventCycles(intevent_oam, dec);
@@ -574,13 +568,7 @@ unsigned Memory::nontrivial_ff_read(unsigned const p, unsigned long const cc) {
 		updateSerial(cc);
 		break;
 	case 0x04:
-		{
-			unsigned long divcycles = (cc - divLastUpdate_) >> 8;
-			ioamhram_[0x104] = (ioamhram_[0x104] + divcycles) & 0xFF;
-			divLastUpdate_ += divcycles << 8;
-		}
-
-		break;
+		return (cc - divLastUpdate_) >> 8 & 0xFF;
 	case 0x05:
 		ioamhram_[0x105] = tima_.tima(cc);
 		break;
@@ -705,7 +693,6 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		data |= 0x7E - isCgb() * 2;
 		break;
 	case 0x04:
-		ioamhram_[0x104] = 0;
 		divLastUpdate_ = cc;
 		return;
 	case 0x05:
