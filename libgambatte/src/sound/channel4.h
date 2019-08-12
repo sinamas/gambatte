@@ -40,6 +40,7 @@ public:
 	bool isActive() const { return master_; }
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	void reset();
+	void divReset();
 	void saveState(SaveState &state);
 	void loadState(SaveState const &state);
 
@@ -53,6 +54,7 @@ private:
 		void nr3Change(unsigned newNr3, unsigned long cc);
 		void nr4Init(unsigned long cc);
 		void reset(unsigned long cc);
+		void divReset(unsigned long oldCc, unsigned long newCc);
 		void saveState(SaveState &state, unsigned long cc);
 		void loadState(SaveState const &state);
 		void disableMaster() { killCounter(); master_ = false; reg_ = 0x7FFF; }

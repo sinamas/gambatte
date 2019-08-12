@@ -108,6 +108,13 @@ void Channel4::Lfsr::reset(unsigned long cc) {
 	backupCounter_ = cc + toPeriod(nr3_);
 }
 
+void Channel4::Lfsr::divReset(unsigned long oldCc, unsigned long newCc) {
+	updateBackupCounter(oldCc);
+	backupCounter_ -= oldCc - newCc;
+	if (counter_ != counter_disabled)
+		counter_ -= oldCc - newCc;
+}
+
 void Channel4::Lfsr::resetCounters(unsigned long oldCc) {
 	updateBackupCounter(oldCc);
 	backupCounter_ -= counter_max;
@@ -193,6 +200,17 @@ void Channel4::reset() {
 	lfsr_.reset(cycleCounter_);
 	envelopeUnit_.reset();
 	setEvent();
+}
+
+void Channel4::divReset() {
+	unsigned long const cc = cycleCounter_;
+	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
+	lfsr_.divReset(cc, cycleCounter_);
+	setEvent();
+	while (cycleCounter_ >= nextEventUnit_->counter()) {
+		nextEventUnit_->event();
+		setEvent();
+	}
 }
 
 void Channel4::saveState(SaveState &state) {

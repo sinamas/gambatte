@@ -67,6 +67,13 @@ void PSG::reset() {
 	ch4_.reset();
 }
 
+void PSG::divReset() {
+	ch1_.divReset();
+	ch2_.divReset();
+	ch3_.divReset();
+	ch4_.divReset();
+}
+
 void PSG::setStatePtrs(SaveState &state) {
 	ch3_.setStatePtrs(state);
 }

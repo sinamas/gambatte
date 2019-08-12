@@ -42,6 +42,7 @@ public:
 	bool isActive() const { return master_; }
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	void reset();
+	void divReset();
 	void init(bool cgb);
 	void saveState(SaveState &state);
 	void loadState(SaveState const &state);

@@ -32,6 +32,7 @@ public:
 	Channel3();
 	bool isActive() const { return master_; }
 	void reset();
+	void divReset();
 	void init(bool cgb);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state) const;

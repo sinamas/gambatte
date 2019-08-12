@@ -690,6 +690,8 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		data |= 0x7E - isCgb() * 2;
 		break;
 	case 0x04:
+		psg_.generateSamples(cc, isDoubleSpeed());
+		psg_.divReset();
 		tima_.divReset(cc, TimaInterruptRequester(intreq_));
 		return;
 	case 0x05:

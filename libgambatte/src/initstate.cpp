@@ -1198,10 +1198,9 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.mem.ioamhram.ptr[0x140] = 0x91;
 	state.mem.ioamhram.ptr[0x144] = 0x00;
 
-	// The next div update will be determined by the cycle counter low bits.
-	// This also applies to the TIMA and PSG frame sequencer, which may suggest
-	// that div reset could affect the other two.
-	// TODO: test whether div reset can affect other counters.
+	// DIV, TIMA, and the PSG frame sequencer are clocked by bits of the
+	// cycle counter less divLastUpdate (equivalent to a counter that is
+	// reset on DIV write).
 	state.mem.divLastUpdate = -0x1C00;
 	state.mem.timaLastUpdate = 0;
 	state.mem.tmatime = disabled_time;

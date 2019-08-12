@@ -91,6 +91,17 @@ void Channel3::reset() {
 	sampleBuf_ = 0;
 }
 
+void Channel3::divReset() {
+	unsigned long const cc = cycleCounter_;
+	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
+	if (waveCounter_ != SoundUnit::counter_disabled)
+		waveCounter_ -= cc - cycleCounter_;
+
+	lastReadTime_ -= cc - cycleCounter_;
+	if (cycleCounter_ >= lengthCounter_.counter())
+		lengthCounter_.event();
+}
+
 void Channel3::init(bool cgb) {
 	cgb_ = cgb;
 }

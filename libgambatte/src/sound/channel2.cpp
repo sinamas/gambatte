@@ -92,6 +92,17 @@ void Channel2::reset() {
 	setEvent();
 }
 
+void Channel2::divReset() {
+	unsigned long const cc = cycleCounter_;
+	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
+	dutyUnit_.divReset(cc, cycleCounter_);
+	setEvent();
+	while (cycleCounter_ >= nextEventUnit->counter()) {
+		nextEventUnit->event();
+		setEvent();
+	}
+}
+
 void Channel2::saveState(SaveState &state) {
 	dutyUnit_.saveState(state.spu.ch2.duty, cycleCounter_);
 	envelopeUnit_.saveState(state.spu.ch2.env);

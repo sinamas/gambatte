@@ -115,6 +115,15 @@ void DutyUnit::reset() {
 	setCounter();
 }
 
+void DutyUnit::divReset(unsigned long cc, unsigned long newCc) {
+	if (nextPosUpdate_ == counter_disabled)
+		return;
+
+	updatePos(cc);
+	nextPosUpdate_ -= cc - newCc;
+	setCounter();
+}
+
 void DutyUnit::saveState(SaveState::SPU::Duty &dstate, unsigned long const cc) {
 	updatePos(cc);
 	setCounter();

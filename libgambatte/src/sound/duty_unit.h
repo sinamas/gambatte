@@ -35,6 +35,7 @@ public:
 	void nr3Change(unsigned newNr3, unsigned long cc);
 	void nr4Change(unsigned newNr4, unsigned long cc);
 	void reset();
+	void divReset(unsigned long cc, unsigned long newCc);
 	void saveState(SaveState::SPU::Duty &dstate, unsigned long cc);
 	void loadState(SaveState::SPU::Duty const &dstate, unsigned nr1, unsigned nr4, unsigned long cc);
 	void killCounter();

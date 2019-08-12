@@ -31,6 +31,7 @@ public:
 	PSG();
 	void init(bool cgb);
 	void reset();
+	void divReset();
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state);
 	void loadState(SaveState const &state);
