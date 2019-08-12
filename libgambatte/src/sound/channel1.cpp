@@ -190,7 +190,6 @@ void Channel1::divReset() {
 	unsigned long const cc = cycleCounter_;
 	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
 	dutyUnit_.divReset(cc, cycleCounter_);
-	setEvent();
 	while (cycleCounter_ >= nextEventUnit_->counter()) {
 		nextEventUnit_->event();
 		setEvent();
