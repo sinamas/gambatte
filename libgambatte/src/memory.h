@@ -116,7 +116,6 @@ private:
 	Cartridge cart_;
 	unsigned char ioamhram_[0x200];
 	InputGetter *getInput_;
-	unsigned long divLastUpdate_;
 	unsigned long lastOamDmaUpdate_;
 	InterruptRequester intreq_;
 	Tima tima_;

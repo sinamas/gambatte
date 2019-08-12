@@ -44,10 +44,13 @@ public:
 	void setTima(unsigned tima, unsigned long cc, TimaInterruptRequester timaIrq);
 	void setTma(unsigned tma, unsigned long cc, TimaInterruptRequester timaIrq);
 	void setTac(unsigned tac, unsigned long cc, TimaInterruptRequester timaIrq);
+	void divReset(unsigned long cc, TimaInterruptRequester);
+	unsigned long divLastUpdate() const { return divLastUpdate_; }
 	unsigned tima(unsigned long cc);
 	void doIrqEvent(TimaInterruptRequester timaIrq);
 
 private:
+	unsigned long divLastUpdate_;
 	unsigned long lastUpdate_;
 	unsigned long tmatime_;
 	unsigned char tima_;

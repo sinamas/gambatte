@@ -28,7 +28,8 @@ unsigned char const timaClock[] = { 10, 4, 6, 8 };
 }
 
 Tima::Tima()
-: lastUpdate_(0)
+: divLastUpdate_(0)
+, lastUpdate_(0)
 , tmatime_(disabled_time)
 , tima_(0)
 , tma_(0)
@@ -37,11 +38,13 @@ Tima::Tima()
 }
 
 void Tima::saveState(SaveState &state) const {
+	state.mem.divLastUpdate = divLastUpdate_;
 	state.mem.timaLastUpdate = lastUpdate_;
 	state.mem.tmatime = tmatime_;
 }
 
 void Tima::loadState(SaveState const &state, TimaInterruptRequester timaIrq) {
+	divLastUpdate_ = state.mem.divLastUpdate - 0x100l * state.mem.ioamhram.get()[0x104];
 	lastUpdate_ = state.mem.timaLastUpdate;
 	tmatime_ = state.mem.tmatime;
 	tima_ = state.mem.ioamhram.get()[0x105];
@@ -146,7 +149,7 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 		}
 
 		if (data & 4) {
-			lastUpdate_ = (cc >> timaClock[data & 3]) << timaClock[data & 3];
+			lastUpdate_ = cc - ((cc - divLastUpdate_) & ((1u << timaClock[data & 3]) - 1));
 			nextIrqEventTime = lastUpdate_ + ((256u - tima_) << timaClock[data & 3]) + 3;
 		}
 
@@ -154,6 +157,24 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 	}
 
 	tac_ = data;
+}
+
+void Tima::divReset(unsigned long cc, TimaInterruptRequester timaIrq) {
+	if (tac_ & 0x04) {
+		updateIrq(cc, timaIrq);
+		updateTima(cc);
+		unsigned long nextIrqEventTime = timaIrq.nextIrqEventTime();
+		lastUpdate_ -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
+		nextIrqEventTime -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
+		if (cc >= nextIrqEventTime)
+			timaIrq.flagIrq();
+
+		updateTima(cc);
+		lastUpdate_ = cc;
+		timaIrq.setNextIrqEventTime(lastUpdate_ + ((256u - tima_) << timaClock[tac_ & 3]) + 3);
+	}
+
+	divLastUpdate_ = cc;
 }
 
 unsigned Tima::tima(unsigned long cc) {

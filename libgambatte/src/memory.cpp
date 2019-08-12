@@ -42,7 +42,6 @@ int serialCntFrom(unsigned long cyclesUntilDone, bool cgbFast) {
 
 Memory::Memory(Interrupter const &interrupter)
 : getInput_(0)
-, divLastUpdate_(0)
 , lastOamDmaUpdate_(disabled_time)
 , lcd_(ioamhram_, 0, VideoInterruptRequester(intreq_))
 , interrupter_(interrupter)
@@ -72,7 +71,6 @@ unsigned long Memory::saveState(SaveState &state, unsigned long cc) {
 	nontrivial_ff_read(0x0F, cc);
 	nontrivial_ff_read(0x26, cc);
 
-	state.mem.divLastUpdate = divLastUpdate_;
 	state.mem.nextSerialtime = intreq_.eventTime(intevent_serial);
 	state.mem.unhaltTime = intreq_.eventTime(intevent_unhalt);
 	state.mem.lastOamDmaUpdate = lastOamDmaUpdate_;
@@ -97,7 +95,6 @@ void Memory::loadState(SaveState const &state) {
 	cart_.loadState(state);
 	intreq_.loadState(state);
 
-	divLastUpdate_ = state.mem.divLastUpdate - 0x100l * state.mem.ioamhram.get()[0x104];
 	intreq_.setEventTime<intevent_serial>(state.mem.nextSerialtime > state.cpu.cycleCounter
 		? state.mem.nextSerialtime
 		: state.cpu.cycleCounter);
@@ -568,7 +565,7 @@ unsigned Memory::nontrivial_ff_read(unsigned const p, unsigned long const cc) {
 		updateSerial(cc);
 		break;
 	case 0x04:
-		return (cc - divLastUpdate_) >> 8 & 0xFF;
+		return (cc - tima_.divLastUpdate()) >> 8 & 0xFF;
 	case 0x05:
 		ioamhram_[0x105] = tima_.tima(cc);
 		break;
@@ -693,7 +690,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		data |= 0x7E - isCgb() * 2;
 		break;
 	case 0x04:
-		divLastUpdate_ = cc;
+		tima_.divReset(cc, TimaInterruptRequester(intreq_));
 		return;
 	case 0x05:
 		tima_.setTima(data, cc, TimaInterruptRequester(intreq_));
