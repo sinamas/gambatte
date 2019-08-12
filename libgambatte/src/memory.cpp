@@ -679,17 +679,24 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 	case 0x02:
 		updateSerial(cc);
 		serialCnt_ = 8;
-
 		if ((data & 0x81) == 0x81) {
 			intreq_.setEventTime<intevent_serial>(data & isCgb() * 2
-				? (cc & ~0x07ul) + 0x010 * 8
-				: (cc & ~0xFFul) + 0x200 * 8);
+				? cc - (cc - tima_.divLastUpdate()) % 8 + 0x10 * serialCnt_
+				: cc - (cc - tima_.divLastUpdate()) % 0x100 + 0x200 * serialCnt_);
 		} else
 			intreq_.setEventTime<intevent_serial>(disabled_time);
 
 		data |= 0x7E - isCgb() * 2;
 		break;
 	case 0x04:
+		updateSerial(cc);
+		if (intreq_.eventTime(intevent_serial) != disabled_time) {
+			unsigned long const t = intreq_.eventTime(intevent_serial);
+			unsigned long const n = ioamhram_[0x102] & isCgb() * 2
+				? t + (cc - t) % 8 - 2 * ((cc - t) & 4)
+				: t + (cc - t) % 0x100 - 2 * ((cc - t) & 0x80);
+			intreq_.setEventTime<intevent_serial>(std::max(cc, n));
+		}
 		psg_.generateSamples(cc, isDoubleSpeed());
 		psg_.divReset();
 		tima_.divReset(cc, TimaInterruptRequester(intreq_));
