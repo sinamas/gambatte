@@ -689,8 +689,8 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		data |= 0x7E - isCgb() * 2;
 		break;
 	case 0x04:
-		updateSerial(cc);
-		if (intreq_.eventTime(intevent_serial) != disabled_time) {
+		if (intreq_.eventTime(intevent_serial) != disabled_time
+				&& intreq_.eventTime(intevent_serial) > cc) {
 			unsigned long const t = intreq_.eventTime(intevent_serial);
 			unsigned long const n = ioamhram_[0x102] & isCgb() * 2
 				? t + (cc - t) % 8 - 2 * ((cc - t) & 4)
