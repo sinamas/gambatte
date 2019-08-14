@@ -20,7 +20,11 @@
 #include "../savestate.h"
 #include <algorithm>
 
-static unsigned long toPeriod(unsigned const nr3) {
+using namespace gambatte;
+
+namespace {
+
+unsigned long toPeriod(unsigned const nr3) {
 	unsigned s = (nr3 >> 4) + 3;
 	unsigned r = nr3 & 7;
 
@@ -32,7 +36,7 @@ static unsigned long toPeriod(unsigned const nr3) {
 	return r << s;
 }
 
-namespace gambatte {
+}
 
 Channel4::Lfsr::Lfsr()
 : backupCounter_(counter_disabled)
@@ -272,6 +276,4 @@ void Channel4::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 		envelopeUnit_.resetCounters(cycleCounter_);
 		cycleCounter_ -= SoundUnit::counter_max;
 	}
-}
-
 }

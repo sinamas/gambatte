@@ -21,11 +21,15 @@
 #include <algorithm>
 #include <cstring>
 
-static inline unsigned toPeriod(unsigned nr3, unsigned nr4) {
+using namespace gambatte;
+
+namespace {
+
+inline unsigned toPeriod(unsigned nr3, unsigned nr4) {
 	return 0x800 - ((nr4 << 8 & 0x700) | nr3);
 }
 
-namespace gambatte {
+}
 
 Channel3::Channel3()
 : disableMaster_(master_, waveCounter_)
@@ -217,6 +221,4 @@ void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 		lastReadTime_ -= SoundUnit::counter_max;
 		cycleCounter_ -= SoundUnit::counter_max;
 	}
-}
-
 }

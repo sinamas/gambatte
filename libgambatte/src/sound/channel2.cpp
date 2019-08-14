@@ -20,7 +20,7 @@
 #include "../savestate.h"
 #include <algorithm>
 
-namespace gambatte {
+using namespace gambatte;
 
 Channel2::Channel2()
 : staticOutputTest_(*this, dutyUnit_)
@@ -130,8 +130,8 @@ void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 
 	for (;;) {
 		unsigned long const outHigh = master_
-		                            ? outBase * (envelopeUnit_.getVolume() * 2 - 15ul)
-		                            : outLow;
+			? outBase * (envelopeUnit_.getVolume() * 2 - 15ul)
+			: outLow;
 		unsigned long const nextMajorEvent = std::min(nextEventUnit->counter(), endCycles);
 		unsigned long out = dutyUnit_.isHighState() ? outHigh : outLow;
 
@@ -165,6 +165,4 @@ void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 		envelopeUnit_.resetCounters(cycleCounter_);
 		cycleCounter_ -= SoundUnit::counter_max;
 	}
-}
-
 }
