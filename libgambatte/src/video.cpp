@@ -419,7 +419,8 @@ bool LCD::oamWritable(unsigned long const cc) {
 	if (ppu_.lyCounter().lineCycles(cc) + 3 + ppu_.cgb() >= lcd_cycles_per_line)
 		return ppu_.lyCounter().ly() >= lcd_vres - 1 && ppu_.lyCounter().ly() < lcd_lines_per_frame - 1;
 
-	return ppu_.lyCounter().ly() >= lcd_vres || cc + 2 >= m0TimeOfCurrentLine(cc);
+	return ppu_.lyCounter().ly() >= lcd_vres || cc + 2 >= m0TimeOfCurrentLine(cc)
+		|| (ppu_.lyCounter().lineCycles(cc) == 76 && !ppu_.cgb());
 }
 
 void LCD::mode3CyclesChange() {
