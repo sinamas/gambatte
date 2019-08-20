@@ -125,9 +125,10 @@ private:
 	unsigned short dmaSource_;
 	unsigned short dmaDestination_;
 	unsigned char oamDmaPos_;
+	unsigned char oamDmaStartPos_;
 	unsigned char serialCnt_;
-	enum HaltHdmaState { halt_hdma_low, halt_hdma_high, halt_hdma_transition } haltHdmaState_;
 	bool blanklcd_;
+	enum HaltHdmaState { halt_hdma_low, halt_hdma_high, halt_hdma_transition } haltHdmaState_;
 
 	void decEventCycles(IntEventId eventId, unsigned long dec);
 	void oamDmaInitSetup();
