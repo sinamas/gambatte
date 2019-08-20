@@ -924,8 +924,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 	case 0x40:
 		if (ioamhram_[0x140] != data) {
 			if ((ioamhram_[0x140] ^ data) & lcdc_en) {
-				unsigned const lyc = lcd_.getStat(ioamhram_[0x145], cc)
-					& lcdstat_lycflag;
+				unsigned const stat = data & lcdc_en ? ioamhram_[0x141] : lcd_.getStat(ioamhram_[0x145], cc);
 				bool const hdmaEnabled = lcd_.hdmaIsEnabled();
 
 				lcd_.lcdcChange(data, cc);
@@ -933,11 +932,14 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 				ioamhram_[0x141] &= 0xF8;
 
 				if (data & lcdc_en) {
+					if (ioamhram_[0x141] & lcdstat_lycirqen && ioamhram_[0x145] == 0 && !(stat & lcdstat_lycflag))
+						intreq_.flagIrq(2);
+
 					intreq_.setEventTime<intevent_blit>(blanklcd_
 						? lcd_.nextMode1IrqTime()
 						: lcd_.nextMode1IrqTime() + (lcd_cycles_per_frame << isDoubleSpeed()));
 				} else {
-					ioamhram_[0x141] |= lyc;
+					ioamhram_[0x141] |= stat & lcdstat_lycflag;
 					intreq_.setEventTime<intevent_blit>(
 						cc + (lcd_cycles_per_line * 4 << isDoubleSpeed()));
 

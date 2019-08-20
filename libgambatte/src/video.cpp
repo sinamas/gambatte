@@ -488,10 +488,6 @@ void LCD::lcdcChange(unsigned const data, unsigned long const cc) {
 		if (data & lcdc_en) {
 			lycIrq_.lcdReset();
 			mstatIrq_.lcdReset(lycIrq_.lycReg());
-
-			if (lycIrq_.lycReg() == 0 && (statReg_ & lcdstat_lycirqen))
-				eventTimes_.flagIrq(2);
-
 			nextM0Time_.predictNextM0Time(ppu_);
 			lycIrq_.reschedule(ppu_.lyCounter(), cc);
 

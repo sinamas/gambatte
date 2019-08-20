@@ -10,12 +10,13 @@
 lbegin:
 	ld a, 40
 	ldff(41), a
-	xor a, a
+	ld a, 91
 	ldff(45), a
 	ld b, 91
 	call lwaitly_b
 	xor a, a
 	ldff(40), a
+	ldff(45), a
 	ldff(0f), a
 	ld a, 91
 	ldff(40), a
