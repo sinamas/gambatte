@@ -648,7 +648,7 @@ unsigned Memory::nontrivial_read(unsigned const p, unsigned long const cc) {
 				return cart_.romdata(p >> 14)[p];
 
 			if (p < mm_sram_begin) {
-				if (!lcd_.vramAccessible(cc))
+				if (!lcd_.vramReadable(cc))
 					return 0xFF;
 
 				return cart_.vrambankptr()[p];
@@ -1135,7 +1135,7 @@ void Memory::nontrivial_write(unsigned const p, unsigned const data, unsigned lo
 		if (p < mm_sram_begin) {
 			if (p < mm_vram_begin) {
 				cart_.mbcWrite(p, data);
-			} else if (lcd_.vramAccessible(cc)) {
+			} else if (lcd_.vramWritable(cc)) {
 				lcd_.vramChange(cc);
 				cart_.vrambankptr()[p] = data;
 			}

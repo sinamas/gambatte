@@ -97,7 +97,8 @@ public:
 	void updateScreen(bool blanklcd, unsigned long cc);
 	void resetCc(unsigned long oldCC, unsigned long newCc);
 	void speedChange(unsigned long cycleCounter);
-	bool vramAccessible(unsigned long cycleCounter);
+	bool vramReadable(unsigned long cycleCounter);
+	bool vramWritable(unsigned long cycleCounter);
 	bool oamReadable(unsigned long cycleCounter);
 	bool oamWritable(unsigned long cycleCounter);
 	void wxChange(unsigned newValue, unsigned long cycleCounter);

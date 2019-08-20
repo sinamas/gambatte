@@ -349,7 +349,18 @@ bool LCD::isHdmaPeriod(unsigned long const cc) {
 	return ::isHdmaPeriod(ppu_.lyCounter(), m0TimeOfCurrentLine(cc), cc);
 }
 
-bool LCD::vramAccessible(unsigned long const cc) {
+bool LCD::vramReadable(unsigned long const cc) {
+	if (cc >= eventTimes_.nextEventTime())
+		update(cc);
+
+	return !(ppu_.lcdc() & lcdc_en)
+	    || ppu_.lyCounter().ly() >= lcd_vres
+	    || ppu_.inactivePeriodAfterDisplayEnable(cc + 1 - ppu_.cgb() + isDoubleSpeed())
+	    || ppu_.lyCounter().lineCycles(cc) + isDoubleSpeed() < 76u + 3 * ppu_.cgb()
+	    || cc + 2 >= m0TimeOfCurrentLine(cc);
+}
+
+bool LCD::vramWritable(unsigned long const cc) {
 	if (cc >= eventTimes_.nextEventTime())
 		update(cc);
 
