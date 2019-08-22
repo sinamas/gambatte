@@ -133,8 +133,6 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 		unsigned long nextIrqEventTime = timaIrq.nextIrqEventTime();
 
 		if (tac_ & 0x04) {
-			updateIrq(cc, timaIrq);
-			updateTima(cc);
 			unsigned const inc = ~(data >> 2 & (cc - divLastUpdate_) >> (timaClock[data & 3] - 1)) & 1;
 			lastUpdate_ -= (inc << (timaClock[tac_ & 3] - 1)) + 3;
 			nextIrqEventTime -= (inc << (timaClock[tac_ & 3] - 1)) + 3;
@@ -160,8 +158,6 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 
 void Tima::divReset(unsigned long cc, TimaInterruptRequester timaIrq) {
 	if (tac_ & 0x04) {
-		updateIrq(cc, timaIrq);
-		updateTima(cc);
 		unsigned long nextIrqEventTime = timaIrq.nextIrqEventTime();
 		lastUpdate_ -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
 		nextIrqEventTime -= (1u << (timaClock[tac_ & 3] - 1)) + 3;
