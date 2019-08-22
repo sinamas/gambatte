@@ -172,6 +172,13 @@ void Tima::divReset(unsigned long cc, TimaInterruptRequester timaIrq) {
 	divLastUpdate_ = cc;
 }
 
+void Tima::speedChange(TimaInterruptRequester timaIrq) {
+	if ((tac_ & 0x07) >= 0x05) {
+		lastUpdate_ -= 4;
+		timaIrq.setNextIrqEventTime(timaIrq.nextIrqEventTime() - 4);
+	}
+}
+
 unsigned Tima::tima(unsigned long cc) {
 	if (tac_ & 0x04)
 		updateTima(cc);

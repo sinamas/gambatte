@@ -33,7 +33,7 @@ public:
 	bool isHighState() const { return high_; }
 	void nr1Change(unsigned newNr1, unsigned long cc);
 	void nr3Change(unsigned newNr3, unsigned long cc);
-	void nr4Change(unsigned newNr4, unsigned long cc);
+	void nr4Change(unsigned newNr4, unsigned long cc, bool ds);
 	void reset();
 	void divReset(unsigned long cc, unsigned long newCc);
 	void saveState(SaveState::SPU::Duty &dstate, unsigned long cc);

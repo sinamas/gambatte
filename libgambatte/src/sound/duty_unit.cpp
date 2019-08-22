@@ -99,11 +99,11 @@ void DutyUnit::nr3Change(unsigned newNr3, unsigned long cc) {
 	setFreq((freq() & 0x700) | newNr3, cc);
 }
 
-void DutyUnit::nr4Change(unsigned const newNr4, unsigned long const cc) {
+void DutyUnit::nr4Change(unsigned const newNr4, unsigned long const cc, bool const ds) {
 	setFreq((newNr4 << 8 & 0x700) | (freq() & 0xFF), cc);
 
 	if (newNr4 & 0x80) {
-		nextPosUpdate_ = (cc & ~1ul) + period_ + 4;
+		nextPosUpdate_ = cc - (cc - ds) % 2 + period_ + 4;
 		setCounter();
 	}
 }

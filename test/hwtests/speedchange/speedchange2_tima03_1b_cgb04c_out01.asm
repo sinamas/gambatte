@@ -13,7 +13,7 @@
 lbegin:
 	xor a, a
 	ldff(06), a
-	ld a, 04
+	ld a, 07
 	ldff(07), a
 	ld a, fe
 	ldff(05), a
@@ -25,20 +25,19 @@ lbegin:
 
 .text@1000
 ltimaint:
-	ld a, 00
-	ldff(ff), a
 	ld a, 30
 	ldff(00), a
-	ld a, 01
+	xor a, a
+	ldff(ff), a
+	inc a
 	ldff(4d), a
 	stop, 00
-	ld a, 01
 	ldff(4d), a
+
+.text@1027
 	stop, 00
-	nop
-	nop
-	nop
-	nop
+
+.text@1066
 	ldff a, (05)
 	jp lprint_a
 
@@ -60,10 +59,8 @@ lprint_copytiles:
 	jrnz lprint_copytiles
 	pop af
 	ld b, a
-	srl a
-	srl a
-	srl a
-	srl a
+	swap a
+	and a, 0f
 	ld(9800), a
 	ld a, b
 	and a, 0f

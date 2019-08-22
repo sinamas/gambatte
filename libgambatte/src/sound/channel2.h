@@ -35,7 +35,7 @@ public:
 	void setNr1(unsigned data);
 	void setNr2(unsigned data);
 	void setNr3(unsigned data);
-	void setNr4(unsigned data);
+	void setNr4(unsigned data, bool ds);
 	void setSo(unsigned long soMask);
 	bool isActive() const { return master_; }
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
