@@ -291,17 +291,17 @@ void LCD::resetCc(unsigned long const oldCc, unsigned long const newCc) {
 
 void LCD::speedChange(unsigned long const cc) {
 	update(cc);
-	ppu_.speedChange(cc);
+	ppu_.speedChange();
 
 	if (ppu_.lcdc() & lcdc_en) {
 		nextM0Time_.predictNextM0Time(ppu_);
-		lycIrq_.reschedule(ppu_.lyCounter(), cc);
+		lycIrq_.reschedule(ppu_.lyCounter(), ppu_.now());
 
 		eventTimes_.set<event_ly>(ppu_.lyCounter().time());
-		eventTimes_.setm<memevent_spritemap>(SpriteMapper::schedule(ppu_.lyCounter(), cc));
+		eventTimes_.setm<memevent_spritemap>(SpriteMapper::schedule(ppu_.lyCounter(), ppu_.now()));
 		eventTimes_.setm<memevent_lycirq>(lycIrq_.time());
-		eventTimes_.setm<memevent_m1irq>(mode1IrqSchedule(ppu_.lyCounter(), cc));
-		eventTimes_.setm<memevent_m2irq>(mode2IrqSchedule(statReg_, ppu_.lyCounter(), cc));
+		eventTimes_.setm<memevent_m1irq>(mode1IrqSchedule(ppu_.lyCounter(), ppu_.now()));
+		eventTimes_.setm<memevent_m2irq>(mode2IrqSchedule(statReg_, ppu_.lyCounter(), ppu_.now()));
 
 		if (eventTimes_(memevent_m0irq) != disabled_time) {
 			eventTimes_.setm<memevent_m0irq>(ppu_.predictedNextXposTime(lcd_hres + 6));

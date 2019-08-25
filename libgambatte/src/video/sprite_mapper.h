@@ -39,8 +39,6 @@ public:
 	void oamChange(unsigned char const *oamram, unsigned long cc) { oamReader_.change(oamram, cc); }
 	unsigned char const * oamram() const { return oamReader_.oam(); }
 	unsigned char const * posbuf() const { return oamReader_.spritePosBuf(); }
-	void  preSpeedChange(unsigned long cc) { oamReader_.update(cc); }
-	void postSpeedChange(unsigned long cc) { oamReader_.change(cc); }
 
 	void resetCycleCounter(unsigned long oldCc, unsigned long newCc) {
 		oamReader_.update(oldCc);

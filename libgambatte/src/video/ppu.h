@@ -137,7 +137,7 @@ public:
 	void setWx(unsigned wx) { p_.wx = wx; }
 	void setWy(unsigned wy) { p_.wy = wy; }
 	void updateWy2() { p_.wy2 = p_.wy; }
-	void speedChange(unsigned long cycleCounter);
+	void speedChange();
 	unsigned long * spPalette() { return p_.spPalette; }
 	void update(unsigned long cc);
 

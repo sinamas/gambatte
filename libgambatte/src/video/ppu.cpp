@@ -1766,14 +1766,14 @@ void PPU::resetCc(unsigned long const oldCc, unsigned long const newCc) {
 	p_.spriteMapper.resetCycleCounter(oldCc, newCc);
 }
 
-void PPU::speedChange(unsigned long const cycleCounter) {
-	unsigned long const videoCycles = lcdcEn(p_) ? p_.lyCounter.frameCycles(p_.now) : 0;
+void PPU::speedChange() {
+	unsigned long const now = p_.now;
+	unsigned long const videoCycles = lcdcEn(p_) ? p_.lyCounter.frameCycles(now) : 0;
 
 	p_.now -= p_.lyCounter.isDoubleSpeed();
-	p_.spriteMapper.preSpeedChange(cycleCounter);
+	p_.spriteMapper.resetCycleCounter(now, p_.now);
 	p_.lyCounter.setDoubleSpeed(!p_.lyCounter.isDoubleSpeed());
 	p_.lyCounter.reset(videoCycles, p_.now);
-	p_.spriteMapper.postSpeedChange(cycleCounter);
 }
 
 unsigned long PPU::predictedNextXposTime(unsigned xpos) const {
