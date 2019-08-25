@@ -51,7 +51,7 @@ Memory::Memory(Interrupter const &interrupter)
 , oamDmaStartPos_(0)
 , serialCnt_(0)
 , blanklcd_(false)
-, haltHdmaState_(halt_hdma_low)
+, haltHdmaState_(hdma_low)
 {
 	intreq_.setEventTime<intevent_blit>(1l * lcd_vres * lcd_cycles_per_line);
 	intreq_.setEventTime<intevent_end>(0);
@@ -107,7 +107,7 @@ void Memory::loadState(SaveState const &state) {
 	dmaDestination_ = state.mem.dmaDestination;
 	oamDmaPos_ = state.mem.oamDmaPos;
 	oamDmaStartPos_ = 0;
-	haltHdmaState_ = static_cast<HaltHdmaState>(std::min(1u * state.mem.haltHdmaState, 1u * halt_hdma_transition));
+	haltHdmaState_ = static_cast<HdmaState>(std::min(1u * state.mem.haltHdmaState, 1u * hdma_requested));
 	serialCnt_ = intreq_.eventTime(intevent_serial) != disabled_time
 		? serialCntFrom(intreq_.eventTime(intevent_serial) - state.cpu.cycleCounter,
 			ioamhram_[0x102] & isCgb() * 2)
@@ -180,8 +180,8 @@ unsigned long Memory::event(unsigned long cc) {
 
 	switch (intreq_.minEventId()) {
 	case intevent_unhalt:
-		if ((lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc) && haltHdmaState_ == halt_hdma_low)
-				|| haltHdmaState_ == halt_hdma_transition) {
+		if ((lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc) && haltHdmaState_ == hdma_low)
+				|| haltHdmaState_ == hdma_requested) {
 			flagHdmaReq(intreq_);
 		}
 
@@ -233,8 +233,8 @@ unsigned long Memory::event(unsigned long cc) {
 	case intevent_dma:
 		interrupter_.prefetch(cc, *this);
 		cc = dma(cc);
-		if (haltHdmaState_ == halt_hdma_transition) {
-			haltHdmaState_ = halt_hdma_low;
+		if (haltHdmaState_ == hdma_requested) {
+			haltHdmaState_ = hdma_low;
 			intreq_.setMinIntTime(cc);
 			cc -= 4;
 		}
@@ -250,8 +250,8 @@ unsigned long Memory::event(unsigned long cc) {
 			cc += 4 * (isCgb() || cc - intreq_.eventTime(intevent_interrupts) < 2);
 			if (cc > lastOamDmaUpdate_)
 				updateOamDma(cc);
-			if ((lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc) && haltHdmaState_ == halt_hdma_low)
-					|| haltHdmaState_ == halt_hdma_transition) {
+			if ((lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc) && haltHdmaState_ == hdma_low)
+					|| haltHdmaState_ == hdma_requested) {
 				flagHdmaReq(intreq_);
 			}
 
@@ -354,10 +354,10 @@ bool Memory::halt(unsigned long cc) {
 		updateOamDma(cc);
 
 	haltHdmaState_ = lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc)
-		? halt_hdma_high : halt_hdma_low;
+		? hdma_high : hdma_low;
 	bool const hdmaReq = hdmaReqFlagged(intreq_);
 	if (hdmaReq)
-		haltHdmaState_ = halt_hdma_transition;
+		haltHdmaState_ = hdma_requested;
 	if (lastOamDmaUpdate_ != disabled_time)
 		updateOamDma(cc + 4);
 
@@ -396,10 +396,10 @@ unsigned long Memory::stop(unsigned long cc, bool &skip) {
 		// DIV reset.
 		nontrivial_ff_write(0x04, 0, cc);
 		haltHdmaState_ = lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc)
-			? halt_hdma_high : halt_hdma_low;
+			? hdma_high : hdma_low;
 		skip = hdmaReqFlagged(intreq_);
 		if (skip && isDoubleSpeed())
-			haltHdmaState_ = halt_hdma_transition;
+			haltHdmaState_ = hdma_requested;
 		unsigned long const cc_ = cc + 8 * !isDoubleSpeed();
 		if (cc_ >= cc + 4) {
 			if (lastOamDmaUpdate_ != disabled_time)
