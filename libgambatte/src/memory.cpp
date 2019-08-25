@@ -395,8 +395,6 @@ unsigned long Memory::stop(unsigned long cc, bool &skip) {
 		tima_.speedChange(TimaInterruptRequester(intreq_));
 		// DIV reset.
 		nontrivial_ff_write(0x04, 0, cc);
-		if (lastOamDmaUpdate_ != disabled_time)
-			updateOamDma(cc);
 		haltHdmaState_ = lcd_.hdmaIsEnabled() && lcd_.isHdmaPeriod(cc)
 			? halt_hdma_high : halt_hdma_low;
 		skip = hdmaReqFlagged(intreq_);

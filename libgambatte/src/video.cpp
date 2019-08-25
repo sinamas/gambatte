@@ -86,11 +86,6 @@ unsigned long mode2IrqSchedule(unsigned const statReg,
 	: lyCounter.nextLineCycle(mode2_irq_line_cycle, cc);
 }
 
-unsigned long nextHdmaTime(unsigned long lastM0Time,
-		unsigned long nextM0Time, unsigned long cc) {
-	return cc < lastM0Time ? lastM0Time : nextM0Time;
-}
-
 unsigned long m0TimeOfCurrentLine(
 		unsigned long nextLyTime,
 		unsigned long lastM0Time,
@@ -186,8 +181,7 @@ void LCD::loadState(SaveState const &state, unsigned char const *const oamram) {
 			? ppu_.now() + state.ppu.nextM0Irq
 			: 1 * disabled_time);
 		eventTimes_.setm<memevent_hdma>(state.mem.hdmaTransfer
-			? nextHdmaTime(ppu_.lastM0Time(), nextM0Time_.predictedNextM0Time(),
-				ppu_.now())
+			? nextM0Time_.predictedNextM0Time()
 			: 1 * disabled_time);
 	} else for (int i = 0; i < num_memevents; ++i)
 		eventTimes_.set(MemEvent(i), disabled_time);
@@ -307,8 +301,7 @@ void LCD::speedChange(unsigned long const cc) {
 			eventTimes_.setm<memevent_m0irq>(ppu_.predictedNextXposTime(lcd_hres + 6));
 		}
 		if (hdmaIsEnabled()) {
-			eventTimes_.setm<memevent_hdma>(nextHdmaTime(ppu_.lastM0Time(),
-				nextM0Time_.predictedNextM0Time(), cc));
+			eventTimes_.setm<memevent_hdma>(nextM0Time_.predictedNextM0Time());
 		}
 	}
 }
@@ -330,9 +323,7 @@ void LCD::enableHdma(unsigned long const cc) {
 	if (::isHdmaPeriod(ppu_.lyCounter(), m0TimeOfCurrentLine(cc), cc + 4))
 		eventTimes_.flagHdmaReq();
 
-	eventTimes_.setm<memevent_hdma>(nextHdmaTime(
-		ppu_.lastM0Time(), nextM0Time_.predictedNextM0Time(),
-		cc));
+	eventTimes_.setm<memevent_hdma>(nextM0Time_.predictedNextM0Time());
 }
 
 void LCD::disableHdma(unsigned long const cycleCounter) {
@@ -514,8 +505,7 @@ void LCD::lcdcChange(unsigned const data, unsigned long const cc) {
 				eventTimes_.setm<memevent_m0irq>(ppu_.predictedNextXposTime(lcd_hres + 6));
 			}
 			if (hdmaIsEnabled()) {
-				eventTimes_.setm<memevent_hdma>(nextHdmaTime(ppu_.lastM0Time(),
-					nextM0Time_.predictedNextM0Time(), cc));
+				eventTimes_.setm<memevent_hdma>(nextM0Time_.predictedNextM0Time());
 			}
 		} else for (int i = 0; i < num_memevents; ++i)
 			eventTimes_.set(MemEvent(i), disabled_time);
