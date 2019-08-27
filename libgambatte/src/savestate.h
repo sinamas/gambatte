@@ -183,6 +183,7 @@ struct SaveState {
 		} ch4;
 
 		unsigned long cycleCounter;
+		unsigned char lastUpdate;
 	} spu;
 
 	struct RTC {

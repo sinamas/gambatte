@@ -280,6 +280,7 @@ SaverList::SaverList()
 	{ static char const label[] = { w,e,m,a,s,t,r, NUL }; ADD(ppu.weMaster); }
 	{ static char const label[] = { l,c,d,s,i,r,q, NUL }; ADD(ppu.pendingLcdstatIrq); }
 	{ static char const label[] = { s,p,u,c,n,t,r, NUL }; ADD(spu.cycleCounter); }
+	{ static char const label[] = { s,p,u,c,n,t,l, NUL }; ADD(spu.lastUpdate); }
 	{ static char const label[] = { s,w,p,c,n,t,r, NUL }; ADD(spu.ch1.sweep.counter); }
 	{ static char const label[] = { s,w,p,s,h,d,w, NUL }; ADD(spu.ch1.sweep.shadow); }
 	{ static char const label[] = { s,w,p,n,e,g,   NUL }; ADD(spu.ch1.sweep.negging); }

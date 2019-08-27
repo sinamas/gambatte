@@ -41,8 +41,9 @@ public:
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
 	void reset();
 	void divReset();
+	void speedChange(bool ds);
 	void saveState(SaveState &state);
-	void loadState(SaveState const &state);
+	void loadState(SaveState const &state, int divOffset);
 
 private:
 	class Lfsr : public SoundUnit {
@@ -54,7 +55,7 @@ private:
 		void nr3Change(unsigned newNr3, unsigned long cc);
 		void nr4Init(unsigned long cc);
 		void reset(unsigned long cc);
-		void divReset(unsigned long oldCc, unsigned long newCc);
+		void resetCc(unsigned long cc, unsigned long newCc);
 		void saveState(SaveState &state, unsigned long cc);
 		void loadState(SaveState const &state);
 		void disableMaster() { killCounter(); master_ = false; reg_ = 0x7FFF; }
@@ -91,6 +92,7 @@ private:
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned char nr4_;
+	signed char divOffset_;
 	bool master_;
 
 	void setEvent();

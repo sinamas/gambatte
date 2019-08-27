@@ -116,6 +116,7 @@ Channel1::Channel1()
 , soMask_(0)
 , prevOut_(0)
 , nr4_(0)
+, divOffset_(0)
 , master_(false)
 {
 	setEvent();
@@ -154,10 +155,10 @@ void Channel1::setNr3(unsigned data) {
 	setEvent();
 }
 
-void Channel1::setNr4(unsigned const data, bool const ds) {
+void Channel1::setNr4(unsigned const data) {
 	lengthCounter_.nr4Change(nr4_, data, cycleCounter_);
 	nr4_ = data;
-	dutyUnit_.nr4Change(data, cycleCounter_, ds);
+	dutyUnit_.nr4Change(data, cycleCounter_, 1 - divOffset_);
 
 	if (data & 0x80) { // init-bit
 		nr4_ &= 0x7F;
@@ -177,8 +178,10 @@ void Channel1::setSo(unsigned long soMask) {
 
 void Channel1::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter_ += divOffset_;
 	cycleCounter_ &= 0xFFF;
 	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
+	divOffset_ = 0;
 
 	dutyUnit_.reset();
 	envelopeUnit_.reset();
@@ -187,13 +190,22 @@ void Channel1::reset() {
 }
 
 void Channel1::divReset() {
-	unsigned long const cc = cycleCounter_;
-	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
-	dutyUnit_.divReset(cc, cycleCounter_);
+	unsigned long const cc = cycleCounter_ + divOffset_;
+	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800) - divOffset_;
+	dutyUnit_.resetCc(cc - divOffset_, cycleCounter_);
 	while (cycleCounter_ >= nextEventUnit_->counter()) {
 		nextEventUnit_->event();
 		setEvent();
 	}
+}
+
+void Channel1::speedChange(bool ds) {
+	unsigned long const cc = cycleCounter_;
+	// correct for cycles since DIV reset (if any).
+	unsigned const divCycles = (cc + divOffset_) & 0xFFF;
+	cycleCounter_ = ds ? cc + divOffset_ : cc - divCycles / 2 - 1;
+	divOffset_ = ds ? 0 : divCycles % 2 == 0;
+	dutyUnit_.resetCc(cc, cycleCounter_);
 }
 
 void Channel1::init(bool cgb) {
@@ -211,7 +223,7 @@ void Channel1::saveState(SaveState &state) {
 	state.spu.ch1.master = master_;
 }
 
-void Channel1::loadState(SaveState const &state) {
+void Channel1::loadState(SaveState const &state, int divOffset) {
 	sweepUnit_.loadState(state);
 	dutyUnit_.loadState(state.spu.ch1.duty, state.mem.ioamhram.get()[0x111],
 	                    state.spu.ch1.nr4, state.spu.cycleCounter);
@@ -222,6 +234,7 @@ void Channel1::loadState(SaveState const &state) {
 	cycleCounter_ = state.spu.cycleCounter;
 	nr4_ = state.spu.ch1.nr4;
 	master_ = state.spu.ch1.master;
+	divOffset_ = divOffset;
 }
 
 void Channel1::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {

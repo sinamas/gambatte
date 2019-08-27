@@ -61,6 +61,7 @@ void PSG::init(bool cgb) {
 }
 
 void PSG::reset() {
+	lastUpdate_ = (lastUpdate_ + 3) & -4;
 	ch1_.reset();
 	ch2_.reset();
 	ch3_.reset();
@@ -79,6 +80,7 @@ void PSG::setStatePtrs(SaveState &state) {
 }
 
 void PSG::saveState(SaveState &state) {
+	state.spu.lastUpdate = lastUpdate_ % 4;
 	ch1_.saveState(state);
 	ch2_.saveState(state);
 	ch3_.saveState(state);
@@ -86,12 +88,15 @@ void PSG::saveState(SaveState &state) {
 }
 
 void PSG::loadState(SaveState const &state) {
-	ch1_.loadState(state);
-	ch2_.loadState(state);
-	ch3_.loadState(state);
-	ch4_.loadState(state);
+	bool const ds = state.mem.ioamhram.get()[0x14D] >> 7 & ch3_.isCgb();
+	int const divOffset = ds && (((state.cpu.cycleCounter - state.mem.divLastUpdate) / 4
+		- state.spu.cycleCounter) & 0xFFF) == 1;
+	ch1_.loadState(state, divOffset);
+	ch2_.loadState(state, divOffset);
+	ch3_.loadState(state, divOffset);
+	ch4_.loadState(state, divOffset);
 
-	lastUpdate_ = state.cpu.cycleCounter;
+	lastUpdate_ = state.cpu.cycleCounter - -state.spu.lastUpdate % 4u;
 	setSoVolume(state.mem.ioamhram.get()[0x124]);
 	mapSo(state.mem.ioamhram.get()[0x125]);
 	enabled_ = state.mem.ioamhram.get()[0x126] >> 7 & 1;
@@ -119,6 +124,15 @@ void PSG::generateSamples(unsigned long const cycleCounter, bool const doubleSpe
 void PSG::resetCounter(unsigned long newCc, unsigned long oldCc, bool doubleSpeed) {
 	generateSamples(oldCc, doubleSpeed);
 	lastUpdate_ = newCc - (oldCc - lastUpdate_);
+}
+
+void PSG::speedChange(unsigned long cc, bool ds) {
+	lastUpdate_ -= !ds;
+	generateSamples(cc, ds);
+	ch1_.speedChange(ds);
+	ch2_.speedChange(ds);
+	ch3_.speedChange(ds);
+	ch4_.speedChange(ds);
 }
 
 std::size_t PSG::fillBuffer() {
