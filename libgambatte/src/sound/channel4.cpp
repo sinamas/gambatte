@@ -112,17 +112,15 @@ void Channel4::Lfsr::reset(unsigned long cc) {
 	backupCounter_ = cc + toPeriod(nr3_);
 }
 
-void Channel4::Lfsr::divReset(unsigned long oldCc, unsigned long newCc) {
-	updateBackupCounter(oldCc);
-	backupCounter_ -= oldCc - newCc;
+void Channel4::Lfsr::resetCc(unsigned long cc, unsigned long newCc) {
+	updateBackupCounter(cc);
+	backupCounter_ -= cc - newCc;
 	if (counter_ != counter_disabled)
-		counter_ -= oldCc - newCc;
+		counter_ -= cc - newCc;
 }
 
-void Channel4::Lfsr::resetCounters(unsigned long oldCc) {
-	updateBackupCounter(oldCc);
-	backupCounter_ -= counter_max;
-	SoundUnit::resetCounters(oldCc);
+void Channel4::Lfsr::resetCounters(unsigned long cc) {
+	resetCc(cc, cc - counter_max);
 }
 
 void Channel4::Lfsr::saveState(SaveState &state, unsigned long cc) {
@@ -148,6 +146,7 @@ Channel4::Channel4()
 , soMask_(0)
 , prevOut_(0)
 , nr4_(0)
+, divOffset_(0)
 , master_(false)
 {
 	setEvent();
@@ -198,8 +197,10 @@ void Channel4::setSo(unsigned long soMask) {
 
 void Channel4::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
+	cycleCounter_ += divOffset_;
 	cycleCounter_ &= 0xFFF;
 	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
+	divOffset_ = 0;
 
 	lfsr_.reset(cycleCounter_);
 	envelopeUnit_.reset();
@@ -207,13 +208,22 @@ void Channel4::reset() {
 }
 
 void Channel4::divReset() {
-	unsigned long const cc = cycleCounter_;
-	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
-	lfsr_.divReset(cc, cycleCounter_);
+	unsigned long const cc = cycleCounter_ + divOffset_;
+	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800) - divOffset_;
+	lfsr_.resetCc(cc - divOffset_, cycleCounter_);
 	while (cycleCounter_ >= nextEventUnit_->counter()) {
 		nextEventUnit_->event();
 		setEvent();
 	}
+}
+
+void Channel4::speedChange(bool ds) {
+	unsigned long const cc = cycleCounter_;
+	// correct for cycles since DIV reset (if any).
+	unsigned const divCycles = (cc + divOffset_) & 0xFFF;
+	cycleCounter_ = ds ? cc + divOffset_ : cc - divCycles / 2 - 1;
+	divOffset_ = ds ? 0 : divCycles % 2 == 0;
+	lfsr_.resetCc(cc, cycleCounter_);
 }
 
 void Channel4::saveState(SaveState &state) {
@@ -225,7 +235,7 @@ void Channel4::saveState(SaveState &state) {
 	state.spu.ch4.master = master_;
 }
 
-void Channel4::loadState(SaveState const &state) {
+void Channel4::loadState(SaveState const &state, int divOffset) {
 	lfsr_.loadState(state);
 	envelopeUnit_.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121],
 	                        state.spu.cycleCounter);
@@ -234,6 +244,7 @@ void Channel4::loadState(SaveState const &state) {
 	cycleCounter_ = state.spu.cycleCounter;
 	nr4_ = state.spu.ch4.nr4;
 	master_ = state.spu.ch4.master;
+	divOffset_ = divOffset;
 }
 
 void Channel4::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {
