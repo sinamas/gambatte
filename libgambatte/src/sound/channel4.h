@@ -32,17 +32,16 @@ struct SaveState;
 class Channel4 {
 public:
 	Channel4();
-	void setNr1(unsigned data);
-	void setNr2(unsigned data);
-	void setNr3(unsigned data) { lfsr_.nr3Change(data, cycleCounter_); }
-	void setNr4(unsigned data);
-	void setSo(unsigned long soMask);
+	void setNr1(unsigned data, unsigned long cc);
+	void setNr2(unsigned data, unsigned long cc);
+	void setNr3(unsigned data, unsigned long cc) { lfsr_.nr3Change(data, cc); }
+	void setNr4(unsigned data, unsigned long cc);
+	void setSo(unsigned long soMask, unsigned long cc);
 	bool isActive() const { return master_; }
-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
-	void reset(int divOffset);
-	void divReset(int divOffset);
-	void speedChange(bool ds, int divOffset);
-	void saveState(SaveState &state);
+	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cc, unsigned long end);
+	void reset(unsigned long cc);
+	void resetCc(unsigned long cc, unsigned long newCc) { lfsr_.resetCc(cc, newCc); }
+	void saveState(SaveState &state, unsigned long cc);
 	void loadState(SaveState const &state);
 
 private:
@@ -88,7 +87,6 @@ private:
 	EnvelopeUnit envelopeUnit_;
 	Lfsr lfsr_;
 	SoundUnit *nextEventUnit_;
-	unsigned long cycleCounter_;
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned char nr4_;

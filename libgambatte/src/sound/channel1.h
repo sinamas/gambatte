@@ -34,18 +34,17 @@ class Channel1 {
 public:
 	Channel1();
 	void setNr0(unsigned data);
-	void setNr1(unsigned data);
-	void setNr2(unsigned data);
-	void setNr3(unsigned data);
-	void setNr4(unsigned data, int divOffset);
-	void setSo(unsigned long soMask);
+	void setNr1(unsigned data, unsigned long cc);
+	void setNr2(unsigned data, unsigned long cc);
+	void setNr3(unsigned data, unsigned long cc);
+	void setNr4(unsigned data, unsigned long cc, unsigned long ref);
+	void setSo(unsigned long soMask, unsigned long cc);
 	bool isActive() const { return master_; }
-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
-	void reset(int divOffset);
-	void divReset(int divOffset);
-	void speedChange(bool ds, int divOffset);
+	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cc, unsigned long end);
+	void reset();
+	void resetCc(unsigned long cc, unsigned long ncc) { dutyUnit_.resetCc(cc, ncc); }
 	void init(bool cgb);
-	void saveState(SaveState &state);
+	void saveState(SaveState &state, unsigned long cc);
 	void loadState(SaveState const &state);
 
 private:
@@ -80,7 +79,6 @@ private:
 	EnvelopeUnit envelopeUnit_;
 	SweepUnit sweepUnit_;
 	SoundUnit *nextEventUnit_;
-	unsigned long cycleCounter_;
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned char nr4_;

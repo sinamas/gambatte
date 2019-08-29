@@ -27,7 +27,6 @@ Channel2::Channel2()
 , disableMaster_(master_, dutyUnit_)
 , lengthCounter_(disableMaster_, 0x3F)
 , envelopeUnit_(staticOutputTest_)
-, cycleCounter_(0)
 , soMask_(0)
 , prevOut_(0)
 , nr4_(0)
@@ -42,73 +41,54 @@ void Channel2::setEvent() {
 		nextEventUnit = &lengthCounter_;
 }
 
-void Channel2::setNr1(unsigned data) {
-	lengthCounter_.nr1Change(data, nr4_, cycleCounter_);
-	dutyUnit_.nr1Change(data, cycleCounter_);
+void Channel2::setNr1(unsigned data, unsigned long cc) {
+	lengthCounter_.nr1Change(data, nr4_, cc);
+	dutyUnit_.nr1Change(data, cc);
 	setEvent();
 }
 
-void Channel2::setNr2(unsigned data) {
+void Channel2::setNr2(unsigned data, unsigned long cc) {
 	if (envelopeUnit_.nr2Change(data))
 		disableMaster_();
 	else
-		staticOutputTest_(cycleCounter_);
+		staticOutputTest_(cc);
 
 	setEvent();
 }
 
-void Channel2::setNr3(unsigned data) {
-	dutyUnit_.nr3Change(data, cycleCounter_);
+void Channel2::setNr3(unsigned data, unsigned long cc) {
+	dutyUnit_.nr3Change(data, cc);
 	setEvent();
 }
 
-void Channel2::setNr4(unsigned const data, int divOffset) {
-	lengthCounter_.nr4Change(nr4_, data, cycleCounter_);
+void Channel2::setNr4(unsigned data, unsigned long cc, unsigned long ref) {
+	lengthCounter_.nr4Change(nr4_, data, cc);
 	nr4_ = data;
 
 	if (data & 0x80) { // init-bit
 		nr4_ &= 0x7F;
-		master_ = !envelopeUnit_.nr4Init(cycleCounter_);
-		staticOutputTest_(cycleCounter_);
+		master_ = !envelopeUnit_.nr4Init(cc);
+		staticOutputTest_(cc);
 	}
 
-	dutyUnit_.nr4Change(data, cycleCounter_, 1 - divOffset);
+	dutyUnit_.nr4Change(data, cc, ref);
 	setEvent();
 }
 
-void Channel2::setSo(unsigned long soMask) {
+void Channel2::setSo(unsigned long soMask, unsigned long cc) {
 	soMask_ = soMask;
-	staticOutputTest_(cycleCounter_);
+	staticOutputTest_(cc);
 	setEvent();
 }
 
-void Channel2::reset(int divOffset) {
-	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ += divOffset;
-	cycleCounter_ &= 0xFFF;
-	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
-
+void Channel2::reset() {
 	dutyUnit_.reset();
 	envelopeUnit_.reset();
 	setEvent();
 }
 
-void Channel2::divReset(int divOffset) {
-	unsigned long const cc = cycleCounter_ + divOffset;
-	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800) - divOffset;
-	dutyUnit_.resetCc(cc - divOffset, cycleCounter_);
-}
-
-void Channel2::speedChange(bool ds, int divOffset) {
-	unsigned long const cc = cycleCounter_;
-	// correct for cycles since DIV reset (if any).
-	unsigned const divCycles = (cc + divOffset) & 0xFFF;
-	cycleCounter_ = ds ? cc + divOffset : cc - divCycles / 2 - 1;
-	dutyUnit_.resetCc(cc, cycleCounter_);
-}
-
-void Channel2::saveState(SaveState &state) {
-	dutyUnit_.saveState(state.spu.ch2.duty, cycleCounter_);
+void Channel2::saveState(SaveState &state, unsigned long cc) {
+	dutyUnit_.saveState(state.spu.ch2.duty, cc);
 	envelopeUnit_.saveState(state.spu.ch2.env);
 	lengthCounter_.saveState(state.spu.ch2.lcounter);
 
@@ -123,38 +103,36 @@ void Channel2::loadState(SaveState const &state) {
 	                        state.spu.cycleCounter);
 	lengthCounter_.loadState(state.spu.ch2.lcounter, state.spu.cycleCounter);
 
-	cycleCounter_ = state.spu.cycleCounter;
 	nr4_ = state.spu.ch2.nr4;
 	master_ = state.spu.ch2.master;
 }
 
-void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cycles) {
+void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cc, unsigned long const end) {
 	unsigned long const outBase = envelopeUnit_.dacIsOn() ? soBaseVol & soMask_ : 0;
 	unsigned long const outLow = outBase * (0 - 15ul);
-	unsigned long const endCycles = cycleCounter_ + cycles;
 
 	for (;;) {
 		unsigned long const outHigh = master_
 			? outBase * (envelopeUnit_.getVolume() * 2 - 15ul)
 			: outLow;
-		unsigned long const nextMajorEvent = std::min(nextEventUnit->counter(), endCycles);
+		unsigned long const nextMajorEvent = std::min(nextEventUnit->counter(), end);
 		unsigned long out = dutyUnit_.isHighState() ? outHigh : outLow;
 
 		while (dutyUnit_.counter() <= nextMajorEvent) {
 			*buf += out - prevOut_;
 			prevOut_ = out;
-			buf += dutyUnit_.counter() - cycleCounter_;
-			cycleCounter_ = dutyUnit_.counter();
+			buf += dutyUnit_.counter() - cc;
+			cc = dutyUnit_.counter();
 
 			dutyUnit_.event();
 			out = dutyUnit_.isHighState() ? outHigh : outLow;
 		}
 
-		if (cycleCounter_ < nextMajorEvent) {
+		if (cc < nextMajorEvent) {
 			*buf += out - prevOut_;
 			prevOut_ = out;
-			buf += nextMajorEvent - cycleCounter_;
-			cycleCounter_ = nextMajorEvent;
+			buf += nextMajorEvent - cc;
+			cc = nextMajorEvent;
 		}
 
 		if (nextEventUnit->counter() == nextMajorEvent) {
@@ -164,10 +142,9 @@ void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 			break;
 	}
 
-	if (cycleCounter_ >= SoundUnit::counter_max) {
-		dutyUnit_.resetCounters(cycleCounter_);
-		lengthCounter_.resetCounters(cycleCounter_);
-		envelopeUnit_.resetCounters(cycleCounter_);
-		cycleCounter_ -= SoundUnit::counter_max;
+	if (cc >= SoundUnit::counter_max) {
+		dutyUnit_.resetCounters(cc);
+		lengthCounter_.resetCounters(cc);
+		envelopeUnit_.resetCounters(cc);
 	}
 }
