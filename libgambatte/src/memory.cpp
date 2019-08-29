@@ -408,18 +408,17 @@ unsigned long Memory::stop(unsigned long cc, bool &skip) {
 				ackDmaReq(intreq_);
 			intreq_.halt();
 		}
-		psg_.speedChange(cc_, isDoubleSpeed());
 		lcd_.speedChange(cc_);
 		ioamhram_[0x14D] ^= 0x81;
 		// TODO: perhaps make this a bit nicer?
 		intreq_.setEventTime<intevent_blit>(ioamhram_[0x140] & lcdc_en
 			? lcd_.nextMode1IrqTime()
 			: cc + (lcd_cycles_per_frame << isDoubleSpeed()));
-		if (intreq_.eventTime(intevent_end) > cc_) {
-			intreq_.setEventTime<intevent_end>(cc_
+		if (intreq_.eventTime(intevent_end) > cc) {
+			intreq_.setEventTime<intevent_end>(cc
 				+ (isDoubleSpeed()
-				   ? (intreq_.eventTime(intevent_end) - cc_) * 2
-				   : (intreq_.eventTime(intevent_end) - cc_) / 2));
+				   ? (intreq_.eventTime(intevent_end) - cc) * 2
+				   : (intreq_.eventTime(intevent_end) - cc) / 2));
 		}
 		if (cc_ < cc + 4) {
 			if (lastOamDmaUpdate_ != disabled_time)
@@ -755,7 +754,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 			return;
 
 		psg_.generateSamples(cc, isDoubleSpeed());
-		psg_.setNr14(data);
+		psg_.setNr14(data, isDoubleSpeed());
 		data |= 0xBF;
 		break;
 	case 0x16:
@@ -789,7 +788,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 			return;
 
 		psg_.generateSamples(cc, isDoubleSpeed());
-		psg_.setNr24(data);
+		psg_.setNr24(data, isDoubleSpeed());
 		data |= 0xBF;
 		break;
 	case 0x1A:

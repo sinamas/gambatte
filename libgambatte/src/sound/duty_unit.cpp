@@ -99,11 +99,11 @@ void DutyUnit::nr3Change(unsigned newNr3, unsigned long cc) {
 	setFreq((freq() & 0x700) | newNr3, cc);
 }
 
-void DutyUnit::nr4Change(unsigned const newNr4, unsigned long const cc, unsigned long const ref) {
+void DutyUnit::nr4Change(unsigned const newNr4, unsigned long const cc, bool const ds) {
 	setFreq((newNr4 << 8 & 0x700) | (freq() & 0xFF), cc);
 
 	if (newNr4 & 0x80) {
-		nextPosUpdate_ = cc - (cc - ref) % 2 + period_ + 4;
+		nextPosUpdate_ = cc - (cc - ds) % 2 + period_ + 4;
 		setCounter();
 	}
 }
@@ -115,7 +115,7 @@ void DutyUnit::reset() {
 	setCounter();
 }
 
-void DutyUnit::resetCc(unsigned long cc, unsigned long newCc) {
+void DutyUnit::divReset(unsigned long cc, unsigned long newCc) {
 	if (nextPosUpdate_ == counter_disabled)
 		return;
 
@@ -144,8 +144,13 @@ void DutyUnit::loadState(SaveState::SPU::Duty const &dstate,
 	setCounter();
 }
 
-void DutyUnit::resetCounters(unsigned long cc) {
-	resetCc(cc, cc - counter_max);
+void DutyUnit::resetCounters(unsigned long const oldCc) {
+	if (nextPosUpdate_ == counter_disabled)
+		return;
+
+	updatePos(oldCc);
+	nextPosUpdate_ -= counter_max;
+	setCounter();
 }
 
 void DutyUnit::killCounter() {
