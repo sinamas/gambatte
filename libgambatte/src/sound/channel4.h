@@ -39,11 +39,11 @@ public:
 	void setSo(unsigned long soMask);
 	bool isActive() const { return master_; }
 	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
-	void reset();
-	void divReset();
-	void speedChange(bool ds);
+	void reset(int divOffset);
+	void divReset(int divOffset);
+	void speedChange(bool ds, int divOffset);
 	void saveState(SaveState &state);
-	void loadState(SaveState const &state, int divOffset);
+	void loadState(SaveState const &state);
 
 private:
 	class Lfsr : public SoundUnit {
@@ -92,7 +92,6 @@ private:
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned char nr4_;
-	signed char divOffset_;
 	bool master_;
 
 	void setEvent();

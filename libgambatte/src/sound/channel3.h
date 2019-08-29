@@ -32,13 +32,13 @@ public:
 	Channel3();
 	bool isActive() const { return master_; }
 	bool isCgb() const { return cgb_; }
-	void reset();
-	void divReset();
-	void speedChange(bool ds);
+	void reset(int divOffset);
+	void divReset(int divOffset);
+	void speedChange(bool ds, int divOffset);
 	void init(bool cgb);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state) const;
-	void loadState(SaveState const &state, int divOffset);
+	void loadState(SaveState const &state);
 	void setNr0(unsigned data);
 	void setNr1(unsigned data) { lengthCounter_.nr1Change(data, nr4_, cycleCounter_); }
 	void setNr2(unsigned data);
@@ -97,7 +97,6 @@ private:
 	unsigned char wavePos_;
 	unsigned char rshift_;
 	unsigned char sampleBuf_;
-	signed char divOffset_;
 	bool master_;
 	bool cgb_;
 

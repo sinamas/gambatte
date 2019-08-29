@@ -45,7 +45,6 @@ Channel3::Channel3()
 , wavePos_(0)
 , rshift_(4)
 , sampleBuf_(0)
-, divOffset_(0)
 , master_(false)
 , cgb_(false)
 {
@@ -88,33 +87,29 @@ void Channel3::setSo(unsigned long soMask) {
 	soMask_ = soMask;
 }
 
-void Channel3::reset() {
+void Channel3::reset(int divOffset) {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ += divOffset_;
+	cycleCounter_ += divOffset;
 	cycleCounter_ &= 0xFFF;
 	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
-	divOffset_ = 0;
 	sampleBuf_ = 0;
 }
 
-void Channel3::divReset() {
-	unsigned long const cc = cycleCounter_ + divOffset_;
+void Channel3::divReset(int divOffset) {
+	unsigned long const cc = cycleCounter_ + divOffset;
 	cycleCounter_ = (cc & -0x1000) + 2 * (cc & 0x800);
 	lastReadTime_ -= cc - cycleCounter_;
 	if (waveCounter_ != SoundUnit::counter_disabled)
 		waveCounter_ -= cc - cycleCounter_;
 
-	cycleCounter_ -= divOffset_;
-	if (cycleCounter_ >= lengthCounter_.counter())
-		lengthCounter_.event();
+	cycleCounter_ -= divOffset;
 }
 
-void Channel3::speedChange(bool ds) {
+void Channel3::speedChange(bool ds, int divOffset) {
 	unsigned long const cc = cycleCounter_;
 	// correct for cycles since DIV reset (if any).
-	unsigned const divCycles = (cc + divOffset_) & 0xFFF;
-	cycleCounter_ = ds ? cc + divOffset_ : cc - divCycles / 2 - 1;
-	divOffset_ = ds ? 0 : divCycles % 2 == 0;
+	unsigned const divCycles = (cc + divOffset) & 0xFFF;
+	cycleCounter_ = ds ? cc + divOffset : cc - divCycles / 2 - 1;
 	lastReadTime_ -= cc - cycleCounter_;
 	if (waveCounter_ != SoundUnit::counter_disabled)
 		waveCounter_ -= cc - cycleCounter_;
@@ -140,7 +135,7 @@ void Channel3::saveState(SaveState &state) const {
 	state.spu.ch3.master = master_;
 }
 
-void Channel3::loadState(SaveState const &state, int divOffset) {
+void Channel3::loadState(SaveState const &state) {
 	lengthCounter_.loadState(state.spu.ch3.lcounter, state.spu.cycleCounter);
 
 	cycleCounter_ = state.spu.cycleCounter;
@@ -151,7 +146,6 @@ void Channel3::loadState(SaveState const &state, int divOffset) {
 	wavePos_ = state.spu.ch3.wavePos & 0x1F;
 	sampleBuf_ = state.spu.ch3.sampleBuf;
 	master_ = state.spu.ch3.master;
-	divOffset_ = divOffset;
 
 	nr0_ = state.mem.ioamhram.get()[0x11A] & 0x80;
 	setNr2(state.mem.ioamhram.get()[0x11C]);

@@ -699,7 +699,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 			intreq_.setEventTime<intevent_serial>(std::max(cc, n));
 		}
 		psg_.generateSamples(cc, isDoubleSpeed());
-		psg_.divReset();
+		psg_.divReset(isDoubleSpeed());
 		tima_.divReset(cc, TimaInterruptRequester(intreq_));
 		return;
 	case 0x05:
@@ -755,7 +755,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 			return;
 
 		psg_.generateSamples(cc, isDoubleSpeed());
-		psg_.setNr14(data);
+		psg_.setNr14(data, isDoubleSpeed());
 		data |= 0xBF;
 		break;
 	case 0x16:
@@ -789,7 +789,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 			return;
 
 		psg_.generateSamples(cc, isDoubleSpeed());
-		psg_.setNr24(data);
+		psg_.setNr24(data, isDoubleSpeed());
 		data |= 0xBF;
 		break;
 	case 0x1A:
@@ -883,7 +883,7 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 
 				psg_.setEnabled(false);
 			} else {
-				psg_.reset();
+				psg_.reset(isDoubleSpeed());
 				psg_.setEnabled(true);
 			}
 		}

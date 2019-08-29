@@ -30,8 +30,8 @@ class PSG {
 public:
 	PSG();
 	void init(bool cgb);
-	void reset();
-	void divReset();
+	void reset(bool ds);
+	void divReset(bool ds);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state);
 	void loadState(SaveState const &state);
@@ -49,12 +49,12 @@ public:
 	void setNr11(unsigned data) { ch1_.setNr1(data); }
 	void setNr12(unsigned data) { ch1_.setNr2(data); }
 	void setNr13(unsigned data) { ch1_.setNr3(data); }
-	void setNr14(unsigned data) { ch1_.setNr4(data); }
+	void setNr14(unsigned data, bool ds) { ch1_.setNr4(data, lastUpdate_ & ds); }
 
 	void setNr21(unsigned data) { ch2_.setNr1(data); }
 	void setNr22(unsigned data) { ch2_.setNr2(data); }
 	void setNr23(unsigned data) { ch2_.setNr3(data); }
-	void setNr24(unsigned data) { ch2_.setNr4(data); }
+	void setNr24(unsigned data, bool ds) { ch2_.setNr4(data, lastUpdate_ & ds); }
 
 	void setNr30(unsigned data) { ch3_.setNr0(data); }
 	void setNr31(unsigned data) { ch3_.setNr1(data); }

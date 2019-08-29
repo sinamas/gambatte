@@ -60,19 +60,21 @@ void PSG::init(bool cgb) {
 	ch3_.init(cgb);
 }
 
-void PSG::reset() {
+void PSG::reset(bool ds) {
+	int const divOffset = lastUpdate_ & ds;
 	lastUpdate_ = (lastUpdate_ + 3) & -4;
-	ch1_.reset();
-	ch2_.reset();
-	ch3_.reset();
-	ch4_.reset();
+	ch1_.reset(divOffset);
+	ch2_.reset(divOffset);
+	ch3_.reset(divOffset);
+	ch4_.reset(divOffset);
 }
 
-void PSG::divReset() {
-	ch1_.divReset();
-	ch2_.divReset();
-	ch3_.divReset();
-	ch4_.divReset();
+void PSG::divReset(bool ds) {
+	int const divOffset = lastUpdate_ & ds;
+	ch1_.divReset(divOffset);
+	ch2_.divReset(divOffset);
+	ch3_.divReset(divOffset);
+	ch4_.divReset(divOffset);
 }
 
 void PSG::setStatePtrs(SaveState &state) {
@@ -88,13 +90,10 @@ void PSG::saveState(SaveState &state) {
 }
 
 void PSG::loadState(SaveState const &state) {
-	bool const ds = state.mem.ioamhram.get()[0x14D] >> 7 & ch3_.isCgb();
-	int const divOffset = ds && (((state.cpu.cycleCounter - state.mem.divLastUpdate) / 4
-		- state.spu.cycleCounter) & 0xFFF) == 1;
-	ch1_.loadState(state, divOffset);
-	ch2_.loadState(state, divOffset);
-	ch3_.loadState(state, divOffset);
-	ch4_.loadState(state, divOffset);
+	ch1_.loadState(state);
+	ch2_.loadState(state);
+	ch3_.loadState(state);
+	ch4_.loadState(state);
 
 	lastUpdate_ = state.cpu.cycleCounter - -state.spu.lastUpdate % 4u;
 	setSoVolume(state.mem.ioamhram.get()[0x124]);
@@ -127,12 +126,13 @@ void PSG::resetCounter(unsigned long newCc, unsigned long oldCc, bool doubleSpee
 }
 
 void PSG::speedChange(unsigned long cc, bool ds) {
+	int const divOffset = lastUpdate_ & ds;
 	lastUpdate_ -= !ds;
 	generateSamples(cc, ds);
-	ch1_.speedChange(ds);
-	ch2_.speedChange(ds);
-	ch3_.speedChange(ds);
-	ch4_.speedChange(ds);
+	ch1_.speedChange(ds, divOffset);
+	ch2_.speedChange(ds, divOffset);
+	ch3_.speedChange(ds, divOffset);
+	ch4_.speedChange(ds, divOffset);
 }
 
 std::size_t PSG::fillBuffer() {
