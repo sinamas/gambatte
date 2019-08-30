@@ -1769,7 +1769,7 @@ void PPU::resetCc(unsigned long const oldCc, unsigned long const newCc) {
 void PPU::speedChange() {
 	unsigned long const now = p_.now;
 	unsigned long const videoCycles = lcdcEn(p_) ? p_.lyCounter.frameCycles(now) : 0;
-
+	// skip CPU tick.
 	p_.now -= p_.lyCounter.isDoubleSpeed();
 	p_.spriteMapper.resetCycleCounter(now, p_.now);
 	p_.lyCounter.setDoubleSpeed(!p_.lyCounter.isDoubleSpeed());
