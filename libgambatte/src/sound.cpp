@@ -63,11 +63,11 @@ void PSG::init(bool cgb) {
 
 void PSG::reset(bool ds) {
 	int const divOffset = lastUpdate_ & ds;
-	lastUpdate_ = (lastUpdate_ + 3) & -4;
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
 	cycleCounter_ += divOffset;
 	cycleCounter_ &= 0xFFF;
 	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
+	lastUpdate_ = ((lastUpdate_ + 3) & -4) - !ds;
 	ch1_.reset();
 	ch2_.reset();
 	ch3_.reset();
@@ -85,17 +85,18 @@ void PSG::divReset(bool ds) {
 }
 
 void PSG::speedChange(unsigned long const cpuCc, bool const ds) {
-	int const divOffset = lastUpdate_ & ds;
-	lastUpdate_ -= !ds;
 	generateSamples(cpuCc, ds);
+	lastUpdate_ -= ds;
 	// correct for cycles since DIV reset (if any).
-	unsigned long const cc = cycleCounter_;
-	unsigned const divCycles = (cc + divOffset) & 0xFFF;
-	cycleCounter_ = ds ? cc + divOffset : cc - divCycles / 2 - 1;
-	ch1_.resetCc(cc, cycleCounter_);
-	ch2_.resetCc(cc, cycleCounter_);
-	ch3_.resetCc(cc, cycleCounter_);
-	ch4_.resetCc(cc, cycleCounter_);
+	if (!ds) {
+		unsigned long const cc = cycleCounter_;
+		unsigned const divCycles = cc & 0xFFF;
+		cycleCounter_ = cc - divCycles / 2 - lastUpdate_ % 2;
+		ch1_.resetCc(cc, cycleCounter_);
+		ch2_.resetCc(cc, cycleCounter_);
+		ch3_.resetCc(cc, cycleCounter_);
+		ch4_.resetCc(cc, cycleCounter_);
+	}
 }
 
 void PSG::setStatePtrs(SaveState &state) {
@@ -104,7 +105,7 @@ void PSG::setStatePtrs(SaveState &state) {
 
 void PSG::saveState(SaveState &state) {
 	state.spu.cycleCounter = cycleCounter_;
-	state.spu.lastUpdate = lastUpdate_ % 4;
+	state.spu.lastUpdate = (lastUpdate_ + 1) % 4;
 	ch1_.saveState(state, cycleCounter_);
 	ch2_.saveState(state, cycleCounter_);
 	ch3_.saveState(state);
@@ -118,7 +119,7 @@ void PSG::loadState(SaveState const &state) {
 	ch4_.loadState(state);
 
 	cycleCounter_ = state.spu.cycleCounter;
-	lastUpdate_ = state.cpu.cycleCounter - -state.spu.lastUpdate % 4u;
+	lastUpdate_ = state.cpu.cycleCounter - (1 - state.spu.lastUpdate) % 4u;
 	setSoVolume(state.mem.ioamhram.get()[0x124]);
 	mapSo(state.mem.ioamhram.get()[0x125]);
 	enabled_ = state.mem.ioamhram.get()[0x126] >> 7 & 1;
