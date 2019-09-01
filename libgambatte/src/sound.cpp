@@ -43,7 +43,7 @@ Clock) clock timer on transition to step.
 
 */
 
-namespace gambatte {
+using namespace gambatte;
 
 PSG::PSG()
 : buffer_(0)
@@ -63,10 +63,9 @@ void PSG::init(bool cgb) {
 
 void PSG::reset(bool ds) {
 	int const divOffset = lastUpdate_ & ds;
+	unsigned long const cc = cycleCounter_ + divOffset;
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ += divOffset;
-	cycleCounter_ &= 0xFFF;
-	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
+	cycleCounter_ = (cc & 0xFFF) + 2 * (~(cc + 2) & 0x800);
 	lastUpdate_ = ((lastUpdate_ + 3) & -4) - !ds;
 	ch1_.reset();
 	ch2_.reset();
@@ -126,7 +125,7 @@ void PSG::loadState(SaveState const &state) {
 	enabled_ = state.mem.ioamhram.get()[0x126] >> 7 & 1;
 }
 
-void PSG::accumulateChannels(unsigned long const cycles) {
+inline void PSG::accumulateChannels(unsigned long const cycles) {
 	unsigned long const cc = cycleCounter_;
 	uint_least32_t *const buf = buffer_ + bufferPos_;
 	std::memset(buf, 0, cycles * sizeof *buf);
@@ -134,9 +133,7 @@ void PSG::accumulateChannels(unsigned long const cycles) {
 	ch2_.update(buf, soVol_, cc, cc + cycles);
 	ch3_.update(buf, soVol_, cc, cc + cycles);
 	ch4_.update(buf, soVol_, cc, cc + cycles);
-	cycleCounter_ = cc + cycles;
-	if (cycleCounter_ >= SoundUnit::counter_max)
-		cycleCounter_ -= SoundUnit::counter_max;
+	cycleCounter_ = (cc + cycles) % SoundUnit::counter_max;
 }
 
 void PSG::generateSamples(unsigned long const cpuCc, bool const doubleSpeed) {
@@ -226,6 +223,4 @@ unsigned PSG::getStatus() const {
 	     | ch2_.isActive() << 1
 	     | ch3_.isActive() << 2
 	     | ch4_.isActive() << 3;
-}
-
 }

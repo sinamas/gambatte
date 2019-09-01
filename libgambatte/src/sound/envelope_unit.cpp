@@ -19,7 +19,7 @@
 #include "envelope_unit.h"
 #include <algorithm>
 
-namespace gambatte {
+using namespace gambatte;
 
 EnvelopeUnit::VolOnOffEvent EnvelopeUnit::nullEvent_;
 
@@ -91,6 +91,4 @@ bool EnvelopeUnit::nr4Init(unsigned long const cc) {
 
 	volume_ = nr2_ >> 4;
 	return !(nr2_ & 0xF8);
-}
-
 }

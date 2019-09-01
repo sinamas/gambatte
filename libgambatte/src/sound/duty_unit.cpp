@@ -19,15 +19,19 @@
 #include "duty_unit.h"
 #include <algorithm>
 
-static inline bool toOutState(unsigned duty, unsigned pos) {
+namespace {
+
+inline bool toOutState(unsigned duty, unsigned pos) {
 	return 0x7EE18180 >> (duty * 8 + pos) & 1;
 }
 
-static inline unsigned toPeriod(unsigned freq) {
+inline unsigned toPeriod(unsigned freq) {
 	return (2048 - freq) * 2;
 }
 
-namespace gambatte {
+}
+
+using namespace gambatte;
 
 DutyUnit::DutyUnit()
 : nextPosUpdate_(counter_disabled)
@@ -157,6 +161,4 @@ void DutyUnit::reviveCounter(unsigned long const cc) {
 	updatePos(cc);
 	enableEvents_ = true;
 	setCounter();
-}
-
 }
