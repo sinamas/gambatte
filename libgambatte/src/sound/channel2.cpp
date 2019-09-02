@@ -98,9 +98,9 @@ void Channel2::saveState(SaveState &state, unsigned long cc) {
 
 void Channel2::loadState(SaveState const &state) {
 	dutyUnit_.loadState(state.spu.ch2.duty, state.mem.ioamhram.get()[0x116],
-	                    state.spu.ch2.nr4, state.spu.cycleCounter);
+		state.spu.ch2.nr4, state.spu.cycleCounter);
 	envelopeUnit_.loadState(state.spu.ch2.env, state.mem.ioamhram.get()[0x117],
-	                        state.spu.cycleCounter);
+		state.spu.cycleCounter);
 	lengthCounter_.loadState(state.spu.ch2.lcounter, state.spu.cycleCounter);
 
 	nr4_ = state.spu.ch2.nr4;

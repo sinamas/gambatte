@@ -211,7 +211,7 @@ void Channel4::saveState(SaveState &state, unsigned long cc) {
 void Channel4::loadState(SaveState const &state) {
 	lfsr_.loadState(state);
 	envelopeUnit_.loadState(state.spu.ch4.env, state.mem.ioamhram.get()[0x121],
-	                        state.spu.cycleCounter);
+		state.spu.cycleCounter);
 	lengthCounter_.loadState(state.spu.ch4.lcounter, state.spu.cycleCounter);
 
 	nr4_ = state.spu.ch4.nr4;
