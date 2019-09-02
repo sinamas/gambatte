@@ -85,7 +85,6 @@ void PSG::divReset(bool ds) {
 
 void PSG::speedChange(unsigned long const cpuCc, bool const ds) {
 	generateSamples(cpuCc, ds);
-	// skip CPU tick.
 	lastUpdate_ -= ds;
 	// correct for cycles since DIV reset (if any).
 	if (!ds) {
