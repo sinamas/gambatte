@@ -209,9 +209,9 @@ void Channel1::loadState(SaveState const &state) {
 
 void Channel1::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cc, unsigned long const end) {
 	unsigned long const outBase = envelopeUnit_.dacIsOn() ? soBaseVol & soMask_ : 0;
-	unsigned long const outLow = outBase * (0 - 15ul);
+	unsigned long const outLow = outBase * -15;
 
-	for (;;) {
+	while (cc < end) {
 		unsigned long const outHigh = master_
 			? outBase * (envelopeUnit_.getVolume() * 2 - 15ul)
 			: outLow;
@@ -223,23 +223,19 @@ void Channel1::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 			prevOut_ = out;
 			buf += dutyUnit_.counter() - cc;
 			cc = dutyUnit_.counter();
-
 			dutyUnit_.event();
 			out = dutyUnit_.isHighState() ? outHigh : outLow;
 		}
-
 		if (cc < nextMajorEvent) {
 			*buf = out - prevOut_;
 			prevOut_ = out;
 			buf += nextMajorEvent - cc;
 			cc = nextMajorEvent;
 		}
-
 		if (nextEventUnit_->counter() == nextMajorEvent) {
 			nextEventUnit_->event();
 			setEvent();
-		} else
-			break;
+		}
 	}
 
 	if (cc >= SoundUnit::counter_max) {

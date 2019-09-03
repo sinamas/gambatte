@@ -177,7 +177,6 @@ void Channel4::setNr4(unsigned const data, unsigned long const cc) {
 	if (data & 0x80) { // init-bit
 		nr4_ &= 0x7F;
 		master_ = !envelopeUnit_.nr4Init(cc);
-
 		if (master_)
 			lfsr_.nr4Init(cc);
 
@@ -220,35 +219,34 @@ void Channel4::loadState(SaveState const &state) {
 
 void Channel4::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cc, unsigned long const end) {
 	unsigned long const outBase = envelopeUnit_.dacIsOn() ? soBaseVol & soMask_ : 0;
-	unsigned long const outLow = outBase * (0 - 15ul);
+	unsigned long const outLow = outBase * -15;
 
-	for (;;) {
+	while (cc < end) {
 		unsigned long const outHigh = outBase * (envelopeUnit_.getVolume() * 2 - 15ul);
 		unsigned long const nextMajorEvent = std::min(nextEventUnit_->counter(), end);
 		unsigned long out = lfsr_.isHighState() ? outHigh : outLow;
-
-		while (lfsr_.counter() <= nextMajorEvent) {
-			*buf += out - prevOut_;
-			prevOut_ = out;
-			buf += lfsr_.counter() - cc;
-			cc = lfsr_.counter();
-
-			lfsr_.event();
-			out = lfsr_.isHighState() ? outHigh : outLow;
+		if (lfsr_.counter() <= nextMajorEvent) {
+			Lfsr lfsr = lfsr_;
+			while (lfsr.counter() <= nextMajorEvent) {
+				*buf += out - prevOut_;
+				prevOut_ = out;
+				buf += lfsr.counter() - cc;
+				cc = lfsr.counter();
+				lfsr.event();
+				out = lfsr.isHighState() ? outHigh : outLow;
+			}
+			lfsr_ = lfsr;
 		}
-
 		if (cc < nextMajorEvent) {
 			*buf += out - prevOut_;
 			prevOut_ = out;
 			buf += nextMajorEvent - cc;
 			cc = nextMajorEvent;
 		}
-
 		if (nextEventUnit_->counter() == nextMajorEvent) {
 			nextEventUnit_->event();
 			setEvent();
-		} else
-			break;
+		}
 	}
 
 	if (cc >= SoundUnit::counter_max) {

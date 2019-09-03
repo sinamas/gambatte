@@ -103,7 +103,7 @@ bool isHdmaPeriod(LyCounter const &lyCounter,
 void doCgbColorChange(unsigned char *pdata,
 		unsigned long *palette, unsigned index, unsigned data) {
 	pdata[index] = data;
-	index >>= 1;
+	index /= 2;
 	palette[index] = gbcToRgb32(pdata[index * 2] | pdata[index * 2 + 1] * 0x100l);
 }
 

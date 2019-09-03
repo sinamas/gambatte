@@ -57,9 +57,7 @@ void Channel3::setNr0(unsigned data) {
 }
 
 void Channel3::setNr2(unsigned data) {
-	rshift_ = (data >> 5 & 3U) - 1;
-	if (rshift_ > 3)
-		rshift_ = 4;
+	rshift_ = std::min((data >> 5 & 3) - 1, 4u);
 }
 
 void Channel3::setNr4(unsigned const data, unsigned long const cc) {
@@ -68,7 +66,7 @@ void Channel3::setNr4(unsigned const data, unsigned long const cc) {
 
 	if (data & nr0_/* & 0x80*/) {
 		if (!cgb_ && waveCounter_ == cc + 1) {
-			int const pos = ((wavePos_ + 1) & 0x1F) >> 1;
+			int const pos = (wavePos_ + 1) / 2 % sizeof waveRam_;
 
 			if (pos < 4)
 				waveRam_[0] = waveRam_[pos];
@@ -123,7 +121,7 @@ void Channel3::loadState(SaveState const &state) {
 	lastReadTime_ = state.spu.ch3.lastReadTime;
 	nr3_ = state.spu.ch3.nr3;
 	nr4_ = state.spu.ch3.nr4;
-	wavePos_ = state.spu.ch3.wavePos & 0x1F;
+	wavePos_ = state.spu.ch3.wavePos % (2 * sizeof waveRam_);
 	sampleBuf_ = state.spu.ch3.sampleBuf;
 	master_ = state.spu.ch3.master;
 
@@ -138,11 +136,8 @@ void Channel3::updateWaveCounter(unsigned long const cc) {
 
 		lastReadTime_ = waveCounter_ + periods * period;
 		waveCounter_ = lastReadTime_ + period;
-
-		wavePos_ += periods + 1;
-		wavePos_ &= 0x1F;
-
-		sampleBuf_ = waveRam_[wavePos_ >> 1];
+		wavePos_ = (wavePos_ + periods + 1) % (2 * sizeof waveRam_);
+		sampleBuf_ = waveRam_[wavePos_ / 2];
 	}
 }
 
@@ -150,47 +145,53 @@ void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 	unsigned long const outBase = nr0_/* & 0x80*/ ? soBaseVol & soMask_ : 0;
 
 	if (outBase && rshift_ != 4) {
-		for (;;) {
+		while (std::min(waveCounter_, lengthCounter_.counter()) <= end) {
+			unsigned pos = wavePos_;
+			unsigned const period = toPeriod(nr3_, nr4_), rsh = rshift_;
 			unsigned long const nextMajorEvent =
 				std::min(lengthCounter_.counter(), end);
+			unsigned long cnt = waveCounter_, prevOut = prevOut_;
 			unsigned long out = master_
-				? (((wavePos_ & 1 ? sampleBuf_ : sampleBuf_ >> 4) & 0xF) >> rshift_) * 2 - 15ul
-				: 0 - 15ul;
+				? ((pos % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rsh) * 2 - 15ul
+				: -15;
 			out *= outBase;
-
-			while (waveCounter_ <= nextMajorEvent) {
-				*buf += out - prevOut_;
-				prevOut_ = out;
-				buf += waveCounter_ - cc;
-				cc = waveCounter_;
-
-				lastReadTime_ = waveCounter_;
-				waveCounter_ += toPeriod(nr3_, nr4_);
-				++wavePos_;
-				wavePos_ &= 0x1F;
-				sampleBuf_ = waveRam_[wavePos_ >> 1];
-				out = (((wavePos_ & 1 ? sampleBuf_ : sampleBuf_ >> 4) & 0xF) >> rshift_) * 2 - 15ul;
+			while (cnt <= nextMajorEvent) {
+				*buf += out - prevOut;
+				prevOut = out;
+				buf += cnt - cc;
+				lastReadTime_ = cc = cnt;
+				cnt += period;
+				++pos;
+				sampleBuf_ = waveRam_[pos / 2 % sizeof waveRam_];
+				out = ((pos % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rsh) * 2 - 15ul;
 				out *= outBase;
 			}
-
+			prevOut_ = prevOut;
+			waveCounter_ = cnt;
+			wavePos_ = pos % (2 * sizeof waveRam_);
 			if (cc < nextMajorEvent) {
 				*buf += out - prevOut_;
 				prevOut_ = out;
 				buf += nextMajorEvent - cc;
 				cc = nextMajorEvent;
 			}
-
-			if (lengthCounter_.counter() == nextMajorEvent) {
+			if (lengthCounter_.counter() == nextMajorEvent)
 				lengthCounter_.event();
-			} else
-				break;
+		}
+		if (cc < end) {
+			unsigned long out = master_
+				? ((wavePos_ % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rshift_) * 2 - 15ul
+				: -15;
+			out *= outBase;
+			*buf += out - prevOut_;
+			prevOut_ = out;
+			cc = end;
 		}
 	} else {
-		unsigned long const out = outBase * (0 - 15ul);
+		unsigned long const out = outBase * -15;
 		*buf += out - prevOut_;
 		prevOut_ = out;
 		cc = end;
-
 		while (lengthCounter_.counter() <= cc) {
 			updateWaveCounter(lengthCounter_.counter());
 			lengthCounter_.event();

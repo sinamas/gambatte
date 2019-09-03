@@ -51,7 +51,7 @@ public:
 			if (!cgb_ && cc != lastReadTime_)
 				return 0xFF;
 
-			index = wavePos_ >> 1;
+			index = wavePos_ / 2;
 		}
 
 		return waveRam_[index];
@@ -62,7 +62,7 @@ public:
 			if (!cgb_ && cc != lastReadTime_)
 				return;
 
-			index = wavePos_ >> 1;
+			index = wavePos_ / 2;
 		}
 
 		waveRam_[index] = data;
