@@ -189,5 +189,5 @@ unsigned Tima::tima(unsigned long cc) {
 void Tima::doIrqEvent(TimaInterruptRequester timaIrq) {
 	timaIrq.flagIrq(timaIrq.nextIrqEventTime());
 	timaIrq.setNextIrqEventTime(timaIrq.nextIrqEventTime()
-	                          + ((256u - tma_) << timaClock[tac_ & 3]));
+		+ ((256u - tma_) << timaClock[tac_ & 3]));
 }
