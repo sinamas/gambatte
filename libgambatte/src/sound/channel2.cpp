@@ -113,7 +113,7 @@ void Channel2::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 
 	while (cc < end) {
 		unsigned long const outHigh = master_
-			? outBase * (envelopeUnit_.getVolume() * 2 - 15ul)
+			? outBase * (envelopeUnit_.getVolume() * 2l - 15)
 			: outLow;
 		unsigned long const nextMajorEvent = std::min(nextEventUnit->counter(), end);
 		unsigned long out = dutyUnit_.isHighState() ? outHigh : outLow;

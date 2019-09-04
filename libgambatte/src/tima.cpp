@@ -55,7 +55,7 @@ void Tima::loadState(SaveState const &state, TimaInterruptRequester timaIrq) {
 	if (tac_ & 4) {
 		nextIrqEventTime = tmatime_ != disabled_time && tmatime_ > state.cpu.cycleCounter
 			? tmatime_
-			: lastUpdate_ + ((256u - tima_) << timaClock[tac_ & 3]) + 3;
+			: lastUpdate_ + ((256l - tima_) << timaClock[tac_ & 3]) + 3;
 	}
 
 	timaIrq.setNextIrqEventTime(nextIrqEventTime);
@@ -93,7 +93,6 @@ void Tima::updateTima(unsigned long const cc) {
 	if (tmp == 0x100) {
 		tmp = 0;
 		tmatime_ = lastUpdate_ + 3;
-
 		if (cc >= tmatime_) {
 			if (cc >= tmatime_ + 4)
 				tmatime_ = disabled_time;
@@ -113,7 +112,7 @@ void Tima::setTima(unsigned const data, unsigned long const cc, TimaInterruptReq
 		if (tmatime_ - cc < 4)
 			tmatime_ = disabled_time;
 
-		timaIrq.setNextIrqEventTime(lastUpdate_ + ((256u - data) << timaClock[tac_ & 3]) + 3);
+		timaIrq.setNextIrqEventTime(lastUpdate_ + ((256l - data) << timaClock[tac_ & 3]) + 3);
 	}
 
 	tima_ = data;
@@ -140,14 +139,13 @@ void Tima::setTac(unsigned const data, unsigned long const cc, TimaInterruptRequ
 				timaIrq.flagIrq();
 
 			updateTima(cc);
-
 			tmatime_ = disabled_time;
 			nextIrqEventTime = disabled_time;
 		}
 
 		if (data & 4) {
 			lastUpdate_ = cc - ((cc - divLastUpdate_) & ((1u << timaClock[data & 3]) - 1));
-			nextIrqEventTime = lastUpdate_ + ((256u - tima_) << timaClock[data & 3]) + 3;
+			nextIrqEventTime = lastUpdate_ + ((256l - tima_) << timaClock[data & 3]) + 3;
 		}
 
 		timaIrq.setNextIrqEventTime(nextIrqEventTime);
@@ -166,7 +164,7 @@ void Tima::divReset(unsigned long cc, TimaInterruptRequester timaIrq) {
 
 		updateTima(cc);
 		lastUpdate_ = cc;
-		timaIrq.setNextIrqEventTime(lastUpdate_ + ((256u - tima_) << timaClock[tac_ & 3]) + 3);
+		timaIrq.setNextIrqEventTime(lastUpdate_ + ((256l - tima_) << timaClock[tac_ & 3]) + 3);
 	}
 
 	divLastUpdate_ = cc;
@@ -189,5 +187,5 @@ unsigned Tima::tima(unsigned long cc) {
 void Tima::doIrqEvent(TimaInterruptRequester timaIrq) {
 	timaIrq.flagIrq(timaIrq.nextIrqEventTime());
 	timaIrq.setNextIrqEventTime(timaIrq.nextIrqEventTime()
-		+ ((256u - tma_) << timaClock[tac_ & 3]));
+		+ ((256l - tma_) << timaClock[tac_ & 3]));
 }

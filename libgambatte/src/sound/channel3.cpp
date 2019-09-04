@@ -152,23 +152,27 @@ void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 				std::min(lengthCounter_.counter(), end);
 			unsigned long cnt = waveCounter_, prevOut = prevOut_;
 			unsigned long out = master_
-				? ((pos % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rsh) * 2 - 15ul
+				? ((pos % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rsh) * 2l - 15
 				: -15;
 			out *= outBase;
 			while (cnt <= nextMajorEvent) {
 				*buf += out - prevOut;
 				prevOut = out;
 				buf += cnt - cc;
-				lastReadTime_ = cc = cnt;
+				cc = cnt;
 				cnt += period;
 				++pos;
-				sampleBuf_ = waveRam_[pos / 2 % sizeof waveRam_];
-				out = ((pos % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rsh) * 2 - 15ul;
+				unsigned const s = waveRam_[pos / 2 % sizeof waveRam_];
+				out = ((pos % 2 ? s & 0xF : s >> 4) >> rsh) * 2l - 15;
 				out *= outBase;
 			}
-			prevOut_ = prevOut;
-			waveCounter_ = cnt;
-			wavePos_ = pos % (2 * sizeof waveRam_);
+			if (cnt != waveCounter_) {
+				wavePos_ = pos % (2 * sizeof waveRam_);
+				sampleBuf_ = waveRam_[wavePos_ / 2];
+				prevOut_ = prevOut;
+				waveCounter_ = cnt;
+				lastReadTime_ = cc;
+			}
 			if (cc < nextMajorEvent) {
 				*buf += out - prevOut_;
 				prevOut_ = out;
@@ -180,7 +184,7 @@ void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 		}
 		if (cc < end) {
 			unsigned long out = master_
-				? ((wavePos_ % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rshift_) * 2 - 15ul
+				? ((wavePos_ % 2 ? sampleBuf_ & 0xF : sampleBuf_ >> 4) >> rshift_) * 2l - 15
 				: -15;
 			out *= outBase;
 			*buf += out - prevOut_;

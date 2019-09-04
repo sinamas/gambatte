@@ -222,7 +222,7 @@ void Channel4::update(uint_least32_t *buf, unsigned long const soBaseVol, unsign
 	unsigned long const outLow = outBase * -15;
 
 	while (cc < end) {
-		unsigned long const outHigh = outBase * (envelopeUnit_.getVolume() * 2 - 15ul);
+		unsigned long const outHigh = outBase * (envelopeUnit_.getVolume() * 2l - 15);
 		unsigned long const nextMajorEvent = std::min(nextEventUnit_->counter(), end);
 		unsigned long out = lfsr_.isHighState() ? outHigh : outLow;
 		if (lfsr_.counter() <= nextMajorEvent) {
