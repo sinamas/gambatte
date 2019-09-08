@@ -1271,7 +1271,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.spu.ch1.sweep.counter = SoundUnit::counter_disabled;
 	state.spu.ch1.sweep.shadow = 0;
 	state.spu.ch1.sweep.nr0 = 0;
-	state.spu.ch1.sweep.negging = false;
+	state.spu.ch1.sweep.neg = false;
 	if (cgb) {
 		state.spu.ch1.duty.nextPosUpdate = (state.spu.cycleCounter & ~1ul) + 37 * 2;
 		state.spu.ch1.duty.pos = 6;

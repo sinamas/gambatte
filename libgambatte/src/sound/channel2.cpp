@@ -17,7 +17,9 @@
 //
 
 #include "channel2.h"
+#include "psgdef.h"
 #include "../savestate.h"
+
 #include <algorithm>
 
 using namespace gambatte;
@@ -65,8 +67,8 @@ void Channel2::setNr4(unsigned data, unsigned long cc, unsigned long ref) {
 	lengthCounter_.nr4Change(nr4_, data, cc);
 	nr4_ = data;
 
-	if (data & 0x80) { // init-bit
-		nr4_ &= 0x7F;
+	if (nr4_ & psg_nr4_init) {
+		nr4_ -= psg_nr4_init;
 		master_ = !envelopeUnit_.nr4Init(cc);
 		staticOutputTest_(cc);
 	}

@@ -17,7 +17,9 @@
 //
 
 #include "channel4.h"
+#include "psgdef.h"
 #include "../savestate.h"
+
 #include <algorithm>
 
 using namespace gambatte;
@@ -25,8 +27,8 @@ using namespace gambatte;
 namespace {
 
 unsigned long toPeriod(unsigned const nr3) {
-	unsigned s = (nr3 >> 4) + 3;
-	unsigned r = nr3 & 7;
+	unsigned s = nr3 / (psg_nr43_s & -psg_nr43_s) + 3;
+	unsigned r = nr3 & psg_nr43_r;
 
 	if (!r) {
 		r = 1;
@@ -52,8 +54,8 @@ void Channel4::Lfsr::updateBackupCounter(unsigned long const cc) {
 		unsigned long periods = (cc - backupCounter_) / period + 1;
 		backupCounter_ += periods * period;
 
-		if (master_ && nr3_ < 0xE0) {
-			if (nr3_ & 8) {
+		if (master_ && nr3_ < 0xE * (psg_nr43_s & -psg_nr43_s)) {
+			if (nr3_ & psg_nr43_7biten) {
 				while (periods > 6) {
 					unsigned const xored = (reg_ << 1 ^ reg_) & 0x7E;
 					reg_ = (reg_ >> 6 & ~0x7Eu) | xored | xored << 8;
@@ -80,12 +82,12 @@ void Channel4::Lfsr::reviveCounter(unsigned long cc) {
 }
 
 inline void Channel4::Lfsr::event() {
-	if (nr3_ < 0xE0) {
+	if (nr3_ < 0xE * (psg_nr43_s & -psg_nr43_s)) {
 		unsigned const shifted = reg_ >> 1;
 		unsigned const xored = (reg_ ^ shifted) & 1;
 		reg_ = shifted | xored << 14;
 
-		if (nr3_ & 8)
+		if (nr3_ & psg_nr43_7biten)
 			reg_ = (reg_ & ~0x40u) | xored << 6;
 	}
 
@@ -174,8 +176,8 @@ void Channel4::setNr4(unsigned const data, unsigned long const cc) {
 	lengthCounter_.nr4Change(nr4_, data, cc);
 	nr4_ = data;
 
-	if (data & 0x80) { // init-bit
-		nr4_ &= 0x7F;
+	if (nr4_ & psg_nr4_init) {
+		nr4_ -= psg_nr4_init;
 		master_ = !envelopeUnit_.nr4Init(cc);
 		if (master_)
 			lfsr_.nr4Init(cc);

@@ -17,7 +17,9 @@
 //
 
 #include "channel3.h"
+#include "psgdef.h"
 #include "../savestate.h"
+
 #include <algorithm>
 #include <cstring>
 
@@ -25,7 +27,7 @@ using namespace gambatte;
 
 namespace {
 
-inline unsigned toPeriod(unsigned nr3, unsigned nr4) {
+unsigned toPeriod(unsigned nr3, unsigned nr4) {
 	return 0x800 - ((nr4 << 8 & 0x700) | nr3);
 }
 
@@ -50,9 +52,8 @@ Channel3::Channel3()
 }
 
 void Channel3::setNr0(unsigned data) {
-	nr0_ = data & 0x80;
-
-	if (!(data & 0x80))
+	nr0_ = data & psg_nr4_init;
+	if (!nr0_)
 		disableMaster_();
 }
 
@@ -62,9 +63,9 @@ void Channel3::setNr2(unsigned data) {
 
 void Channel3::setNr4(unsigned const data, unsigned long const cc) {
 	lengthCounter_.nr4Change(nr4_, data, cc);
-	nr4_ = data & 0x7F;
+	nr4_ = data & ~(1u * psg_nr4_init);
 
-	if (data & nr0_/* & 0x80*/) {
+	if (data & nr0_) {
 		if (!cgb_ && waveCounter_ == cc + 1) {
 			int const pos = (wavePos_ + 1) / 2 % sizeof waveRam_;
 
@@ -125,7 +126,7 @@ void Channel3::loadState(SaveState const &state) {
 	sampleBuf_ = state.spu.ch3.sampleBuf;
 	master_ = state.spu.ch3.master;
 
-	nr0_ = state.mem.ioamhram.get()[0x11A] & 0x80;
+	nr0_ = state.mem.ioamhram.get()[0x11A] & psg_nr4_init;
 	setNr2(state.mem.ioamhram.get()[0x11C]);
 }
 
@@ -142,7 +143,7 @@ void Channel3::updateWaveCounter(unsigned long const cc) {
 }
 
 void Channel3::update(uint_least32_t *buf, unsigned long const soBaseVol, unsigned long cc, unsigned long const end) {
-	unsigned long const outBase = nr0_/* & 0x80*/ ? soBaseVol & soMask_ : 0;
+	unsigned long const outBase = nr0_ ? soBaseVol & soMask_ : 0;
 
 	if (outBase && rshift_ != 4) {
 		while (std::min(waveCounter_, lengthCounter_.counter()) <= end) {

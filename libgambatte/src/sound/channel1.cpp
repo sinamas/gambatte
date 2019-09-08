@@ -17,7 +17,9 @@
 //
 
 #include "channel1.h"
+#include "psgdef.h"
 #include "../savestate.h"
+
 #include <algorithm>
 
 using namespace gambatte;
@@ -27,17 +29,17 @@ Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit)
 , dutyUnit_(dutyUnit)
 , shadow_(0)
 , nr0_(0)
-, negging_(false)
+, neg_(false)
 , cgb_(false)
 {
 }
 
 unsigned Channel1::SweepUnit::calcFreq() {
-	unsigned freq = shadow_ >> (nr0_ & 0x07);
+	unsigned freq = shadow_ >> (nr0_ & psg_nr10_shiftn);
 
-	if (nr0_ & 0x08) {
+	if (nr0_ & psg_nr10_neg) {
 		freq = shadow_ - freq;
-		negging_ = true;
+		neg_ = true;
 	} else
 		freq = shadow_ + freq;
 
@@ -48,12 +50,12 @@ unsigned Channel1::SweepUnit::calcFreq() {
 }
 
 void Channel1::SweepUnit::event() {
-	unsigned long const period = nr0_ >> 4 & 0x07;
+	unsigned long const period = (nr0_ & psg_nr10_time) / (psg_nr10_time & -psg_nr10_time);
 
 	if (period) {
 		unsigned const freq = calcFreq();
 
-		if (!(freq & 2048) && (nr0_ & 0x07)) {
+		if (!(freq & 2048) && nr0_ & psg_nr10_shiftn) {
 			shadow_ = freq;
 			dutyUnit_.setFreq(freq, counter_);
 			calcFreq();
@@ -65,18 +67,18 @@ void Channel1::SweepUnit::event() {
 }
 
 void Channel1::SweepUnit::nr0Change(unsigned newNr0) {
-	if (negging_ && !(newNr0 & 0x08))
+	if (neg_ && !(newNr0 & psg_nr10_neg))
 		disableMaster_();
 
 	nr0_ = newNr0;
 }
 
 void Channel1::SweepUnit::nr4Init(unsigned long const cc) {
-	negging_ = false;
+	neg_ = false;
 	shadow_ = dutyUnit_.freq();
 
-	unsigned const period = nr0_ >> 4 & 0x07;
-	unsigned const shift = nr0_ & 0x07;
+	unsigned const period = (nr0_ & psg_nr10_time) / (psg_nr10_time & -psg_nr10_time);
+	unsigned const shift = nr0_ & psg_nr10_shiftn;
 
 	if (period | shift)
 		counter_ = ((((cc + 2 + cgb_ * 2) >> 14) + (period ? period : 8)) << 14) + 2;
@@ -95,14 +97,14 @@ void Channel1::SweepUnit::saveState(SaveState &state) const {
 	state.spu.ch1.sweep.counter = counter_;
 	state.spu.ch1.sweep.shadow = shadow_;
 	state.spu.ch1.sweep.nr0 = nr0_;
-	state.spu.ch1.sweep.negging = negging_;
+	state.spu.ch1.sweep.neg = neg_;
 }
 
 void Channel1::SweepUnit::loadState(SaveState const &state) {
 	counter_ = std::max(state.spu.ch1.sweep.counter, state.spu.cycleCounter);
 	shadow_ = state.spu.ch1.sweep.shadow;
 	nr0_ = state.spu.ch1.sweep.nr0;
-	negging_ = state.spu.ch1.sweep.negging;
+	neg_ = state.spu.ch1.sweep.neg;
 }
 
 Channel1::Channel1()
@@ -155,11 +157,11 @@ void Channel1::setNr3(unsigned data, unsigned long cc) {
 
 void Channel1::setNr4(unsigned data, unsigned long cc, unsigned long ref) {
 	lengthCounter_.nr4Change(nr4_, data, cc);
-	nr4_ = data;
 	dutyUnit_.nr4Change(data, cc, ref);
+	nr4_ = data;
 
-	if (data & 0x80) { // init-bit
-		nr4_ &= 0x7F;
+	if (nr4_ & psg_nr4_init) {
+		nr4_ -= psg_nr4_init;
 		master_ = !envelopeUnit_.nr4Init(cc);
 		sweepUnit_.nr4Init(cc);
 		staticOutputTest_(cc);

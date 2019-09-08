@@ -142,7 +142,7 @@ struct SaveState {
 				unsigned long counter;
 				unsigned short shadow;
 				unsigned char nr0;
-				unsigned char /*bool*/ negging;
+				unsigned char /*bool*/ neg;
 			} sweep;
 			Duty duty;
 			Env env;

@@ -64,7 +64,7 @@ private:
 		DutyUnit &dutyUnit_;
 		unsigned short shadow_;
 		unsigned char nr0_;
-		bool negging_;
+		bool neg_;
 		bool cgb_;
 
 		unsigned calcFreq();
