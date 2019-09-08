@@ -65,7 +65,7 @@ void PSG::reset(bool ds) {
 	int const divOffset = lastUpdate_ & ds;
 	unsigned long const cc = cycleCounter_ + divOffset;
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ = (cc & 0xFFF) + 2 * (~(cc + 2) & 0x800);
+	cycleCounter_ = (cc & 0xFFF) + 2 * (~(cc + 1 + !ds) & 0x800);
 	lastUpdate_ = ((lastUpdate_ + 3) & -4) - !ds;
 	ch1_.reset();
 	ch2_.reset();
