@@ -20,6 +20,7 @@
 #define STATESAVER_H
 
 #include "gbint.h"
+
 #include <cstddef>
 #include <string>
 

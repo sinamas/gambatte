@@ -18,6 +18,7 @@
 
 #include "sound.h"
 #include "savestate.h"
+
 #include <algorithm>
 #include <cstring>
 

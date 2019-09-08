@@ -20,6 +20,7 @@
 #include "array.h"
 #include "bitmap_font.h"
 #include "statesaver.h"
+
 #include <fstream>
 #include <cstring>
 

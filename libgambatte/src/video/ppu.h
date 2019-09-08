@@ -23,6 +23,7 @@
 #include "ly_counter.h"
 #include "sprite_mapper.h"
 #include "gbint.h"
+
 #include <cstddef>
 
 namespace gambatte {

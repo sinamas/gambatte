@@ -21,6 +21,7 @@
 #include "lcddef.h"
 #include "ly_counter.h"
 #include "savestate.h"
+
 #include <algorithm>
 
 using namespace gambatte;

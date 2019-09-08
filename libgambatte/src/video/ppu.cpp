@@ -18,6 +18,7 @@
 
 #include "ppu.h"
 #include "savestate.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstring>

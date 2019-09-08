@@ -21,6 +21,7 @@
 #include "savestate.h"
 #include "sound.h"
 #include "video.h"
+
 #include <algorithm>
 
 using namespace gambatte;

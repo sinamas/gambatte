@@ -20,6 +20,7 @@
 #include "counterdef.h"
 #include "next_m0_time.h"
 #include "../insertion_sort.h"
+
 #include <algorithm>
 
 using namespace gambatte;

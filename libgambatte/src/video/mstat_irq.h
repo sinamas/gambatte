@@ -3,6 +3,7 @@
 
 #include "lcddef.h"
 #include "../savestate.h"
+
 #include <algorithm>
 
 namespace gambatte {

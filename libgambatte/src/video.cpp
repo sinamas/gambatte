@@ -18,6 +18,7 @@
 
 #include "video.h"
 #include "savestate.h"
+
 #include <algorithm>
 
 using namespace gambatte;

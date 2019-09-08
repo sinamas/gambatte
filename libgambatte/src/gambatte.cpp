@@ -22,6 +22,7 @@
 #include "savestate.h"
 #include "state_osd_elements.h"
 #include "statesaver.h"
+
 #include <cstring>
 #include <sstream>
 

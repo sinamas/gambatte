@@ -17,6 +17,7 @@
 //
 
 #include "memptrs.h"
+
 #include <algorithm>
 
 using namespace gambatte;

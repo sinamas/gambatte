@@ -21,6 +21,7 @@
 
 #include "osd_element.h"
 #include "transfer_ptr.h"
+
 #include <string>
 
 namespace gambatte {

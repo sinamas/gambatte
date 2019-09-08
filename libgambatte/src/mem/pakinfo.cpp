@@ -1,4 +1,5 @@
 #include "pakinfo_internal.h"
+
 #include <cstring>
 
 namespace gambatte {

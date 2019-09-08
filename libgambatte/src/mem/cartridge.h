@@ -24,6 +24,7 @@
 #include "rtc.h"
 #include "savestate.h"
 #include "scoped_ptr.h"
+
 #include <string>
 #include <vector>
 

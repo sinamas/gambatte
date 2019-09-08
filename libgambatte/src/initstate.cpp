@@ -20,6 +20,7 @@
 #include "counterdef.h"
 #include "savestate.h"
 #include "sound/sound_unit.h"
+
 #include <algorithm>
 #include <cstring>
 #include <ctime>
