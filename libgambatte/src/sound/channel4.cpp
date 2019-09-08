@@ -27,7 +27,7 @@ using namespace gambatte;
 namespace {
 
 unsigned long toPeriod(unsigned const nr3) {
-	unsigned s = nr3 / (psg_nr43_s & -psg_nr43_s) + 3;
+	unsigned s = nr3 / (1u * psg_nr43_s & -psg_nr43_s) + 3;
 	unsigned r = nr3 & psg_nr43_r;
 
 	if (!r) {
@@ -54,7 +54,7 @@ void Channel4::Lfsr::updateBackupCounter(unsigned long const cc) {
 		unsigned long periods = (cc - backupCounter_) / period + 1;
 		backupCounter_ += periods * period;
 
-		if (master_ && nr3_ < 0xE * (psg_nr43_s & -psg_nr43_s)) {
+		if (master_ && nr3_ < 0xE * (1u * psg_nr43_s & -psg_nr43_s)) {
 			if (nr3_ & psg_nr43_7biten) {
 				while (periods > 6) {
 					unsigned const xored = (reg_ << 1 ^ reg_) & 0x7E;
@@ -82,7 +82,7 @@ void Channel4::Lfsr::reviveCounter(unsigned long cc) {
 }
 
 inline void Channel4::Lfsr::event() {
-	if (nr3_ < 0xE * (psg_nr43_s & -psg_nr43_s)) {
+	if (nr3_ < 0xE * (1u * psg_nr43_s & -psg_nr43_s)) {
 		unsigned const shifted = reg_ >> 1;
 		unsigned const xored = (reg_ ^ shifted) & 1;
 		reg_ = shifted | xored << 14;

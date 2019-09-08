@@ -91,6 +91,6 @@ bool EnvelopeUnit::nr4Init(unsigned long const cc) {
 
 	counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
 
-	volume_ = nr2_ / (psg_nr2_initvol & -psg_nr2_initvol);
+	volume_ = nr2_ / (1u * psg_nr2_initvol & -psg_nr2_initvol);
 	return !(nr2_ & (psg_nr2_initvol | psg_nr2_inc));
 }

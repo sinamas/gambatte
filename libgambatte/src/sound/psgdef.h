@@ -4,7 +4,7 @@
 namespace gambatte {
 
 enum {
-	psg_nr10_shiftn = 0x07,
+	psg_nr10_rsh = 0x07,
 	psg_nr10_neg = 0x08,
 	psg_nr10_time = 0x70
 };

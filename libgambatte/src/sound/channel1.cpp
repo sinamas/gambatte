@@ -35,14 +35,11 @@ Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit)
 }
 
 unsigned Channel1::SweepUnit::calcFreq() {
-	unsigned freq = shadow_ >> (nr0_ & psg_nr10_shiftn);
-
-	if (nr0_ & psg_nr10_neg) {
-		freq = shadow_ - freq;
+	unsigned const freq = nr0_ & psg_nr10_neg
+		? shadow_ - (shadow_ >> (nr0_ & psg_nr10_rsh))
+		: shadow_ + (shadow_ >> (nr0_ & psg_nr10_rsh));
+	if (nr0_ & psg_nr10_neg)
 		neg_ = true;
-	} else
-		freq = shadow_ + freq;
-
 	if (freq & 2048)
 		disableMaster_();
 
@@ -50,12 +47,12 @@ unsigned Channel1::SweepUnit::calcFreq() {
 }
 
 void Channel1::SweepUnit::event() {
-	unsigned long const period = (nr0_ & psg_nr10_time) / (psg_nr10_time & -psg_nr10_time);
+	unsigned long const period = (nr0_ & psg_nr10_time) / (1u * psg_nr10_time & -psg_nr10_time);
 
 	if (period) {
 		unsigned const freq = calcFreq();
 
-		if (!(freq & 2048) && nr0_ & psg_nr10_shiftn) {
+		if (!(freq & 2048) && nr0_ & psg_nr10_rsh) {
 			shadow_ = freq;
 			dutyUnit_.setFreq(freq, counter_);
 			calcFreq();
@@ -77,15 +74,15 @@ void Channel1::SweepUnit::nr4Init(unsigned long const cc) {
 	neg_ = false;
 	shadow_ = dutyUnit_.freq();
 
-	unsigned const period = (nr0_ & psg_nr10_time) / (psg_nr10_time & -psg_nr10_time);
-	unsigned const shift = nr0_ & psg_nr10_shiftn;
+	unsigned const period = (nr0_ & psg_nr10_time) / (1u * psg_nr10_time & -psg_nr10_time);
+	unsigned const rsh = nr0_ & psg_nr10_rsh;
 
-	if (period | shift)
+	if (period | rsh)
 		counter_ = ((((cc + 2 + cgb_ * 2) >> 14) + (period ? period : 8)) << 14) + 2;
 	else
 		counter_ = counter_disabled;
 
-	if (shift)
+	if (rsh)
 		calcFreq();
 }
 
