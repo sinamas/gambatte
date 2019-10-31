@@ -1781,6 +1781,10 @@ void CPU::process(unsigned long const cycles) {
 
 				break;
 
+			case 0xDD: // not specified. should freeze.
+				cycleCounter = freeze(mem_, cycleCounter);
+				break;
+
 			case 0xDE:
 				{
 					unsigned data;
