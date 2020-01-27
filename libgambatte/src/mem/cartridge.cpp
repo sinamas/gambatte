@@ -21,6 +21,7 @@
 #include "../savestate.h"
 #include "pakinfo_internal.h"
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 
