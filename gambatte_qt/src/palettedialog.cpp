@@ -37,6 +37,7 @@
 #include <QSettings>
 #include <QStringListModel>
 #include <QVBoxLayout>
+#include <QtWidgets>
 #include <algorithm>
 #include <cstring>
 #include <functional>
@@ -894,7 +895,7 @@ void PaletteDialog::schemeChanged(QModelIndex const &current) {
 		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
 		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
 			quads_[i]->setColor(j, (3 - (j & 3)) * 85 * 0x010101);
-	} else if (unsigned short const *gbcpal = findGbcPal(str.toAscii().data())) {
+	} else if (unsigned short const *gbcpal = findGbcPal(str.toLatin1().data())) {
 		for (std::size_t i = 0; i < sizeof quads_ / sizeof *quads_; ++i)
 		for (std::size_t j = 0; j < sizeof *currentColors_ / sizeof **currentColors_; ++j)
 			quads_[i]->setColor(j, gbcToRgb32(gbcpal[i * 4 + j]));
@@ -938,7 +939,7 @@ void PaletteDialog::externalChange() {
 void PaletteDialog::setSettingsFile(QString const &filename, QString const &romTitle) {
 	saveToSettingsFile();
 	settingsFile_ = filename;
-	defaultScheme_ = findGbcTitlePal(romTitle.toAscii().data())
+	defaultScheme_ = findGbcTitlePal(romTitle.toLatin1().data())
 	               ? romTitle
 	               : tr("Global Palette");
 	QSettings settings(savedir_ + settingsFile_, QSettings::IniFormat);

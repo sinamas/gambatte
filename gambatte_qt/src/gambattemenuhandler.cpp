@@ -28,7 +28,7 @@
 #include <QActionGroup>
 #include <QFileInfo>
 #include <QSettings>
-#include <QtGui>
+#include <QtWidgets>
 #include <iostream>
 
 namespace {

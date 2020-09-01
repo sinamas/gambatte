@@ -119,7 +119,7 @@ private slots:
 	void triggered();
 };
 
-class GambatteMenuHandler : private QObject {
+class GambatteMenuHandler : public QObject {
 public:
 	GambatteMenuHandler(MainWindow &mw, GambatteSource &source,
 	                    int argc, char const *const argv[]);

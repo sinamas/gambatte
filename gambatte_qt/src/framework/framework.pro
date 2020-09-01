@@ -1,3 +1,4 @@
+QT += widgets x11extras
 SOURCES += framework/src/blittercontainer.cpp \
     framework/src/videodialog.cpp \
     framework/src/inputdialog.cpp \

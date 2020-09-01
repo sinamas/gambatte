@@ -20,7 +20,7 @@
 #define ADD_AUDIO_ENGINES_H
 
 #include "auto_vector.h"
-#include <QtGui>
+#include <QtWidgets>
 
 class AudioEngine;
 

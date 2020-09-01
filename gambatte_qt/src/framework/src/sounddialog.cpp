@@ -195,7 +195,7 @@ void SoundDialog::rateIndexChange(int const index) {
 		QSize const size = rateBox_->itemData(index).toSize();
 		int const currentRate = rate_;
 		bool ok = false;
-		int r = QInputDialog::getInteger(this, tr("Set Sample Rate"),
+		int r = QInputDialog::getInt(this, tr("Set Sample Rate"),
 		                                 tr("Sample rate (Hz):"), currentRate,
 		                                 size.width(), size.height(), 1, &ok);
 		if (!ok)

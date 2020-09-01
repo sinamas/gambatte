@@ -1,3 +1,4 @@
+QT += widgets x11extras
 COMMONPATH = ../../common
 include(framework/framework.pro)
 
