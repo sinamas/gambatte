@@ -30,9 +30,9 @@ preservation aspect of the project is emphasised by the development of verified
 tests to support the development, and verification, of accurate implementations.
 Note that the source code is not intended to serve as documentation for the
 hardware being emulated; efficiency and convenience are often emphasised.
-Priority is on accuracy over functionality, completeness, or refactoring. Most
-of this is, by now, written a long time ago; this has some natural side-effects
-[e.g. using an older standard of C++].)
+Priority is on accuracy over functionality, completeness, compatibility, or
+refactoring. Most of this is, by now, written a long time ago; this has some
+natural side-effects [e.g. using an older standard of C++].)
 
 The core emulation code is contained in a separate library backend
 (libgambatte) written in platform-independent C++. There is currently a Qt GUI
