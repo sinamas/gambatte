@@ -23,6 +23,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <algorithm>
 
 using namespace gambatte;
 

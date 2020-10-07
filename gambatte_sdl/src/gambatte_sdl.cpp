@@ -28,6 +28,7 @@
 #include <gambatte.h>
 #include <pakinfo.h>
 #include <SDL.h>
+#undef main
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
