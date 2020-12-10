@@ -48,7 +48,7 @@ version_str_def = []
 if Dir('../.git').exists():
 	try:
 		git_revno = subprocess.check_output("git rev-list HEAD --count", shell=True).strip()
-		version_str_def = [ 'GAMBATTE_SDL_VERSION_STR', r'\"r' + git_revno + r'\"' ]
+		version_str_def = [ 'GAMBATTE_SDL_VERSION_STR', r'\"r' + git_revno.decode('utf-8') + r'\"' ]
 	except subprocess.CalledProcessError:
 		pass
 
